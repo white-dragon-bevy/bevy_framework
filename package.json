@@ -1,0 +1,23 @@
+{
+  "name": "white-dragon-bevy",
+  "version": "1.0.0",
+  "description": "Bevy 游戏引擎 monorepo 项目",
+  "private": true,
+  "workspaces": [
+    "crates/*"
+  ],
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r dev",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r clean"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}
