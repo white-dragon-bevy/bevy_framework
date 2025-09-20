@@ -97,7 +97,7 @@
 - 优先实现核心功能，可选功能可以后续迭代
 
 ## 相关资源
-
+- [Roblox-Ts-Pro](.claude\agents\roblox-ts-pro.md)
 - [迁移计划文档](../../../docs/migration-plan.md)
 - [Bevy 官方文档](https://bevyengine.org/)
 - [Matter ECS 文档](https://matter-ecs.github.io/matter/)
