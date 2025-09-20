@@ -16,6 +16,10 @@ importers:
         version: 5.9.2
 
   crates/app:
+    dependencies:
+      '@rbxts/matter':
+        specifier: ^0.8.5
+        version: 0.8.5
     devDependencies:
       '@rbxts/compiler-types':
         specifier: 3.0.0-types.0
@@ -165,6 +169,9 @@ packages:
 
   '@rbxts/compiler-types@3.0.0-types.0':
     resolution: {integrity: sha512-VGOHJPoL7+56NTatMGqQj3K7xWuzEV+aP4QD5vZiHu+bcff3kiTmtoadaF6NkJrmwfFAvbsd4Dg764ZjWNceag==}
+
+  '@rbxts/matter@0.8.5':
+    resolution: {integrity: sha512-xQ+ggK6w1fEHeVD1W3KAojHSZrO+H3eua344fTMo87WyeZ+Y5sDxLadOQHBtNR4dLh7kMS0HJ7MPRiFktjkPAA==}
 
   '@rbxts/types@1.0.882':
     resolution: {integrity: sha512-MTjOCCB2pSG/aaVwHoT1wmsFN7cOl/uiV11cHUX93Mko90kkoe6ZUsqDq0iKjygb2AHT/w6vjvNQYy7NxChLEw==}
@@ -903,6 +910,8 @@ snapshots:
   '@pkgr/core@0.2.9': {}
 
   '@rbxts/compiler-types@3.0.0-types.0': {}
+
+  '@rbxts/matter@0.8.5': {}
 
   '@rbxts/types@1.0.882': {}
 
