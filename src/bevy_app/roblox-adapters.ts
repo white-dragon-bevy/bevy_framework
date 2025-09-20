@@ -7,7 +7,7 @@ import { RunService, Players, ReplicatedStorage } from "@rbxts/services";
 import { World } from "@rbxts/matter";
 import { App } from "./app";
 import { BasePlugin } from "./plugin";
-import { BuiltinSchedules, SystemFunction } from "./types";
+import { BuiltinSchedules, SystemFunction, AppExit } from "./types";
 
 /**
  * Roblox运行器插件
@@ -24,11 +24,11 @@ export class RobloxRunnerPlugin extends BasePlugin {
 
 	build(app: App): void {
 		if (this.useHeartbeat) {
-			app.setRunner(this.heartbeatRunner.bind(this));
+			app.setRunner((app: App) => this.heartbeatRunner(app));
 		} else if (this.useStepped) {
-			app.setRunner(this.steppedRunner.bind(this));
+			app.setRunner((app: App) => this.steppedRunner(app));
 		} else if (this.useRenderStepped) {
-			app.setRunner(this.renderSteppedRunner.bind(this));
+			app.setRunner((app: App) => this.renderSteppedRunner(app));
 		}
 	}
 
@@ -43,7 +43,7 @@ export class RobloxRunnerPlugin extends BasePlugin {
 	private heartbeatRunner(app: App) {
 		let isRunning = true;
 
-		const connection = RunService.Heartbeat.Connect(deltaTime => {
+		const connection = RunService.Heartbeat.Connect((deltaTime: number) => {
 			if (!isRunning) return;
 
 			try {
@@ -65,7 +65,7 @@ export class RobloxRunnerPlugin extends BasePlugin {
 		});
 
 		// 返回成功退出状态
-		return app.shouldExit() ?? { code: 0 } as any;
+		return app.shouldExit() ?? AppExit.success();
 	}
 
 	/**
@@ -75,7 +75,7 @@ export class RobloxRunnerPlugin extends BasePlugin {
 	private steppedRunner(app: App) {
 		let isRunning = true;
 
-		const connection = RunService.Stepped.Connect((time, deltaTime) => {
+		const connection = RunService.Stepped.Connect((time: number, deltaTime: number) => {
 			if (!isRunning) return;
 
 			try {
@@ -96,7 +96,7 @@ export class RobloxRunnerPlugin extends BasePlugin {
 			}
 		});
 
-		return app.shouldExit() ?? { code: 0 } as any;
+		return app.shouldExit() ?? AppExit.success();
 	}
 
 	/**
@@ -110,7 +110,7 @@ export class RobloxRunnerPlugin extends BasePlugin {
 
 		let isRunning = true;
 
-		const connection = RunService.RenderStepped.Connect(deltaTime => {
+		const connection = RunService.RenderStepped.Connect((deltaTime: number) => {
 			if (!isRunning) return;
 
 			try {
@@ -131,7 +131,7 @@ export class RobloxRunnerPlugin extends BasePlugin {
 			}
 		});
 
-		return app.shouldExit() ?? { code: 0 } as any;
+		return app.shouldExit() ?? AppExit.success();
 	}
 }
 
@@ -143,9 +143,9 @@ export class RobloxNetworkPlugin extends BasePlugin {
 	build(app: App): void {
 		// 根据运行环境添加不同的网络系统
 		if (RunService.IsServer()) {
-			app.addSystems(BuiltinSchedules.Update, this.serverNetworkSystem);
+			app.addSystems(BuiltinSchedules.Update, (world: World) => this.serverNetworkSystem(world));
 		} else if (RunService.IsClient()) {
-			app.addSystems(BuiltinSchedules.Update, this.clientNetworkSystem);
+			app.addSystems(BuiltinSchedules.Update, (world: World) => this.clientNetworkSystem(world));
 		}
 	}
 
@@ -176,7 +176,7 @@ export class RobloxNetworkPlugin extends BasePlugin {
 export class RobloxPlayerPlugin extends BasePlugin {
 	build(app: App): void {
 		// 添加玩家相关的系统
-		app.addSystems(BuiltinSchedules.Update, this.playerManagementSystem);
+		app.addSystems(BuiltinSchedules.Update, (world: World) => this.playerManagementSystem(world));
 
 		// 监听玩家加入和离开事件
 		if (RunService.IsServer()) {
@@ -228,7 +228,7 @@ export class RobloxPlayerPlugin extends BasePlugin {
 export class RobloxAssetPlugin extends BasePlugin {
 	build(app: App): void {
 		// 添加资源加载系统
-		app.addSystems(BuiltinSchedules.PreUpdate, this.assetLoadingSystem);
+		app.addSystems(BuiltinSchedules.PreUpdate, (world: World) => this.assetLoadingSystem(world));
 	}
 
 	name(): string {
@@ -250,7 +250,7 @@ export class RobloxAssetPlugin extends BasePlugin {
 export class RobloxInputPlugin extends BasePlugin {
 	build(app: App): void {
 		if (RunService.IsClient()) {
-			app.addSystems(BuiltinSchedules.PreUpdate, this.inputSystem);
+			app.addSystems(BuiltinSchedules.PreUpdate, (world: World) => this.inputSystem(world));
 		}
 	}
 

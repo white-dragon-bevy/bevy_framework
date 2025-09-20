@@ -27,7 +27,7 @@ function testBasicApp() {
 	}
 
 	// 创建简单的App进行测试
-	const app = App.new().addSystems(BuiltinSchedules.Update, testSystem);
+	const app = App.create().addSystems(BuiltinSchedules.Update, testSystem);
 
 	// 手动更新一次来测试
 	app.update();
@@ -65,7 +65,7 @@ function testPluginSystem() {
 		}
 	}
 
-	const app = App.new().addPlugin(new TestPlugin());
+	const app = App.create().addPlugin(new TestPlugin());
 
 	// 测试插件是否被正确添加
 	assert(pluginBuilt, "Plugin should have been built");
@@ -96,7 +96,7 @@ function testFunctionPlugin() {
 		"TestFunctionPlugin",
 	);
 
-	App.new().addPlugin(testPlugin);
+	App.create().addPlugin(testPlugin);
 
 	assert(functionCalled, "Function plugin should have been called");
 	print("✓ Function plugin test passed");
@@ -122,7 +122,7 @@ function testScheduleSystem() {
 		executionOrder.push("Last");
 	}
 
-	const app = App.new()
+	const app = App.create()
 		.addSystems(BuiltinSchedules.First, firstSystem)
 		.addSystems(BuiltinSchedules.Update, updateSystem)
 		.addSystems(BuiltinSchedules.Last, lastSystem);
@@ -149,7 +149,7 @@ function testResourceSystem() {
 		value: 42,
 	};
 
-	const app = App.new().insertResource(testResource);
+	const app = App.create().insertResource(testResource);
 
 	// 注意：这个测试需要实际的资源访问API
 	print("✓ Resource system test setup completed");
@@ -163,12 +163,12 @@ function testErrorHandling() {
 
 	let errorHandled = false;
 
-	function errorHandler(error: unknown) {
+	function errorHandler(errorObj: unknown) {
 		errorHandled = true;
 		print(`Error handled: ${error}`);
 	}
 
-	const app = App.new().setErrorHandler(errorHandler);
+	const app = App.create().setErrorHandler(errorHandler);
 
 	assert(app.getErrorHandler() === errorHandler, "Error handler should be set correctly");
 
@@ -200,7 +200,7 @@ function testRobloxEnvironment() {
  */
 export function runAllTests() {
 	print("🧪 Starting Bevy App tests...");
-	print("=" * 50);
+	print(string.rep("=", 50));
 
 	try {
 		testBasicApp();
@@ -211,10 +211,10 @@ export function runAllTests() {
 		testErrorHandling();
 		testRobloxEnvironment();
 
-		print("=" * 50);
+		print(string.rep("=", 50));
 		print("✅ All tests completed successfully!");
 	} catch (error) {
-		print("=" * 50);
+		print(string.rep("=", 50));
 		print(`❌ Tests failed: ${error}`);
 		throw error;
 	}
@@ -230,8 +230,8 @@ export function createDemoApp(): App {
 		build(app: App): void {
 			print("🚀 Demo Plugin initialized");
 
-			app.addSystems(BuiltinSchedules.Startup, this.startupSystem.bind(this));
-			app.addSystems(BuiltinSchedules.Update, this.updateSystem.bind(this));
+			app.addSystems(BuiltinSchedules.Startup, () => this.startupSystem());
+			app.addSystems(BuiltinSchedules.Update, () => this.updateSystem());
 		}
 
 		name(): string {
@@ -257,15 +257,15 @@ export function createDemoApp(): App {
 		}
 	}
 
-	return App.new()
+	return App.create()
 		.addPlugin(new DemoPlugin())
-		.setErrorHandler((error: unknown) => {
+		.setErrorHandler((errorObj: unknown) => {
 			warn(`Demo app error: ${error}`);
 		});
 }
 
 // 如果这个文件被直接执行，运行测试
-if (script === game.ReplicatedFirst.TS.app.test) {
+if (script.Name === "test") {
 	spawn(() => {
 		runAllTests();
 

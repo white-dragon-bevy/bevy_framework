@@ -5,14 +5,17 @@
 将 Bevy 引擎的 `bevy_log` 模块迁移到 roblox-ts 生态，实现完整的日志系统，适配 Roblox 输出机制。
 
 ## 输入目录
+
 - `bevy-origin/crates/bevy_log/` - Bevy 原始日志系统代码
 
 ## 输出目录
-- `crates/bevy_log/` - 迁移后的 roblox-ts 日志系统
+
+- `src/bevy_log/` - 迁移后的 roblox-ts 日志系统
 
 ## 任务要求
 
 ### 1. 核心功能迁移
+
 - 实现分级日志系统 (Trace, Debug, Info, Warn, Error)
 - 支持结构化日志和格式化输出
 - 实现日志过滤和筛选机制
@@ -20,6 +23,7 @@
 - 提供性能友好的日志宏
 
 ### 2. 架构设计
+
 ```typescript
 // 日志级别枚举
 enum LogLevel {
@@ -56,6 +60,7 @@ class LogManager {
 ```
 
 ### 3. Roblox 集成
+
 - 使用 Roblox `print()`, `warn()`, `error()` 函数
 - 支持 Roblox Studio 输出窗口
 - 集成 Roblox 的开发者控制台
@@ -63,7 +68,9 @@ class LogManager {
 - 处理客户端和服务器的日志同步
 
 ### 4. 编码规范
+
 严格遵循 `.claude/agents/roblox-ts-pro.md` 中的编码规范：
+
 - 所有导出函数必须有 JSDoc 注释
 - 使用显式返回类型
 - 文件末尾必须以换行符结束
@@ -71,7 +78,9 @@ class LogManager {
 - 使用描述性变量名
 
 ### 5. 单元测试
+
 使用 `@rbxts/testez` 编写完整的单元测试：
+
 - 测试各个日志级别的输出
 - 测试日志过滤机制
 - 测试多日志器的协作
@@ -80,6 +89,7 @@ class LogManager {
 - 测试错误处理
 
 ### 6. 特殊考虑
+
 - 避免在高频系统中产生性能影响
 - 支持生产环境的日志级别控制
 - 处理敏感信息的过滤
@@ -87,6 +97,7 @@ class LogManager {
 - 与调试工具的集成
 
 ## 文件结构
+
 ```
 crates/bevy_log/
 ├── src/
@@ -114,12 +125,14 @@ crates/bevy_log/
 ```
 
 ### 7. 高级特性
+
 - 异步日志输出（避免阻塞游戏循环）
 - 日志缓冲和批量输出
 - 结构化日志的查询和分析
 - 日志压缩和归档
 
 ## 预期产出
+
 1. 完整的分级日志系统
 2. 高性能的日志输出机制
 3. 灵活的日志过滤和格式化
@@ -128,6 +141,7 @@ crates/bevy_log/
 6. 详细的 JSDoc 文档
 
 ## 验证标准
+
 - 所有测试通过
 - ESLint 检查无错误
 - TypeScript 编译无错误
@@ -136,6 +150,7 @@ crates/bevy_log/
 - 支持高并发日志输出
 
 ## 使用示例
+
 ```typescript
 // 基础日志使用
 import { Logger, LogLevel } from "@/crates/bevy_log";
@@ -179,12 +194,14 @@ class LogPlugin implements MatterPlugin {
 ```
 
 ## 性能优化
+
 - 惰性字符串构建
 - 日志级别快速检查
 - 对象池管理日志记录
 - 异步批量输出
 
 ## 与其他模块集成
+
 - 与 `bevy_app` 插件系统集成
 - 与 `bevy_diagnostic` 诊断系统集成
 - 与开发工具的日志查看器集成

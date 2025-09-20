@@ -31,7 +31,7 @@ export class App {
 
 	constructor() {
 		this.subApps = new SubApps();
-		this.runner = this.runOnce.bind(this);
+		this.runner = (app: App) => this.runOnce(app);
 
 		// 初始化主应用
 		this.initializeMainApp();
@@ -41,7 +41,7 @@ export class App {
 	 * 创建新的App实例
 	 * 对应 Rust App::new
 	 */
-	static new(): App {
+	static create(): App {
 		return new App();
 	}
 
@@ -128,7 +128,7 @@ export class App {
 	/**
 	 * 默认运行器实现
 	 */
-	private runOnce(): AppExit {
+	private runOnce(_app: App): AppExit {
 		// 等待所有插件准备完成
 		while (this.getPluginState() === PluginState.Adding) {
 			// 可以在这里添加异步任务处理逻辑

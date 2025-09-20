@@ -8,7 +8,7 @@
 - `bevy-origin/crates/bevy_ecs/` - Bevy 原始 ECS 系统代码
 
 ## 输出目录
-- `crates/bevy_ecs/` - 迁移后的 roblox-ts ECS 系统
+- `src/bevy_ecs/` - 迁移后的 roblox-ts ECS 系统
 
 ## 任务要求
 

@@ -5,20 +5,24 @@
 将 Bevy 引擎的 `bevy_app` 模块迁移到 roblox-ts 生态，实现应用框架和插件系统。
 
 ## 输入目录
+
 - `bevy-origin/crates/bevy_app/` - Bevy 原始应用框架代码
 
 ## 输出目录
-- `crates/bevy_app/` - 迁移后的 roblox-ts 应用框架
+
+- `src/bevy_app/` - 迁移后的 roblox-ts 应用框架
 
 ## 任务要求
 
 ### 1. 核心功能迁移
+
 - 实现 `MatterApp` 应用构建器类
 - 实现插件系统接口 `MatterPlugin`
 - 支持插件的注册、初始化和生命周期管理
 - 建立插件间的依赖关系处理
 
 ### 2. 架构设计
+
 ```typescript
 // 核心插件接口
 interface MatterPlugin {
@@ -37,7 +41,9 @@ class MatterApp {
 ```
 
 ### 3. 编码规范
+
 严格遵循 `.claude/agents/roblox-ts-pro.md` 中的编码规范：
+
 - 使用显式返回类型
 - 所有导出函数必须有 JSDoc 注释
 - 使用 `@param name - description` 格式
@@ -47,19 +53,23 @@ class MatterApp {
 - 接口属性按字母顺序排列
 
 ### 4. 单元测试
+
 使用 `@rbxts/testez` 编写完整的单元测试：
+
 - 测试插件注册功能
 - 测试插件依赖解析
 - 测试应用生命周期
 - 测试错误处理机制
 
 ### 5. 特殊考虑
+
 - 适配 Roblox 单线程执行模型
 - 与 `@rbxts/matter` ECS 系统集成
 - 处理 Roblox 服务的初始化顺序
 - 支持热重载和开发模式
 
 ## 文件结构
+
 ```
 crates/bevy_app/
 ├── src/
@@ -77,6 +87,7 @@ crates/bevy_app/
 ```
 
 ## 预期产出
+
 1. 完整的 bevy_app 模块实现
 2. 类型安全的插件系统
 3. 全面的单元测试覆盖
@@ -84,6 +95,7 @@ crates/bevy_app/
 5. 与 Matter ECS 的无缝集成
 
 ## 验证标准
+
 - 所有测试通过
 - ESLint 检查无错误
 - TypeScript 编译无错误

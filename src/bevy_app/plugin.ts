@@ -74,7 +74,7 @@ export abstract class BasePlugin implements Plugin {
 	cleanup?(_app: App): void;
 
 	name(): string {
-		return this.constructor.name;
+		return "BasePlugin";
 	}
 
 	isUnique(): boolean {
@@ -206,20 +206,26 @@ export abstract class BasePluginGroup implements PluginGroup {
 	abstract build(): PluginGroupBuilder;
 
 	name(): string {
-		return this.constructor.name;
+		return "BasePluginGroup";
 	}
 }
 
 /**
  * 插件错误类型
  */
-export class PluginError extends Error {
+export class PluginError {
+	public name = "PluginError";
+	public readonly message: string;
+
 	constructor(
 		message: string,
 		public readonly pluginName: string,
 	) {
-		super(message);
-		this.name = "PluginError";
+		this.message = message;
+	}
+
+	toString(): string {
+		return `${this.name}: ${this.message}`;
 	}
 }
 

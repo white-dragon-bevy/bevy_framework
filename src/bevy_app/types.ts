@@ -30,7 +30,9 @@ export enum AppExitCode {
 	Error = 1,
 }
 
-export class AppExit {
+export class AppExit implements Message {
+	readonly __brand = "Message" as const;
+
 	constructor(public readonly code: AppExitCode = AppExitCode.Success) {}
 
 	static success(): AppExit {

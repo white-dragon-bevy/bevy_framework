@@ -23,7 +23,7 @@ export function basicExample() {
 		print("Hello from Bevy App!");
 	}
 
-	App.new()
+	App.create()
 		.addSystems(BuiltinSchedules.Update, helloWorldSystem)
 		.run();
 }
@@ -39,10 +39,10 @@ export function customPluginExample() {
 
 		build(app: App): void {
 			// 添加初始化系统
-			app.addSystems(BuiltinSchedules.Startup, this.initLoggingSystem.bind(this));
+			app.addSystems(BuiltinSchedules.Startup, (world: World) => this.initLoggingSystem(world));
 
 			// 添加更新系统
-			app.addSystems(BuiltinSchedules.Update, this.loggingSystem.bind(this));
+			app.addSystems(BuiltinSchedules.Update, (world: World, deltaTime?: number) => this.loggingSystem(world, deltaTime));
 		}
 
 		name(): string {
@@ -61,7 +61,7 @@ export function customPluginExample() {
 		}
 	}
 
-	App.new()
+	App.create()
 		.addPlugin(new LoggingPlugin("[MyGame]"))
 		.run();
 }
@@ -84,7 +84,7 @@ export function functionPluginExample() {
 		app.addSystems(BuiltinSchedules.Update, timerSystem);
 	}, "TimerPlugin");
 
-	App.new()
+	App.create()
 		.addPlugin(timerPlugin)
 		.run();
 }
@@ -109,7 +109,7 @@ export function customScheduleExample() {
 		// 注意：这需要访问调度器API
 	}
 
-	App.new()
+	App.create()
 		.addSystems(PhysicsSchedule, physicsSystem)
 		.addSystems(RenderSchedule, renderSystem)
 		.addSystems(BuiltinSchedules.Update, mainLoopSystem)
@@ -124,7 +124,7 @@ export function clientServerExample() {
 		// 服务端应用
 		class ServerPlugin extends BasePlugin {
 			build(app: App): void {
-				app.addSystems(BuiltinSchedules.Update, this.serverLogic);
+				app.addSystems(BuiltinSchedules.Update, (world: World) => this.serverLogic(world));
 			}
 
 			name(): string {
@@ -137,7 +137,7 @@ export function clientServerExample() {
 			}
 		}
 
-		App.new()
+		App.create()
 			.addPlugins(...RobloxDefaultPlugins.create().build())
 			.addPlugin(new ServerPlugin())
 			.run();
@@ -145,7 +145,7 @@ export function clientServerExample() {
 		// 客户端应用
 		class ClientPlugin extends BasePlugin {
 			build(app: App): void {
-				app.addSystems(BuiltinSchedules.Update, this.clientLogic);
+				app.addSystems(BuiltinSchedules.Update, (world: World) => this.clientLogic(world));
 			}
 
 			name(): string {
@@ -158,7 +158,7 @@ export function clientServerExample() {
 			}
 		}
 
-		App.new()
+		App.create()
 			.addPlugins(...RobloxDefaultPlugins.create().build())
 			.addPlugin(new ClientPlugin())
 			.run();
@@ -189,7 +189,7 @@ export function resourceExample() {
 		// 注意：这需要Matter的资源API
 	}
 
-	App.new()
+	App.create()
 		.insertResource(gameConfig)
 		.addSystems(BuiltinSchedules.Update, gameSystem)
 		.run();
@@ -199,7 +199,7 @@ export function resourceExample() {
  * 示例7：错误处理
  */
 export function errorHandlingExample() {
-	function errorHandler(error: unknown) {
+	function errorHandler(errorObj: unknown) {
 		warn(`App Error: ${error}`);
 		// 可以在这里添加错误报告、崩溃恢复等逻辑
 	}
@@ -207,11 +207,11 @@ export function errorHandlingExample() {
 	function faultySystem(world: World) {
 		// 故意抛出错误来测试错误处理
 		if (math.random() < 0.01) {
-			throw new Error("Random error occurred!");
+			error("Random error occurred!");
 		}
 	}
 
-	App.new()
+	App.create()
 		.setErrorHandler(errorHandler)
 		.addSystems(BuiltinSchedules.Update, faultySystem)
 		.run();
@@ -221,16 +221,10 @@ export function errorHandlingExample() {
  * 示例8：插件组合和配置
  */
 export function pluginGroupExample() {
-	// 创建自定义插件组
-	const gamePlugins = RobloxDefaultPlugins.create()
-		.remove(RobloxInputPlugin) // 移除默认输入插件
-		.add(new CustomInputPlugin()) // 添加自定义输入插件
-		.build();
-
 	class CustomInputPlugin extends BasePlugin {
 		build(app: App): void {
 			if (RobloxEnvironment.isClient()) {
-				app.addSystems(BuiltinSchedules.PreUpdate, this.customInputSystem);
+				app.addSystems(BuiltinSchedules.PreUpdate, (world: World) => this.customInputSystem(world));
 			}
 		}
 
@@ -243,7 +237,13 @@ export function pluginGroupExample() {
 		}
 	}
 
-	App.new()
+	// 创建自定义插件组
+	const gamePlugins = RobloxDefaultPlugins.create()
+		.remove(RobloxInputPlugin) // 移除默认输入插件
+		.add(new CustomInputPlugin()) // 添加自定义输入插件
+		.build();
+
+	App.create()
 		.addPlugins(...gamePlugins)
 		.run();
 }
@@ -268,7 +268,7 @@ export function subAppExample() {
 		// 渲染逻辑
 	}
 
-	App.new()
+	App.create()
 		.addSystems(BuiltinSchedules.Update, mainLogic)
 		// .insertSubApp(RenderLabel, renderSubApp) // 需要SubApp实现
 		.run();
@@ -283,7 +283,7 @@ export function performanceExample() {
 		private lastReportTime = tick();
 
 		build(app: App): void {
-			app.addSystems(BuiltinSchedules.Last, this.performanceMonitor.bind(this));
+			app.addSystems(BuiltinSchedules.Last, (world: World) => this.performanceMonitor(world));
 		}
 
 		name(): string {
@@ -305,7 +305,7 @@ export function performanceExample() {
 		}
 	}
 
-	App.new()
+	App.create()
 		.addPlugin(new PerformancePlugin())
 		.addSystems(BuiltinSchedules.Update, () => {
 			// 模拟一些工作负载

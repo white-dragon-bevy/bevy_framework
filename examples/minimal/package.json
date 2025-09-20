@@ -12,7 +12,8 @@
   "license": "ISC",
   "packageManager": "pnpm@10.15.0",
   "dependencies": {
-    "@white-dragon-bull/app": "workspace:*"
+    "@white-dragon-bevy/bevy_app": "workspace:*",
+    "@white-dragon-bevy/bevy_ecs": "workspace:*"
   },
   "devDependencies": {
     "@rbxts/compiler-types": "3.0.0-types.0",

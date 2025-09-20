@@ -13,7 +13,7 @@
  * import { App, BuiltinSchedules, RobloxDefaultPlugins } from "@white-dragon-bull/app";
  *
  * // 创建基础应用
- * const app = App.new()
+ * const app = App.create()
  *   .addPlugins(...RobloxDefaultPlugins.create().build())
  *   .addSystems(BuiltinSchedules.Update, gameSystem)
  *   .run();

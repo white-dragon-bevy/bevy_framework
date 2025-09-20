@@ -5,14 +5,17 @@
 将 Bevy 引擎的 `bevy_state` 模块迁移到 roblox-ts 生态，实现状态机系统和游戏状态管理。
 
 ## 输入目录
+
 - `bevy-origin/crates/bevy_state/` - Bevy 原始状态管理代码
 
 ## 输出目录
-- `crates/bevy_state/` - 迁移后的 roblox-ts 状态系统
+
+- `src/bevy_state/` - 迁移后的 roblox-ts 状态系统
 
 ## 任务要求
 
 ### 1. 核心功能迁移
+
 - 实现 `State<T>` 状态资源管理
 - 实现状态转换系统 `StateTransition`
 - 支持状态进入/退出事件
@@ -20,6 +23,7 @@
 - 提供状态历史记录和回滚功能
 
 ### 2. 架构设计
+
 ```typescript
 // 状态枚举类型
 type GameState = "Menu" | "Playing" | "Paused" | "GameOver";
@@ -55,13 +59,16 @@ interface StateDefinition<T extends string> {
 ```
 
 ### 3. 状态事件系统
+
 - 实现状态进入事件 `StateEnterEvent<T>`
 - 实现状态退出事件 `StateExitEvent<T>`
 - 支持状态转换的条件检查
 - 提供状态变化的监听机制
 
 ### 4. 编码规范
+
 严格遵循 `.claude/agents/roblox-ts-pro.md` 中的编码规范：
+
 - 使用字符串联合类型定义状态
 - 所有导出函数必须有 JSDoc 注释
 - 使用显式返回类型
@@ -69,7 +76,9 @@ interface StateDefinition<T extends string> {
 - 接口属性按字母顺序排列
 
 ### 5. 单元测试
+
 使用 `@rbxts/testez` 编写完整的单元测试：
+
 - 测试状态转换的正确性
 - 测试状态事件的触发
 - 测试嵌套状态的管理
@@ -78,6 +87,7 @@ interface StateDefinition<T extends string> {
 - 测试错误处理和边界情况
 
 ### 6. 特殊考虑
+
 - 支持异步状态转换
 - 与网络同步的状态管理
 - 状态序列化和反序列化
@@ -85,6 +95,7 @@ interface StateDefinition<T extends string> {
 - 与其他系统的状态协调
 
 ## 文件结构
+
 ```
 crates/bevy_state/
 ├── src/
@@ -107,12 +118,14 @@ crates/bevy_state/
 ```
 
 ### 7. 高级特性
+
 - 状态机可视化调试
 - 状态转换的性能分析
 - 并发状态管理
 - 状态快照和回放
 
 ## 预期产出
+
 1. 类型安全的状态管理系统
 2. 灵活的状态转换机制
 3. 完整的状态事件系统
@@ -121,6 +134,7 @@ crates/bevy_state/
 6. 详细的 JSDoc 文档
 
 ## 验证标准
+
 - 所有测试通过
 - ESLint 检查无错误
 - TypeScript 编译无错误
@@ -129,6 +143,7 @@ crates/bevy_state/
 - 事件系统性能良好
 
 ## 使用示例
+
 ```typescript
 // 定义游戏状态
 type GameState = "MainMenu" | "Playing" | "Paused" | "GameOver";
@@ -183,6 +198,7 @@ function handleInput(world: World, input: InputEvent) {
 ```
 
 ## 与其他模块集成
+
 - 与 `bevy_app` 的插件系统集成
 - 与 `bevy_ecs` 的事件系统集成
 - 与 UI 系统的状态同步

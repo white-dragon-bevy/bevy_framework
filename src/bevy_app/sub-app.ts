@@ -196,7 +196,7 @@ export class SubApp {
 		if (this._pluginState === PluginState.Adding) {
 			// 检查所有插件是否准备就绪
 			const allReady = this.pluginRegistry.every(plugin => {
-				if (plugin.ready) {
+				if (plugin.ready !== undefined) {
 					return plugin.ready(this as any); // 需要传入App实例
 				}
 				return true;
@@ -215,7 +215,7 @@ export class SubApp {
 	 */
 	finish(): void {
 		for (const plugin of this.pluginRegistry) {
-			if (plugin.finish) {
+			if (plugin.finish !== undefined) {
 				plugin.finish(this as any); // 需要传入App实例
 			}
 		}
@@ -227,7 +227,7 @@ export class SubApp {
 	 */
 	cleanup(): void {
 		for (const plugin of this.pluginRegistry) {
-			if (plugin.cleanup) {
+			if (plugin.cleanup !== undefined) {
 				plugin.cleanup(this as any); // 需要传入App实例
 			}
 		}

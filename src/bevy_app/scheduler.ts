@@ -188,7 +188,11 @@ export class Scheduler {
 	 * 获取所有调度标签
 	 */
 	getScheduleLabels(): ScheduleLabel[] {
-		return [...this.schedules.keys()].map(name => ({ __brand: "ScheduleLabel", name } as ScheduleLabel));
+			const labels: ScheduleLabel[] = [];
+		for (const [name] of this.schedules) {
+			labels.push({ __brand: "ScheduleLabel", name } as ScheduleLabel);
+		}
+		return labels;
 	}
 
 	/**
