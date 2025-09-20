@@ -1,7 +1,7 @@
 {
-  "name": "@white-dragon-bevy/bevy_app",
+  "name": "_template",
   "version": "0.1.0",
-  "description": "Bevy App系统的Roblox-TS移植版本 - 提供应用程序生命周期管理和插件系统",
+  "description": "",
   "main": "out/init.lua",
   "scripts": {
     "build": "rbxtsc",
