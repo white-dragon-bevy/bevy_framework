@@ -178,6 +178,13 @@ export class ResourceManager {
 	}
 
 	/**
+	 * 获取所有资源（用于调试和特殊情况）
+	 */
+	public getAllResources(): Map<ResourceId, Resource> {
+		return this.resources;
+	}
+
+	/**
 	 * 清空所有资源
 	 */
 	public clear(): void {
@@ -264,6 +271,44 @@ export function getResourceManager(): ResourceManager {
 		error("Resource manager not initialized. Call initializeResourceManager first.");
 	}
 	return defaultResourceManager;
+}
+
+/**
+ * SimpleCommandBuffer 实现 - 延迟执行命令（用于调度系统）
+ */
+export class SimpleCommandBuffer {
+	private commands: Array<(world: any) => void> = [];
+
+	/**
+	 * 添加命令
+	 */
+	addCommand(command: (world: any) => void): void {
+		this.commands.push(command);
+	}
+
+	/**
+	 * 刷新所有命令
+	 */
+	flush(world: any): void {
+		for (const command of this.commands) {
+			command(world);
+		}
+		this.commands = [];
+	}
+
+	/**
+	 * 清空命令
+	 */
+	clear(): void {
+		this.commands = [];
+	}
+
+	/**
+	 * 获取命令数量
+	 */
+	getCommandCount(): number {
+		return this.commands.size();
+	}
 }
 
 /**

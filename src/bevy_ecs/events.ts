@@ -67,17 +67,21 @@ class EventStorage<T extends Event> {
 		// 保留最近的事件，删除过旧的事件以避免内存泄漏
 		if (this.events.size() > 1000) {
 			const keepCount = 100;
+			const oldEventCount = this.events.size();
 			const newEvents: T[] = [];
-		const startIndex = math.max(0, this.events.size() - keepCount);
-		for (let i = startIndex; i < this.events.size(); i++) {
-			newEvents.push(this.events[i]);
-		}
-		this.events = newEvents;
+			const startIndex = math.max(0, this.events.size() - keepCount);
+
+			for (let i = startIndex; i < this.events.size(); i++) {
+				newEvents.push(this.events[i]);
+			}
+
+			this.events = newEvents;
 
 			// 更新所有读取器的位置
+			const removedCount = oldEventCount - keepCount;
 			for (const reader of this.readers) {
 				const state = this.getReaderState(reader);
-				state.lastRead = math.max(0, state.lastRead - (this.events.size() - keepCount));
+				state.lastRead = math.max(0, state.lastRead - removedCount);
 			}
 		}
 	}
@@ -114,6 +118,7 @@ export class EventWriter<T extends Event> {
 export class EventReader<T extends Event> {
 	private storage: EventStorage<T>;
 	public state?: { lastRead: number };
+	private isCleanedUp = false;
 
 	constructor(storage: EventStorage<T>) {
 		this.storage = storage;
@@ -124,6 +129,9 @@ export class EventReader<T extends Event> {
 	 * 读取新事件 - 对应 Bevy 的 EventReader::read()
 	 */
 	public read(): T[] {
+		if (this.isCleanedUp) {
+			return [];
+		}
 		return this.storage.getEventsForReader(this);
 	}
 
@@ -131,6 +139,9 @@ export class EventReader<T extends Event> {
 	 * 检查是否有新事件 - 对应 Bevy 的 EventReader::is_empty()
 	 */
 	public isEmpty(): boolean {
+		if (this.isCleanedUp) {
+			return true;
+		}
 		return this.read().size() === 0;
 	}
 
@@ -139,6 +150,7 @@ export class EventReader<T extends Event> {
 	 */
 	public cleanup(): void {
 		this.storage.unregisterReader(this);
+		this.isCleanedUp = true;
 	}
 }
 
@@ -206,8 +218,8 @@ export class EventManager {
 		for (const [eventType, storage] of this.storages) {
 			const typeName = tostring(eventType);
 			stats[typeName] = {
-				eventCount: (storage as unknown as { events?: { size(): number } }).events?.size() || 0,
-				readerCount: (storage as unknown as { readers?: { size(): number } }).readers?.size() || 0,
+				eventCount: (storage as unknown as { events?: unknown[] }).events?.size() || 0,
+				readerCount: (storage as unknown as { readers?: Set<unknown> }).readers?.size() || 0,
 			};
 		}
 		return stats;

@@ -111,10 +111,17 @@ export interface CommandResult {
  * 提供延迟执行的命令系统，允许在系统中排队结构性变更，
  * 然后在安全的时机批量应用到World中
  */
+// 定义资源管理器接口
+interface ResourceManagerLike {
+	insertResource(key: string, resource: unknown): void;
+	removeResource(key: string): void;
+}
+
 export class CommandBuffer {
 	private readonly commands: Command[] = [];
 	private readonly pendingEntityIds = new Map<number, EntityId>();
 	private nextTempEntityId = 0;
+	private resourceManager?: ResourceManagerLike;
 
 	/**
 	 * 生成新实体并添加组件
@@ -204,11 +211,25 @@ export class CommandBuffer {
 	}
 
 	/**
+	 * 设置资源管理器
+	 * @param manager SingletonManager 实例
+	 */
+	public setResourceManager(manager: ResourceManagerLike): void {
+		this.resourceManager = manager;
+	}
+
+	/**
 	 * 将所有排队的命令应用到World
 	 * @param world Matter World实例
+	 * @param resourceManager 可选的资源管理器
 	 * @returns 命令执行结果数组
 	 */
-	public flush(world: World): CommandResult[] {
+	public flush(world: World, resourceManager?: ResourceManagerLike): CommandResult[] {
+		// 如果提供了资源管理器，使用它
+		if (resourceManager) {
+			this.resourceManager = resourceManager;
+		}
+
 		const results: CommandResult[] = [];
 
 		for (const command of this.commands) {
@@ -314,16 +335,25 @@ export class CommandBuffer {
 				};
 			}
 
-			case CommandType.InsertResource:
-			case CommandType.RemoveResource: {
-				// Matter没有直接的资源系统，这里需要通过单例组件实现
-				// 将在singleton.ts中实现具体逻辑
-				warn(`Resource commands not yet implemented: ${command.type}`);
+			case CommandType.InsertResource: {
+				const cmd = command as InsertResourceCommand;
+				// 使用 SingletonManager 存储资源
+				if (this.resourceManager) {
+					// 将资源作为单例存储
+					const resourceKey = `Resource_${tostring(cmd.resource)}`;
+					this.resourceManager.insertResource(resourceKey, cmd.resource);
+				}
+				return { success: true };
+			}
 
-				return {
-					success: false,
-					error: `Resource commands not yet implemented: ${command.type}`,
-				};
+			case CommandType.RemoveResource: {
+				const cmd = command as RemoveResourceCommand;
+				// 使用 SingletonManager 移除资源
+				if (this.resourceManager) {
+					const resourceKey = `Resource_${tostring(cmd.resourceType)}`;
+					this.resourceManager.removeResource(resourceKey);
+				}
+				return { success: true };
 			}
 
 			default: {

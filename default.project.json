@@ -1,6 +1,32 @@
 {
-	"name": "bevy_app",
+	"name": "@white-dragon-bevy",
+	"globIgnorePaths": [
+		"**/package.json",
+		"**/tsconfig.json"
+	],
 	"tree": {
-		"$path": "out/"
+		"$className": "DataModel",
+		"ReplicatedStorage": {
+			"$className": "ReplicatedStorage",
+			"rbxts_include": {
+				"$path": "include_custom",
+				"node_modules": {
+					"$className": "Folder",
+					"@rbxts": {
+						"$path": "node_modules/@rbxts"
+					},
+					"@white-dragon-bevy": {
+						"$className":"Folder",
+						"bevy-framework":{
+							"$path": "out"
+						}
+					}
+				}
+			}
+		},
+		"TestService":{
+			"$className": "TestService",
+			"$path": "TestService"
+		}
 	}
 }

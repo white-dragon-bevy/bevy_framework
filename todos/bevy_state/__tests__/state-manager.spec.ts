@@ -6,8 +6,10 @@ import { World } from "@rbxts/matter";
 import { State, NextState } from "../state";
 import { StateManager } from "../state-manager";
 import type { StateDefinition } from "../types";
+import { createMockFn } from "./test-utils";
 
-describe("StateManager", () => {
+export = () => {
+	describe("StateManager", () => {
 	let world: World;
 	let manager: StateManager<"Idle" | "Walking" | "Running" | "Jumping">;
 
@@ -22,27 +24,31 @@ describe("StateManager", () => {
 
 	describe("状态定义管理", () => {
 		it("应该添加和移除状态定义", () => {
+			const onEnterMock = createMockFn();
+			const onExitMock = createMockFn();
 			const definition: StateDefinition<"Idle"> = {
-				onEnter: jest.fn(),
-				onExit: jest.fn(),
+				onEnter: onEnterMock.fn,
+				onExit: onExitMock.fn,
 			};
 
 			manager.addState("Idle", definition);
-			expect(manager.hasState("Idle")).toBe(true);
+			expect(manager.hasState("Idle")).to.equal(true);
 
 			manager.removeState("Idle");
-			expect(manager.hasState("Idle")).toBe(false);
+			expect(manager.hasState("Idle")).to.equal(false);
 		});
 
 		it("应该批量添加状态", () => {
+			const onEnterMock = createMockFn();
+			const onUpdateMock = createMockFn();
 			const states = new Map<"Idle" | "Walking", StateDefinition<"Idle" | "Walking">>();
-			states.set("Idle", { onEnter: jest.fn() });
-			states.set("Walking", { onUpdate: jest.fn() });
+			states.set("Idle", { onEnter: onEnterMock.fn });
+			states.set("Walking", { onUpdate: onUpdateMock.fn });
 
 			manager.addStates(states);
 
-			expect(manager.hasState("Idle")).toBe(true);
-			expect(manager.hasState("Walking")).toBe(true);
+			expect(manager.hasState("Idle")).to.equal(true);
+			expect(manager.hasState("Walking")).to.equal(true);
 		});
 
 		it("应该返回所有已注册的状态", () => {
@@ -51,20 +57,20 @@ describe("StateManager", () => {
 			manager.addState("Running", {});
 
 			const states = manager.getRegisteredStates();
-			expect(states).toContain("Idle");
-			expect(states).toContain("Walking");
-			expect(states).toContain("Running");
-			expect(states.size()).toBe(3);
+			expect(states.includes("Idle")).to.equal(true);
+			expect(states.includes("Walking")).to.equal(true);
+			expect(states.includes("Running")).to.equal(true);
+			expect(states.size()).to.equal(3);
 		});
 	});
 
 	describe("状态转换", () => {
 		it("应该执行状态转换", () => {
-			const onExit = jest.fn();
-			const onEnter = jest.fn();
+			const onExitMock = createMockFn();
+			const onEnterMock = createMockFn();
 
-			manager.addState("Idle", { onExit });
-			manager.addState("Walking", { onEnter });
+			manager.addState("Idle", { onExit: onExitMock.fn });
+			manager.addState("Walking", { onEnter: onEnterMock.fn });
 
 			const state = world.get("State") as State<"Idle" | "Walking">;
 			const nextState = world.get("NextState") as NextState<"Idle" | "Walking">;
@@ -72,9 +78,9 @@ describe("StateManager", () => {
 			manager.setState(world, nextState, "Walking");
 			manager.update(world, 0);
 
-			expect(onExit).toHaveBeenCalled();
-			expect(onEnter).toHaveBeenCalled();
-			expect(state.current).toBe("Walking");
+			expect(onExitMock.wasCalled()).to.equal(true);
+			expect(onEnterMock.wasCalled()).to.equal(true);
+			expect(state.current).to.equal("Walking");
 		});
 
 		it("应该处理转换队列", () => {
@@ -92,12 +98,12 @@ describe("StateManager", () => {
 			manager.update(world, 0);
 
 			const state = world.get("State") as State<"Idle" | "Walking" | "Running">;
-			expect(state.current).toBe("Running");
+			expect(state.current).to.equal("Running");
 		});
 
 		it("应该允许同状态转换（如果有处理器）", () => {
-			const onEnter = jest.fn();
-			manager.addState("Idle", { onEnter });
+			const onEnterMock = createMockFn();
+			manager.addState("Idle", { onEnter: onEnterMock.fn });
 
 			const state = world.get("State") as State<"Idle">;
 			const nextState = world.get("NextState") as NextState<"Idle">;
@@ -106,7 +112,7 @@ describe("StateManager", () => {
 			manager.update(world, 0);
 
 			// 因为有 onEnter 处理器，应该允许同状态转换
-			expect(onEnter).toHaveBeenCalled();
+			expect(onEnterMock.wasCalled()).to.equal(true);
 		});
 	});
 
@@ -121,7 +127,7 @@ describe("StateManager", () => {
 			manager.update(world, 0);
 
 			const state = world.get("State") as State<"Idle" | "Walking">;
-			expect(state.current).toBe("Idle"); // 第一次更新仍在 Idle
+			expect(state.current).to.equal("Idle"); // 第一次更新仍在 Idle
 
 			// 下一帧应该触发自动转换
 			manager.update(world, 0);
@@ -129,7 +135,7 @@ describe("StateManager", () => {
 			const nextState = world.get("NextState") as NextState<"Idle" | "Walking">;
 			if (nextState.pending) {
 				manager.update(world, 0);
-				expect(state.current).toBe("Walking");
+				expect(state.current).to.equal("Walking");
 			}
 		});
 
@@ -147,31 +153,32 @@ describe("StateManager", () => {
 
 			const nextState = world.get("NextState") as NextState<"Idle" | "Walking" | "Running">;
 			// 应该选择第一个满足条件的转换
-			expect(nextState.pending).toBe("Walking");
+			expect(nextState.pending).to.equal("Walking");
 		});
 	});
 
 	describe("状态更新", () => {
 		it("应该调用当前状态的 onUpdate", () => {
-			const onUpdate = jest.fn();
-			manager.addState("Idle", { onUpdate });
+			const onUpdateMock = createMockFn();
+			manager.addState("Idle", { onUpdate: onUpdateMock.fn });
 
 			manager.update(world, 0.016);
 
-			expect(onUpdate).toHaveBeenCalledWith(world);
+			expect(onUpdateMock.wasCalled()).to.equal(true);
+			expect(onUpdateMock.getLastArgs()?.[0]).to.equal(world);
 		});
 
 		it("只有活动状态的 onUpdate 被调用", () => {
-			const idleUpdate = jest.fn();
-			const walkingUpdate = jest.fn();
+			const idleUpdateMock = createMockFn();
+			const walkingUpdateMock = createMockFn();
 
-			manager.addState("Idle", { onUpdate: idleUpdate });
-			manager.addState("Walking", { onUpdate: walkingUpdate });
+			manager.addState("Idle", { onUpdate: idleUpdateMock.fn });
+			manager.addState("Walking", { onUpdate: walkingUpdateMock.fn });
 
 			manager.update(world, 0.016);
 
-			expect(idleUpdate).toHaveBeenCalled();
-			expect(walkingUpdate).not.toHaveBeenCalled();
+			expect(idleUpdateMock.wasCalled()).to.equal(true);
+			expect(walkingUpdateMock.wasCalled()).to.equal(false);
 
 			// 转换到 Walking
 			const nextState = world.get("NextState") as NextState<"Idle" | "Walking">;
@@ -180,17 +187,21 @@ describe("StateManager", () => {
 
 			manager.update(world, 0.016);
 
-			expect(walkingUpdate).toHaveBeenCalled();
+			expect(walkingUpdateMock.wasCalled()).to.equal(true);
 		});
 	});
 
 	describe("观察者模式", () => {
 		it("应该通知观察者状态变化", () => {
+			const onEnterMock = createMockFn();
+			const onExitMock = createMockFn();
+			const onTransitionMock = createMockFn();
+
 			const observer = {
 				id: "test-observer",
-				onEnter: jest.fn(),
-				onExit: jest.fn(),
-				onTransition: jest.fn(),
+				onEnter: onEnterMock.fn,
+				onExit: onExitMock.fn,
+				onTransition: onTransitionMock.fn,
 			};
 
 			manager.addObserver(observer);
@@ -201,15 +212,17 @@ describe("StateManager", () => {
 			nextState.set("Walking");
 			manager.update(world, 0);
 
-			expect(observer.onExit).toHaveBeenCalledWith("Idle");
-			expect(observer.onEnter).toHaveBeenCalledWith("Walking");
-			expect(observer.onTransition).toHaveBeenCalledWith("Idle", "Walking");
+			expect(onExitMock.wasCalledWith("Idle")).to.equal(true);
+			expect(onEnterMock.wasCalledWith("Walking")).to.equal(true);
+			expect(onTransitionMock.wasCalledWith("Idle", "Walking")).to.equal(true);
 		});
 
 		it("应该能够移除观察者", () => {
+			const onTransitionMock = createMockFn();
+
 			const observer = {
 				id: "test-observer",
-				onTransition: jest.fn(),
+				onTransition: onTransitionMock.fn,
 			};
 
 			manager.addObserver(observer);
@@ -222,7 +235,7 @@ describe("StateManager", () => {
 			nextState.set("Walking");
 			manager.update(world, 0);
 
-			expect(observer.onTransition).not.toHaveBeenCalled();
+			expect(onTransitionMock.wasCalled()).to.equal(false);
 		});
 	});
 
@@ -244,8 +257,8 @@ describe("StateManager", () => {
 			manager.update(world, 0.016);
 
 			const stats = manager.getStatistics();
-			expect(stats.totalTransitions).toBe(3);
-			expect(stats.transitionFrequency.get("Idle->Walking")).toBe(1);
+			expect(stats.totalTransitions).to.equal(3);
+			expect(stats.transitionFrequency.get("Idle->Walking")).to.equal(1);
 			expect(stats.transitionFrequency.get("Walking->Running")).toBe(1);
 			expect(stats.transitionFrequency.get("Running->Walking")).toBe(1);
 		});
@@ -322,4 +335,5 @@ describe("StateManager", () => {
 			printSpy.mockRestore();
 		});
 	});
-});
+	});
+};

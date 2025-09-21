@@ -5,7 +5,8 @@
 import { World } from "@rbxts/matter";
 import { State, NextState } from "../state";
 
-describe("State", () => {
+export = () => {
+	describe("State", () => {
 	let world: World;
 
 	beforeEach(() => {
@@ -15,31 +16,31 @@ describe("State", () => {
 	describe("基本功能", () => {
 		it("应该正确初始化状态", () => {
 			const state = new State<"Menu" | "Playing">("Menu");
-			expect(state.current).toBe("Menu");
-			expect(state.previous).toBeUndefined();
-			expect(state.isTransitioning).toBe(false);
+			expect(state.current).to.equal("Menu");
+			expect(state.previous).to.equal(undefined);
+			expect(state.isTransitioning).to.equal(false);
 		});
 
 		it("应该正确转换状态", () => {
 			const state = new State<"Menu" | "Playing">("Menu");
 			state._transition("Playing", world);
 
-			expect(state.current).toBe("Playing");
-			expect(state.previous).toBe("Menu");
+			expect(state.current).to.equal("Playing");
+			expect(state.previous).to.equal("Menu");
 		});
 
 		it("应该正确检查状态", () => {
 			const state = new State<"Menu" | "Playing" | "Paused">("Menu");
 
-			expect(state.isIn("Menu")).toBe(true);
-			expect(state.isIn("Playing")).toBe(false);
+			expect(state.isIn("Menu")).to.equal(true);
+			expect(state.isIn("Playing")).to.equal(false);
 
 			state._transition("Playing", world);
 
-			expect(state.isIn("Menu")).toBe(false);
-			expect(state.isIn("Playing")).toBe(true);
-			expect(state.justEntered("Playing")).toBe(true);
-			expect(state.justExited("Menu")).toBe(true);
+			expect(state.isIn("Menu")).to.equal(false);
+			expect(state.isIn("Playing")).to.equal(true);
+			expect(state.justEntered("Playing")).to.equal(true);
+			expect(state.justExited("Menu")).to.equal(true);
 		});
 	});
 
@@ -51,10 +52,10 @@ describe("State", () => {
 			state._transition("C", world);
 
 			const history = state.history;
-			expect(history.size()).toBe(3);
-			expect(history[0].state).toBe("A");
-			expect(history[1].state).toBe("B");
-			expect(history[2].state).toBe("C");
+			expect(history.size()).to.equal(3);
+			expect(history[0].state).to.equal("A");
+			expect(history[1].state).to.equal("B");
+			expect(history[2].state).to.equal("C");
 		});
 
 		it("应该限制历史记录大小", () => {
@@ -66,18 +67,18 @@ describe("State", () => {
 			}
 
 			const history = state.history;
-			expect(history.size()).toBeLessThanOrEqual(100);
+			expect(history.size() <= 100).to.equal(true);
 		});
 
 		it("应该正确计算状态持续时间", () => {
 			const state = new State<"A" | "B">("A");
 
 			// 等待一小段时间
-			wait(0.1);
+			task.wait(0.1);
 
 			const duration = state.getCurrentStateDuration();
-			expect(duration).toBeGreaterThan(0);
-			expect(duration).toBeLessThan(1);
+			expect(duration > 0).to.equal(true);
+			expect(duration < 1).to.equal(true);
 		});
 	});
 
@@ -87,11 +88,11 @@ describe("State", () => {
 
 			state.addValidator("B", (s, w) => true);
 			state._transition("B", world);
-			expect(state.current).toBe("B");
+			expect(state.current).to.equal("B");
 
 			state.addValidator("A", (s, w) => false);
 			state._transition("A", world);
-			expect(state.current).toBe("B"); // 验证失败，保持在 B
+			expect(state.current).to.equal("B"); // 验证失败，保持在 B
 		});
 
 		it("应该移除验证器", () => {
@@ -99,11 +100,11 @@ describe("State", () => {
 
 			state.addValidator("B", (s, w) => false);
 			state._transition("B", world);
-			expect(state.current).toBe("A"); // 验证失败
+			expect(state.current).to.equal("A"); // 验证失败
 
 			state.removeValidator("B");
 			state._transition("B", world);
-			expect(state.current).toBe("B"); // 验证已移除
+			expect(state.current).to.equal("B"); // 验证已移除
 		});
 	});
 
@@ -115,17 +116,17 @@ describe("State", () => {
 			state._transition("C", world);
 
 			const success = state.rollback(world);
-			expect(success).toBe(true);
-			expect(state.current).toBe("B");
-			expect(state.previous).toBe("C");
+			expect(success).to.equal(true);
+			expect(state.current).to.equal("B");
+			expect(state.previous).to.equal("C");
 		});
 
 		it("初始状态无法回滚", () => {
 			const state = new State<"A">("A");
 
 			const success = state.rollback(world);
-			expect(success).toBe(false);
-			expect(state.current).toBe("A");
+			expect(success).to.equal(false);
+			expect(state.current).to.equal("A");
 		});
 	});
 });
@@ -134,23 +135,23 @@ describe("NextState", () => {
 	it("应该正确设置和消费下一个状态", () => {
 		const nextState = new NextState<"A" | "B">();
 
-		expect(nextState.pending).toBeUndefined();
+		expect(nextState.pending).to.equal(undefined);
 
 		nextState.set("B");
-		expect(nextState.pending).toBe("B");
-		expect(nextState.force).toBe(false);
+		expect(nextState.pending).to.equal("B");
+		expect(nextState.force).to.equal(false);
 
 		const consumed = nextState.consume();
-		expect(consumed).toBe("B");
-		expect(nextState.pending).toBeUndefined();
+		expect(consumed).to.equal("B");
+		expect(nextState.pending).to.equal(undefined);
 	});
 
 	it("应该支持强制转换", () => {
 		const nextState = new NextState<"A" | "B">();
 
 		nextState.set("B", true);
-		expect(nextState.pending).toBe("B");
-		expect(nextState.force).toBe(true);
+		expect(nextState.pending).to.equal("B");
+		expect(nextState.force).to.equal(true);
 	});
 
 	it("应该能够清除排队状态", () => {
@@ -159,8 +160,8 @@ describe("NextState", () => {
 		nextState.set("B");
 		nextState.clear();
 
-		expect(nextState.pending).toBeUndefined();
-		expect(nextState.force).toBe(false);
+		expect(nextState.pending).to.equal(undefined);
+		expect(nextState.force).to.equal(false);
 	});
 });
 
@@ -176,8 +177,8 @@ describe("State 与 NextState 集成", () => {
 			state._transition(pending, world);
 		}
 
-		expect(state.current).toBe("Playing");
-		expect(nextState.pending).toBeUndefined();
+		expect(state.current).to.equal("Playing");
+		expect(nextState.pending).to.equal(undefined);
 	});
 
 	it("应该防止并发转换", () => {
@@ -199,8 +200,8 @@ describe("State 与 NextState 集成", () => {
 		state._transition("B", world);
 
 		// 应该只执行了到 B 的转换
-		expect(state.current).toBe("B");
-		expect(state.previous).toBe("A");
+		expect(state.current).to.equal("B");
+		expect(state.previous).to.equal("A");
 	});
 });
 
@@ -208,36 +209,36 @@ describe("状态持续时间追踪", () => {
 	it("应该追踪每个状态的总持续时间", () => {
 		const state = new State<"A" | "B" | "C">("A");
 
-		wait(0.05);
+		task.wait(0.05);
 		state._transition("B", world);
-		wait(0.05);
+		task.wait(0.05);
 		state._transition("C", world);
-		wait(0.05);
+		task.wait(0.05);
 		state._transition("A", world);
-		wait(0.05);
+		task.wait(0.05);
 
 		const durationA = state.getStateDuration("A");
 		const durationB = state.getStateDuration("B");
 		const durationC = state.getStateDuration("C");
 
-		expect(durationA).toBeGreaterThan(0.08); // 两次在 A 状态
-		expect(durationB).toBeGreaterThan(0.04);
-		expect(durationB).toBeLessThan(0.06);
-		expect(durationC).toBeGreaterThan(0.04);
-		expect(durationC).toBeLessThan(0.06);
+		expect(durationA > 0.08).to.equal(true); // 两次在 A 状态
+		expect(durationB > 0.04).to.equal(true);
+		expect(durationB < 0.06).to.equal(true);
+		expect(durationC > 0.04).to.equal(true);
+		expect(durationC < 0.06).to.equal(true);
 	});
 
 	it("应该正确处理当前状态的持续时间", () => {
 		const state = new State<"A" | "B">("A");
 
-		wait(0.1);
+		task.wait(0.1);
 
 		const currentDuration = state.getCurrentStateDuration();
 		const totalDuration = state.getStateDuration("A");
 
-		expect(currentDuration).toBeCloseTo(totalDuration, 2);
-		expect(currentDuration).toBeGreaterThan(0.09);
-		expect(currentDuration).toBeLessThan(0.11);
+		expect(math.abs(currentDuration - totalDuration) < 0.01).to.equal(true);
+		expect(currentDuration > 0.09).to.equal(true);
+		expect(currentDuration < 0.11).to.equal(true);
 	});
 });
 
@@ -248,27 +249,28 @@ describe("状态历史管理", () => {
 		state._transition("B", world);
 		state._transition("C", world);
 
-		expect(state.history.size()).toBe(3);
+		expect(state.history.size()).to.equal(3);
 
 		state.clearHistory();
 
-		expect(state.history.size()).toBe(1);
-		expect(state.history[0].state).toBe("C");
+		expect(state.history.size()).to.equal(1);
+		expect(state.history[0].state).to.equal("C");
 	});
 
 	it("应该保留退出时间戳", () => {
 		const state = new State<"A" | "B">("A");
 
 		const startTime = os.clock();
-		wait(0.05);
+		task.wait(0.05);
 		state._transition("B", world);
 
 		const history = state.history;
 		const firstEntry = history[0];
 
-		expect(firstEntry.state).toBe("A");
-		expect(firstEntry.enteredAt).toBeCloseTo(startTime, 1);
-		expect(firstEntry.exitedAt).toBeDefined();
-		expect(firstEntry.exitedAt! - firstEntry.enteredAt).toBeGreaterThan(0.04);
+		expect(firstEntry.state).to.equal("A");
+		expect(math.abs(firstEntry.enteredAt - startTime) < 0.1).to.equal(true);
+		expect(firstEntry.exitedAt !== undefined).to.equal(true);
+		expect(firstEntry.exitedAt! - firstEntry.enteredAt > 0.04).to.equal(true);
 	});
-});
+	});
+};

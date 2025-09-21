@@ -7,7 +7,8 @@ import { RunService, Players, ReplicatedStorage } from "@rbxts/services";
 import { World } from "@rbxts/matter";
 import { App } from "./app";
 import { BasePlugin } from "./plugin";
-import { BuiltinSchedules, SystemFunction, AppExit } from "./types";
+import { SystemFunction, AppExit } from "./types";
+import { BuiltinSchedules } from "./main-schedule";
 
 /**
  * Roblox运行器插件

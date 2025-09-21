@@ -10,6 +10,7 @@ import { WorldContainer, createWorldContainer, World } from "../bevy_ecs";
 import { ResourceManager, ResourceConstructor } from "../bevy_ecs/resource";
 import { CommandBuffer } from "../bevy_ecs/command-buffer";
 import { EventManager } from "../bevy_ecs/events";
+import { MainScheduleOrder, runMainSchedule, BuiltinSchedules } from "./main-schedule";
 
 // 前向声明 App 类型
 interface AppInterface {
@@ -35,6 +36,7 @@ export class SubApp {
 	private extractFunction?: (mainWorld: WorldContainer, subWorld: WorldContainer) => void;
 	private errorHandler?: ErrorHandler;
 	private appReference?: AppInterface; // 保存App引用用于插件回调
+	private scheduleOrder: MainScheduleOrder;
 
 	constructor() {
 		this._world = createWorldContainer();
@@ -42,6 +44,7 @@ export class SubApp {
 		this.resourceManager = new ResourceManager();
 		this.commandBuffer = new CommandBuffer();
 		this.eventManager = new EventManager(this._world.getWorld());
+		this.scheduleOrder = new MainScheduleOrder();
 	}
 
 	/**
@@ -109,7 +112,13 @@ export class SubApp {
 	 * 对应 Rust SubApp::update
 	 */
 	update(): void {
-		if (this.updateSchedule) {
+		if (this.updateSchedule && this.updateSchedule.name === "Main") {
+			// 如果是主调度，运行完整的调度序列
+			runMainSchedule(this._world.getWorld(), this.scheduleOrder, (label) => {
+				this.scheduler.runSchedule(label, this._world.getWorld());
+			});
+		} else if (this.updateSchedule) {
+			// 运行单个调度
 			this.scheduler.runSchedule(this.updateSchedule, this._world.getWorld());
 		}
 
@@ -141,14 +150,14 @@ export class SubApp {
 	 * 插入资源
 	 */
 	insertResource<T extends Resource>(resource: T): void {
-		// 使用独立的资源管理器
-		if (typeIs(resource, "table") && getmetatable(resource)) {
-			const resourceType = getmetatable(resource) as ResourceConstructor<T>;
-			this.resourceManager.insertResource(resourceType, resource);
-		} else {
-			// 对于简单类型，暂时跳过
-			warn(`[SubApp] Cannot insert resource without proper constructor: ${tostring(resource)}`);
-		}
+		// 创建一个包装器类作为构造函数
+		const ResourceWrapper = class {
+			static readonly value = resource;
+			static readonly typeName = `Resource_${tostring(resource)}`;
+		};
+
+		// 使用包装器作为构造函数
+		this.resourceManager.insertResource(ResourceWrapper as unknown as ResourceConstructor<T>, resource);
 	}
 
 	/**
@@ -163,7 +172,18 @@ export class SubApp {
 	 * 获取资源
 	 */
 	getResource<T extends Resource>(resourceType: ResourceConstructor<T>): T | undefined {
-		return this.resourceManager.getResource(resourceType);
+		// Try to get the resource directly
+		const resource = this.resourceManager.getResource(resourceType);
+		if (resource) return resource;
+
+		// If not found, check if there's a resource without proper constructor
+		const allResources = this.resourceManager.getAllResources();
+		for (const [_, res] of allResources) {
+			if (res === resourceType || (res as unknown as { value?: unknown }).value === resourceType) {
+				return res as T;
+			}
+		}
+		return undefined;
 	}
 
 	/**

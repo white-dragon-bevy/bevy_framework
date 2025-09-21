@@ -1,21 +1,5 @@
 type SystemFn<T extends Array<unknown>> = (...params: T) => void;
 
-/**
- * Bevy 调度阶段枚举
- */
-export enum BevySchedule {
-	First = "First",
-	PreStartup = "PreStartup",
-	Startup = "Startup",
-	PostStartup = "PostStartup",
-	PreUpdate = "PreUpdate",
-	Update = "Update",
-	PostUpdate = "PostUpdate",
-	Last = "Last",
-	FixedUpdate = "FixedUpdate",
-	Render = "Render",
-}
-
 export type SystemStruct<T extends Array<unknown>> = {
 	system: SystemFn<T>;
 	event?: string;

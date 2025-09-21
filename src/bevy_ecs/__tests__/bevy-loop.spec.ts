@@ -5,11 +5,12 @@
 
 import { World } from "@rbxts/matter";
 import { RunService } from "@rbxts/services";
-import { BevyEcsAdapter, BevySchedule } from "../bevy-ecs-adapter";
+import { BevyEcsAdapter } from "../bevy-ecs-adapter";
 import { ResourceManager, SingletonManager } from "../resource";
 import { CommandBuffer } from "../command-buffer";
 
-describe("Bevy Loop Scheduler", () => {
+export = () => {
+	describe("Bevy Loop Scheduler", () => {
 	let world: World;
 	let resources: SingletonManager;
 	let commands: CommandBuffer;
@@ -35,7 +36,7 @@ describe("Bevy Loop Scheduler", () => {
 				name: "first_system",
 				system: () => executionOrder.push("First"),
 				priority: 0,
-				schedule: BevySchedule.First,
+				schedule: "First",
 				dependencies: [],
 			});
 
@@ -43,7 +44,7 @@ describe("Bevy Loop Scheduler", () => {
 				name: "pre_update_system",
 				system: () => executionOrder.push("PreUpdate"),
 				priority: 0,
-				schedule: BevySchedule.PreUpdate,
+				schedule: "PreUpdate",
 				dependencies: [],
 			});
 
@@ -51,7 +52,7 @@ describe("Bevy Loop Scheduler", () => {
 				name: "update_system",
 				system: () => executionOrder.push("Update"),
 				priority: 0,
-				schedule: BevySchedule.Update,
+				schedule: "Update",
 				dependencies: [],
 			});
 
@@ -59,7 +60,7 @@ describe("Bevy Loop Scheduler", () => {
 				name: "post_update_system",
 				system: () => executionOrder.push("PostUpdate"),
 				priority: 0,
-				schedule: BevySchedule.PostUpdate,
+				schedule: "PostUpdate",
 				dependencies: [],
 			});
 
@@ -67,7 +68,7 @@ describe("Bevy Loop Scheduler", () => {
 				name: "last_system",
 				system: () => executionOrder.push("Last"),
 				priority: 0,
-				schedule: BevySchedule.Last,
+				schedule: "Last",
 				dependencies: [],
 			});
 
@@ -75,7 +76,12 @@ describe("Bevy Loop Scheduler", () => {
 			adapter.runOnce(0.016);
 
 			// 验证执行顺序
-			expect(executionOrder).equal(["First", "PreUpdate", "Update", "PostUpdate", "Last"]);
+			expect(executionOrder.size()).to.equal(5);
+			expect(executionOrder[0]).to.equal("First");
+			expect(executionOrder[1]).to.equal("PreUpdate");
+			expect(executionOrder[2]).to.equal("Update");
+			expect(executionOrder[3]).to.equal("PostUpdate");
+			expect(executionOrder[4]).to.equal("Last");
 		});
 
 		it("应该支持 Startup 调度阶段", () => {
@@ -88,7 +94,7 @@ describe("Bevy Loop Scheduler", () => {
 					startupCalled = true;
 				},
 				priority: 0,
-				schedule: BevySchedule.Startup,
+				schedule: "Startup",
 				dependencies: [],
 			});
 
@@ -98,15 +104,15 @@ describe("Bevy Loop Scheduler", () => {
 					updateCalled = true;
 				},
 				priority: 0,
-				schedule: BevySchedule.Update,
+				schedule: "Update",
 				dependencies: [],
 			});
 
 			// 运行一次
 			adapter.runOnce(0.016);
 
-			expect(startupCalled).equal(true);
-			expect(updateCalled).equal(true);
+			expect(startupCalled).to.equal(true);
+			expect(updateCalled).to.equal(true);
 		});
 	});
 
@@ -121,7 +127,7 @@ describe("Bevy Loop Scheduler", () => {
 					systemRan = true;
 				},
 				priority: 0,
-				schedule: BevySchedule.Update,
+				schedule: "Update",
 				dependencies: [],
 				runCondition: () => {
 					conditionChecked = true;
@@ -131,8 +137,8 @@ describe("Bevy Loop Scheduler", () => {
 
 			adapter.runOnce(0.016);
 
-			expect(conditionChecked).equal(true);
-			expect(systemRan).equal(false);
+			expect(conditionChecked).to.equal(true);
+			expect(systemRan).to.equal(false);
 		});
 
 		it("应该支持基于资源的运行条件", () => {
@@ -147,7 +153,7 @@ describe("Bevy Loop Scheduler", () => {
 					systemRan = true;
 				},
 				priority: 0,
-				schedule: BevySchedule.Update,
+				schedule: "Update",
 				dependencies: [],
 				runCondition: (_world, res) => {
 					const gameState = res.getResource("GameState" as any) as { isPaused: boolean } | undefined;
@@ -157,7 +163,7 @@ describe("Bevy Loop Scheduler", () => {
 
 			// 第一次运行，游戏未暂停
 			adapter.runOnce(0.016);
-			expect(systemRan).equal(true);
+			expect(systemRan).to.equal(true);
 
 			// 暂停游戏
 			resources.insertResource("GameState" as any, { isPaused: true });
@@ -165,7 +171,7 @@ describe("Bevy Loop Scheduler", () => {
 
 			// 第二次运行，游戏已暂停
 			adapter.runOnce(0.016);
-			expect(systemRan).equal(false);
+			expect(systemRan).to.equal(false);
 		});
 	});
 
@@ -177,7 +183,7 @@ describe("Bevy Loop Scheduler", () => {
 				name: "system_a",
 				system: () => executionOrder.push("A"),
 				priority: 0,
-				schedule: BevySchedule.Update,
+				schedule: "Update",
 				dependencies: [],
 			});
 
@@ -185,7 +191,7 @@ describe("Bevy Loop Scheduler", () => {
 				name: "system_b",
 				system: () => executionOrder.push("B"),
 				priority: 0,
-				schedule: BevySchedule.Update,
+				schedule: "Update",
 				dependencies: ["system_a"],
 			});
 
@@ -193,13 +199,16 @@ describe("Bevy Loop Scheduler", () => {
 				name: "system_c",
 				system: () => executionOrder.push("C"),
 				priority: 0,
-				schedule: BevySchedule.Update,
+				schedule: "Update",
 				dependencies: ["system_b"],
 			});
 
 			adapter.runOnce(0.016);
 
-			expect(executionOrder).equal(["A", "B", "C"]);
+			expect(executionOrder.size()).to.equal(3);
+			expect(executionOrder[0]).to.equal("A");
+			expect(executionOrder[1]).to.equal("B");
+			expect(executionOrder[2]).to.equal("C");
 		});
 
 		it("应该支持多个依赖", () => {
@@ -209,7 +218,7 @@ describe("Bevy Loop Scheduler", () => {
 				name: "system_a",
 				system: () => executionOrder.push("A"),
 				priority: 0,
-				schedule: BevySchedule.Update,
+				schedule: "Update",
 				dependencies: [],
 			});
 
@@ -217,7 +226,7 @@ describe("Bevy Loop Scheduler", () => {
 				name: "system_b",
 				system: () => executionOrder.push("B"),
 				priority: 0,
-				schedule: BevySchedule.Update,
+				schedule: "Update",
 				dependencies: [],
 			});
 
@@ -225,7 +234,7 @@ describe("Bevy Loop Scheduler", () => {
 				name: "system_c",
 				system: () => executionOrder.push("C"),
 				priority: 0,
-				schedule: BevySchedule.Update,
+				schedule: "Update",
 				dependencies: ["system_a", "system_b"],
 			});
 
@@ -236,8 +245,8 @@ describe("Bevy Loop Scheduler", () => {
 			const aIndex = executionOrder.indexOf("A");
 			const bIndex = executionOrder.indexOf("B");
 
-			expect(cIndex > aIndex).equal(true);
-			expect(cIndex > bIndex).equal(true);
+			expect(cIndex > aIndex).to.equal(true);
+			expect(cIndex > bIndex).to.equal(true);
 		});
 	});
 
@@ -249,7 +258,7 @@ describe("Bevy Loop Scheduler", () => {
 				name: "low_priority",
 				system: () => executionOrder.push("Low"),
 				priority: 10,
-				schedule: BevySchedule.Update,
+				schedule: "Update",
 				dependencies: [],
 			});
 
@@ -257,7 +266,7 @@ describe("Bevy Loop Scheduler", () => {
 				name: "high_priority",
 				system: () => executionOrder.push("High"),
 				priority: -10,
-				schedule: BevySchedule.Update,
+				schedule: "Update",
 				dependencies: [],
 			});
 
@@ -265,13 +274,16 @@ describe("Bevy Loop Scheduler", () => {
 				name: "medium_priority",
 				system: () => executionOrder.push("Medium"),
 				priority: 0,
-				schedule: BevySchedule.Update,
+				schedule: "Update",
 				dependencies: [],
 			});
 
 			adapter.runOnce(0.016);
 
-			expect(executionOrder).equal(["High", "Medium", "Low"]);
+			expect(executionOrder.size()).to.equal(3);
+			expect(executionOrder[0]).to.equal("High");
+			expect(executionOrder[1]).to.equal("Medium");
+			expect(executionOrder[2]).to.equal("Low");
 		});
 	});
 
@@ -285,13 +297,13 @@ describe("Bevy Loop Scheduler", () => {
 					fixedUpdateCalled = true;
 				},
 				priority: 0,
-				schedule: BevySchedule.FixedUpdate,
+				schedule: "FixedUpdate",
 				dependencies: [],
 			});
 
 			adapter.runOnce(0.016);
 
-			expect(fixedUpdateCalled).equal(true);
+			expect(fixedUpdateCalled).to.equal(true);
 		});
 
 		it("应该在客户端支持 Render 调度", () => {
@@ -307,13 +319,13 @@ describe("Bevy Loop Scheduler", () => {
 					renderCalled = true;
 				},
 				priority: 0,
-				schedule: BevySchedule.Render,
+				schedule: "Render",
 				dependencies: [],
 			});
 
 			adapter.runOnce(0.016);
 
-			expect(renderCalled).equal(true);
+			expect(renderCalled).to.equal(true);
 		});
 	});
 
@@ -328,7 +340,7 @@ describe("Bevy Loop Scheduler", () => {
 					oldSystemCalled = true;
 				},
 				priority: 0,
-				schedule: BevySchedule.Update,
+				schedule: "Update",
 				dependencies: [],
 			});
 
@@ -340,14 +352,14 @@ describe("Bevy Loop Scheduler", () => {
 					newSystemCalled = true;
 				},
 				priority: 0,
-				schedule: BevySchedule.Update,
+				schedule: "Update",
 				dependencies: [],
 			});
 
 			adapter.runOnce(0.016);
 
-			expect(oldSystemCalled).equal(false);
-			expect(newSystemCalled).equal(true);
+			expect(oldSystemCalled).to.equal(false);
+			expect(newSystemCalled).to.equal(true);
 		});
 	});
 
@@ -362,7 +374,7 @@ describe("Bevy Loop Scheduler", () => {
 					beforeErrorCalled = true;
 				},
 				priority: 0,
-				schedule: BevySchedule.Update,
+				schedule: "Update",
 				dependencies: [],
 			});
 
@@ -372,7 +384,7 @@ describe("Bevy Loop Scheduler", () => {
 					error("Test error");
 				},
 				priority: 1,
-				schedule: BevySchedule.Update,
+				schedule: "Update",
 				dependencies: [],
 			});
 
@@ -382,7 +394,7 @@ describe("Bevy Loop Scheduler", () => {
 					afterErrorCalled = true;
 				},
 				priority: 2,
-				schedule: BevySchedule.Update,
+				schedule: "Update",
 				dependencies: [],
 			});
 
@@ -393,11 +405,12 @@ describe("Bevy Loop Scheduler", () => {
 			} catch {
 				threwError = true;
 			}
-			expect(threwError).equal(false);
+			expect(threwError).to.equal(false);
 
 			// 其他系统应该正常执行
-			expect(beforeErrorCalled).equal(true);
-			expect(afterErrorCalled).equal(true);
+			expect(beforeErrorCalled).to.equal(true);
+			expect(afterErrorCalled).to.equal(true);
 		});
 	});
-});
+	});
+};

@@ -40,5 +40,5 @@ export * as prelude from "./prelude";
 
 // 提供便捷的默认导出
 export { App } from "./app";
-export { BuiltinSchedules } from "./types";
+export { BuiltinSchedules, BevySchedule } from "./main-schedule";
 export { RobloxDefaultPlugins } from "./roblox-adapters";

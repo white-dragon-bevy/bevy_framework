@@ -6,7 +6,6 @@
 import {
 	AppExit,
 	AppLabel,
-	BuiltinSchedules,
 	Component,
 	ErrorHandler,
 	Message,
@@ -14,6 +13,7 @@ import {
 	ScheduleLabel,
 	SystemFunction,
 } from "./types";
+import { BuiltinSchedules } from "./main-schedule";
 import { DuplicatePluginError, Plugin, PluginGroup, PluginState } from "./plugin";
 import { SubApp, SubApps } from "./sub-app";
 import { RobloxInputPlugin } from "./roblox-adapters";

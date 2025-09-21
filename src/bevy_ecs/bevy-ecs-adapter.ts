@@ -1,18 +1,19 @@
 /**
  * Bevy ECS 适配器
  *
- * 提供简化的 API 来使用增强的 Loop.luau 调度系统
- * 管理资源、命令缓冲和系统注册
+ * 提供 Loop.luau 的 TypeScript 接口适配
+ * 纯粹的 Loop 包装器，不包含应用特定逻辑
  */
 
 import { World } from "@rbxts/matter";
-import { RunService } from "@rbxts/services";
-import { Loop, BevySystemStruct, BevySchedule } from "./Loop";
+import { BevySystemStruct } from "./Loop";
 import { ResourceManager, SingletonManager } from "./resource";
 import { CommandBuffer } from "./command-buffer";
 
+// Import Lua module as default
+const Loop = require(script.Parent!.WaitForChild("Loop") as ModuleScript) as typeof import("./Loop").Loop;
+
 // 重新导出常用类型
-export { BevySchedule } from "./Loop";
 export { ResourceManager, SingletonManager } from "./resource";
 export { CommandBuffer } from "./command-buffer";
 
@@ -34,8 +35,8 @@ export interface SystemConfig {
 	name: string;
 	/** 系统函数 */
 	system: BevySystemFn;
-	/** 调度阶段，默认为 Update */
-	schedule?: BevySchedule | string;
+	/** 调度阶段 */
+	schedule?: string;
 	/** 优先级（数值越小越先执行） */
 	priority?: number;
 	/** 依赖的其他系统 */
@@ -56,7 +57,7 @@ export interface SystemConfig {
  * 简化的适配器，直接使用 Loop.luau 的强大功能
  */
 export class BevyEcsAdapter {
-	private readonly loop: Loop<[World, number, SingletonManager, CommandBuffer]>;
+	private readonly loop: InstanceType<typeof Loop>;
 	private readonly world: World;
 	private readonly resources: SingletonManager;
 	private readonly commands: CommandBuffer;
@@ -71,32 +72,12 @@ export class BevyEcsAdapter {
 
 		// 创建 Loop 实例
 		this.loop = new Loop(world, 0, this.resources, this.commands);
-
-		// 配置 Bevy 调度映射
-		this.configureBevySchedules();
 	}
 
 	/**
-	 * 配置 Bevy 调度阶段到 Roblox 事件的映射
+	 * 配置调度映射（由应用层调用）
 	 */
-	private configureBevySchedules(): void {
-		const scheduleMap: { [key: string]: RBXScriptSignal } = {
-			[BevySchedule.First]: RunService.Heartbeat,
-			[BevySchedule.PreStartup]: RunService.Heartbeat,
-			[BevySchedule.Startup]: RunService.Heartbeat,
-			[BevySchedule.PostStartup]: RunService.Heartbeat,
-			[BevySchedule.PreUpdate]: RunService.Heartbeat,
-			[BevySchedule.Update]: RunService.Heartbeat,
-			[BevySchedule.PostUpdate]: RunService.Heartbeat,
-			[BevySchedule.Last]: RunService.Heartbeat,
-			[BevySchedule.FixedUpdate]: RunService.Stepped,
-		};
-
-		// 客户端特有事件
-		if (RunService.IsClient()) {
-			scheduleMap[BevySchedule.Render] = RunService.RenderStepped;
-		}
-
+	configureSchedules(scheduleMap: { [key: string]: RBXScriptSignal }): void {
 		this.loop.configureBevySchedules(scheduleMap);
 	}
 
@@ -136,7 +117,7 @@ export class BevyEcsAdapter {
 		// 创建系统结构
 		const systemStruct: BevySystemStruct<[World, number, SingletonManager, CommandBuffer]> = {
 			system: wrappedSystem,
-			schedule: config.schedule || BevySchedule.Update,
+			schedule: config.schedule || "Update",
 			priority: config.priority || 0,
 			after: dependencies.size() > 0 ? dependencies : undefined,
 			runCondition: config.runCondition ?
@@ -151,7 +132,7 @@ export class BevyEcsAdapter {
 
 		// 如果已经在运行，动态添加系统
 		if (this.isRunning) {
-			this.loop.scheduleSystem(systemStruct);
+			this.loop.scheduleSystem(systemStruct as any);
 		}
 	}
 
@@ -176,7 +157,7 @@ export class BevyEcsAdapter {
 		this.systems.delete(name);
 
 		if (this.isRunning) {
-			this.loop.evictSystem(system);
+			this.loop.evictSystem(system as any);
 		}
 
 		return true;
@@ -203,7 +184,7 @@ export class BevyEcsAdapter {
 		if (this.isRunning && oldSystem) {
 			const newSystem = this.systems.get(config.name);
 			if (newSystem) {
-				this.loop.replaceSystem(oldSystem, newSystem);
+				this.loop.replaceSystem(oldSystem as any, newSystem as any);
 			}
 		}
 	}
@@ -211,7 +192,7 @@ export class BevyEcsAdapter {
 	/**
 	 * 启动调度器
 	 */
-	start(): void {
+	start(events: { [key: string]: RBXScriptSignal }): void {
 		if (this.isRunning) {
 			warn("[BevyEcsAdapter] Already running");
 			return;
@@ -222,13 +203,9 @@ export class BevyEcsAdapter {
 		for (const [, system] of this.systems) {
 			allSystems.push(system);
 		}
-		this.loop.scheduleSystems(allSystems);
+		this.loop.scheduleSystems(allSystems as any);
 
 		// 启动 Loop
-		const events: { [key: string]: RBXScriptSignal } = {
-			default: RunService.Heartbeat,
-		};
-
 		const connections = this.loop.begin(events);
 
 		// 保存连接用于清理
@@ -260,22 +237,58 @@ export class BevyEcsAdapter {
 	 * 运行单次更新（用于测试或手动控制）
 	 */
 	runOnce(deltaTime: number = 0.016): void {
-		// 按系统顺序运行
-		for (const [name, systemStruct] of this.systems) {
-			// 检查运行条件
-			if (systemStruct.runCondition) {
-				const shouldRun = systemStruct.runCondition(this.world, deltaTime, this.resources, this.commands);
-				if (!shouldRun) {
-					continue;
+		// 定义 Bevy 调度阶段的执行顺序
+		const scheduleOrder = [
+			"First",
+			"PreStartup",
+			"Startup",
+			"PostStartup",
+			"PreUpdate",
+			"FixedUpdate",
+			"Update",
+			"PostUpdate",
+			"Render",
+			"Last"
+		];
+
+		// 按调度阶段顺序运行系统
+		for (const scheduleName of scheduleOrder) {
+			// 收集当前调度阶段的所有系统
+			const scheduleSystems: Array<{
+				name: string,
+				system: BevySystemStruct<[World, number, SingletonManager, CommandBuffer]>
+			}> = [];
+
+			for (const [name, systemStruct] of this.systems) {
+				if (systemStruct.schedule === scheduleName) {
+					scheduleSystems.push({ name, system: systemStruct });
 				}
 			}
 
-			try {
-				// 调用系统
-				const fn = systemStruct.system;
-				fn(this.world, deltaTime, this.resources, this.commands);
-			} catch (error) {
-				warn(`[BevyEcsAdapter] System error in runOnce: ${error}`);
+			// 按优先级排序（数值越小越先执行）
+			scheduleSystems.sort((a, b) => {
+				const priorityA = a.system.priority || 0;
+				const priorityB = b.system.priority || 0;
+				return priorityA < priorityB;
+			});
+
+			// 执行当前调度阶段的系统
+			for (const { name, system: systemStruct } of scheduleSystems) {
+				// 检查运行条件
+				if (systemStruct.runCondition) {
+					const shouldRun = systemStruct.runCondition(this.world, deltaTime, this.resources, this.commands);
+					if (!shouldRun) {
+						continue;
+					}
+				}
+
+				try {
+					// 调用系统
+					const fn = systemStruct.system;
+					fn(this.world, deltaTime, this.resources, this.commands);
+				} catch (error) {
+					warn(`[BevyEcsAdapter] System "${name}" error in runOnce: ${error}`);
+				}
 			}
 		}
 
@@ -330,6 +343,13 @@ export class BevyEcsAdapter {
 	 */
 	getIsRunning(): boolean {
 		return this.isRunning;
+	}
+
+	/**
+	 * 获取 Loop 实例（高级用法）
+	 */
+	getLoop(): InstanceType<typeof Loop> {
+		return this.loop;
 	}
 }
 

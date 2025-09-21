@@ -18,7 +18,6 @@ export {
 	SystemFunction,
 	ScheduleLabel,
 	createScheduleLabel,
-	BuiltinSchedules,
 	Resource,
 	Component,
 	Message,
@@ -47,6 +46,9 @@ export {
 	createSystemSet,
 	SystemConfig,
 } from "./scheduler";
+
+// 调度标签
+export { BuiltinSchedules, BevySchedule } from "./main-schedule";
 
 // Roblox适配器
 export {

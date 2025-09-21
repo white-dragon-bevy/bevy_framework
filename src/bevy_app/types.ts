@@ -73,21 +73,6 @@ export function createScheduleLabel(name: string): ScheduleLabel {
 	return { __brand: "ScheduleLabel", name } as ScheduleLabel;
 }
 
-/**
- * 内置调度标签
- * 对应 Rust bevy_app 的标准调度阶段
- */
-export namespace BuiltinSchedules {
-	export const First = createScheduleLabel("First");
-	export const PreStartup = createScheduleLabel("PreStartup");
-	export const Startup = createScheduleLabel("Startup");
-	export const PostStartup = createScheduleLabel("PostStartup");
-	export const PreUpdate = createScheduleLabel("PreUpdate");
-	export const Update = createScheduleLabel("Update");
-	export const PostUpdate = createScheduleLabel("PostUpdate");
-	export const Last = createScheduleLabel("Last");
-	export const Main = createScheduleLabel("Main");
-}
 
 /**
  * 资源类型接口

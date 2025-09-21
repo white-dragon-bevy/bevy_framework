@@ -320,15 +320,14 @@ export = () => {
 		});
 
 		describe("资源命令执行", () => {
-			it("资源命令应该记录为未实现", () => {
+			it("资源命令应该成功执行", () => {
 				const resource = TestComponent({ value: 123, name: "resource" });
 				commandBuffer.insertResource(resource);
 
 				const results = commandBuffer.flush(world);
 
 				expect(results.size()).to.equal(1);
-				expect(results[0].success).to.equal(false);
-				expect(results[0].error?.find("not yet implemented")[0] !== undefined).to.equal(true);
+				expect(results[0].success).to.equal(true);
 			});
 		});
 

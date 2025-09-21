@@ -1,11 +1,19 @@
 /**
- * Bevy调度系统兼容层
- * 提供与原 scheduler.ts 的兼容接口，实际功能由 bevy_ecs 的 BevyEcsAdapter 提供
+ * Bevy应用层调度管理器
+ * 提供高层的调度组织和管理 API
  */
 
 import { World } from "@rbxts/matter";
+import { RunService } from "@rbxts/services";
 import { ScheduleLabel, SystemFunction } from "./types";
-import { BevyEcsAdapter, BevySchedule } from "../bevy_ecs/bevy-ecs-adapter";
+import { BevyEcsAdapter } from "../bevy_ecs/bevy-ecs-adapter";
+import { BevySchedule, getDefaultScheduleEventMap } from "./main-schedule";
+import { Schedules, SystemConfig as EcsSystemConfig } from "../bevy_ecs/schedules";
+import { SingletonManager, CommandBuffer } from "../bevy_ecs";
+import { LogConfig } from "./log-config";
+
+// 重新导出 LogConfig 以便向后兼容
+export { LogConfig } from "./log-config";
 
 /**
  * 系统集合接口
@@ -34,15 +42,17 @@ export interface SystemConfig {
 }
 
 /**
- * 调度类 - 管理系统的执行顺序和配置
- * 这是一个兼容层，实际调度由 Loop.luau 处理
+ * 调度配置包装器
+ * 提供链式调用 API 来配置调度
  */
 export class Schedule {
 	private systems: SystemConfig[] = [];
 	private label: ScheduleLabel;
+	private schedules?: Schedules;
 
-	constructor(label: ScheduleLabel) {
+	constructor(label: ScheduleLabel, schedules?: Schedules) {
 		this.label = label;
+		this.schedules = schedules;
 	}
 
 	/**
@@ -57,6 +67,23 @@ export class Schedule {
 	 */
 	addSystem(config: SystemConfig): this {
 		this.systems.push(config);
+
+		// 如果有 Schedules 实例，直接添加到实际调度
+		if (this.schedules) {
+			const schedule = this.schedules.getOrCreateSchedule(this.label.name);
+			const ecsConfig: EcsSystemConfig = {
+				name: `${this.label.name}_${this.systems.size()}_system`,
+				system: (world: World, deltaTime: number, resources: SingletonManager, commands: CommandBuffer) => {
+					config.system(world, deltaTime);
+				},
+				runCondition: config.runIf
+					? (world: World, resources: SingletonManager) => config.runIf!(world)
+					: undefined,
+				systemSet: config.inSet?.name,
+			};
+			schedule.addSystem(ecsConfig);
+		}
+
 		return this;
 	}
 
@@ -65,7 +92,7 @@ export class Schedule {
 	 */
 	addSystems(configs: SystemConfig[]): this {
 		for (const config of configs) {
-			this.systems.push(config);
+			this.addSystem(config);
 		}
 		return this;
 	}
@@ -73,18 +100,25 @@ export class Schedule {
 	/**
 	 * 运行调度中的所有系统
 	 */
-	run(world: World): void {
-		for (const config of this.systems) {
-			// 检查运行条件
-			if (config.runIf && !config.runIf(world)) {
-				continue;
-			}
-
-			// 执行系统
-			try {
-				config.system(world);
-			} catch (error) {
-				warn(`[Schedule] System error: ${error}`);
+	run(world: World, deltaTime: number = 0, resources?: SingletonManager, commands?: CommandBuffer): void {
+		if (this.schedules) {
+			// 使用 Schedules 运行
+			const res = resources || ({} as SingletonManager);
+			const cmd = commands || new CommandBuffer();
+			this.schedules.runSchedule(this.label.name, world, deltaTime, res, cmd);
+		} else {
+			// 直接运行系统（兼容模式）
+			for (const config of this.systems) {
+				if (config.runIf && !config.runIf(world)) {
+					continue;
+				}
+				try {
+					config.system(world, deltaTime);
+				} catch (error) {
+					if (!LogConfig.silentErrors) {
+						warn(`[Schedule] System error: ${error}`);
+					}
+				}
 			}
 		}
 	}
@@ -101,34 +135,66 @@ export class Schedule {
 	 */
 	clear(): void {
 		this.systems = [];
+		if (this.schedules) {
+			const schedule = this.schedules.getSchedule(this.label.name);
+			if (schedule) {
+				schedule.clear();
+			}
+		}
 	}
 }
 
 /**
- * 调度器类 - 管理多个调度
- * 这是一个兼容层，实际功能由 BevyEcsAdapter 提供
+ * 调度器类 - 应用层调度管理
+ * 管理多个调度并协调它们的执行
  */
 export class Scheduler {
-	private schedules = new Map<ScheduleLabel, Schedule>();
+	private schedules: Schedules;
 	private adapter?: BevyEcsAdapter;
+	private scheduleWrappers = new Map<ScheduleLabel, Schedule>();
+
+	constructor() {
+		this.schedules = new Schedules();
+	}
 
 	/**
 	 * 设置底层适配器
 	 */
 	setAdapter(adapter: BevyEcsAdapter): void {
 		this.adapter = adapter;
+
+		// 配置调度映射
+		const scheduleMap = getDefaultScheduleEventMap();
+		const eventMap: { [key: string]: RBXScriptSignal } = {};
+		for (const [schedule, event] of scheduleMap) {
+			eventMap[schedule] = event;
+		}
+		adapter.configureSchedules(eventMap);
+	}
+
+	/**
+	 * 获取 Schedules 资源
+	 */
+	getSchedules(): Schedules {
+		return this.schedules;
 	}
 
 	/**
 	 * 添加系统到调度
 	 */
 	addSystem(label: ScheduleLabel, system: SystemFunction): void {
-		let schedule = this.schedules.get(label);
-		if (!schedule) {
-			schedule = new Schedule(label);
-			this.schedules.set(label, schedule);
+		const schedule = this.schedules.getOrCreateSchedule(label.name);
+		schedule.addSystem({
+			name: `${label.name}_${schedule.getSystemCount()}_system`,
+			system: (world, deltaTime, resources, commands) => {
+				system(world, deltaTime);
+			},
+		});
+
+		// 如果有适配器，同步到 Loop
+		if (this.adapter) {
+			this.syncToAdapter(label);
 		}
-		schedule.addSystem({ system });
 	}
 
 	/**
@@ -136,38 +202,43 @@ export class Scheduler {
 	 */
 	addSchedule(label: ScheduleLabel, schedule?: Schedule): void {
 		if (!schedule) {
-			schedule = new Schedule(label);
+			schedule = new Schedule(label, this.schedules);
 		}
-		this.schedules.set(label, schedule);
+		this.scheduleWrappers.set(label, schedule);
+		this.schedules.addSchedule(label.name);
 
-		// 如果有适配器，将系统添加到适配器
-		if (this.adapter) {
-			const systems = schedule.getSystems();
-			for (const config of systems) {
-				this.adapter.addSystem({
-					name: `${label}_system`,
-					system: (world) => config.system(world),
-					schedule: this.mapLabelToSchedule(label),
-					runCondition: config.runIf,
-				});
-			}
+		// 同步到适配器
+		if (this.adapter && schedule.getSystems().size() > 0) {
+			this.syncToAdapter(label);
 		}
 	}
 
 	/**
-	 * 获取调度
+	 * 获取调度包装器
 	 */
 	getSchedule(label: ScheduleLabel): Schedule | undefined {
-		return this.schedules.get(label);
+		let wrapper = this.scheduleWrappers.get(label);
+		if (!wrapper && this.schedules.hasSchedule(label.name)) {
+			wrapper = new Schedule(label, this.schedules);
+			this.scheduleWrappers.set(label, wrapper);
+		}
+		return wrapper;
 	}
 
 	/**
 	 * 运行特定调度
 	 */
-	runSchedule(label: ScheduleLabel, world: World): void {
-		const schedule = this.schedules.get(label);
-		if (schedule) {
-			schedule.run(world);
+	runSchedule(label: ScheduleLabel, world: World, deltaTime: number = 0): void {
+		if (this.adapter) {
+			const resources = this.adapter.getResources();
+			const commands = this.adapter.getCommands();
+			this.schedules.runSchedule(label.name, world, deltaTime, resources, commands);
+		} else {
+			// 无适配器时的简单运行
+			const schedule = this.scheduleWrappers.get(label);
+			if (schedule) {
+				schedule.run(world, deltaTime);
+			}
 		}
 	}
 
@@ -175,7 +246,7 @@ export class Scheduler {
 	 * 初始化调度
 	 */
 	initSchedule(label: ScheduleLabel): void {
-		if (!this.schedules.has(label)) {
+		if (!this.schedules.hasSchedule(label.name)) {
 			this.addSchedule(label);
 		}
 	}
@@ -184,30 +255,39 @@ export class Scheduler {
 	 * 编辑调度
 	 */
 	editSchedule(label: ScheduleLabel, editor: (schedule: Schedule) => void): void {
-		let schedule = this.schedules.get(label);
-		if (!schedule) {
-			schedule = new Schedule(label);
-			this.schedules.set(label, schedule);
+		let wrapper = this.getSchedule(label);
+		if (!wrapper) {
+			wrapper = new Schedule(label, this.schedules);
+			this.scheduleWrappers.set(label, wrapper);
+			this.schedules.addSchedule(label.name);
 		}
-		editor(schedule);
+		editor(wrapper);
+
+		// 同步更改到适配器
+		if (this.adapter) {
+			this.syncToAdapter(label);
+		}
 	}
 
 	/**
-	 * 映射标签到 Bevy 调度阶段
+	 * 将调度同步到适配器
 	 */
-	private mapLabelToSchedule(label: ScheduleLabel): BevySchedule {
-		const mapping: { [key: string]: BevySchedule } = {
-			First: BevySchedule.First,
-			PreStartup: BevySchedule.PreStartup,
-			Startup: BevySchedule.Startup,
-			PostStartup: BevySchedule.PostStartup,
-			PreUpdate: BevySchedule.PreUpdate,
-			Update: BevySchedule.Update,
-			PostUpdate: BevySchedule.PostUpdate,
-			Last: BevySchedule.Last,
-			Main: BevySchedule.Update,
-		};
+	private syncToAdapter(label: ScheduleLabel): void {
+		if (!this.adapter) return;
 
-		return mapping[label.name] || BevySchedule.Update;
+		const schedule = this.schedules.getSchedule(label.name);
+		if (!schedule) return;
+
+		for (const system of schedule.getSystems()) {
+			this.adapter.addSystem({
+				name: system.name,
+				system: system.system,
+				schedule: label.name,
+				runCondition: system.runCondition,
+				systemSet: system.systemSet,
+				exclusive: system.exclusive,
+				state: system.state,
+			});
+		}
 	}
 }
