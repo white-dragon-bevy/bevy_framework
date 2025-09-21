@@ -3,44 +3,73 @@
  * 对应 Rust bevy_app 的 SubApp struct 和 SubApps
  */
 
-import { World } from "@rbxts/matter";
-import {
-	AppLabel,
-	Component,
-	ErrorHandler,
-	Message,
-	Resource,
-	ScheduleLabel,
-	SystemFunction,
-} from "./types";
+import { AppLabel, Component, ErrorHandler, Message, Resource, ScheduleLabel, SystemFunction } from "./types";
 import { Plugin, PluginState } from "./plugin";
 import { Schedule, Scheduler } from "./scheduler";
+import { WorldContainer, createWorldContainer, World } from "../bevy_ecs";
+import { ResourceManager, ResourceConstructor } from "../bevy_ecs/resource";
+import { CommandBuffer } from "../bevy_ecs/command-buffer";
+import { EventManager } from "../bevy_ecs/events";
+
+// 前向声明 App 类型
+interface AppInterface {
+	addPlugin(plugin: Plugin): AppInterface;
+	world(): WorldContainer;
+}
 
 /**
  * SubApp - 子应用程序
  * 对应 Rust 的 SubApp struct
  */
 export class SubApp {
-	private _world: World;
+	private _world: WorldContainer;
 	private scheduler: Scheduler;
+	private resourceManager: ResourceManager;
+	private commandBuffer: CommandBuffer;
+	private eventManager: EventManager;
 	private pluginRegistry: Plugin[] = [];
 	private pluginNames = new Set<string>();
 	private pluginBuildDepth = 0;
 	private _pluginState: PluginState = PluginState.Adding;
 	private updateSchedule?: ScheduleLabel;
-	private extractFunction?: (mainWorld: World, subWorld: World) => void;
+	private extractFunction?: (mainWorld: WorldContainer, subWorld: WorldContainer) => void;
 	private errorHandler?: ErrorHandler;
+	private appReference?: AppInterface; // 保存App引用用于插件回调
 
 	constructor() {
-		this._world = new World();
+		this._world = createWorldContainer();
 		this.scheduler = new Scheduler();
+		this.resourceManager = new ResourceManager();
+		this.commandBuffer = new CommandBuffer();
+		this.eventManager = new EventManager(this._world.getWorld());
 	}
 
 	/**
-	 * 获取World实例
+	 * 获取World容器实例
 	 */
-	world(): World {
+	world(): WorldContainer {
 		return this._world;
+	}
+
+	/**
+	 * 获取资源管理器
+	 */
+	getResourceManager(): ResourceManager {
+		return this.resourceManager;
+	}
+
+	/**
+	 * 获取命令缓冲器
+	 */
+	getCommandBuffer(): CommandBuffer {
+		return this.commandBuffer;
+	}
+
+	/**
+	 * 获取事件管理器
+	 */
+	getEventManager(): EventManager {
+		return this.eventManager;
 	}
 
 	/**
@@ -62,14 +91,14 @@ export class SubApp {
 	 * 设置提取函数
 	 * 对应 Rust SubApp::set_extract
 	 */
-	setExtract(extractFn: (mainWorld: World, subWorld: World) => void): void {
+	setExtract(extractFn: (mainWorld: WorldContainer, subWorld: WorldContainer) => void): void {
 		this.extractFunction = extractFn;
 	}
 
 	/**
 	 * 执行提取操作
 	 */
-	extract(mainWorld: World): void {
+	extract(mainWorld: WorldContainer): void {
 		if (this.extractFunction) {
 			this.extractFunction(mainWorld, this._world);
 		}
@@ -81,8 +110,14 @@ export class SubApp {
 	 */
 	update(): void {
 		if (this.updateSchedule) {
-			this.scheduler.runSchedule(this.updateSchedule, this._world);
+			this.scheduler.runSchedule(this.updateSchedule, this._world.getWorld());
 		}
+
+		// 执行命令缓冲
+		this.commandBuffer.flush(this._world.getWorld());
+
+		// 清理事件
+		this.eventManager.cleanup();
 	}
 
 	/**
@@ -106,8 +141,14 @@ export class SubApp {
 	 * 插入资源
 	 */
 	insertResource<T extends Resource>(resource: T): void {
-		// 在Matter World中插入资源
-		// 这里需要根据Matter的API来实现
+		// 使用独立的资源管理器
+		if (typeIs(resource, "table") && getmetatable(resource)) {
+			const resourceType = getmetatable(resource) as ResourceConstructor<T>;
+			this.resourceManager.insertResource(resourceType, resource);
+		} else {
+			// 对于简单类型，暂时跳过
+			warn(`[SubApp] Cannot insert resource without proper constructor: ${tostring(resource)}`);
+		}
 	}
 
 	/**
@@ -119,10 +160,24 @@ export class SubApp {
 	}
 
 	/**
+	 * 获取资源
+	 */
+	getResource<T extends Resource>(resourceType: ResourceConstructor<T>): T | undefined {
+		return this.resourceManager.getResource(resourceType);
+	}
+
+	/**
+	 * 移除资源
+	 */
+	removeResource<T extends Resource>(resourceType: ResourceConstructor<T>): T | undefined {
+		return this.resourceManager.removeResource(resourceType);
+	}
+
+	/**
 	 * 添加调度
 	 */
 	addSchedule(schedule: Schedule): void {
-		this.scheduler.addSchedule(schedule);
+		this.scheduler.addSchedule(schedule.getLabel(), schedule);
 	}
 
 	/**
@@ -147,6 +202,13 @@ export class SubApp {
 	}
 
 	/**
+	 * 设置App引用
+	 */
+	setAppReference(app: AppInterface): void {
+		this.appReference = app;
+	}
+
+	/**
 	 * 添加插件
 	 */
 	addPlugin(plugin: Plugin): void {
@@ -155,7 +217,11 @@ export class SubApp {
 
 		this.pluginBuildDepth += 1;
 		try {
-			plugin.build(this as any); // 暂时转换类型，实际需要传入App实例
+			if (this.appReference) {
+				plugin.build(this.appReference as any);
+			} else {
+				warn(`[SubApp] App reference not set, cannot build plugin: ${plugin.name()}`);
+			}
 		} finally {
 			this.pluginBuildDepth -= 1;
 		}
@@ -171,15 +237,15 @@ export class SubApp {
 	/**
 	 * 检查特定类型的插件是否已添加
 	 */
-	isPluginAdded<T extends Plugin>(pluginType: new (...args: any[]) => T): boolean {
-		return this.pluginRegistry.some(plugin => plugin instanceof pluginType);
+	isPluginAdded<T extends Plugin>(pluginType: new (...args: unknown[]) => T): boolean {
+		return this.pluginRegistry.some((plugin) => plugin instanceof pluginType);
 	}
 
 	/**
 	 * 获取已添加的插件
 	 */
-	getAddedPlugins<T extends Plugin>(pluginType: new (...args: any[]) => T): T[] {
-		return this.pluginRegistry.filter(plugin => plugin instanceof pluginType) as T[];
+	getAddedPlugins<T extends Plugin>(pluginType: new (...args: unknown[]) => T): T[] {
+		return this.pluginRegistry.filter((plugin) => plugin instanceof pluginType) as T[];
 	}
 
 	/**
@@ -195,9 +261,9 @@ export class SubApp {
 	getPluginState(): PluginState {
 		if (this._pluginState === PluginState.Adding) {
 			// 检查所有插件是否准备就绪
-			const allReady = this.pluginRegistry.every(plugin => {
-				if (plugin.ready !== undefined) {
-					return plugin.ready(this as any); // 需要传入App实例
+			const allReady = this.pluginRegistry.every((plugin) => {
+				if (plugin.ready !== undefined && this.appReference) {
+					return plugin.ready(this.appReference as any);
 				}
 				return true;
 			});
@@ -215,8 +281,8 @@ export class SubApp {
 	 */
 	finish(): void {
 		for (const plugin of this.pluginRegistry) {
-			if (plugin.finish !== undefined) {
-				plugin.finish(this as any); // 需要传入App实例
+			if (plugin.finish !== undefined && this.appReference) {
+				plugin.finish(this.appReference as any);
 			}
 		}
 		this._pluginState = PluginState.Finished;
@@ -227,8 +293,8 @@ export class SubApp {
 	 */
 	cleanup(): void {
 		for (const plugin of this.pluginRegistry) {
-			if (plugin.cleanup !== undefined) {
-				plugin.cleanup(this as any); // 需要传入App实例
+			if (plugin.cleanup !== undefined && this.appReference) {
+				plugin.cleanup(this.appReference as any);
 			}
 		}
 		this._pluginState = PluginState.Cleaned;

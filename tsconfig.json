@@ -29,6 +29,7 @@
 		"crates/**/*",
 		"docs/**/*",
 		"out/",
-		"bevy-origin/**/*"
+		"bevy-origin/**/*",
+		"todos"
 	]
 }

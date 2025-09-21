@@ -3,7 +3,6 @@
  * 对应 Rust bevy_app 的 App struct
  */
 
-import { World } from "@rbxts/matter";
 import {
 	AppExit,
 	AppLabel,
@@ -19,6 +18,7 @@ import { DuplicatePluginError, Plugin, PluginGroup, PluginState } from "./plugin
 import { SubApp, SubApps } from "./sub-app";
 import { RobloxInputPlugin } from "./roblox-adapters";
 import { Schedule, Scheduler } from "./scheduler";
+import { WorldContainer, World } from "../bevy_ecs";
 
 /**
  * Bevy App主类
@@ -32,6 +32,9 @@ export class App {
 	constructor() {
 		this.subApps = new SubApps();
 		this.runner = (app: App) => this.runOnce(app);
+
+		// 设置主SubApp的App引用
+		this.subApps.main().setAppReference(this);
 
 		// 初始化主应用
 		this.initializeMainApp();
@@ -178,10 +181,7 @@ export class App {
 	 * 对应 Rust App::add_plugins
 	 */
 	addPlugin(plugin: Plugin): this {
-		if (
-			this.getPluginState() === PluginState.Cleaned ||
-			this.getPluginState() === PluginState.Finished
-		) {
+		if (this.getPluginState() === PluginState.Cleaned || this.getPluginState() === PluginState.Finished) {
 			error("Plugins cannot be added after App.cleanup() or App.finish() has been called.");
 		}
 
@@ -224,7 +224,7 @@ export class App {
 	 * 检查插件是否已添加
 	 * 对应 Rust App::is_plugin_added
 	 */
-	isPluginAdded<T extends Plugin>(pluginType: new (...args: any[]) => T): boolean {
+	isPluginAdded<T extends Plugin>(pluginType: new (...args: unknown[]) => T): boolean {
 		return this.subApps.main().isPluginAdded(pluginType);
 	}
 
@@ -232,7 +232,7 @@ export class App {
 	 * 获取已添加的插件
 	 * 对应 Rust App::get_added_plugins
 	 */
-	getAddedPlugins<T extends Plugin>(pluginType: new (...args: any[]) => T): T[] {
+	getAddedPlugins<T extends Plugin>(pluginType: new (...args: unknown[]) => T): T[] {
 		return this.subApps.main().getAddedPlugins(pluginType);
 	}
 
@@ -273,10 +273,10 @@ export class App {
 	}
 
 	/**
-	 * 获取World引用
+	 * 获取World容器
 	 * 对应 Rust App::world
 	 */
-	world(): World {
+	world(): WorldContainer {
 		return this.subApps.main().world();
 	}
 
@@ -321,6 +321,7 @@ export class App {
 	 * 对应 Rust App::insert_sub_app
 	 */
 	insertSubApp(label: AppLabel, subApp: SubApp): void {
+		subApp.setAppReference(this);
 		if (this.defaultErrorHandler) {
 			subApp.setErrorHandler(this.defaultErrorHandler);
 		}

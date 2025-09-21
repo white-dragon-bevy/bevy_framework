@@ -1,14 +1,14 @@
 /**
- * Bevy调度系统实现
- * 对应 Rust bevy_ecs 的 Schedule 相关类型
+ * Bevy调度系统兼容层
+ * 提供与原 scheduler.ts 的兼容接口，实际功能由 bevy_ecs 的 BevyEcsAdapter 提供
  */
 
 import { World } from "@rbxts/matter";
 import { ScheduleLabel, SystemFunction } from "./types";
+import { BevyEcsAdapter, BevySchedule } from "../bevy_ecs/bevy-ecs-adapter";
 
 /**
  * 系统集合接口
- * 对应 Rust 的 SystemSet trait
  */
 export interface SystemSet {
 	readonly __brand: "SystemSet";
@@ -35,7 +35,7 @@ export interface SystemConfig {
 
 /**
  * 调度类 - 管理系统的执行顺序和配置
- * 对应 Rust 的 Schedule struct
+ * 这是一个兼容层，实际调度由 Loop.luau 处理
  */
 export class Schedule {
 	private systems: SystemConfig[] = [];
@@ -53,23 +53,19 @@ export class Schedule {
 	}
 
 	/**
-	 * 添加系统
+	 * 添加系统到调度
 	 */
-	addSystem(system: SystemFunction, config?: Partial<Omit<SystemConfig, "system">>): this {
-		const systemConfig: SystemConfig = {
-			system,
-			...config,
-		};
-		this.systems.push(systemConfig);
+	addSystem(config: SystemConfig): this {
+		this.systems.push(config);
 		return this;
 	}
 
 	/**
 	 * 添加多个系统
 	 */
-	addSystems(...systems: SystemFunction[]): this {
-		for (const system of systems) {
-			this.addSystem(system);
+	addSystems(configs: SystemConfig[]): this {
+		for (const config of configs) {
+			this.systems.push(config);
 		}
 		return this;
 	}
@@ -77,67 +73,84 @@ export class Schedule {
 	/**
 	 * 运行调度中的所有系统
 	 */
-	run(world: World, deltaTime?: number): void {
-		// 简化的系统执行逻辑
-		// 实际的Bevy调度器会处理依赖关系和并行执行
+	run(world: World): void {
 		for (const config of this.systems) {
 			// 检查运行条件
 			if (config.runIf && !config.runIf(world)) {
 				continue;
 			}
 
+			// 执行系统
 			try {
-				config.system(world, deltaTime);
+				config.system(world);
 			} catch (error) {
-				warn(`System execution failed: ${error}`);
+				warn(`[Schedule] System error: ${error}`);
 			}
 		}
 	}
 
 	/**
-	 * 获取所有系统配置
+	 * 获取系统列表
 	 */
 	getSystems(): readonly SystemConfig[] {
 		return this.systems;
 	}
 
 	/**
-	 * 清空所有系统
+	 * 清空系统
 	 */
-	clear(): this {
+	clear(): void {
 		this.systems = [];
-		return this;
-	}
-
-	/**
-	 * 配置系统集合
-	 */
-	configureSets(...sets: SystemSet[]): this {
-		// TODO: 实现系统集合配置逻辑
-		return this;
 	}
 }
 
 /**
- * 调度器 - 管理多个调度的执行
- * 对应 Rust 的 Schedules resource
+ * 调度器类 - 管理多个调度
+ * 这是一个兼容层，实际功能由 BevyEcsAdapter 提供
  */
 export class Scheduler {
-	private schedules = new Map<string, Schedule>();
+	private schedules = new Map<ScheduleLabel, Schedule>();
+	private adapter?: BevyEcsAdapter;
+
+	/**
+	 * 设置底层适配器
+	 */
+	setAdapter(adapter: BevyEcsAdapter): void {
+		this.adapter = adapter;
+	}
+
+	/**
+	 * 添加系统到调度
+	 */
+	addSystem(label: ScheduleLabel, system: SystemFunction): void {
+		let schedule = this.schedules.get(label);
+		if (!schedule) {
+			schedule = new Schedule(label);
+			this.schedules.set(label, schedule);
+		}
+		schedule.addSystem({ system });
+	}
 
 	/**
 	 * 添加调度
 	 */
-	addSchedule(schedule: Schedule): void {
-		this.schedules.set(schedule.getLabel().name, schedule);
-	}
+	addSchedule(label: ScheduleLabel, schedule?: Schedule): void {
+		if (!schedule) {
+			schedule = new Schedule(label);
+		}
+		this.schedules.set(label, schedule);
 
-	/**
-	 * 初始化空调度
-	 */
-	initSchedule(label: ScheduleLabel): void {
-		if (!this.schedules.has(label.name)) {
-			this.schedules.set(label.name, new Schedule(label));
+		// 如果有适配器，将系统添加到适配器
+		if (this.adapter) {
+			const systems = schedule.getSystems();
+			for (const config of systems) {
+				this.adapter.addSystem({
+					name: `${label}_system`,
+					system: (world) => config.system(world),
+					schedule: this.mapLabelToSchedule(label),
+					runCondition: config.runIf,
+				});
+			}
 		}
 	}
 
@@ -145,166 +158,56 @@ export class Scheduler {
 	 * 获取调度
 	 */
 	getSchedule(label: ScheduleLabel): Schedule | undefined {
-		return this.schedules.get(label.name);
+		return this.schedules.get(label);
 	}
 
 	/**
-	 * 运行指定调度
+	 * 运行特定调度
 	 */
-	runSchedule(label: ScheduleLabel, world: World, deltaTime?: number): void {
-		const schedule = this.getSchedule(label);
+	runSchedule(label: ScheduleLabel, world: World): void {
+		const schedule = this.schedules.get(label);
 		if (schedule) {
-			schedule.run(world, deltaTime);
-		} else {
-			warn(`Schedule "${label.name}" not found`);
+			schedule.run(world);
 		}
 	}
 
 	/**
-	 * 添加系统到指定调度
+	 * 初始化调度
 	 */
-	addSystem(scheduleLabel: ScheduleLabel, system: SystemFunction): void {
-		let schedule = this.getSchedule(scheduleLabel);
-		if (!schedule) {
-			this.initSchedule(scheduleLabel);
-			schedule = this.getSchedule(scheduleLabel)!;
+	initSchedule(label: ScheduleLabel): void {
+		if (!this.schedules.has(label)) {
+			this.addSchedule(label);
 		}
-		schedule.addSystem(system);
 	}
 
 	/**
 	 * 编辑调度
 	 */
 	editSchedule(label: ScheduleLabel, editor: (schedule: Schedule) => void): void {
-		let schedule = this.getSchedule(label);
+		let schedule = this.schedules.get(label);
 		if (!schedule) {
-			this.initSchedule(label);
-			schedule = this.getSchedule(label)!;
+			schedule = new Schedule(label);
+			this.schedules.set(label, schedule);
 		}
 		editor(schedule);
 	}
 
 	/**
-	 * 获取所有调度标签
+	 * 映射标签到 Bevy 调度阶段
 	 */
-	getScheduleLabels(): ScheduleLabel[] {
-			const labels: ScheduleLabel[] = [];
-		for (const [name] of this.schedules) {
-			labels.push({ __brand: "ScheduleLabel", name } as ScheduleLabel);
-		}
-		return labels;
-	}
-
-	/**
-	 * 移除调度
-	 */
-	removeSchedule(label: ScheduleLabel): boolean {
-		return this.schedules.delete(label.name);
-	}
-
-	/**
-	 * 检查调度是否存在
-	 */
-	hasSchedule(label: ScheduleLabel): boolean {
-		return this.schedules.has(label.name);
-	}
-}
-
-/**
- * 系统构建器 - 用于配置系统的执行条件和依赖关系
- */
-export class SystemBuilder {
-	private config: Partial<SystemConfig> = {};
-
-	constructor(private system: SystemFunction) {}
-
-	/**
-	 * 设置运行条件
-	 */
-	runIf(condition: (world: World) => boolean): this {
-		this.config.runIf = condition;
-		return this;
-	}
-
-	/**
-	 * 设置在指定系统集合之前运行
-	 */
-	before(...sets: SystemSet[]): this {
-		this.config.before = [...(this.config.before || []), ...sets];
-		return this;
-	}
-
-	/**
-	 * 设置在指定系统集合之后运行
-	 */
-	after(...sets: SystemSet[]): this {
-		this.config.after = [...(this.config.after || []), ...sets];
-		return this;
-	}
-
-	/**
-	 * 添加到系统集合中
-	 */
-	inSet(set: SystemSet): this {
-		this.config.inSet = set;
-		return this;
-	}
-
-	/**
-	 * 构建系统配置
-	 */
-	build(): SystemConfig {
-		return {
-			system: this.system,
-			...this.config,
+	private mapLabelToSchedule(label: ScheduleLabel): BevySchedule {
+		const mapping: { [key: string]: BevySchedule } = {
+			First: BevySchedule.First,
+			PreStartup: BevySchedule.PreStartup,
+			Startup: BevySchedule.Startup,
+			PostStartup: BevySchedule.PostStartup,
+			PreUpdate: BevySchedule.PreUpdate,
+			Update: BevySchedule.Update,
+			PostUpdate: BevySchedule.PostUpdate,
+			Last: BevySchedule.Last,
+			Main: BevySchedule.Update,
 		};
-	}
-}
 
-/**
- * 创建系统构建器的便捷函数
- */
-export function system(systemFn: SystemFunction): SystemBuilder {
-	return new SystemBuilder(systemFn);
-}
-
-/**
- * 运行条件构建器
- */
-export namespace RunConditions {
-	/**
-	 * 始终运行
-	 */
-	export function always(): (world: World) => boolean {
-		return () => true;
-	}
-
-	/**
-	 * 从不运行
-	 */
-	export function never(): (world: World) => boolean {
-		return () => false;
-	}
-
-	/**
-	 * 资源存在时运行
-	 */
-	export function resourceExists<T extends object>(resourceType: new () => T): (world: World) => boolean {
-		return (world: World) => {
-			// 这里需要根据Matter的API来检查资源是否存在
-			// 暂时返回true
-			return true;
-		};
-	}
-
-	/**
-	 * 资源发生变化时运行
-	 */
-	export function resourceChanged<T extends object>(resourceType: new () => T): (world: World) => boolean {
-		return (world: World) => {
-			// 这里需要根据Matter的API来检查资源是否发生变化
-			// 暂时返回true
-			return true;
-		};
+		return mapping[label.name] || BevySchedule.Update;
 	}
 }
