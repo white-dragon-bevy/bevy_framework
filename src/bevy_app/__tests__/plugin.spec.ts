@@ -1,4 +1,4 @@
-import { App, BuiltinSchedules } from "../index";
+import { App } from "../index";
 import {
 	Plugin,
 	BasePlugin,
@@ -8,8 +8,9 @@ import {
 	PluginGroup,
 	PluginGroupBuilder,
 	BasePluginGroup,
-	DuplicatePluginError
+	DuplicatePluginError,
 } from "../plugin";
+import { MainScheduleLabel as BuiltinSchedules } from "../main-schedule";
 
 // 测试用插件
 class TestPlugin extends BasePlugin {
@@ -20,7 +21,7 @@ class TestPlugin extends BasePlugin {
 
 	build(app: App): void {
 		this.buildCalled = true;
-		app.addSystems(BuiltinSchedules.Update, () => {
+		app.addSystems(BuiltinSchedules.UPDATE, () => {
 			// 测试系统
 		});
 	}
@@ -79,9 +80,7 @@ class AnotherTestPlugin extends BasePlugin {
 class TestPluginGroup extends BasePluginGroup {
 	build(): PluginGroupBuilder {
 		const builder = new PluginGroupBuilder();
-		builder
-			.add(new TestPlugin())
-			.add(new AnotherTestPlugin());
+		builder.add(new TestPlugin()).add(new AnotherTestPlugin());
 		return builder;
 	}
 
@@ -118,7 +117,7 @@ export = (): void => {
 						functionCalled = true;
 					},
 					"TestFunctionPlugin",
-					true
+					true,
 				);
 
 				expect(plugin.name()).to.equal("TestFunctionPlugin");
@@ -137,11 +136,7 @@ export = (): void => {
 			});
 
 			it("应该支持非唯一插件", () => {
-				const plugin = new FunctionPlugin(
-					(app: App) => {},
-					"NonUnique",
-					false
-				);
+				const plugin = new FunctionPlugin((app: App) => {}, "NonUnique", false);
 
 				expect(plugin.isUnique()).to.equal(false);
 			});
@@ -150,12 +145,9 @@ export = (): void => {
 		describe("createPlugin", () => {
 			it("应该创建函数式插件", () => {
 				let called = false;
-				const plugin = createPlugin(
-					(app: App) => {
-						called = true;
-					},
-					"CreatedPlugin"
-				);
+				const plugin = createPlugin((app: App) => {
+					called = true;
+				}, "CreatedPlugin");
 
 				expect(plugin.name()).to.equal("CreatedPlugin");
 
@@ -313,10 +305,7 @@ export = (): void => {
 				const plugin2 = new AnotherTestPlugin();
 				const plugin3 = new NonUniquePlugin();
 
-				builder
-					.add(plugin1)
-					.add(plugin2)
-					.addBefore(AnotherTestPlugin, plugin3);
+				builder.add(plugin1).add(plugin2).addBefore(AnotherTestPlugin, plugin3);
 
 				const plugins = builder.getPlugins();
 				expect(plugins.size()).to.equal(3);
@@ -333,10 +322,7 @@ export = (): void => {
 				const plugin2 = new AnotherTestPlugin();
 				const plugin3 = new NonUniquePlugin();
 
-				builder
-					.add(plugin1)
-					.add(plugin2)
-					.addAfter(TestPlugin, plugin3);
+				builder.add(plugin1).add(plugin2).addAfter(TestPlugin, plugin3);
 
 				const plugins = builder.getPlugins();
 				expect(plugins.size()).to.equal(3);
@@ -352,10 +338,7 @@ export = (): void => {
 				const plugin1 = new TestPlugin();
 				const plugin2 = new AnotherTestPlugin();
 
-				builder
-					.add(plugin1)
-					.add(plugin2)
-					.disable(TestPlugin);
+				builder.add(plugin1).add(plugin2).disable(TestPlugin);
 
 				const plugins = builder.getPlugins();
 				expect(plugins.size()).to.equal(1);

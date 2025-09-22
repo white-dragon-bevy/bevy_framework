@@ -5,7 +5,7 @@
 
 import { Plugin } from "../bevy_app/plugin";
 import { App } from "../bevy_app/app";
-import { BuiltinSchedules } from "../bevy_app/main-schedule";
+import { MainScheduleLabel as BuiltinSchedules } from "../bevy_app/main-schedule";
 import { World } from "@rbxts/matter";
 import { Duration } from "./duration";
 import { Time, Real, Virtual, Fixed, Empty } from "./time";
@@ -17,6 +17,7 @@ import {
 	GenericTimeResource,
 	TimeUpdateStrategyResource,
 } from "./time-resources";
+import { Context } from "../bevy_ecs";
 
 /**
  * 时间更新策略接口
@@ -53,13 +54,17 @@ export class TimePlugin implements Plugin {
 		// 初始化时间资源
 		// 对应 lib.rs:70-74
 		app.insertResource(new RealTimeResource(new Time<Real>({ __brand: "Real" } as Real)));
-		app.insertResource(new VirtualTimeResource(new Time<Virtual>({
-			__brand: "Virtual",
-			paused: false,
-			relativeSpeed: 1.0,
-			effectiveSpeed: 1.0,
-			maxDelta: Duration.fromSecs(0.25),
-		} as Virtual)));
+		app.insertResource(
+			new VirtualTimeResource(
+				new Time<Virtual>({
+					__brand: "Virtual",
+					paused: false,
+					relativeSpeed: 1.0,
+					effectiveSpeed: 1.0,
+					maxDelta: Duration.fromSecs(0.25),
+				} as Virtual),
+			),
+		);
 		app.insertResource(new FixedTimeResource(new TimeFixed()));
 		app.insertResource(new GenericTimeResource(new Time<Empty>({}))); // 通用时间
 
@@ -68,17 +73,14 @@ export class TimePlugin implements Plugin {
 
 		// 添加时间更新系统到 First 调度
 		// 对应 lib.rs:84-89
-		app.addSystems(BuiltinSchedules.First, (world: World, deltaTime?: number) => {
-			timeSystem(world, deltaTime, app);
+		app.addSystems(BuiltinSchedules.FIRST, (world: World, context: Context) => {
+			timeSystem(world, context, app);
 		});
 
 		// 添加固定主调度运行系统到 RunFixedMainLoop
 		// 对应 lib.rs:90-93
-		if (BuiltinSchedules.RunFixedMainLoop !== undefined) {
-			app.addSystems(BuiltinSchedules.RunFixedMainLoop, (world: World, deltaTime?: number) => {
-				runFixedMainSchedule(world, deltaTime, app);
-			});
-		}
+		// RunFixedMainLoop schedule is not implemented yet
+		// TODO: Implement RunFixedMainLoop schedule when fixed timestep is needed
 
 		// TODO: 消息系统配置（lib.rs:95-99）
 		// 在 Roblox 中可能需要不同的实现方式
@@ -110,7 +112,7 @@ export class TimePlugin implements Plugin {
  * 时间系统 - 更新所有时间资源
  * 对应 Rust time_system
  */
-function timeSystem(world: World, deltaTime: number | undefined, app: App): void {
+function timeSystem(world: World, context: Context, app: App): void {
 	// 获取时间更新策略
 	const strategyResource = app.getResource(TimeUpdateStrategyResource);
 	if (!strategyResource) return;
@@ -146,7 +148,7 @@ function timeSystem(world: World, deltaTime: number | undefined, app: App): void
 		// 如果没有暂停，使用 real 时间的增量
 		if (!(virtualTime.getContext() as Virtual).paused) {
 			const virtualDelta = Duration.fromSecs(
-				delta.asSecsF64() * (virtualTime.getContext() as Virtual).relativeSpeed
+				delta.asSecsF64() * (virtualTime.getContext() as Virtual).relativeSpeed,
 			);
 
 			// 应用最大增量限制
@@ -169,7 +171,7 @@ function timeSystem(world: World, deltaTime: number | undefined, app: App): void
  * 运行固定主调度
  * 对应 Rust run_fixed_main_schedule (fixed.rs:239-252)
  */
-function runFixedMainSchedule(world: World, deltaTime: number | undefined, app: App): void {
+function runFixedMainSchedule(world: World, context: Context, app: App): void {
 	// 获取虚拟时间和固定时间
 	const virtualTimeResource = app.getResource(VirtualTimeResource);
 	const fixedTimeResource = app.getResource(FixedTimeResource);
@@ -195,9 +197,10 @@ function runFixedMainSchedule(world: World, deltaTime: number | undefined, app: 
 		app.insertResource(new GenericTimeResource(fixedTime.asGeneric()));
 
 		// 运行 FixedUpdate 调度
-		const scheduler = app.main().getScheduler();
-		if (scheduler && BuiltinSchedules.FixedUpdate) {
-			scheduler.runSchedule(BuiltinSchedules.FixedUpdate, world, fixedTime.getDelta().asSecsF64());
+		const schedule = app.main().getSchedule(BuiltinSchedules.UPDATE);
+		if (schedule) {
+			// TODO: Implement FixedUpdate schedule execution
+			// This needs proper implementation of FixedUpdate schedule
 		}
 
 		iterations++;

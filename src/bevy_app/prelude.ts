@@ -10,18 +10,7 @@ export { App } from "./app";
 export { SubApp, SubApps } from "./sub-app";
 
 // 类型定义
-export {
-	AppLabel,
-	createAppLabel,
-	AppExit,
-	AppExitCode,
-	SystemFunction,
-	ScheduleLabel,
-	createScheduleLabel,
-	Component,
-	Message,
-	ErrorHandler,
-} from "./types";
+export { AppLabel, createAppLabel, AppExit, AppExitCode, ScheduleLabel, Message, ErrorHandler } from "./types";
 
 // Resource 类型从 bevy_ecs 导出
 export type { Resource } from "../bevy_ecs/resource";
@@ -39,23 +28,6 @@ export {
 	PluginError,
 	DuplicatePluginError,
 } from "./plugin";
-
-// 调度系统
-export {
-	Schedule,
-	Scheduler,
-	LogConfig,
-	createSystemSet,
-	SystemConfig,
-	// Re-export from bevy_ecs for backward compatibility
-	SystemSet,
-	system,
-	configureSet,
-	chain,
-} from "./scheduler";
-
-// 调度标签
-export { BuiltinSchedules, BevySchedule } from "./main-schedule";
 
 // Roblox适配器
 export {

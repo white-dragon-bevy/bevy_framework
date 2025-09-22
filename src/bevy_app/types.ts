@@ -3,8 +3,6 @@
  * 对应 Rust bevy_app 的核心类型
  */
 
-import { World } from "@rbxts/matter";
-
 /**
  * App标签接口 - 用于标识不同的App实例
  * 对应 Rust 的 AppLabel trait
@@ -53,36 +51,10 @@ export class AppExit implements Message {
 }
 
 /**
- * 系统函数类型定义
- */
-export type SystemFunction = (world: World, deltaTime?: number) => void;
-
-/**
  * 调度标签接口
  * 对应 Rust 的 ScheduleLabel trait
  */
-export interface ScheduleLabel {
-	readonly __brand: "ScheduleLabel";
-	readonly name: string;
-}
-
-/**
- * 创建调度标签
- */
-export function createScheduleLabel(name: string): ScheduleLabel {
-	return { __brand: "ScheduleLabel", name } as ScheduleLabel;
-}
-
-
-// Resource interface is defined in bevy_ecs/resource.ts
-
-/**
- * 组件类型接口
- * 对应 Rust ECS 的 Component trait
- */
-export interface Component {
-	readonly __brand: "Component";
-}
+export type ScheduleLabel = string;
 
 /**
  * 事件/消息类型接口

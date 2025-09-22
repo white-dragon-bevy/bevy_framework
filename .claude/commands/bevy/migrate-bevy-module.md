@@ -1,16 +1,18 @@
 # 迁移 bevy_app 模块到 roblox-ts
 
+设 <pluginName> = #ARGUMENTS
+
 ## 任务描述
 
-将 Bevy 引擎的 `bevy_app` 模块迁移到 roblox-ts 生态，实现应用框架和插件系统。
+将 Bevy 引擎的  模块迁移到 roblox-ts 生态，实现应用框架和插件系统。
 
 ## 输入目录
 
-- `bevy-origin/crates/bevy_app/` - Bevy 原始应用框架代码
+- `bevy-origin/crates/<pluginName>/` - Bevy 原始应用框架代码
 
 ## 输出目录
 
-- `src/bevy_app/` - 迁移后的 roblox-ts 应用框架
+- `src/<pluginName>/` - 迁移后的 roblox-ts 应用框架
 
 ## 任务要求
 
@@ -20,8 +22,12 @@
 - 实现插件系统接口 `MatterPlugin`
 - 支持插件的注册、初始化和生命周期管理
 - 建立插件间的依赖关系处理
+- 严格符合源代码设计逻辑, 接口命名应基本一致(使用roblox-ts 命名规范)
 
 ### 2. 架构设计
+- `不需要封装 roblox 接口`, 不必兼容 bevy api
+
+### 样例
 
 ```typescript
 // 核心插件接口
@@ -71,19 +77,11 @@ class MatterApp {
 ## 文件结构
 
 ```
-crates/bevy_app/
-├── src/
-│   ├── index.ts                 # 主要导出
-│   ├── app.ts                   # MatterApp 类
-│   ├── plugin.ts                # 插件系统
-│   ├── builder.ts               # 应用构建器
-│   └── runner.ts                # 应用运行器
-├── tests/
-│   ├── app.spec.ts              # 应用测试
-│   ├── plugin.spec.ts           # 插件测试
-│   └── integration.spec.ts      # 集成测试
-├── package.json
-└── tsconfig.json
+src/<pluginName>/
+├── src/                         # 代码, 尽量符合源代码结构
+├── __tests__/                   # 单元测试和集成测试
+├── README.md
+└── 
 ```
 
 ## 预期产出
@@ -93,6 +91,7 @@ crates/bevy_app/
 3. 全面的单元测试覆盖
 4. 详细的 JSDoc 文档
 5. 与 Matter ECS 的无缝集成
+6. README.md (使用代理, 提示词: .claude/commands/bevy/bevy-readme.md)
 
 ## 验证标准
 

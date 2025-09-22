@@ -1,10 +1,10 @@
 import { World } from "@rbxts/matter";
 import {
 	App,
-	BuiltinSchedules,
 	AppExit,
 	PluginState
 } from "../index";
+import { MainScheduleLabel as BuiltinSchedules } from "../main-schedule";
 import { SubApp } from "../sub-app";
 import { createTestApp } from "./test-helpers";
 
@@ -158,15 +158,15 @@ export = (): void => {
 			it("应该初始化默认调度", () => {
 				// createTestApp() 应该已经初始化了默认调度
 				const schedules = [
-					BuiltinSchedules.First,
-					BuiltinSchedules.PreStartup,
-					BuiltinSchedules.Startup,
-					BuiltinSchedules.PostStartup,
-					BuiltinSchedules.PreUpdate,
-					BuiltinSchedules.Update,
-					BuiltinSchedules.PostUpdate,
-					BuiltinSchedules.Last,
-					BuiltinSchedules.Main
+					BuiltinSchedules.FIRST,
+					BuiltinSchedules.PRE_STARTUP,
+					BuiltinSchedules.STARTUP,
+					BuiltinSchedules.POST_STARTUP,
+					BuiltinSchedules.PRE_UPDATE,
+					BuiltinSchedules.UPDATE,
+					BuiltinSchedules.POST_UPDATE,
+					BuiltinSchedules.LAST,
+					BuiltinSchedules.MAIN
 				];
 
 				for (const schedule of schedules) {
@@ -181,7 +181,7 @@ export = (): void => {
 					systemCalled = true;
 				};
 
-				app.addSystems(BuiltinSchedules.Update, testSystem);
+				app.addSystems(BuiltinSchedules.UPDATE, testSystem);
 
 				// 系统应该被添加但还未执行
 				expect(systemCalled).to.equal(false);
@@ -190,10 +190,10 @@ export = (): void => {
 			it("应该能够编辑调度", () => {
 				let editCalled = false;
 
-				app.editSchedule(BuiltinSchedules.Update, (schedule) => {
+				app.editSchedule(BuiltinSchedules.UPDATE, (schedule) => {
 					editCalled = true;
 					expect(schedule).to.be.ok();
-					expect(schedule.getLabel()).to.equal(BuiltinSchedules.Update);
+					expect(schedule.getLabel()).to.equal(BuiltinSchedules.UPDATE);
 				});
 
 				expect(editCalled).to.equal(true);
@@ -319,7 +319,7 @@ export = (): void => {
 			it("应该能够执行 update()", () => {
 				let updateSystemCalled = false;
 
-				app.addSystems(BuiltinSchedules.Update, () => {
+				app.addSystems(BuiltinSchedules.UPDATE, () => {
 					updateSystemCalled = true;
 				});
 

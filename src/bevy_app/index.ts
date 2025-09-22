@@ -15,7 +15,7 @@
  * // 创建基础应用
  * const app = App.create()
  *   .addPlugins(...RobloxDefaultPlugins.create().build())
- *   .addSystems(BuiltinSchedules.Update, gameSystem)
+ *   .addSystems(BuiltinSchedules.UPDATE, gameSystem)
  *   .run();
  *
  * function gameSystem(world: World) {
@@ -31,14 +31,13 @@
 export * from "./types";
 export * from "./app";
 export * from "./plugin";
-export * from "./scheduler";
 export * from "./sub-app";
 export * from "./roblox-adapters";
+export * from "./main-schedule";
 
 // 导出预设模块
 export * as prelude from "./prelude";
 
 // 提供便捷的默认导出
 export { App } from "./app";
-export { BuiltinSchedules, BevySchedule } from "./main-schedule";
 export { RobloxDefaultPlugins } from "./roblox-adapters";

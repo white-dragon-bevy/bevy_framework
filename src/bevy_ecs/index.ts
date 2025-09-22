@@ -7,10 +7,11 @@
 // 核心组件导出
 export * from "./command-buffer";
 export * from "./resource";
-export * from "./bevy-ecs-adapter";
+export * from "./schedule/index";
 export * from "./bevy-world";
 export * from "./events";
 export * from "./name";
+export * from "./types";
 
 // 默认导出
 export { BevyWorld } from "./bevy-world";

@@ -27,7 +27,7 @@ function testBasicApp() {
 	}
 
 	// 创建简单的App进行测试
-	const app = App.create().addSystems(BuiltinSchedules.Update, testSystem);
+	const app = App.create().addSystems(BuiltinSchedules.UPDATE, testSystem);
 
 	// 手动更新一次来测试
 	app.update();
@@ -50,7 +50,7 @@ function testPluginSystem() {
 			pluginBuilt = true;
 			print("TestPlugin built");
 
-			app.addSystems(BuiltinSchedules.Update, () => {
+			app.addSystems(BuiltinSchedules.UPDATE, () => {
 				print("TestPlugin system running");
 			});
 		}
@@ -89,7 +89,7 @@ function testFunctionPlugin() {
 	const testPlugin = createPlugin(
 		(app: App) => {
 			functionCalled = true;
-			app.addSystems(BuiltinSchedules.Update, () => {
+			app.addSystems(BuiltinSchedules.UPDATE, () => {
 				print("Function plugin system running");
 			});
 		},
@@ -123,9 +123,9 @@ function testScheduleSystem() {
 	}
 
 	const app = App.create()
-		.addSystems(BuiltinSchedules.First, firstSystem)
-		.addSystems(BuiltinSchedules.Update, updateSystem)
-		.addSystems(BuiltinSchedules.Last, lastSystem);
+		.addSystems(BuiltinSchedules.FIRST, firstSystem)
+		.addSystems(BuiltinSchedules.UPDATE, updateSystem)
+		.addSystems(BuiltinSchedules.LAST, lastSystem);
 
 	// 注意：这个测试需要实际的调度执行顺序支持
 	// 当前的简化实现可能不会保证执行顺序
@@ -230,8 +230,8 @@ export function createDemoApp(): App {
 		build(app: App): void {
 			print("🚀 Demo Plugin initialized");
 
-			app.addSystems(BuiltinSchedules.Startup, () => this.startupSystem());
-			app.addSystems(BuiltinSchedules.Update, () => this.updateSystem());
+			app.addSystems(BuiltinSchedules.STARTUP, () => this.startupSystem());
+			app.addSystems(BuiltinSchedules.UPDATE, () => this.updateSystem());
 		}
 
 		name(): string {

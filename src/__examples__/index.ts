@@ -1,5 +1,5 @@
 const exampleFolder: string = "app";
-const exampleName: string = "empty";
+const exampleName: string = "empty_defaults";
 
 export function bootstrap() {
 	const folder = script.FindFirstChild(exampleFolder);

@@ -3,22 +3,14 @@
  * 对应 Rust bevy_app 的 App struct
  */
 
-import {
-	AppExit,
-	AppLabel,
-	Component,
-	ErrorHandler,
-	Message,
-	ScheduleLabel,
-	SystemFunction,
-} from "./types";
+import { AppExit, AppLabel, ErrorHandler, Message, ScheduleLabel } from "./types";
 import { Resource, ResourceConstructor } from "../bevy_ecs/resource";
 import { BuiltinSchedules } from "./main-schedule";
 import { DuplicatePluginError, Plugin, PluginGroup, PluginState } from "./plugin";
 import { SubApp, SubApps } from "./sub-app";
-import { RobloxInputPlugin } from "./roblox-adapters";
-import { Schedule, Scheduler } from "./scheduler";
-import { WorldContainer, World } from "../bevy_ecs";
+import { WorldContainer } from "../bevy_ecs";
+import { Schedule } from "../bevy_ecs/schedule/schedule";
+import type { SystemFunction } from "../bevy_ecs/schedule/types";
 
 /**
  * Bevy App主类
@@ -63,7 +55,7 @@ export class App {
 	 */
 	private initializeMainApp(): void {
 		const mainApp = this.subApps.main();
-		mainApp.setUpdateSchedule(BuiltinSchedules.Main);
+		mainApp.setUpdateSchedule(BuiltinSchedules.MAIN);
 
 		// 添加基础调度
 		this.initializeDefaultSchedules();
@@ -77,23 +69,23 @@ export class App {
 	 */
 	private initializeDefaultSchedules(): void {
 		const schedules = [
-			BuiltinSchedules.First,
-			BuiltinSchedules.PreStartup,
-			BuiltinSchedules.Startup,
-			BuiltinSchedules.PostStartup,
-			BuiltinSchedules.PreUpdate,
-			BuiltinSchedules.Update,
-			BuiltinSchedules.PostUpdate,
-			BuiltinSchedules.Last,
-			BuiltinSchedules.Main,
-			// 固定更新相关调度
-			BuiltinSchedules.RunFixedMainLoop,
-			BuiltinSchedules.FixedMain,
-			BuiltinSchedules.FixedFirst,
-			BuiltinSchedules.FixedPreUpdate,
-			BuiltinSchedules.FixedUpdate,
-			BuiltinSchedules.FixedPostUpdate,
-			BuiltinSchedules.FixedLast,
+			BuiltinSchedules.FIRST,
+			BuiltinSchedules.PRE_STARTUP,
+			BuiltinSchedules.STARTUP,
+			BuiltinSchedules.POST_STARTUP,
+			BuiltinSchedules.PRE_UPDATE,
+			BuiltinSchedules.UPDATE,
+			BuiltinSchedules.POST_UPDATE,
+			BuiltinSchedules.LAST,
+			BuiltinSchedules.MAIN,
+			// 固定更新相关调度 (这些调度当前未实现)
+			// BuiltinSchedules.RunFixedMainLoop,
+			// BuiltinSchedules.FixedMain,
+			// BuiltinSchedules.FixedFirst,
+			// BuiltinSchedules.FixedPreUpdate,
+			// BuiltinSchedules.FixedUpdate,
+			// BuiltinSchedules.FixedPostUpdate,
+			// BuiltinSchedules.FixedLast,
 		];
 
 		for (const schedule of schedules) {
@@ -418,4 +410,14 @@ export class App {
 	getErrorHandler(): ErrorHandler | undefined {
 		return this.defaultErrorHandler;
 	}
+
+	/**
+	 * 注册诊断
+	 * 对应 Rust RegisterDiagnostic trait
+	 * @param diagnostic - 诊断实例
+	 * @returns App实例（链式调用）
+	 */
+	// registerDiagnostic(diagnostic: Diagnostic): this {
+	// 	return registerDiagnosticImpl(this, diagnostic);
+	// }
 }

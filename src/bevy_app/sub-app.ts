@@ -3,15 +3,17 @@
  * 对应 Rust bevy_app 的 SubApp struct 和 SubApps
  */
 
-import { AppLabel, Component, ErrorHandler, Message, ScheduleLabel, SystemFunction } from "./types";
+import { AppLabel, ErrorHandler, Message, ScheduleLabel } from "./types";
 import { Plugin, PluginState } from "./plugin";
-import { Schedule, Scheduler } from "./scheduler";
 import { WorldContainer, createWorldContainer, World } from "../bevy_ecs";
-import { ResourceManager, ResourceConstructor, Resource, SingletonManager } from "../bevy_ecs/resource";
+import { ResourceManager, ResourceConstructor, Resource } from "../bevy_ecs/resource";
 import { CommandBuffer } from "../bevy_ecs/command-buffer";
 import { EventManager } from "../bevy_ecs/events";
-import { MainScheduleOrder, runMainSchedule, BuiltinSchedules } from "./main-schedule";
-import { system } from "../bevy_ecs/enhanced-schedule";
+import { MainScheduleOrder, runMainSchedule } from "./main-schedule";
+import { App } from "./app";
+import { Schedule } from "../bevy_ecs/schedule/schedule";
+import { Schedules } from "../bevy_ecs/schedule/schedules";
+import type { SystemFunction, SystemConfig } from "../bevy_ecs/schedule/types";
 
 // 前向声明 App 类型
 interface AppInterface {
@@ -25,7 +27,7 @@ interface AppInterface {
  */
 export class SubApp {
 	private _world: WorldContainer;
-	private scheduler: Scheduler;
+	private schedules: Schedules;
 	private resourceManager: ResourceManager;
 	private commandBuffer: CommandBuffer;
 	private eventManager: EventManager;
@@ -41,9 +43,12 @@ export class SubApp {
 
 	constructor() {
 		this._world = createWorldContainer();
-		this.scheduler = new Scheduler(this._world.getWorld());
 		this.resourceManager = new ResourceManager();
 		this.commandBuffer = new CommandBuffer();
+		this.schedules = new Schedules(this._world.getWorld(), {
+			resources: this.resourceManager,
+			commands: this.commandBuffer,
+		});
 		this.eventManager = new EventManager(this._world.getWorld());
 		this.scheduleOrder = new MainScheduleOrder();
 	}
@@ -113,14 +118,34 @@ export class SubApp {
 	 * 对应 Rust SubApp::update
 	 */
 	update(): void {
-		if (this.updateSchedule && this.updateSchedule.name === "Main") {
+		// 创建 Context 对象
+		const context = {
+			deltaTime: 0, // 这个值会被 Loop 覆盖
+			resources: this.resourceManager,
+			commands: this.commandBuffer,
+		};
+
+		if (this.updateSchedule !== undefined) {
 			// 如果是主调度，运行完整的调度序列
 			runMainSchedule(this._world.getWorld(), this.scheduleOrder, (label) => {
-				this.scheduler.runSchedule(label, this._world.getWorld());
+				// 执行指定调度中的所有系统
+				const schedule = this.schedules.getSchedule(label);
+				if (schedule) {
+					const compiledSystems = schedule.compile();
+					for (const systemStruct of compiledSystems) {
+						systemStruct.system(this._world.getWorld(), context);
+					}
+				}
 			});
 		} else if (this.updateSchedule) {
 			// 运行单个调度
-			this.scheduler.runSchedule(this.updateSchedule, this._world.getWorld());
+			const schedule = this.schedules.getSchedule(this.updateSchedule);
+			if (schedule) {
+				const compiledSystems = schedule.compile();
+				for (const systemStruct of compiledSystems) {
+					systemStruct.system(this._world.getWorld(), context);
+				}
+			}
 		}
 
 		// 执行命令缓冲
@@ -135,7 +160,10 @@ export class SubApp {
 	 */
 	addSystems(schedule: ScheduleLabel, ...systems: SystemFunction[]): void {
 		for (const system of systems) {
-			this.scheduler.addSystem(schedule, system);
+			const config: SystemConfig = {
+				system: system,
+			};
+			this.schedules.addSystemToSchedule(schedule, config);
 		}
 	}
 
@@ -198,36 +226,25 @@ export class SubApp {
 	 * 添加调度
 	 */
 	addSchedule(schedule: Schedule): void {
-		this.scheduler.addSchedule(schedule.getLabel());
-		// 将 Schedule 的系统同步到 Scheduler
-		const enhancedSchedule = this.scheduler.getSchedule(schedule.getLabel());
-		if (enhancedSchedule) {
-			for (const systemConfig of schedule.getSystems()) {
-				// 包装 App 层的系统函数以匹配 ECS 层的签名
-				const wrappedSystem = (world: World, deltaTime: number, resources: SingletonManager, commands: CommandBuffer) => {
-					systemConfig.system(world, deltaTime);
-				};
-				enhancedSchedule.addSystem(system(wrappedSystem));
-			}
-		}
+		// Schedule 实例会自动在 Schedules 中创建
+		// 这里我们只需要确保它存在
+		this.schedules.getSchedule(schedule.getLabel());
 	}
 
 	/**
 	 * 初始化调度
 	 */
 	initSchedule(label: ScheduleLabel): void {
-		this.scheduler.initSchedule(label);
+		// 在 Schedules 中获取或创建调度
+		this.schedules.getSchedule(label);
 	}
 
 	/**
 	 * 获取调度
 	 */
 	getSchedule(label: ScheduleLabel): Schedule | undefined {
-		const enhancedSchedule = this.scheduler.getSchedule(label);
-		if (enhancedSchedule) {
-			const schedule = new Schedule(label);
-			// 这里只是返回一个包装器，实际调度在 Scheduler 中
-			return schedule;
+		if (this.schedules.hasSchedule(label)) {
+			return this.schedules.getSchedule(label);
 		}
 		return undefined;
 	}
@@ -236,14 +253,8 @@ export class SubApp {
 	 * 编辑调度
 	 */
 	editSchedule(label: ScheduleLabel, editor: (schedule: Schedule) => void): void {
-		// 直接使用 Scheduler 的 editSchedule，它会传递实际的 EnhancedSchedule
-		this.scheduler.editSchedule(label, (enhancedSchedule) => {
-			// 创建一个 Schedule 包装器来兼容旧的 API
-			const schedule = new Schedule(label);
-			// 将内部的 enhancedSchedule 设置为当前的
-			(schedule as any).enhancedSchedule = enhancedSchedule;
-			editor(schedule);
-		});
+		const schedule = this.schedules.getSchedule(label);
+		editor(schedule);
 	}
 
 	/**
@@ -263,7 +274,7 @@ export class SubApp {
 		this.pluginBuildDepth += 1;
 		try {
 			if (this.appReference) {
-				plugin.build(this.appReference as any);
+				plugin.build(this.appReference as unknown as App);
 			} else {
 				warn(`[SubApp] App reference not set, cannot build plugin: ${plugin.name()}`);
 			}
@@ -308,7 +319,7 @@ export class SubApp {
 			// 检查所有插件是否准备就绪
 			const allReady = this.pluginRegistry.every((plugin) => {
 				if (plugin.ready !== undefined && this.appReference) {
-					return plugin.ready(this.appReference as any);
+					return plugin.ready(this.appReference as unknown as App);
 				}
 				return true;
 			});
@@ -327,7 +338,7 @@ export class SubApp {
 	finish(): void {
 		for (const plugin of this.pluginRegistry) {
 			if (plugin.finish !== undefined && this.appReference) {
-				plugin.finish(this.appReference as any);
+				plugin.finish(this.appReference as unknown as App);
 			}
 		}
 		this._pluginState = PluginState.Finished;
@@ -339,7 +350,7 @@ export class SubApp {
 	cleanup(): void {
 		for (const plugin of this.pluginRegistry) {
 			if (plugin.cleanup !== undefined && this.appReference) {
-				plugin.cleanup(this.appReference as any);
+				plugin.cleanup(this.appReference as unknown as App);
 			}
 		}
 		this._pluginState = PluginState.Cleaned;
@@ -362,8 +373,8 @@ export class SubApp {
 	/**
 	 * 获取调度器
 	 */
-	getScheduler(): Scheduler {
-		return this.scheduler;
+	getSchedules(): Schedules {
+		return this.schedules;
 	}
 }
 

@@ -3,10 +3,8 @@
  * 提供测试环境配置和工具函数
  */
 
-import { Schedule } from "../scheduler";
 import { ScheduleLabel } from "../types";
 import { App } from "../app";
-import { BuiltinSchedules } from "../main-schedule";
 
 /**
  * 测试配置
@@ -23,15 +21,6 @@ export const TestConfig = {
 } as const;
 
 /**
- * 创建测试用调度，自动配置以减少警告
- */
-export function createTestSchedule(label: ScheduleLabel): Schedule {
-	const schedule = new Schedule(label, { suppressAmbiguityWarnings: true });
-	// 可以在这里添加测试特定的配置
-	return schedule;
-}
-
-/**
  * 测试环境设置（简化版）
  */
 export class TestEnvironment {
@@ -41,10 +30,7 @@ export class TestEnvironment {
 	/**
 	 * 设置测试环境
 	 */
-	static setup(options?: {
-		suppressWarnings?: boolean;
-		suppressPatterns?: string[];
-	}): void {
+	static setup(options?: { suppressWarnings?: boolean; suppressPatterns?: string[] }): void {
 		this.isTestMode = true;
 		// 实际的警告抑制通过各模块的配置选项实现
 	}
@@ -94,14 +80,11 @@ export function runTestQuietly(testFn: () => void): void {
  * 创建带唯一名称的系统
  */
 let systemCounter = 0;
-export function createNamedSystem(
-	name: string,
-	fn: () => void
-): { name: string; system: () => void } {
+export function createNamedSystem(name: string, fn: () => void): { name: string; system: () => void } {
 	systemCounter++;
 	return {
 		name: `${name}_${systemCounter}`,
-		system: fn
+		system: fn,
 	};
 }
 
@@ -113,28 +96,8 @@ export function resetSystemCounter(): void {
 }
 
 /**
- * 创建测试用的 App，自动抑制所有调度的模糊性警告
+ * 创建测试用 App 实例
  */
 export function createTestApp(): App {
-	const app = App.create();
-
-	// 为所有内置调度设置抑制警告
-	const schedules = [
-		BuiltinSchedules.First,
-		BuiltinSchedules.PreStartup,
-		BuiltinSchedules.Startup,
-		BuiltinSchedules.PostStartup,
-		BuiltinSchedules.PreUpdate,
-		BuiltinSchedules.Update,
-		BuiltinSchedules.PostUpdate,
-		BuiltinSchedules.Last,
-	];
-
-	for (const schedule of schedules) {
-		app.editSchedule(schedule, (s) => {
-			s.setSuppressAmbiguityWarnings(true);
-		});
-	}
-
-	return app;
+	return new App();
 }

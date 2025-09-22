@@ -142,12 +142,13 @@ if (numberValue === undefined) {
 interface Result<T> {
 	readonly success: boolean;
 	readonly value?: T;
-	readonly error?: string;
+	readonly err?: string;
 }
 
+// error is reversed, we use err
 function safeDivide(dividend: number, divisor: number): Result<number> {
 	if (divisor === 0) {
-		return { success: false, error: "Division by zero" };
+		return { success: false, err: "Division by zero" };
 	}
 	return { success: true, value: dividend / divisor };
 }
@@ -402,7 +403,7 @@ npx eslint src --ext .ts,.tsx
 ## Common Patterns
 - Result<T> for error handling
 - `assert()` for validations
-- `error()` not `throw`
+- `error()` not `throw new Error`
 - `tonumber()` for conversions
 - `typeIs()` for type guards
 
@@ -475,6 +476,10 @@ export = () => {
 	});
 }
 ```
+
+## PolyFill
+- @rbxts/string-utils
+- @rbxts/object-utils
 
 ## Other
 Remember: **Quality > Speed**. Take time to validate before writing. A perfect file on first attempt saves debugging time.

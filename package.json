@@ -24,8 +24,10 @@
   },
   "dependencies": {
     "@rbxts/matter": "^0.8.5",
+    "@rbxts/object-utils": "^1.0.4",
     "@rbxts/plasma": "^0.4.5",
     "@rbxts/services": "^1.5.5",
+    "@rbxts/string-utils": "^1.0.3",
     "@rbxts/testez": "0.4.2-ts.0"
   },
   "devDependencies": {

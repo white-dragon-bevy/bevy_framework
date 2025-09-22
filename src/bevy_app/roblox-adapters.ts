@@ -3,11 +3,11 @@
  * 提供特定于Roblox的功能和优化
  */
 
-import { RunService, Players, ReplicatedStorage } from "@rbxts/services";
+import { RunService, Players } from "@rbxts/services";
 import { World } from "@rbxts/matter";
 import { App } from "./app";
 import { BasePlugin } from "./plugin";
-import { SystemFunction, AppExit } from "./types";
+import { AppExit } from "./types";
 import { BuiltinSchedules } from "./main-schedule";
 
 /**
@@ -56,11 +56,11 @@ export class RobloxRunnerPlugin extends BasePlugin {
 					connection.Disconnect();
 					return exit;
 				}
-			} catch (error) {
-				warn(`App update failed: ${error}`);
+			} catch (e) {
+				warn(`App update failed: ${e}`);
 				const errorHandler = app.getErrorHandler();
 				if (errorHandler) {
-					errorHandler(error);
+					errorHandler(e);
 				}
 			}
 		});
@@ -144,9 +144,9 @@ export class RobloxNetworkPlugin extends BasePlugin {
 	build(app: App): void {
 		// 根据运行环境添加不同的网络系统
 		if (RunService.IsServer()) {
-			app.addSystems(BuiltinSchedules.Update, (world: World) => this.serverNetworkSystem(world));
+			app.addSystems(BuiltinSchedules.UPDATE, (world: World) => this.serverNetworkSystem(world));
 		} else if (RunService.IsClient()) {
-			app.addSystems(BuiltinSchedules.Update, (world: World) => this.clientNetworkSystem(world));
+			app.addSystems(BuiltinSchedules.UPDATE, (world: World) => this.clientNetworkSystem(world));
 		}
 	}
 
@@ -177,15 +177,15 @@ export class RobloxNetworkPlugin extends BasePlugin {
 export class RobloxPlayerPlugin extends BasePlugin {
 	build(app: App): void {
 		// 添加玩家相关的系统
-		app.addSystems(BuiltinSchedules.Update, (world: World) => this.playerManagementSystem(world));
+		app.addSystems(BuiltinSchedules.UPDATE, (world: World) => this.playerManagementSystem(world));
 
 		// 监听玩家加入和离开事件
 		if (RunService.IsServer()) {
-			Players.PlayerAdded.Connect(player => {
+			Players.PlayerAdded.Connect((player) => {
 				this.onPlayerAdded(player, app);
 			});
 
-			Players.PlayerRemoving.Connect(player => {
+			Players.PlayerRemoving.Connect((player) => {
 				this.onPlayerRemoving(player, app);
 			});
 		}
@@ -229,7 +229,7 @@ export class RobloxPlayerPlugin extends BasePlugin {
 export class RobloxAssetPlugin extends BasePlugin {
 	build(app: App): void {
 		// 添加资源加载系统
-		app.addSystems(BuiltinSchedules.PreUpdate, (world: World) => this.assetLoadingSystem(world));
+		app.addSystems(BuiltinSchedules.PRE_UPDATE, (world: World) => this.assetLoadingSystem(world));
 	}
 
 	name(): string {
@@ -251,7 +251,7 @@ export class RobloxAssetPlugin extends BasePlugin {
 export class RobloxInputPlugin extends BasePlugin {
 	build(app: App): void {
 		if (RunService.IsClient()) {
-			app.addSystems(BuiltinSchedules.PreUpdate, (world: World) => this.inputSystem(world));
+			app.addSystems(BuiltinSchedules.PRE_UPDATE, (world: World) => this.inputSystem(world));
 		}
 	}
 
@@ -294,8 +294,8 @@ export class RobloxDefaultPluginsBuilder {
 		return this;
 	}
 
-	remove<T extends BasePlugin>(pluginType: new (...args: any[]) => T): this {
-		this.plugins = this.plugins.filter(plugin => !(plugin instanceof pluginType));
+	remove<T extends BasePlugin>(pluginType: new (...args: unknown[]) => T): this {
+		this.plugins = this.plugins.filter((plugin) => !(plugin instanceof pluginType));
 		return this;
 	}
 

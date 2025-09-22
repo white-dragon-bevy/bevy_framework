@@ -11,12 +11,18 @@ importers:
       '@rbxts/matter':
         specifier: ^0.8.5
         version: 0.8.5
+      '@rbxts/object-utils':
+        specifier: ^1.0.4
+        version: 1.0.4
       '@rbxts/plasma':
         specifier: ^0.4.5
         version: 0.4.5
       '@rbxts/services':
         specifier: ^1.5.5
         version: 1.5.5
+      '@rbxts/string-utils':
+        specifier: ^1.0.3
+        version: 1.0.3
       '@rbxts/testez':
         specifier: 0.4.2-ts.0
         version: 0.4.2-ts.0
@@ -133,11 +139,17 @@ packages:
   '@rbxts/matter@0.8.5':
     resolution: {integrity: sha512-xQ+ggK6w1fEHeVD1W3KAojHSZrO+H3eua344fTMo87WyeZ+Y5sDxLadOQHBtNR4dLh7kMS0HJ7MPRiFktjkPAA==}
 
+  '@rbxts/object-utils@1.0.4':
+    resolution: {integrity: sha512-dLLhf022ipV+9i910sOE7kl9losKHoon0WgeerHqVMQA5EYsLUsVT2AxhJuhk8MiDn5oJ2GiFofE/LadY9TpJQ==}
+
   '@rbxts/plasma@0.4.5':
     resolution: {integrity: sha512-VtbrO/ZRxnRNDadFth/Y0+3NNxJlYTMhS1qWnbRht4NrAOK0hrk0iwGZJz+aOfKSQ2h/Rbh9DLW3SKy124XqaA==}
 
   '@rbxts/services@1.5.5':
     resolution: {integrity: sha512-Hu7QH2ecefS60zpakKG3T2vgABydoOJqpSG7nXr59wFAbPk/cA+OcsntYPHUWyHAat0VFGZ5jNZLTLdiqfssvg==}
+
+  '@rbxts/string-utils@1.0.3':
+    resolution: {integrity: sha512-nsZsPdGsrsBdwLg7qQ5RGHoVhfvK+U3GvZ/6S+7KufqaFrbHWk2lufESob/C3xYf5sAeXgTJKWUnDJknYBGTIQ==}
 
   '@rbxts/testez@0.4.2-ts.0':
     resolution: {integrity: sha512-8Q+OG9ddTD2P3aARCuRKpPqUBvuifgSnHvQMZ6jBMqUzxhIysnb0l4c3vnnaQnvdyZ1OW9tKxcdEHMGTb67uOw==}
@@ -833,9 +845,13 @@ snapshots:
 
   '@rbxts/matter@0.8.5': {}
 
+  '@rbxts/object-utils@1.0.4': {}
+
   '@rbxts/plasma@0.4.5': {}
 
   '@rbxts/services@1.5.5': {}
+
+  '@rbxts/string-utils@1.0.3': {}
 
   '@rbxts/testez@0.4.2-ts.0': {}
 

@@ -1,12 +1,5 @@
-import { World } from "@rbxts/matter";
-import {
-	App,
-	BuiltinSchedules,
-	BasePlugin,
-	createPlugin,
-	AppExit
-} from "../index";
-import { SystemFunction } from "../types";
+import { App, BasePlugin, createPlugin, AppExit } from "../index";
+import { MainScheduleLabel as BuiltinSchedules } from "../main-schedule";
 import { TestEnvironment, createTestApp } from "./test-helpers";
 import { LogConfig } from "../log-config";
 
@@ -50,24 +43,24 @@ class ComplexTestPlugin extends BasePlugin {
 
 	build(app: App): void {
 		// 添加启动系统
-		app.addSystems(BuiltinSchedules.Startup, () => {
+		app.addSystems(BuiltinSchedules.STARTUP, () => {
 			this.tracker.record("ComplexPlugin:Startup");
 
 			// 在启动时添加资源
 			app.insertResource({
 				__brand: "Resource",
 				value: 100,
-				name: "ComplexResource"
+				name: "ComplexResource",
 			} as TestResource);
 		});
 
 		// 添加更新系统
-		app.addSystems(BuiltinSchedules.Update, () => {
+		app.addSystems(BuiltinSchedules.UPDATE, () => {
 			this.tracker.record("ComplexPlugin:Update");
 		});
 
 		// 添加后处理系统
-		app.addSystems(BuiltinSchedules.PostUpdate, () => {
+		app.addSystems(BuiltinSchedules.POST_UPDATE, () => {
 			this.tracker.record("ComplexPlugin:PostUpdate");
 		});
 	}
@@ -82,12 +75,7 @@ export = (): void => {
 	beforeAll(() => {
 		TestEnvironment.setup({
 			suppressWarnings: true,
-			suppressPatterns: [
-				"ambiguous",
-				"Resource commands",
-				"[EnhancedSchedule]",
-				"[Schedule]"
-			]
+			suppressPatterns: ["ambiguous", "Resource commands", "[EnhancedSchedule]", "[Schedule]"],
 		});
 	});
 
@@ -102,15 +90,15 @@ export = (): void => {
 				let startupResource: TestResource | undefined;
 
 				const app = createTestApp()
-					.addSystems(BuiltinSchedules.Startup, () => {
+					.addSystems(BuiltinSchedules.STARTUP, () => {
 						tracker.record("Startup");
 						app.insertResource({
 							__brand: "Resource",
 							value: 42,
-							name: "StartupResource"
+							name: "StartupResource",
 						} as TestResource);
 					})
-					.addSystems(BuiltinSchedules.Update, () => {
+					.addSystems(BuiltinSchedules.UPDATE, () => {
 						tracker.record("Update");
 						// 在更新中应该能访问启动时添加的资源
 						const world = app.world();
@@ -137,10 +125,10 @@ export = (): void => {
 				const tracker = new ExecutionTracker();
 
 				const app = createTestApp()
-					.addSystems(BuiltinSchedules.Startup, () => {
+					.addSystems(BuiltinSchedules.STARTUP, () => {
 						tracker.record("StartupSystem");
 					})
-					.addSystems(BuiltinSchedules.Update, () => {
+					.addSystems(BuiltinSchedules.UPDATE, () => {
 						tracker.record("UpdateSystem");
 					});
 
@@ -179,26 +167,19 @@ export = (): void => {
 			it("多个插件应该协同工作", () => {
 				const tracker = new ExecutionTracker();
 
-				const plugin1 = createPlugin(
-					(app) => {
-						app.addSystems(BuiltinSchedules.Update, () => {
-							tracker.record("Plugin1:Update");
-						});
-					},
-					"Plugin1"
-				);
+				const plugin1 = createPlugin((app) => {
+					app.addSystems(BuiltinSchedules.UPDATE, () => {
+						tracker.record("Plugin1:Update");
+					});
+				}, "Plugin1");
 
-				const plugin2 = createPlugin(
-					(app) => {
-						app.addSystems(BuiltinSchedules.Update, () => {
-							tracker.record("Plugin2:Update");
-						});
-					},
-					"Plugin2"
-				);
+				const plugin2 = createPlugin((app) => {
+					app.addSystems(BuiltinSchedules.UPDATE, () => {
+						tracker.record("Plugin2:Update");
+					});
+				}, "Plugin2");
 
-				const app = createTestApp()
-					.addPlugins(plugin1, plugin2);
+				const app = createTestApp().addPlugins(plugin1, plugin2);
 
 				// 第一次更新运行启动调度，第二次更新运行主循环调度（包含Update）
 				app.update();
@@ -215,30 +196,23 @@ export = (): void => {
 			it("不同插件应该能共享资源", () => {
 				let resourceValue = 0;
 
-				const writerPlugin = createPlugin(
-					(app) => {
-						app.insertResource({
-							__brand: "Resource",
-							count: 10
-						} as CounterResource);
-					},
-					"WriterPlugin"
-				);
+				const writerPlugin = createPlugin((app) => {
+					app.insertResource({
+						__brand: "Resource",
+						count: 10,
+					} as CounterResource);
+				}, "WriterPlugin");
 
-				const readerPlugin = createPlugin(
-					(app) => {
-						app.addSystems(BuiltinSchedules.Update, () => {
-							// 这里简化测试，实际需要资源访问API
-							// const resource = app.world().getResource(CounterResource);
-							// resourceValue = resource?.count ?? 0;
-							resourceValue = 10; // 模拟读取
-						});
-					},
-					"ReaderPlugin"
-				);
+				const readerPlugin = createPlugin((app) => {
+					app.addSystems(BuiltinSchedules.UPDATE, () => {
+						// 这里简化测试，实际需要资源访问API
+						// const resource = app.world().getResource(CounterResource);
+						// resourceValue = resource?.count ?? 0;
+						resourceValue = 10; // 模拟读取
+					});
+				}, "ReaderPlugin");
 
-				const app = createTestApp()
-					.addPlugins(writerPlugin, readerPlugin);
+				const app = createTestApp().addPlugins(writerPlugin, readerPlugin);
 
 				// 第一次更新运行启动调度，第二次更新运行主循环调度（包含Update）
 				app.update();
@@ -254,11 +228,11 @@ export = (): void => {
 				const tracker = new ExecutionTracker();
 
 				const app = createTestApp()
-					.addSystems(BuiltinSchedules.First, () => tracker.record("First"))
-					.addSystems(BuiltinSchedules.PreUpdate, () => tracker.record("PreUpdate"))
-					.addSystems(BuiltinSchedules.Update, () => tracker.record("Update"))
-					.addSystems(BuiltinSchedules.PostUpdate, () => tracker.record("PostUpdate"))
-					.addSystems(BuiltinSchedules.Last, () => tracker.record("Last"));
+					.addSystems(BuiltinSchedules.FIRST, () => tracker.record("First"))
+					.addSystems(BuiltinSchedules.PRE_UPDATE, () => tracker.record("PreUpdate"))
+					.addSystems(BuiltinSchedules.UPDATE, () => tracker.record("Update"))
+					.addSystems(BuiltinSchedules.POST_UPDATE, () => tracker.record("PostUpdate"))
+					.addSystems(BuiltinSchedules.LAST, () => tracker.record("Last"));
 
 				// 第一次更新运行启动调度，第二次更新运行主循环调度
 				app.update();
@@ -300,14 +274,14 @@ export = (): void => {
 				const tracker = new ExecutionTracker();
 
 				const app = createTestApp()
-					.addSystems(BuiltinSchedules.Update, () => {
+					.addSystems(BuiltinSchedules.UPDATE, () => {
 						tracker.record("System1");
 					})
-					.addSystems(BuiltinSchedules.Update, () => {
+					.addSystems(BuiltinSchedules.UPDATE, () => {
 						tracker.record("System2");
 						throw "Intentional error";
 					})
-					.addSystems(BuiltinSchedules.Update, () => {
+					.addSystems(BuiltinSchedules.UPDATE, () => {
 						tracker.record("System3");
 					});
 
@@ -332,12 +306,9 @@ export = (): void => {
 			});
 
 			it("插件构建错误应该被正确处理", () => {
-				const errorPlugin = createPlugin(
-					(app) => {
-						throw "Plugin build error";
-					},
-					"ErrorPlugin"
-				);
+				const errorPlugin = createPlugin((app) => {
+					throw "Plugin build error";
+				}, "ErrorPlugin");
 
 				const app = createTestApp();
 
@@ -353,18 +324,27 @@ export = (): void => {
 
 				const app = createTestApp();
 
-				// 添加带条件的系统（简化为直接使用函数）
-				app.editSchedule(BuiltinSchedules.Update, (schedule) => {
-					schedule.addSystem(() => tracker.record("System1"));
-
-					// 条件执行需要在系统内部实现
-					schedule.addSystem(() => {
-						if (shouldRunSystem2) {
-							tracker.record("System2");
-						}
+				// 添加带条件的系统（使用正确的SystemConfig格式）
+				app.editSchedule(BuiltinSchedules.UPDATE, (schedule) => {
+					schedule.addSystem({
+						system: () => tracker.record("System1"),
+						name: "System1"
 					});
 
-					schedule.addSystem(() => tracker.record("System3"));
+					// 条件执行需要在系统内部实现
+					schedule.addSystem({
+						system: () => {
+							if (shouldRunSystem2) {
+								tracker.record("System2");
+							}
+						},
+						name: "System2"
+					});
+
+					schedule.addSystem({
+						system: () => tracker.record("System3"),
+						name: "System3"
+					});
 				});
 
 				// 第一次更新运行启动调度，第二次更新运行主循环调度（System2 不应该运行）
@@ -405,7 +385,7 @@ export = (): void => {
 
 				const app = createTestApp()
 					.setRunner(customRunner)
-					.addSystems(BuiltinSchedules.Update, () => {
+					.addSystems(BuiltinSchedules.UPDATE, () => {
 						tracker.record("UpdateSystem");
 					});
 
@@ -428,7 +408,7 @@ export = (): void => {
 				const app = createTestApp();
 
 				// 主应用系统
-				app.addSystems(BuiltinSchedules.Update, () => {
+				app.addSystems(BuiltinSchedules.UPDATE, () => {
 					tracker.record("MainApp:Update");
 				});
 
@@ -436,7 +416,7 @@ export = (): void => {
 				const subApp = app.main();
 
 				// SubApp 系统（实际上和主应用是同一个SubApp）
-				subApp.addSystems(BuiltinSchedules.Update, () => {
+				subApp.addSystems(BuiltinSchedules.UPDATE, () => {
 					tracker.record("SubApp:Update");
 				});
 
@@ -446,7 +426,10 @@ export = (): void => {
 
 				// 验证系统被调用（因为主应用和SubApp是同一个，两个系统都应该被调用）
 				expect(tracker.executionOrder.size() > 0).to.equal(true);
-				expect(tracker.executionOrder.includes("MainApp:Update") || tracker.executionOrder.includes("SubApp:Update")).to.equal(true);
+				expect(
+					tracker.executionOrder.includes("MainApp:Update") ||
+						tracker.executionOrder.includes("SubApp:Update"),
+				).to.equal(true);
 			});
 		});
 	});

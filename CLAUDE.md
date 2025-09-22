@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 技术栈
 
-- **语言**: TypeScript (通过 roblox-ts 编译为 Lua)
+- **语言**: roblox-ts: `@.claude/agents/roblox-ts-pro.md`
 - **目标平台**: Roblox
 - **ECS框架**: @rbxts/matter
 - **包管理器**: pnpm (10.15.0)
