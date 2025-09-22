@@ -4,7 +4,7 @@
  */
 
 import type { World } from "@rbxts/matter";
-import { Loop } from "../Loop";
+import { Loop } from "./loop";
 import { Schedule } from "./schedule";
 import type {
 	SystemConfig,
@@ -44,7 +44,12 @@ export class Schedules {
 	 * @param deltaTime - 初始帧时间
 	 */
 	public constructor(world: World, options: Omit<Context, "deltaTime">) {
-		this.loop = new Loop(world, options);
+		// 创建包含 deltaTime 的完整上下文
+		const context: Context = {
+			...options,
+			deltaTime: 0, // 初始值，会在循环中更新
+		};
+		this.loop = new Loop(world, context);
 		this.resourceManager = options.resources;
 		this.commandBuffer = options.commands;
 	}
@@ -137,8 +142,10 @@ export class Schedules {
 		for (const [label, schedule] of this.schedules) {
 			try {
 				const compiledSystems = schedule.compile();
-				allSystems.push(...compiledSystems);
-				print(`Compiled schedule '${label}' with ${compiledSystems.size()} systems`);
+				for (const system of compiledSystems) {
+					allSystems.push(system);
+				}
+				// Debug: Compiled schedule '${label}' with ${compiledSystems.size()} systems
 			} catch (err) {
 				warn(`Failed to compile schedule '${label}': ${err}`);
 				throw err;
@@ -148,7 +155,7 @@ export class Schedules {
 		// 将所有系统注册到 Matter Loop
 		if (allSystems.size() > 0) {
 			this.loop.scheduleSystems(allSystems);
-			print(`Scheduled ${allSystems.size()} systems across ${this.schedules.size()} schedules`);
+			// Debug: Scheduled ${allSystems.size()} systems across ${this.schedules.size()} schedules
 		}
 
 		this.compiled = true;
@@ -274,8 +281,6 @@ export class Schedules {
 		this.schedules.clear();
 		this.runningSchedules.clear();
 		this.compiled = false;
-
-		print("Reset all schedules");
 	}
 
 	/**

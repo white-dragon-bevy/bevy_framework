@@ -326,7 +326,9 @@ export class Schedule {
 					} else {
 						// 系统集依赖 - 添加该集合中的所有系统
 						const setSystems = this.getSystemsInSet(dependency);
-						dependencies.push(...setSystems);
+						for (const sys of setSystems) {
+							dependencies.push(sys);
+						}
 					}
 				}
 			}
@@ -337,7 +339,9 @@ export class Schedule {
 				if (setConfig?.after) {
 					for (const setDep of setConfig.after) {
 						const setSystems = this.getSystemsInSet(setDep);
-						dependencies.push(...setSystems);
+						for (const sys of setSystems) {
+							dependencies.push(sys);
+						}
 					}
 				}
 			}

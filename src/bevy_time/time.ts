@@ -108,10 +108,7 @@ export class Time<T extends TimeContext = Empty> {
 	 * 对应 Rust Time::advance_to (time.rs:244-250)
 	 */
 	advanceTo(elapsed: Duration): void {
-		assert(
-			elapsed.greaterThanOrEqual(this.elapsed),
-			"tried to move time backwards to an earlier elapsed moment",
-		);
+		assert(elapsed.greaterThanOrEqual(this.elapsed), "tried to move time backwards to an earlier elapsed moment");
 		this.advanceBy(elapsed.saturatingSub(this.elapsed));
 	}
 

@@ -6,7 +6,7 @@
  * 对于在每帧都调用的系统中的日志记录很有用。
  */
 
-import { error, warn, info, debug, trace } from "./lib";
+import { error as logError, warn, info, debug, trace } from "./lib";
 import { getCallSite } from "./roblox-tracing";
 
 /**
@@ -91,7 +91,7 @@ export function errorOnce(
 	module?: string,
 	fields?: Map<string, unknown>,
 ): void {
-	once(() => error(message, module, fields));
+	once(() => logError(message, module, fields));
 }
 
 /**

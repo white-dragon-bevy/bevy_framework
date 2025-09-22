@@ -77,9 +77,12 @@ export class EnvFilter {
 		}
 
 		// 按模块路径长度降序排序，确保更具体的规则优先
+		// Lua sort expects a boolean comparator for "less than" relationship
+		// To sort in descending order by length, we return true if a should come before b
 		this.moduleFilters.sort((a, b) => {
-			const diff = b.module.size() - a.module.size();
-			return diff > 0;
+			// For descending order: longer strings come first
+			// Return true if a should come before b (a.length > b.length)
+			return a.module.size() > b.module.size();
 		});
 	}
 

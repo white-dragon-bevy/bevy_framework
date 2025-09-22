@@ -99,5 +99,5 @@ export function resetSystemCounter(): void {
  * 创建测试用 App 实例
  */
 export function createTestApp(): App {
-	return new App();
+	return App.create();
 }

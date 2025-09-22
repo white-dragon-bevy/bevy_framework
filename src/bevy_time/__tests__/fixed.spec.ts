@@ -6,7 +6,7 @@
 import { Duration } from "../duration";
 import { TimeFixed } from "../fixed";
 
-export default () => {
+export = () => {
 	describe("Time<Fixed>", () => {
 		describe("test_set_timestep (对应 Rust fixed.rs:258-272)", () => {
 			it("应该使用默认 64Hz 时间步长", () => {

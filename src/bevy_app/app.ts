@@ -258,8 +258,14 @@ export class App {
 	 * 插入资源
 	 * 对应 Rust App::insert_resource
 	 */
-	insertResource<T extends Resource>(resource: T): this {
-		this.subApps.main().insertResource(resource);
+	insertResource<T extends Resource>(resource: T): this;
+	insertResource<T extends Resource>(resourceType: ResourceConstructor<T>, resource: T): this;
+	insertResource<T extends Resource>(resourceOrType: T | ResourceConstructor<T>, resource?: T): this {
+		if (resource !== undefined) {
+			this.subApps.main().insertResource(resourceOrType as ResourceConstructor<T>, resource);
+		} else {
+			this.subApps.main().insertResource(resourceOrType as T);
+		}
 		return this;
 	}
 

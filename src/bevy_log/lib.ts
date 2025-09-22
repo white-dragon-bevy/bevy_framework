@@ -97,9 +97,7 @@ export class LogPlugin extends BasePlugin {
 		const subscriberAlreadySet = !LogSubscriber.setGlobalDefault(subscriber);
 
 		if (subscriberAlreadySet) {
-			error(
-				"Could not set global tracing subscriber as it is already set. Consider disabling LogPlugin.",
-			);
+			warn("Could not set global tracing subscriber as it is already set. Consider disabling LogPlugin.");
 		}
 	}
 
@@ -123,10 +121,9 @@ function log(level: Level, message: string, module?: string, fields?: Map<string
 		// 如果没有订阅器，直接输出到控制台
 		const levelStr = Level[level];
 		const prefix = module ? `[${levelStr}] ${module}: ` : `[${levelStr}] `;
-		if (level === Level.ERROR) {
-			error(`${prefix}${message}`);
-		} else if (level === Level.WARN) {
-			warn(`${prefix}${message}`);
+		// 直接使用 Roblox 的 warn 和 print 函数，避免递归调用
+		if (level === Level.ERROR || level === Level.WARN) {
+			warn(`${prefix}${message}`); // 使用 Roblox 内置的 warn 函数
 		} else {
 			print(`${prefix}${message}`);
 		}
@@ -147,11 +144,13 @@ function log(level: Level, message: string, module?: string, fields?: Map<string
 /**
  * 记录错误级别日志
  * 对应 Rust error! 宏
+ * 注意：由于 'error' 是 roblox-ts 保留字，使用 'error' 作为函数名但避免与全局冲突
  * @param message - 日志消息
  * @param module - 模块名称（可选）
  * @param fields - 额外字段（可选）
  */
-export function error(message: string, module?: string, fields?: Map<string, unknown>): void {
+export { logError as error };
+function logError(message: string, module?: string, fields?: Map<string, unknown>): void {
 	log(Level.ERROR, message, module, fields);
 }
 
@@ -162,9 +161,12 @@ export function error(message: string, module?: string, fields?: Map<string, unk
  * @param module - 模块名称（可选）
  * @param fields - 额外字段（可选）
  */
-export function warn(message: string, module?: string, fields?: Map<string, unknown>): void {
+export function logWarn(message: string, module?: string, fields?: Map<string, unknown>): void {
 	log(Level.WARN, message, module, fields);
 }
+
+// 为了兼容性导出别名
+export { logWarn as warn };
 
 /**
  * 记录信息级别日志
@@ -209,9 +211,9 @@ export function trace(message: string, module?: string, fields?: Map<string, unk
  */
 export function errorSpan(name: string): (fn: () => void) => void {
 	return (fn: () => void) => {
-		error(`[SPAN:${name}] Enter`);
+		log(Level.ERROR, `[SPAN:${name}] Enter`);
 		fn();
-		error(`[SPAN:${name}] Exit`);
+		log(Level.ERROR, `[SPAN:${name}] Exit`);
 	};
 }
 
@@ -223,9 +225,9 @@ export function errorSpan(name: string): (fn: () => void) => void {
  */
 export function warnSpan(name: string): (fn: () => void) => void {
 	return (fn: () => void) => {
-		warn(`[SPAN:${name}] Enter`);
+		logWarn(`[SPAN:${name}] Enter`);
 		fn();
-		warn(`[SPAN:${name}] Exit`);
+		logWarn(`[SPAN:${name}] Exit`);
 	};
 }
 

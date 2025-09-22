@@ -20,6 +20,9 @@ importers:
       '@rbxts/services':
         specifier: ^1.5.5
         version: 1.5.5
+      '@rbxts/sift':
+        specifier: ^0.0.11
+        version: 0.0.11
       '@rbxts/string-utils':
         specifier: ^1.0.3
         version: 1.0.3
@@ -147,6 +150,9 @@ packages:
 
   '@rbxts/services@1.5.5':
     resolution: {integrity: sha512-Hu7QH2ecefS60zpakKG3T2vgABydoOJqpSG7nXr59wFAbPk/cA+OcsntYPHUWyHAat0VFGZ5jNZLTLdiqfssvg==}
+
+  '@rbxts/sift@0.0.11':
+    resolution: {integrity: sha512-JT1WTLWKkoBdDaokPz/hEjC64kessP/MPe0OW2rHGtkpQkgnnvOx4wQXzqQs1XMwciyKazjhJZjoV83X3dJplA==}
 
   '@rbxts/string-utils@1.0.3':
     resolution: {integrity: sha512-nsZsPdGsrsBdwLg7qQ5RGHoVhfvK+U3GvZ/6S+7KufqaFrbHWk2lufESob/C3xYf5sAeXgTJKWUnDJknYBGTIQ==}
@@ -850,6 +856,8 @@ snapshots:
   '@rbxts/plasma@0.4.5': {}
 
   '@rbxts/services@1.5.5': {}
+
+  '@rbxts/sift@0.0.11': {}
 
   '@rbxts/string-utils@1.0.3': {}
 

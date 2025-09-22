@@ -4,6 +4,7 @@
  */
 
 // 核心类导出
+export { Loop } from "./loop";
 export { Schedule } from "./schedule";
 export { Schedules } from "./schedules";
 
@@ -20,3 +21,11 @@ export type {
 	ScheduleGraph,
 	ScheduleStats,
 } from "./types";
+
+// Loop 类型导出
+export type {
+	SystemStruct,
+	BevySystemStruct,
+	System,
+	AnySystem,
+} from "./loop";

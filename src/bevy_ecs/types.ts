@@ -1,7 +1,7 @@
 import { World } from "@rbxts/matter";
 import { CommandBuffer } from "./command-buffer";
 import { ResourceManager } from "./resource";
-import { BevySystemStruct } from "./Loop";
+import { BevySystemStruct } from "./schedule/loop";
 
 export type Context = {
 	deltaTime: number;

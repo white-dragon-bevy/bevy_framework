@@ -46,8 +46,11 @@ export class GenericTimeResource implements Resource {
 export class TimeUpdateStrategyResource implements Resource, TimeUpdateStrategy {
 	readonly __brand = "Resource" as const;
 	lastUpdate: number | undefined;
+	/** 用于测试的模拟时间增量 */
+	mockDelta?: number;
 
-	constructor(lastUpdate?: number) {
+	constructor(lastUpdate?: number, mockDelta?: number) {
 		this.lastUpdate = lastUpdate;
+		this.mockDelta = mockDelta;
 	}
 }

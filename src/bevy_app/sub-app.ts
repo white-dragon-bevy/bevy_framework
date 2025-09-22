@@ -133,7 +133,16 @@ export class SubApp {
 				if (schedule) {
 					const compiledSystems = schedule.compile();
 					for (const systemStruct of compiledSystems) {
-						systemStruct.system(this._world.getWorld(), context);
+						try {
+							systemStruct.system(this._world.getWorld(), context);
+						} catch (err) {
+							// 如果有错误处理器，调用它；否则抛出错误
+							if (this.errorHandler) {
+								this.errorHandler(err);
+							} else {
+								throw err;
+							}
+						}
 					}
 				}
 			});
@@ -143,7 +152,16 @@ export class SubApp {
 			if (schedule) {
 				const compiledSystems = schedule.compile();
 				for (const systemStruct of compiledSystems) {
-					systemStruct.system(this._world.getWorld(), context);
+					try {
+						systemStruct.system(this._world.getWorld(), context);
+					} catch (err) {
+						// 如果有错误处理器，调用它；否则抛出错误
+						if (this.errorHandler) {
+							this.errorHandler(err);
+						} else {
+							throw err;
+						}
+					}
 				}
 			}
 		}
@@ -178,15 +196,19 @@ export class SubApp {
 	/**
 	 * 插入资源
 	 */
-	insertResource<T extends Resource>(resource: T): void {
-		// 创建一个包装器类作为构造函数
-		const ResourceWrapper = class {
-			static readonly value = resource;
-			static readonly typeName = `Resource_${tostring(resource)}`;
-		};
-
-		// 使用包装器作为构造函数
-		this.resourceManager.insertResource(ResourceWrapper as unknown as ResourceConstructor<T>, resource);
+	insertResource<T extends Resource>(resource: T): void;
+	insertResource<T extends Resource>(resourceType: ResourceConstructor<T>, resource: T): void;
+	insertResource<T extends Resource>(resourceOrType: T | ResourceConstructor<T>, resource?: T): void {
+		if (resource !== undefined) {
+			// 两个参数的重载：insertResource(Type, instance)
+			this.resourceManager.insertResource(resourceOrType as ResourceConstructor<T>, resource);
+		} else {
+			// 单个参数的重载：insertResource(instance)
+			// 使用对象的构造函数作为类型
+			const instance = resourceOrType as T;
+			const ResourceType = (instance as unknown as { constructor: ResourceConstructor<T> }).constructor;
+			this.resourceManager.insertResource(ResourceType, instance);
+		}
 	}
 
 	/**

@@ -4,7 +4,7 @@
  */
 
 import { World } from "@rbxts/matter";
-import { Schedule, Schedules, SystemConfig, SystemSetConfig } from "../schedule";
+import { Schedule, Schedules, SystemConfig, SystemSetConfig } from "../schedule/index";
 import { MainScheduleLabel, CoreSystemSet } from "../../bevy_app/main-schedule";
 import { ResourceManager } from "../resource";
 import { CommandBuffer } from "../command-buffer";

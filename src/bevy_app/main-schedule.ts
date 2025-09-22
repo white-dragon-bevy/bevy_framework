@@ -348,11 +348,22 @@ export class MainScheduleOrder {
 		BuiltinSchedules.POST_UPDATE,
 		BuiltinSchedules.LAST,
 	];
+	private hasRunStartup = false;
 
 	/**
 	 * 获取调度执行顺序
 	 */
 	getOrder(): Array<ScheduleLabel> {
+		// 第一次运行时，执行启动调度
+		if (!this.hasRunStartup) {
+			this.hasRunStartup = true;
+			return [
+				BuiltinSchedules.PRE_STARTUP,
+				BuiltinSchedules.STARTUP,
+				BuiltinSchedules.POST_STARTUP,
+			];
+		}
+		// 后续运行执行常规调度序列
 		return [...this.order];
 	}
 
