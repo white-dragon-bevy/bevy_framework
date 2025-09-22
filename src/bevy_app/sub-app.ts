@@ -3,14 +3,15 @@
  * 对应 Rust bevy_app 的 SubApp struct 和 SubApps
  */
 
-import { AppLabel, Component, ErrorHandler, Message, Resource, ScheduleLabel, SystemFunction } from "./types";
+import { AppLabel, Component, ErrorHandler, Message, ScheduleLabel, SystemFunction } from "./types";
 import { Plugin, PluginState } from "./plugin";
 import { Schedule, Scheduler } from "./scheduler";
 import { WorldContainer, createWorldContainer, World } from "../bevy_ecs";
-import { ResourceManager, ResourceConstructor } from "../bevy_ecs/resource";
+import { ResourceManager, ResourceConstructor, Resource, SingletonManager } from "../bevy_ecs/resource";
 import { CommandBuffer } from "../bevy_ecs/command-buffer";
 import { EventManager } from "../bevy_ecs/events";
 import { MainScheduleOrder, runMainSchedule, BuiltinSchedules } from "./main-schedule";
+import { system } from "../bevy_ecs/enhanced-schedule";
 
 // 前向声明 App 类型
 interface AppInterface {
@@ -40,7 +41,7 @@ export class SubApp {
 
 	constructor() {
 		this._world = createWorldContainer();
-		this.scheduler = new Scheduler();
+		this.scheduler = new Scheduler(this._world.getWorld());
 		this.resourceManager = new ResourceManager();
 		this.commandBuffer = new CommandBuffer();
 		this.eventManager = new EventManager(this._world.getWorld());
@@ -197,7 +198,18 @@ export class SubApp {
 	 * 添加调度
 	 */
 	addSchedule(schedule: Schedule): void {
-		this.scheduler.addSchedule(schedule.getLabel(), schedule);
+		this.scheduler.addSchedule(schedule.getLabel());
+		// 将 Schedule 的系统同步到 Scheduler
+		const enhancedSchedule = this.scheduler.getSchedule(schedule.getLabel());
+		if (enhancedSchedule) {
+			for (const systemConfig of schedule.getSystems()) {
+				// 包装 App 层的系统函数以匹配 ECS 层的签名
+				const wrappedSystem = (world: World, deltaTime: number, resources: SingletonManager, commands: CommandBuffer) => {
+					systemConfig.system(world, deltaTime);
+				};
+				enhancedSchedule.addSystem(system(wrappedSystem));
+			}
+		}
 	}
 
 	/**
@@ -211,14 +223,27 @@ export class SubApp {
 	 * 获取调度
 	 */
 	getSchedule(label: ScheduleLabel): Schedule | undefined {
-		return this.scheduler.getSchedule(label);
+		const enhancedSchedule = this.scheduler.getSchedule(label);
+		if (enhancedSchedule) {
+			const schedule = new Schedule(label);
+			// 这里只是返回一个包装器，实际调度在 Scheduler 中
+			return schedule;
+		}
+		return undefined;
 	}
 
 	/**
 	 * 编辑调度
 	 */
 	editSchedule(label: ScheduleLabel, editor: (schedule: Schedule) => void): void {
-		this.scheduler.editSchedule(label, editor);
+		// 直接使用 Scheduler 的 editSchedule，它会传递实际的 EnhancedSchedule
+		this.scheduler.editSchedule(label, (enhancedSchedule) => {
+			// 创建一个 Schedule 包装器来兼容旧的 API
+			const schedule = new Schedule(label);
+			// 将内部的 enhancedSchedule 设置为当前的
+			(schedule as any).enhancedSchedule = enhancedSchedule;
+			editor(schedule);
+		});
 	}
 
 	/**
@@ -332,6 +357,13 @@ export class SubApp {
 	 */
 	getErrorHandler(): ErrorHandler | undefined {
 		return this.errorHandler;
+	}
+
+	/**
+	 * 获取调度器
+	 */
+	getScheduler(): Scheduler {
+		return this.scheduler;
 	}
 }
 

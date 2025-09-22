@@ -74,13 +74,7 @@ export function createScheduleLabel(name: string): ScheduleLabel {
 }
 
 
-/**
- * 资源类型接口
- * 对应 Rust ECS 的 Resource trait
- */
-export interface Resource {
-	readonly __brand: "Resource";
-}
+// Resource interface is defined in bevy_ecs/resource.ts
 
 /**
  * 组件类型接口

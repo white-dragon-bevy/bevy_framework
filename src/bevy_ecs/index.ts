@@ -10,6 +10,7 @@ export * from "./resource";
 export * from "./bevy-ecs-adapter";
 export * from "./bevy-world";
 export * from "./events";
+export * from "./name";
 
 // 默认导出
 export { BevyWorld } from "./bevy-world";

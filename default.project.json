@@ -22,6 +22,27 @@
 						}
 					}
 				}
+			},
+			"TS": {
+				"$className": "Folder",
+				"__examples__":{
+					"$path": "out/__examples__"
+				}
+			}
+		},
+		"ServerScriptService": {
+			"$className": "ServerScriptService",
+			"TS": {
+				"$path": "out/__dev__/server"
+			}
+		},
+		"StarterPlayer": {
+			"$className": "StarterPlayer",
+			"StarterPlayerScripts": {
+				"$className": "StarterPlayerScripts",
+				"TS": {
+					"$path": "out/__dev__/client"
+				}
 			}
 		},
 		"TestService":{

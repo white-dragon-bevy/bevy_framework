@@ -6,6 +6,7 @@ import {
 	PluginState
 } from "../index";
 import { SubApp } from "../sub-app";
+import { createTestApp } from "./test-helpers";
 
 interface TestResource {
 	readonly __brand: "Resource";
@@ -22,7 +23,7 @@ export = (): void => {
 	describe("App", () => {
 		describe("构建器", () => {
 			it("应该使用 create() 创建有效的 App 实例", () => {
-				const app = App.create();
+				const app = createTestApp();
 
 				expect(app).to.be.ok();
 				expect(app.world()).to.be.ok();
@@ -37,7 +38,7 @@ export = (): void => {
 			});
 
 			it("应该支持链式调用", () => {
-				const app = App.create();
+				const app = createTestApp();
 
 				const result = app
 					.insertResource({ __brand: "Resource" as const, value: 42 })
@@ -52,7 +53,7 @@ export = (): void => {
 			let app: App;
 
 			beforeEach(() => {
-				app = App.create();
+				app = createTestApp();
 			});
 
 			it("应该能够插入和获取资源", () => {
@@ -109,7 +110,7 @@ export = (): void => {
 			let app: App;
 
 			beforeEach(() => {
-				app = App.create();
+				app = createTestApp();
 			});
 
 			it("应该能够获取主 SubApp", () => {
@@ -151,11 +152,11 @@ export = (): void => {
 			let app: App;
 
 			beforeEach(() => {
-				app = App.create();
+				app = createTestApp();
 			});
 
 			it("应该初始化默认调度", () => {
-				// App.create() 应该已经初始化了默认调度
+				// createTestApp() 应该已经初始化了默认调度
 				const schedules = [
 					BuiltinSchedules.First,
 					BuiltinSchedules.PreStartup,
@@ -203,7 +204,7 @@ export = (): void => {
 			let app: App;
 
 			beforeEach(() => {
-				app = App.create();
+				app = createTestApp();
 			});
 
 			it("应该能够设置错误处理器", () => {
@@ -243,7 +244,7 @@ export = (): void => {
 			let app: App;
 
 			beforeEach(() => {
-				app = App.create();
+				app = createTestApp();
 			});
 
 			it("应该能够设置自定义运行器", () => {
@@ -274,7 +275,7 @@ export = (): void => {
 			let app: App;
 
 			beforeEach(() => {
-				app = App.create();
+				app = createTestApp();
 			});
 
 			it("应该在构建插件时阻止 update 调用", () => {
@@ -296,7 +297,7 @@ export = (): void => {
 			let app: App;
 
 			beforeEach(() => {
-				app = App.create();
+				app = createTestApp();
 			});
 
 			it("应该正确执行 finish()", () => {

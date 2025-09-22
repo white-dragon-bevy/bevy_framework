@@ -3,7 +3,11 @@
     "allow": [
       "Bash(npm test)",
       "Bash(npx testez-companion-node-cli:*)",
-      "Bash(pnpm build)"
+      "Bash(pnpm build)",
+      "WebSearch",
+      "Read(//d/projects/white-dragon-bull-ecs/src/**)",
+      "Bash(mkdir:*)",
+      "WebFetch"
     ]
   },
   "enableAllProjectMcpServers": true,

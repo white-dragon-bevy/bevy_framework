@@ -18,11 +18,13 @@ export {
 	SystemFunction,
 	ScheduleLabel,
 	createScheduleLabel,
-	Resource,
 	Component,
 	Message,
 	ErrorHandler,
 } from "./types";
+
+// Resource 类型从 bevy_ecs 导出
+export type { Resource } from "../bevy_ecs/resource";
 
 // 插件系统
 export {
@@ -42,9 +44,14 @@ export {
 export {
 	Schedule,
 	Scheduler,
-	SystemSet,
+	LogConfig,
 	createSystemSet,
 	SystemConfig,
+	// Re-export from bevy_ecs for backward compatibility
+	SystemSet,
+	system,
+	configureSet,
+	chain,
 } from "./scheduler";
 
 // 调度标签

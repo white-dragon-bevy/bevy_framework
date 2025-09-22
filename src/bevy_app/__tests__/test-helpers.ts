@@ -5,6 +5,8 @@
 
 import { Schedule } from "../scheduler";
 import { ScheduleLabel } from "../types";
+import { App } from "../app";
+import { BuiltinSchedules } from "../main-schedule";
 
 /**
  * 测试配置
@@ -24,7 +26,7 @@ export const TestConfig = {
  * 创建测试用调度，自动配置以减少警告
  */
 export function createTestSchedule(label: ScheduleLabel): Schedule {
-	const schedule = new Schedule(label);
+	const schedule = new Schedule(label, { suppressAmbiguityWarnings: true });
 	// 可以在这里添加测试特定的配置
 	return schedule;
 }
@@ -108,4 +110,31 @@ export function createNamedSystem(
  */
 export function resetSystemCounter(): void {
 	systemCounter = 0;
+}
+
+/**
+ * 创建测试用的 App，自动抑制所有调度的模糊性警告
+ */
+export function createTestApp(): App {
+	const app = App.create();
+
+	// 为所有内置调度设置抑制警告
+	const schedules = [
+		BuiltinSchedules.First,
+		BuiltinSchedules.PreStartup,
+		BuiltinSchedules.Startup,
+		BuiltinSchedules.PostStartup,
+		BuiltinSchedules.PreUpdate,
+		BuiltinSchedules.Update,
+		BuiltinSchedules.PostUpdate,
+		BuiltinSchedules.Last,
+	];
+
+	for (const schedule of schedules) {
+		app.editSchedule(schedule, (s) => {
+			s.setSuppressAmbiguityWarnings(true);
+		});
+	}
+
+	return app;
 }

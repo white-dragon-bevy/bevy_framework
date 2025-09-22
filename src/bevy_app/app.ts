@@ -9,10 +9,10 @@ import {
 	Component,
 	ErrorHandler,
 	Message,
-	Resource,
 	ScheduleLabel,
 	SystemFunction,
 } from "./types";
+import { Resource, ResourceConstructor } from "../bevy_ecs/resource";
 import { BuiltinSchedules } from "./main-schedule";
 import { DuplicatePluginError, Plugin, PluginGroup, PluginState } from "./plugin";
 import { SubApp, SubApps } from "./sub-app";
@@ -86,6 +86,14 @@ export class App {
 			BuiltinSchedules.PostUpdate,
 			BuiltinSchedules.Last,
 			BuiltinSchedules.Main,
+			// 固定更新相关调度
+			BuiltinSchedules.RunFixedMainLoop,
+			BuiltinSchedules.FixedMain,
+			BuiltinSchedules.FixedFirst,
+			BuiltinSchedules.FixedPreUpdate,
+			BuiltinSchedules.FixedUpdate,
+			BuiltinSchedules.FixedPostUpdate,
+			BuiltinSchedules.FixedLast,
 		];
 
 		for (const schedule of schedules) {
@@ -270,6 +278,14 @@ export class App {
 	initResource<T extends Resource>(resourceFactory: () => T): this {
 		this.subApps.main().initResource(resourceFactory);
 		return this;
+	}
+
+	/**
+	 * 获取资源
+	 * 对应 Rust App::world().resource
+	 */
+	getResource<T extends Resource>(resourceType: ResourceConstructor<T>): T | undefined {
+		return this.subApps.main().getResource(resourceType);
 	}
 
 	/**

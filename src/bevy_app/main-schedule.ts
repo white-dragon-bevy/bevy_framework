@@ -22,7 +22,15 @@ export enum BevySchedule {
 	Update = "Update",
 	PostUpdate = "PostUpdate",
 	Last = "Last",
+	// 固定更新相关调度
+	RunFixedMainLoop = "RunFixedMainLoop",
+	FixedMain = "FixedMain",
+	FixedFirst = "FixedFirst",
+	FixedPreUpdate = "FixedPreUpdate",
 	FixedUpdate = "FixedUpdate",
+	FixedPostUpdate = "FixedPostUpdate",
+	FixedLast = "FixedLast",
+	// 渲染
 	Render = "Render",
 	Main = "Main",
 }
@@ -40,10 +48,32 @@ export namespace BuiltinSchedules {
 	export const Update = createScheduleLabel(BevySchedule.Update);
 	export const PostUpdate = createScheduleLabel(BevySchedule.PostUpdate);
 	export const Last = createScheduleLabel(BevySchedule.Last);
+	// 固定更新相关调度
+	export const RunFixedMainLoop = createScheduleLabel(BevySchedule.RunFixedMainLoop);
+	export const FixedMain = createScheduleLabel(BevySchedule.FixedMain);
+	export const FixedFirst = createScheduleLabel(BevySchedule.FixedFirst);
+	export const FixedPreUpdate = createScheduleLabel(BevySchedule.FixedPreUpdate);
 	export const FixedUpdate = createScheduleLabel(BevySchedule.FixedUpdate);
+	export const FixedPostUpdate = createScheduleLabel(BevySchedule.FixedPostUpdate);
+	export const FixedLast = createScheduleLabel(BevySchedule.FixedLast);
+	// 渲染
 	export const Render = createScheduleLabel(BevySchedule.Render);
 	export const Main = createScheduleLabel(BevySchedule.Main);
 }
+
+// 导出单独的调度标签以便直接使用
+export const First = BuiltinSchedules.First;
+export const PreStartup = BuiltinSchedules.PreStartup;
+export const Startup = BuiltinSchedules.Startup;
+export const PostStartup = BuiltinSchedules.PostStartup;
+export const PreUpdate = BuiltinSchedules.PreUpdate;
+export const Update = BuiltinSchedules.Update;
+export const PostUpdate = BuiltinSchedules.PostUpdate;
+export const Last = BuiltinSchedules.Last;
+export const FixedFirst = createScheduleLabel("FixedFirst");
+export const FixedUpdate = BuiltinSchedules.FixedUpdate;
+export const Render = BuiltinSchedules.Render;
+export const Main = BuiltinSchedules.Main;
 
 /**
  * 主调度执行顺序配置
@@ -61,9 +91,19 @@ export class MainScheduleOrder {
 	private mainSchedules: ScheduleLabel[] = [
 		BuiltinSchedules.First,
 		BuiltinSchedules.PreUpdate,
+		BuiltinSchedules.RunFixedMainLoop,  // 在 PreUpdate 后运行固定更新
 		BuiltinSchedules.Update,
 		BuiltinSchedules.PostUpdate,
 		BuiltinSchedules.Last,
+	];
+
+	/** 固定更新执行的调度序列 */
+	private fixedSchedules: ScheduleLabel[] = [
+		BuiltinSchedules.FixedFirst,
+		BuiltinSchedules.FixedPreUpdate,
+		BuiltinSchedules.FixedUpdate,
+		BuiltinSchedules.FixedPostUpdate,
+		BuiltinSchedules.FixedLast,
 	];
 
 	/** 是否已执行启动调度 */
@@ -81,6 +121,13 @@ export class MainScheduleOrder {
 	 */
 	getMainSchedules(): readonly ScheduleLabel[] {
 		return this.mainSchedules;
+	}
+
+	/**
+	 * 获取固定更新调度序列
+	 */
+	getFixedSchedules(): readonly ScheduleLabel[] {
+		return this.fixedSchedules;
 	}
 
 	/**

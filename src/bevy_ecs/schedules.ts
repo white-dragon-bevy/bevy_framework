@@ -7,10 +7,10 @@
 
 import { World } from "@rbxts/matter";
 import { Resource } from "./resource";
-import { Loop } from "./Loop";
 import { CommandBuffer } from "./command-buffer";
 import { SingletonManager } from "./resource";
-import { LogConfig } from "../bevy_app/log-config";
+import { EnhancedSchedule } from "./enhanced-schedule";
+import { BevyEcsAdapter } from "./bevy-ecs-adapter";
 
 /**
  * 系统函数类型
@@ -23,182 +23,35 @@ export type SystemFunction = (
 ) => void;
 
 /**
- * 系统配置
- */
-export interface SystemConfig {
-	/** 系统名称 */
-	name: string;
-	/** 系统函数 */
-	system: SystemFunction;
-	/** 优先级（数值越小越先执行） */
-	priority?: number;
-	/** 依赖的其他系统 */
-	dependencies?: string[];
-	/** 运行条件 */
-	runCondition?: (world: World, resources: SingletonManager) => boolean;
-	/** 系统集名称 */
-	systemSet?: string;
-	/** 是否为排他性系统 */
-	exclusive?: boolean;
-	/** 关联的应用状态 */
-	state?: string;
-}
-
-/**
- * 单个调度实例
- * 管理特定调度标签下的所有系统
- */
-export class Schedule {
-	private label: string;
-	private systems: Map<string, SystemConfig> = new Map();
-	private systemOrder: string[] = [];
-	private isDirty = false;
-
-	constructor(label: string) {
-		this.label = label;
-	}
-
-	/**
-	 * 获取调度标签
-	 */
-	getLabel(): string {
-		return this.label;
-	}
-
-	/**
-	 * 添加系统
-	 */
-	addSystem(config: SystemConfig): void {
-		if (this.systems.has(config.name)) {
-			warn(`[Schedule] System "${config.name}" already exists in schedule "${this.label}"`);
-			return;
-		}
-
-		this.systems.set(config.name, config);
-		this.systemOrder.push(config.name);
-		this.isDirty = true;
-	}
-
-	/**
-	 * 移除系统
-	 */
-	removeSystem(name: string): boolean {
-		if (!this.systems.has(name)) {
-			return false;
-		}
-
-		this.systems.delete(name);
-		const index = this.systemOrder.indexOf(name);
-		if (index !== -1) {
-			this.systemOrder.remove(index);
-		}
-		this.isDirty = true;
-		return true;
-	}
-
-	/**
-	 * 获取系统
-	 */
-	getSystem(name: string): SystemConfig | undefined {
-		return this.systems.get(name);
-	}
-
-	/**
-	 * 获取所有系统
-	 */
-	getSystems(): readonly SystemConfig[] {
-		return this.systemOrder.map((name) => this.systems.get(name)!);
-	}
-
-	/**
-	 * 检查系统是否存在
-	 */
-	hasSystem(name: string): boolean {
-		return this.systems.has(name);
-	}
-
-	/**
-	 * 获取系统数量
-	 */
-	getSystemCount(): number {
-		return this.systems.size();
-	}
-
-	/**
-	 * 清空所有系统
-	 */
-	clear(): void {
-		this.systems.clear();
-		this.systemOrder = [];
-		this.isDirty = false;
-	}
-
-	/**
-	 * 运行调度中的所有系统（简单实现，实际执行委托给 Loop）
-	 */
-	run(world: World, deltaTime: number, resources: SingletonManager, commands: CommandBuffer): void {
-		for (const name of this.systemOrder) {
-			const config = this.systems.get(name);
-			if (!config) continue;
-
-			// 检查运行条件
-			if (config.runCondition && !config.runCondition(world, resources)) {
-				continue;
-			}
-
-			try {
-				config.system(world, deltaTime, resources, commands);
-			} catch (error) {
-				if (!LogConfig.silentErrors) {
-					warn(`[Schedule] System "${name}" error: ${error}`);
-				}
-			}
-		}
-
-		// 刷新命令缓冲
-		commands.flush(world);
-	}
-
-	/**
-	 * 标记是否需要重新排序
-	 */
-	markDirty(): void {
-		this.isDirty = true;
-	}
-
-	/**
-	 * 检查是否需要重新排序
-	 */
-	needsRebuild(): boolean {
-		return this.isDirty;
-	}
-
-	/**
-	 * 清除脏标记
-	 */
-	clearDirty(): void {
-		this.isDirty = false;
-	}
-}
-
-/**
  * 调度集合资源
  * 对应 Rust bevy_ecs::schedule::Schedules
+ *
+ * 使用 EnhancedSchedule 管理调度配置，通过 BevyEcsAdapter 执行
  */
 export class Schedules implements Resource {
 	readonly __brand = "Resource" as const;
-	private schedules = new Map<string, Schedule>();
+	private schedules = new Map<string, EnhancedSchedule>();
 	private ignoredAmbiguities = new Set<string>();
+	private adapter?: BevyEcsAdapter;
+
+	/**
+	 * 设置 Loop.luau 执行适配器
+	 */
+	setAdapter(adapter: BevyEcsAdapter): void {
+		this.adapter = adapter;
+	}
 
 	/**
 	 * 添加新调度
 	 */
-	addSchedule(label: string): Schedule {
+	addSchedule(label: string): EnhancedSchedule {
 		if (this.schedules.has(label)) {
 			return this.schedules.get(label)!;
 		}
 
-		const schedule = new Schedule(label);
+		const schedule = new EnhancedSchedule(label, {
+			suppressAmbiguityWarnings: this.ignoredAmbiguities.size() > 0
+		});
 		this.schedules.set(label, schedule);
 		return schedule;
 	}
@@ -213,17 +66,19 @@ export class Schedules implements Resource {
 	/**
 	 * 获取调度
 	 */
-	getSchedule(label: string): Schedule | undefined {
+	getSchedule(label: string): EnhancedSchedule | undefined {
 		return this.schedules.get(label);
 	}
 
 	/**
 	 * 获取或创建调度
 	 */
-	getOrCreateSchedule(label: string): Schedule {
+	getOrCreateSchedule(label: string): EnhancedSchedule {
 		let schedule = this.schedules.get(label);
 		if (!schedule) {
-			schedule = new Schedule(label);
+			schedule = new EnhancedSchedule(label, {
+				suppressAmbiguityWarnings: this.ignoredAmbiguities.size() > 0
+			});
 			this.schedules.set(label, schedule);
 		}
 		return schedule;
@@ -249,6 +104,7 @@ export class Schedules implements Resource {
 
 	/**
 	 * 运行特定调度
+	 * 使用 EnhancedSchedule 的依赖图和 BevyEcsAdapter 的 Loop 执行
 	 */
 	runSchedule(
 		label: string,
@@ -263,6 +119,8 @@ export class Schedules implements Resource {
 			return;
 		}
 
+		// 直接通过 EnhancedSchedule 执行
+		// 注意：如果需要使用 BevyEcsAdapter，系统应该在初始化时添加，而不是每次运行时添加
 		schedule.run(world, deltaTime, resources, commands);
 	}
 
@@ -271,13 +129,23 @@ export class Schedules implements Resource {
 	 */
 	addIgnoredAmbiguity(componentId: string): void {
 		this.ignoredAmbiguities.add(componentId);
+		// 更新现有调度的歧义设置
+		for (const [, schedule] of this.schedules) {
+			schedule.setSuppressAmbiguityWarnings(true);
+		}
 	}
 
 	/**
 	 * 移除忽略的歧义组件
 	 */
 	removeIgnoredAmbiguity(componentId: string): boolean {
-		return this.ignoredAmbiguities.delete(componentId);
+		const removed = this.ignoredAmbiguities.delete(componentId);
+		if (removed && this.ignoredAmbiguities.size() === 0) {
+			for (const [, schedule] of this.schedules) {
+				schedule.setSuppressAmbiguityWarnings(false);
+			}
+		}
+		return removed;
 	}
 
 	/**
