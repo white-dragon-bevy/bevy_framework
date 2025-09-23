@@ -29,19 +29,34 @@ export class TransformPlugin implements Plugin {
 	 * @param app - Bevy App 实例
 	 */
 	build(app: App): void {
-		// 在 PostStartup 阶段运行，确保第一次更新是正确的
-		app.addSystems(BuiltinSchedules.PostStartup, (world: BevyWorld, context: Context) => {
+		// 定义系统函数，并给它们起名
+		const transformStartupSystem = (world: BevyWorld, context: Context) => {
 			ensureGlobalTransforms(world);
 			markDirtyTrees(world);
 			propagateParentTransforms(world);
 			syncSimpleTransforms(world);
-		});
+		};
 
-		// 在 PostUpdate 阶段运行，处理每帧的变换更新
-		app.addSystems(BuiltinSchedules.PostUpdate, (world: BevyWorld, context: Context) => {
+		const transformUpdateSystem = (world: BevyWorld, context: Context) => {
 			markDirtyTrees(world);
 			propagateParentTransforms(world);
 			syncSimpleTransforms(world);
+		};
+
+		// 在 PostStartup 阶段运行，确保第一次更新是正确的
+		app.editSchedule(BuiltinSchedules.PostStartup, (schedule) => {
+			schedule.addSystem({
+				system: transformStartupSystem,
+				name: "TransformStartupSystem"
+			});
+		});
+
+		// 在 PostUpdate 阶段运行，处理每帧的变换更新
+		app.editSchedule(BuiltinSchedules.PostUpdate, (schedule) => {
+			schedule.addSystem({
+				system: transformUpdateSystem,
+				name: "TransformUpdateSystem"
+			});
 		});
 	}
 

@@ -4,6 +4,7 @@
  */
 
 import { App } from "./app";
+import { ExtensionConfig, ExtensionMetadata, ExtensionRegistry, PluginExtensions } from "./extensions";
 
 /**
  * 插件接口定义
@@ -60,7 +61,7 @@ export enum PluginState {
 
 /**
  * 基础插件抽象类
- * 提供默认实现
+ * 提供默认实现和扩展支持
  */
 export abstract class BasePlugin implements Plugin {
 	abstract build(app: App): void;
@@ -79,6 +80,41 @@ export abstract class BasePlugin implements Plugin {
 
 	isUnique(): boolean {
 		return true;
+	}
+
+	/**
+	 * 注册单个扩展到 App 上下文
+	 * @param app - App 实例
+	 * @param key - 扩展键名
+	 * @param extension - 扩展实现
+	 * @param metadata - 扩展元数据
+	 */
+	protected registerExtension<K extends keyof PluginExtensions>(
+		app: App,
+		key: K,
+		extension: PluginExtensions[K],
+		metadata?: ExtensionMetadata,
+	): void {
+		app.context.registerExtension(key, extension, metadata);
+	}
+
+	/**
+	 * 批量注册多个扩展到 App 上下文
+	 * @param app - App 实例
+	 * @param extensions - 扩展注册表
+	 */
+	protected registerExtensions(app: App, extensions: ExtensionRegistry): void {
+		// 使用 pairs 遍历对象，需要类型断言
+		for (const [key, config] of pairs(extensions as unknown as Record<string, unknown>)) {
+			const extensionConfig = config as ExtensionConfig<keyof PluginExtensions> | undefined;
+			if (extensionConfig) {
+				app.context.registerExtension(
+					key as keyof PluginExtensions,
+					extensionConfig.extension,
+					extensionConfig.metadata,
+				);
+			}
+		}
 	}
 }
 

@@ -3,7 +3,23 @@ local RunService = game:GetService("RunService")
 local World = require(matterFolder.World)
 local rollingAverage = require(matterFolder.rollingAverage)
 
-local function systemName(system)
+local function systemName(system, loop)
+	-- 首先检查系统是否有预设的 systemName 字段（Bevy 系统）
+	if type(system) == "table" and system.systemName then
+		return system.systemName
+	end
+
+	-- 如果 Loop 有 systemName 方法，使用它
+	if loop and loop.systemName then
+		local success, result = pcall(function()
+			return loop:systemName(system)
+		end)
+		if success and result then
+			return result
+		end
+	end
+
+	-- 回退到原始逻辑
 	local systemFn = if type(system) == "table" then system.system else system
 	local name = debug.info(systemFn, "n")
 
@@ -181,7 +197,7 @@ local function ui(debugger, loop)
 					end
 
 					local systemIsDisabled = skipSystems[system]
-					local systemName = systemName(system)
+					local systemName = systemName(system, loop)
 					local length = string.len(systemName)
 
 					if systemIsDisabled then
@@ -255,7 +271,7 @@ local function ui(debugger, loop)
 
 				local numLogs = #loop._systemLogs[debugger.debugSystem]
 
-				local name = systemName(debugger.debugSystem)
+				local name = systemName(debugger.debugSystem, loop)
 
 				local closed = plasma
 					.window({
@@ -341,7 +357,7 @@ local function ui(debugger, loop)
 	})
 
 	if hoveredSystem and hoveredSystem.system then
-		local hoveredSystemName = systemName(hoveredSystem.system)
+		local hoveredSystemName = systemName(hoveredSystem.system, loop)
 		local length = string.len(hoveredSystemName)
 		local systemDisabled = skipSystems[hoveredSystem.system]
 

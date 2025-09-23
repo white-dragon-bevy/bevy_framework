@@ -6,6 +6,7 @@
 import { Plugin } from "../../src/bevy_app/plugin";
 import { App } from "../../src/bevy_app/app";
 import { World } from "@rbxts/matter";
+import { Context } from "../bevy_ecs";
 import { Update } from "../../src/bevy_app/main-schedule";
 import {
 	Diagnostic,
@@ -79,11 +80,9 @@ export class EntityCountDiagnosticsPlugin implements Plugin {
 	 * @param world - ECS世界
 	 * @param context - 系统上下文
 	 */
-	static diagnosticSystem(
-		world: World,
-		context: { deltaTime: number; resources: import("../bevy_ecs/resource").ResourceManager },
-	): void {
-		const diagnosticsStore = context.resources.getResource(DiagnosticsStore);
+	static diagnosticSystem(world: World, context: Context): void {
+		const resources = context.get("resources");
+		const diagnosticsStore = resources.getResource(DiagnosticsStore);
 		if (!diagnosticsStore) return;
 
 		const diagnostics = new Diagnostics(diagnosticsStore);

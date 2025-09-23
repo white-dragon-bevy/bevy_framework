@@ -1,13 +1,8 @@
+import { AppContext } from "../bevy_app";
 import { BevyWorld } from "./bevy-world";
-import { CommandBuffer } from "./command-buffer";
-import { ResourceManager } from "./resource";
 import { BevySystemStruct } from "./schedule/loop";
 
-export type Context = {
-	deltaTime: number;
-	resources: ResourceManager;
-	commands: CommandBuffer;
-};
+export type Context = AppContext;
 
 // 导出 BevyWorld 类
 export { BevyWorld } from "./bevy-world";

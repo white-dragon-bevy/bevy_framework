@@ -10,6 +10,7 @@ import { PostUpdate } from "../../src/bevy_app/main-schedule";
 import { Diagnostic, DiagnosticPath, DiagnosticsStore } from "./diagnostic";
 import { padEnd, padStart, numberToFixed } from "../../src/utils/string-polyfills";
 import { Resource } from "../../src/bevy_ecs/resource";
+import { Context } from "../bevy_ecs";
 
 /**
  * 计时器类 - 用于定时触发
@@ -99,7 +100,9 @@ export class LogDiagnosticsPlugin implements Plugin {
 	build(app: App): void {
 		const state = new LogDiagnosticsState(this.waitDuration, this.filter);
 		// 直接使用资源管理器插入资源，确保使用类构造函数作为标识
-		app.main().getResourceManager().insertResource(LogDiagnosticsState as any, state);
+		app.main()
+			.getResourceManager()
+			.insertResource(LogDiagnosticsState as any, state);
 
 		if (this.debug) {
 			app.addSystems(PostUpdate, (world, context) =>
@@ -205,16 +208,16 @@ export class LogDiagnosticsPlugin implements Plugin {
 	 * @param world - ECS世界
 	 * @param context - 系统上下文
 	 */
-	static logDiagnosticsSystem(
-		world: World,
-		context: { deltaTime: number; resources: import("../bevy_ecs/resource").ResourceManager },
-	): void {
-		const state = context.resources.getResource(LogDiagnosticsState);
-		const diagnostics = context.resources.getResource(DiagnosticsStore);
+	static logDiagnosticsSystem(world: World, context: Context): void {
+		const resources = context.get("resources");
+		const state = resources.getResource(LogDiagnosticsState);
+		const diagnostics = resources.getResource(DiagnosticsStore);
 
 		if (!state || !diagnostics) return;
 
-		if (state.timer.tick(context.deltaTime).finished) {
+		// Get deltaTime from time extension
+		const deltaTime = context.has("time") ? context.get("time").getDeltaSeconds() : 0.016;
+		if (state.timer.tick(deltaTime).finished) {
 			LogDiagnosticsPlugin.logDiagnostics(state, diagnostics);
 		}
 	}
@@ -225,16 +228,16 @@ export class LogDiagnosticsPlugin implements Plugin {
 	 * @param world - ECS世界
 	 * @param context - 系统上下文
 	 */
-	static logDiagnosticsDebugSystem(
-		world: World,
-		context: { deltaTime: number; resources: import("../bevy_ecs/resource").ResourceManager },
-	): void {
-		const state = context.resources.getResource(LogDiagnosticsState);
-		const diagnostics = context.resources.getResource(DiagnosticsStore);
+	static logDiagnosticsDebugSystem(world: World, context: Context): void {
+		const resources = context.get("resources");
+		const state = resources.getResource(LogDiagnosticsState);
+		const diagnostics = resources.getResource(DiagnosticsStore);
 
 		if (!state || !diagnostics) return;
 
-		if (state.timer.tick(context.deltaTime).finished) {
+		// Get deltaTime from time extension
+		const deltaTime = context.has("time") ? context.get("time").getDeltaSeconds() : 0.016;
+		if (state.timer.tick(deltaTime).finished) {
 			LogDiagnosticsPlugin.forEachDiagnostic(state, diagnostics, (diagnostic) => {
 				print(`[DEBUG] ${diagnostic}`);
 			});

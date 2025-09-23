@@ -1,0 +1,462 @@
+/**
+ * 高级扩展系统示例
+ * 展示命名空间、依赖管理和复杂扩展交互
+ */
+
+import { App, BasePlugin, BuiltinSchedules } from "../../../bevy_app";
+import { World } from "@rbxts/matter";
+import { Context } from "../../../bevy_ecs";
+
+// ============= 数据存储扩展 =============
+
+interface StorageExtension {
+	set(key: string, value: unknown): void;
+	get(key: string): unknown | undefined;
+	has(key: string): boolean;
+	remove(key: string): boolean;
+	clear(): void;
+	size(): number;
+}
+
+interface StoragePersistenceExtension {
+	save(): void;
+	load(): void;
+	getLastSaveTime(): number | undefined;
+}
+
+interface StorageAnalyticsExtension {
+	getMostAccessed(): string | undefined;
+	getAccessCount(key: string): number;
+	getTotalAccesses(): number;
+	resetAnalytics(): void;
+}
+
+// ============= 游戏管理扩展 =============
+
+interface GameState {
+	score: number;
+	level: number;
+	isPaused: boolean;
+}
+
+interface GameManagerExtension {
+	getState(): GameState;
+	addScore(points: number): void;
+	nextLevel(): void;
+	pause(): void;
+	resume(): void;
+	reset(): void;
+}
+
+interface GameSaveExtension {
+	saveGame(): void;
+	loadGame(): boolean;
+	hasSaveFile(): boolean;
+	deleteSave(): void;
+}
+
+// 声明到全局注册表
+declare module "../../../bevy_app/extensions" {
+	interface PluginExtensions {
+		storage: StorageExtension;
+		"storage.persistence": StoragePersistenceExtension;
+		"storage.analytics": StorageAnalyticsExtension;
+		game: GameManagerExtension;
+		"gameExt.save": GameSaveExtension;
+	}
+}
+
+/**
+ * 存储插件
+ * 提供数据存储和分析功能
+ */
+class StoragePlugin extends BasePlugin {
+	build(app: App): void {
+		// 内部状态
+		const storage = new Map<string, unknown>();
+		const accessCounts = new Map<string, number>();
+		let lastSaveTime: number | undefined;
+		let totalAccesses = 0;
+
+		// 注册主存储扩展
+		this.registerExtension(
+			app,
+			"storage",
+			{
+				set(key, value) {
+					storage.set(key, value);
+					// 更新访问计数
+					const currentCount = accessCounts.get(key) ?? 0;
+					accessCounts.set(key, currentCount + 1);
+					totalAccesses++;
+				},
+				get(key) {
+					// 更新访问计数
+					const currentCount = accessCounts.get(key) ?? 0;
+					accessCounts.set(key, currentCount + 1);
+					totalAccesses++;
+					return storage.get(key);
+				},
+				has(key) {
+					return storage.has(key);
+				},
+				remove(key) {
+					return storage.delete(key);
+				},
+				clear() {
+					storage.clear();
+				},
+				size() {
+					return storage.size();
+				},
+			} satisfies StorageExtension,
+			{
+				description: "Key-value storage system",
+				version: "2.0.0",
+			},
+		);
+
+		// 注册持久化扩展
+		this.registerExtension(
+			app,
+			"storage.persistence",
+			{
+				save() {
+					print(`[Storage] Saving ${storage.size()} items...`);
+					lastSaveTime = os.clock();
+					// 实际应用中这里会保存到文件或 DataStore
+					print("[Storage] Save complete!");
+				},
+				load() {
+					print("[Storage] Loading data...");
+					// 实际应用中这里会从文件或 DataStore 加载
+					print("[Storage] Load complete!");
+				},
+				getLastSaveTime() {
+					return lastSaveTime;
+				},
+			} satisfies StoragePersistenceExtension,
+			{
+				description: "Storage persistence functionality",
+				dependencies: ["storage"], // 依赖主存储扩展
+			},
+		);
+
+		// 注册分析扩展
+		this.registerExtension(
+			app,
+			"storage.analytics",
+			{
+				getMostAccessed() {
+					let maxKey: string | undefined;
+					let maxCount = 0;
+					for (const [key, count] of accessCounts) {
+						if (count > maxCount) {
+							maxCount = count;
+							maxKey = key;
+						}
+					}
+					return maxKey;
+				},
+				getAccessCount(key) {
+					return accessCounts.get(key) ?? 0;
+				},
+				getTotalAccesses() {
+					return totalAccesses;
+				},
+				resetAnalytics() {
+					accessCounts.clear();
+					totalAccesses = 0;
+					print("[Storage] Analytics reset");
+				},
+			} satisfies StorageAnalyticsExtension,
+			{
+				description: "Storage usage analytics",
+				dependencies: ["storage"], // 依赖主存储扩展
+			},
+		);
+
+		print("StoragePlugin initialized with all extensions");
+	}
+
+	name(): string {
+		return "StoragePlugin";
+	}
+}
+
+/**
+ * 游戏管理插件
+ * 提供游戏状态管理和存档功能
+ */
+class GamePlugin extends BasePlugin {
+	build(app: App): void {
+		// 游戏状态
+		const gameState: GameState = {
+			score: 0,
+			level: 1,
+			isPaused: false,
+		};
+
+		// 注册游戏管理扩展
+		this.registerExtension(
+			app,
+			"game",
+			{
+				getState() {
+					return { ...gameState }; // 返回副本
+				},
+				addScore(points) {
+					gameState.score += points;
+					print(`[Game] Score: ${gameState.score} (+${points})`);
+				},
+				nextLevel() {
+					gameState.level++;
+					print(`[Game] Advanced to level ${gameState.level}!`);
+				},
+				pause() {
+					gameState.isPaused = true;
+					print("[Game] Paused");
+				},
+				resume() {
+					gameState.isPaused = false;
+					print("[Game] Resumed");
+				},
+				reset() {
+					gameState.score = 0;
+					gameState.level = 1;
+					gameState.isPaused = false;
+					print("[Game] Reset to initial state");
+				},
+			} satisfies GameManagerExtension,
+			{
+				description: "Game state management",
+				version: "1.0.0",
+			},
+		);
+
+		// 注册游戏存档扩展
+		this.registerExtension(
+			app,
+			"gameExt.save",
+			{
+				saveGame() {
+					// 使用存储扩展保存游戏状态
+					const storage = app.context.tryGet("storage");
+					if (storage) {
+						storage.set("gameState", gameState);
+						storage.set("saveTime", os.clock());
+
+						// 如果有持久化扩展，触发保存
+						const persistence = app.context.tryGet("storage.persistence");
+						if (persistence) {
+							persistence.save();
+						}
+
+						print("[Game] Game saved successfully");
+					} else {
+						warn("[Game] Storage extension not available, save failed");
+					}
+				},
+				loadGame() {
+					const storage = app.context.tryGet("storage");
+					if (storage && storage.has("gameState")) {
+						const savedState = storage.get("gameState") as GameState;
+						gameState.score = savedState.score;
+						gameState.level = savedState.level;
+						gameState.isPaused = savedState.isPaused;
+
+						const saveTime = storage.get("saveTime") as number;
+						const timeSinceSave = math.floor((os.clock() - saveTime) * 10) / 10;
+						print(`[Game] Game loaded (saved ${timeSinceSave}s ago)`);
+						return true;
+					}
+					print("[Game] No save file found");
+					return false;
+				},
+				hasSaveFile() {
+					const storage = app.context.tryGet("storage");
+					return storage !== undefined && storage.has("gameState");
+				},
+				deleteSave() {
+					const storage = app.context.tryGet("storage");
+					if (storage) {
+						storage.remove("gameState");
+						storage.remove("saveTime");
+						print("[Game] Save file deleted");
+					}
+				},
+			} satisfies GameSaveExtension,
+			{
+				description: "Game save/load functionality",
+				dependencies: ["game", "storage"], // 依赖游戏和存储扩展
+			},
+		);
+
+		print("GamePlugin initialized with save system");
+	}
+
+	name(): string {
+		return "GamePlugin";
+	}
+}
+
+/**
+ * 游戏逻辑系统
+ */
+function gamePlaySystem(world: World, context: Context): void {
+	const gameExt = context.get("game");
+
+	// 如果游戏暂停则跳过
+	if (gameExt.getState().isPaused) {
+		return;
+	}
+
+	// 模拟游戏逻辑
+	gameExt.addScore(10);
+
+	// 每100分升级
+	const state = gameExt.getState();
+	if (state.score >= state.level * 100) {
+		gameExt.nextLevel();
+
+		// 升级时自动存档
+		const gameSave = context.tryGet("gameExt.save");
+		if (gameSave) {
+			gameSave.saveGame();
+		}
+	}
+}
+
+/**
+ * 分析系统
+ */
+function analyticsSystem(world: World, context: Context): void {
+	// 检查是否有分析扩展
+	if (!context.has("storage.analytics")) {
+		return;
+	}
+
+	const analytics = context.get("storage.analytics");
+	const totalAccesses = analytics.getTotalAccesses();
+
+	// 每20次访问输出一次统计
+	if (totalAccesses > 0 && totalAccesses % 20 === 0) {
+		print("\n=== Storage Analytics ===");
+		print(`Total accesses: ${totalAccesses}`);
+		const mostAccessed = analytics.getMostAccessed();
+		if (mostAccessed) {
+			print(`Most accessed key: ${mostAccessed} (${analytics.getAccessCount(mostAccessed)} times)`);
+		}
+		print("========================\n");
+	}
+}
+
+/**
+ * 演示命名空间功能
+ */
+function demonstrateNamespaces(app: App): void {
+	print("\n=== Namespace Demonstration ===");
+
+	// 检查命名空间
+	if (app.context.hasNamespace("storage")) {
+		print("Storage namespace found!");
+
+		// 获取整个命名空间
+		const storageNamespace = app.context.getNamespace("storage");
+		print(
+			`Storage namespace contains ${app.context
+				.listExtensions()
+				.filter((k) => {
+					const keyStr = k as string;
+					return keyStr === "storage" || keyStr.sub(1, 8) === "storage.";
+				})
+				.size()} extensions`,
+		);
+	}
+
+	if (app.context.hasNamespace("game")) {
+		print("Game namespace found!");
+	}
+
+	// 列出所有扩展及其元数据
+	print("\n--- All Extensions ---");
+	for (const key of app.context.listExtensions()) {
+		const metadata = app.context.getMetadata(key);
+		print(`${key as string}:`);
+		if (metadata) {
+			if (metadata.description) {
+				print(`  Description: ${metadata.description}`);
+			}
+			if (metadata.dependencies && metadata.dependencies.size() > 0) {
+				print(`  Dependencies: ${metadata.dependencies.join(", ")}`);
+			}
+		}
+	}
+
+	// 调试输出
+	app.context.debug();
+	print("================================\n");
+}
+
+// ============= 主程序 =============
+
+// 创建应用
+const app = App.create();
+
+// 添加插件
+app.addPlugin(new StoragePlugin());
+app.addPlugin(new GamePlugin());
+
+// 添加系统
+app.addSystems(BuiltinSchedules.UPDATE, gamePlaySystem);
+app.addSystems(BuiltinSchedules.POST_UPDATE, analyticsSystem);
+
+// 演示命名空间功能
+demonstrateNamespaces(app);
+
+// 演示扩展使用
+print("=== Starting Game ===");
+
+// 检查是否有存档
+const gameSave = app.context.get("gameExt.save");
+if (gameSave.hasSaveFile()) {
+	print("Found existing save file!");
+	gameSave.loadGame();
+} else {
+	print("No save file found, starting new game");
+}
+
+// 运行游戏循环
+for (let cycle = 1; cycle <= 5; cycle++) {
+	print(`\n--- Update Cycle ${cycle} ---`);
+
+	// 在第3个循环暂停游戏
+	if (cycle === 3) {
+		const gameExt = app.context.get("game");
+		gameExt.pause();
+		print("Game paused for demonstration");
+	}
+
+	// 在第4个循环恢复游戏
+	if (cycle === 4) {
+		const gameExt = app.context.get("game");
+		gameExt.resume();
+		print("Game resumed");
+	}
+
+	app.update();
+	task.wait(0.1);
+}
+
+// 最终状态
+print("\n=== Final Game State ===");
+const gameExt = app.context.get("game");
+const finalState = gameExt.getState();
+print(`Score: ${finalState.score}`);
+print(`Level: ${finalState.level}`);
+print(`Paused: ${finalState.isPaused}`);
+
+// 保存游戏
+gameSave.saveGame();
+
+print("\n=== Advanced Extensions Example Complete ===");

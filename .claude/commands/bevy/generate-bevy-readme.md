@@ -14,5 +14,11 @@
 
 7.  **Prelude 模块 (Optional but recommended):** 这是一个非常好的实践。创建一个名为 `prelude` 的公共模块，然后在这个模块里重新导出（`pub use`）所有最常用的公共项（比如核心组件、插件结构体、关键资源等）。这样，用户只需要 `use my_plugin::prelude::*;` 就可以方便地导入所有必需品。
 
+8.  **插件扩展 (Plugin Extensions):** 如果你的插件使用了扩展系统（Extension System），需要明确以下内容：
+    - **扩展接口 (Extension Interfaces):** 定义清晰的扩展接口，声明到 `PluginExtensions` 全局注册表中
+    - **扩展文档 (Extension Documentation):** 为每个扩展提供详细的使用说明，包括方法签名、参数说明和返回值描述
+    - **扩展命名 (Extension Naming):** 使用点号分隔的命名空间（如 `myPlugin.feature`），保持命名的一致性和可读性
+    - **扩展依赖 (Extension Dependencies):** 通过 `ExtensionMetadata` 明确声明扩展之间的依赖关系
+    - **扩展示例 (Extension Examples):** 提供使用 `app.context.get()` 访问扩展的示例代码
 
 请根据 #Arguments **生成或维护** `src/<module>` 的文档

@@ -5,6 +5,7 @@
 /// <reference types="@rbxts/testez/globals" />
 
 import { App } from "../../../src/bevy_app/app";
+import { AppContext } from "../../../src/bevy_app/context";
 import type { ScheduleLabel } from "../../../src/bevy_app/types";
 import { World } from "@rbxts/matter";
 import {
@@ -53,18 +54,15 @@ export = () => {
 			const world = app.main().world().getWorld();
 
 			// 创建测试上下文
-			class MockResourceManager {
-				getResource(resourceType: unknown): unknown {
+			const context = new AppContext();
+			context.registerExtension("resources", {
+				getResource: (resourceType: unknown) => {
 					if (resourceType === FrameCount) {
 						return frameCount;
 					}
 					return undefined;
-				}
-			}
-			const context = {
-				deltaTime: 0,
-				resources: new MockResourceManager() as unknown as import("../../bevy_ecs/resource").ResourceManager,
-			};
+				},
+			} as any);
 			updateFrameCount(world, context);
 			expect(frameCount.value).to.equal(1);
 
@@ -79,18 +77,15 @@ export = () => {
 			const world = app.main().world().getWorld();
 
 			// 创建测试上下文
-			class MockResourceManager {
-				getResource(resourceType: unknown): unknown {
+			const context = new AppContext();
+			context.registerExtension("resources", {
+				getResource: (resourceType: unknown) => {
 					if (resourceType === FrameCount) {
 						return frameCount;
 					}
 					return undefined;
-				}
-			}
-			const context = {
-				deltaTime: 0,
-				resources: new MockResourceManager() as unknown as import("../../bevy_ecs/resource").ResourceManager,
-			};
+				},
+			} as any);
 			updateFrameCount(world, context);
 			expect(frameCount.value).to.equal(0);
 		});

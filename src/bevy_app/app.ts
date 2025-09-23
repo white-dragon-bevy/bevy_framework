@@ -13,6 +13,7 @@ import { Schedule } from "../bevy_ecs/schedule/schedule";
 import type { SystemFunction } from "../bevy_ecs/schedule/types";
 import type { IntoSystemConfigs } from "../bevy_ecs/schedule";
 import type { Diagnostic, DiagnosticsStore } from "../bevy_diagnostic/diagnostic";
+import { AppContext } from "./context";
 
 /**
  * Bevy App主类
@@ -22,10 +23,12 @@ export class App {
 	private subApps: SubApps;
 	private runner: (app: App) => AppExit;
 	private defaultErrorHandler?: ErrorHandler;
+	readonly context: AppContext;
 
 	constructor() {
 		this.subApps = new SubApps();
 		this.runner = (app: App) => this.runOnce(app);
+		this.context = new AppContext();
 
 		// 设置主SubApp的App引用
 		this.subApps.main().setAppReference(this);

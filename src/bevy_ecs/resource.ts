@@ -185,6 +185,15 @@ export class ResourceManager {
 	}
 
 	/**
+	 * 通过ID获取资源元数据
+	 * @param resourceId 资源ID
+	 * @returns 资源元数据，如果不存在则返回undefined
+	 */
+	public getResourceMetadataById(resourceId: ResourceId): ResourceMetadata | undefined {
+		return this.resourceMetadata.get(resourceId);
+	}
+
+	/**
 	 * 清空所有资源
 	 */
 	public clear(): void {
@@ -213,11 +222,11 @@ export class ResourceManager {
 	}
 
 	/**
-	 * 生成资源ID
+	 * 获取资源ID - 公开以供扩展使用
 	 * @param resourceType 资源类型构造函数
 	 * @returns 唯一的资源ID
 	 */
-	private getResourceId<T extends Resource>(resourceType: ResourceConstructor<T>): ResourceId {
+	public getResourceId<T extends Resource>(resourceType: ResourceConstructor<T>): ResourceId {
 		// 如果是字符串类型，直接返回
 		if (typeIs(resourceType, "string")) {
 			return resourceType;

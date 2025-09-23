@@ -20,7 +20,7 @@ const TextChatService = game.GetService("TextChatService");
  * ECS Debugger 插件
  * 提供 Matter ECS 的调试界面和功能
  */
-export class DebuggerPlugin implements BasePlugin {
+export class DebuggerPlugin extends BasePlugin {
 	private debugger?: IDebugger;
 	private options: DebuggerOptions;
 	private getRenderableComponent?: (entityId: number) => { model: Model } | undefined;
@@ -38,6 +38,7 @@ export class DebuggerPlugin implements BasePlugin {
 		options?: DebuggerOptions,
 		getRenderableComponent?: (entityId: number) => { model: Model } | undefined,
 	) {
+		super();
 		this.options = { ...DefaultDebuggerOptions, ...options };
 		this.getRenderableComponent = getRenderableComponent;
 	}

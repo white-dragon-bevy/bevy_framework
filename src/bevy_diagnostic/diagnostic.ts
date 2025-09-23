@@ -398,6 +398,31 @@ export class DiagnosticsStore {
 		}
 		return result;
 	}
+
+	/**
+	 * 获取所有诊断项
+	 * @returns 所有诊断项的数组
+	 */
+	getAll(): Diagnostic[] {
+		return this.iter();
+	}
+
+	/**
+	 * 清空所有诊断项
+	 */
+	clear(): void {
+		this.diagnostics.clear();
+	}
+
+	/**
+	 * 遍历所有诊断项
+	 * @param callback - 回调函数
+	 */
+	iterDiagnostics(callback: (diagnostic: Diagnostic) => void): void {
+		for (const [_, diagnostic] of this.diagnostics) {
+			callback(diagnostic);
+		}
+	}
 }
 
 /**

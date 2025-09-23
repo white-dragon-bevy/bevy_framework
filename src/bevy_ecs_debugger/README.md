@@ -258,6 +258,7 @@ const debuggerPlugin = new DebuggerPlugin({
 - `@rbxts/matter` - ECS 框架
 - `@rbxts/plasma` - UI 库
 - `@rbxts/services` - Roblox 服务访问
+- `matter-debugger/` - 该调试器直接从 `matter` 项目中拷贝, 部分修改.
 
 ## 注意事项
 

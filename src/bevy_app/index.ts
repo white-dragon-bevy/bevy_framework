@@ -34,6 +34,8 @@ export * from "./plugin";
 export * from "./sub-app";
 export * from "./roblox-adapters";
 export * from "./main-schedule";
+export * from "./extensions";
+export * from "./context";
 
 // 导出预设模块
 export * as prelude from "./prelude";

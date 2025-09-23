@@ -39,6 +39,7 @@ export class Schedule {
 		totalTime: 0,
 		lastExecutionTime: 0,
 	};
+	private context?: Context;
 	private resourceManager?: import("../resource").ResourceManager;
 	private commandBuffer?: import("../command-buffer").CommandBuffer;
 
@@ -51,7 +52,21 @@ export class Schedule {
 	}
 
 	/**
-	 * 设置依赖项 - 由 Schedules 调用
+	 * 设置上下文 - 由 Schedules 调用
+	 * @param context - 应用上下文
+	 */
+	public setContext(context: Context): void {
+		this.context = context;
+		// 从上下文获取资源管理器和命令缓冲器（如果扩展存在）
+		if (context.has("resources")) {
+			const resourceExt = context.get("resources");
+			// Store reference for backward compatibility
+			this.resourceManager = resourceExt as any;
+		}
+	}
+
+	/**
+	 * 设置依赖项 - 由 Schedules 调用（废弃，使用 setContext）
 	 * @param resourceManager - 资源管理器实例
 	 * @param commandBuffer - 命令缓冲器实例
 	 */
@@ -274,11 +289,16 @@ export class Schedule {
 
 		const finalPriority = sortIndex !== undefined ? sortIndex : (system.priority ?? 0);
 
+		// 生成系统的显示名称 - 只使用系统名称或函数名
+		const systemDisplayName = system.name || this.getFunctionName(originalSystem);
+
 		return {
 			...system.loopSystem,
 			system: wrappedSystem,
 			// 保存原始系统函数引用，用于调试器获取正确的函数名
 			originalSystem: originalSystem,
+			// 添加系统名称，供调试器使用
+			systemName: systemDisplayName,
 			// 使用拓扑排序的索引作为优先级，确保系统按正确顺序执行
 			priority: finalPriority,
 			// 清除 after 依赖，因为 Schedule 已经通过拓扑排序处理了依赖关系
@@ -541,6 +561,39 @@ export class Schedule {
 			return false;
 		});
 		return sorted;
+	}
+
+	/**
+	 * 从函数获取名称
+	 * @param fn - 函数
+	 * @returns 函数名称
+	 */
+	private getFunctionName(fn: SystemFunction): string {
+		// 尝试从 debug.info 获取函数名
+		const [name] = debug.info(fn, "n");
+
+		// 如果有有效的函数名，直接使用
+		if (name && name !== "" && !["system", "anonymous", "plugin"].includes(name)) {
+			return name;
+		}
+
+		// 如果没有有效的函数名，尝试从源文件路径获取
+		const [source] = debug.info(fn, "s");
+		if (source) {
+			// 从源路径提取有意义的名称
+			const segments = source.split(".");
+			const fileName = segments[segments.size() - 1];
+
+			// 如果文件名不够有意义，返回一个基于调度阶段的默认名称
+			if (!fileName || fileName === "plugin" || fileName === "system") {
+				return `${this.label}System`;
+			}
+
+			return fileName;
+		}
+
+		// 使用调度阶段作为默认名称的一部分
+		return `${this.label}System`;
 	}
 
 	/**

@@ -8,6 +8,7 @@ import { App } from "../../src/bevy_app/app";
 import { World } from "@rbxts/matter";
 import { Last } from "../../src/bevy_app/main-schedule";
 import { Resource } from "../../src/bevy_ecs/resource";
+import { Context } from "../bevy_ecs";
 
 /**
  * 维护从应用启动以来渲染的帧数
@@ -42,7 +43,9 @@ export class FrameCountPlugin implements Plugin {
 	build(app: App): void {
 		// 直接插入资源实例，使用类构造函数作为标识
 		const frameCount = new FrameCount();
-		app.main().getResourceManager().insertResource(FrameCount as any, frameCount);
+		app.main()
+			.getResourceManager()
+			.insertResource(FrameCount as any, frameCount);
 		app.addSystems(Last, updateFrameCount);
 	}
 
@@ -69,12 +72,10 @@ export class FrameCountPlugin implements Plugin {
  * @param world - ECS世界
  * @param context - 系统上下文
  */
-export function updateFrameCount(
-	world: World,
-	context: { deltaTime: number; resources: import("../bevy_ecs/resource").ResourceManager },
-): void {
-	const frameCount = context.resources.getResource(FrameCount);
+export function updateFrameCount(world: World, context: Context): void {
+	const resources = context.get("resources");
+	const frameCount = resources.getResource(FrameCount);
 	if (frameCount) {
-		frameCount.value = (frameCount.value + 1) % (2 ** 32);
+		frameCount.value = (frameCount.value + 1) % 2 ** 32;
 	}
 }

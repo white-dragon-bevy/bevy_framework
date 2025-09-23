@@ -14,8 +14,6 @@ import type {
 	SchedulerState,
 	ScheduleGraph,
 } from "./types";
-import type { ResourceManager } from "../resource";
-import type { CommandBuffer } from "../command-buffer";
 import { BevySystem, Context } from "../types";
 
 /**
@@ -30,27 +28,18 @@ import { BevySystem, Context } from "../types";
 export class Schedules {
 	private readonly schedules = new Map<ScheduleLabel, Schedule>();
 	private readonly loop: Loop<[BevyWorld, Context]>;
-	private readonly resourceManager: ResourceManager;
-	private readonly commandBuffer: CommandBuffer;
+	private readonly context: Context;
 	private compiled = false;
 	private runningSchedules = new Set<ScheduleLabel>();
 
 	/**
 	 * 创建调度器管理器
 	 * @param world - BevyWorld 实例
-	 * @param resourceManager - 资源管理器实例
-	 * @param commandBuffer - 命令缓冲器实例
-	 * @param deltaTime - 初始帧时间
+	 * @param context - 应用上下文
 	 */
-	public constructor(world: BevyWorld, options: Omit<Context, "deltaTime">) {
-		// 创建包含 deltaTime 的完整上下文
-		const context: Context = {
-			...options,
-			deltaTime: 0, // 初始值，会在循环中更新
-		};
+	public constructor(world: BevyWorld, context: Context) {
 		this.loop = new Loop(world, context);
-		this.resourceManager = options.resources;
-		this.commandBuffer = options.commands;
+		this.context = context;
 	}
 
 	/**
@@ -62,7 +51,7 @@ export class Schedules {
 		let schedule = this.schedules.get(label);
 		if (!schedule) {
 			schedule = new Schedule(label);
-			schedule.setDependencies(this.resourceManager, this.commandBuffer);
+			schedule.setContext(this.context);
 			this.schedules.set(label, schedule);
 		}
 		return schedule;

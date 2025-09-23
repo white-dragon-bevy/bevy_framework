@@ -8,6 +8,8 @@ import { Schedule, Schedules, SystemConfig, SystemSetConfig } from "../schedule/
 import { MainScheduleLabel, CoreSystemSet } from "../../bevy_app/main-schedule";
 import { ResourceManager } from "../resource";
 import { CommandBuffer } from "../command-buffer";
+import { AppContext } from "../../bevy_app";
+import { Context } from "../types";
 
 export = () => {
 	describe("Schedule", () => {
@@ -29,11 +31,8 @@ export = () => {
 			});
 
 			it("应该添加系统并返回系统ID", () => {
-				let systemCalled = false;
 				const systemConfig: SystemConfig = {
-					system: () => {
-						systemCalled = true;
-					},
+					system: () => {},
 					name: "test_system",
 				};
 
@@ -93,11 +92,7 @@ export = () => {
 
 				// 执行系统模拟
 				for (const loopSystem of compiledSystems) {
-					loopSystem.system(world, {
-						deltaTime: 0.016,
-						resources: undefined as unknown as ResourceManager,
-						commands: undefined as unknown as CommandBuffer,
-					});
+					loopSystem.system(world, {} as AppContext);
 				}
 
 				expect(executionOrder[0]).to.equal("high");
@@ -124,11 +119,7 @@ export = () => {
 
 				// 执行系统
 				for (const loopSystem of compiledSystems) {
-					loopSystem.system(world, {
-						deltaTime: 0.016,
-						resources: undefined as unknown as ResourceManager,
-						commands: undefined as unknown as CommandBuffer,
-					});
+					loopSystem.system(world, {} as Context);
 				}
 
 				expect(conditionCalled).to.equal(true);
@@ -158,11 +149,7 @@ export = () => {
 
 				// 执行系统
 				for (const loopSystem of compiledSystems) {
-					loopSystem.system(world, {
-						deltaTime: 0.016,
-						resources: undefined as unknown as ResourceManager,
-						commands: undefined as unknown as CommandBuffer,
-					});
+					loopSystem.system(world, {} as Context);
 				}
 
 				expect(executionOrder[0]).to.equal("A");
@@ -199,11 +186,7 @@ export = () => {
 
 				// 执行系统
 				for (const loopSystem of compiledSystems) {
-					loopSystem.system(world, {
-						deltaTime: 0.016,
-						resources: undefined as unknown as ResourceManager,
-						commands: undefined as unknown as CommandBuffer,
-					});
+					loopSystem.system(world, {} as AppContext);
 				}
 
 				expect(executionOrder[0]).to.equal("Input");
@@ -300,11 +283,7 @@ export = () => {
 				// 捕获错误
 				for (const loopSystem of compiledSystems) {
 					try {
-						loopSystem.system(world, {
-							deltaTime: 0.016,
-							resources: undefined as unknown as ResourceManager,
-							commands: undefined as unknown as CommandBuffer,
-						});
+						loopSystem.system(world, {} as AppContext);
 					} catch {
 						errorCaught = true;
 					}
@@ -321,10 +300,7 @@ export = () => {
 
 		beforeEach(() => {
 			world = new BevyWorld();
-			schedules = new Schedules(world, {
-				resources: undefined as unknown as ResourceManager,
-				commands: undefined as unknown as CommandBuffer,
-			});
+			schedules = new Schedules(world, {} as AppContext);
 		});
 
 		afterEach(() => {

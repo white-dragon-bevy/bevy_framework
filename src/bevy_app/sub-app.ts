@@ -16,7 +16,8 @@ import { Schedules } from "../bevy_ecs/schedule/schedules";
 import type { SystemFunction, SystemConfig } from "../bevy_ecs/schedule/types";
 import { intoSystemConfigs } from "../bevy_ecs/schedule/system-configs";
 import type { IntoSystemConfigs } from "../bevy_ecs/schedule";
-import { createContext } from "../bevy_ecs/context-provider";
+import { AppContext } from "./context";
+import { EcsResourcePlugin } from "../bevy_ecs/resource-plugin";
 
 // 前向声明 App 类型
 interface AppInterface {
@@ -51,19 +52,23 @@ export class SubApp {
 		this._world = createWorldContainer();
 		this.resourceManager = new ResourceManager();
 		this.commandBuffer = new CommandBuffer();
-		this.schedules = new Schedules(this._world.getWorld(), {
-			resources: this.resourceManager,
-			commands: this.commandBuffer,
-		});
+		// Initialize context as AppContext
+		this.context = new AppContext();
+
+		// Register resource extensions
+		const resourcePlugin = new EcsResourcePlugin();
+		const tempApp = {
+			main: () => this,
+			context: this.context,
+			registerExtension: (key: any, ext: any, meta?: any) => {
+				this.context.registerExtension(key, ext, meta);
+			}
+		} as any;
+		resourcePlugin.build(tempApp);
+
+		this.schedules = new Schedules(this._world.getWorld(), this.context);
 		this.eventManager = new EventManager(this._world.getWorld());
 		this.scheduleOrder = new MainScheduleOrder();
-
-		// Initialize context
-		this.context = {
-			deltaTime: 0,
-			resources: this.resourceManager,
-			commands: this.commandBuffer,
-		};
 	}
 
 	/**
@@ -92,6 +97,13 @@ export class SubApp {
 	 */
 	getEventManager(): EventManager {
 		return this.eventManager;
+	}
+
+	/**
+	 * 获取应用上下文
+	 */
+	getContext(): Context {
+		return this.context;
 	}
 
 	/**
@@ -143,12 +155,7 @@ export class SubApp {
 		}
 
 		// 向后兼容：如果 Loop 没有运行，使用旧的直接执行方式
-		// 创建 Context 对象
-		const context = {
-			deltaTime: 0, // 这个值会被 Loop 覆盖
-			resources: this.resourceManager,
-			commands: this.commandBuffer,
-		};
+		// 使用已初始化的 context
 
 		if (this.updateSchedule !== undefined) {
 			// 如果是主调度，运行完整的调度序列
@@ -159,7 +166,7 @@ export class SubApp {
 					const compiledSystems = schedule.compile();
 					for (const systemStruct of compiledSystems) {
 						try {
-							systemStruct.system(this._world.getWorld(), context);
+							systemStruct.system(this._world.getWorld(), this.context);
 						} catch (err) {
 							// 如果有错误处理器，调用它；否则抛出错误
 							if (this.errorHandler) {
@@ -178,7 +185,7 @@ export class SubApp {
 				const compiledSystems = schedule.compile();
 				for (const systemStruct of compiledSystems) {
 					try {
-						systemStruct.system(this._world.getWorld(), context);
+						systemStruct.system(this._world.getWorld(), this.context);
 					} catch (err) {
 						// 如果有错误处理器，调用它；否则抛出错误
 						if (this.errorHandler) {

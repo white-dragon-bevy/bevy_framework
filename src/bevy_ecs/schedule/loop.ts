@@ -47,6 +47,8 @@ export type BevySystemStruct<T extends Array<unknown>> = SystemStruct<T> & {
 	afterSet?: string;
 	/** 原始系统函数（用于调试器获取正确的函数名） */
 	originalSystem?: SystemFn<T>;
+	/** 系统名称（用于调试器显示） */
+	systemName?: string;
 };
 
 export type System<T extends Array<unknown>> = SystemFn<T> | SystemStruct<T> | BevySystemStruct<T>;
