@@ -78,7 +78,7 @@ class MatterApp {
 
 ```
 src/<pluginName>/
-├── src/                         # 代码, 尽量符合源代码结构
+├── *.ts                         # 代码, 尽量符合源代码结构
 ├── __tests__/                   # 单元测试和集成测试
 ├── README.md
 └── 
