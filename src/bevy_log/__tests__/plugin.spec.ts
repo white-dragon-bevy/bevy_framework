@@ -116,10 +116,11 @@ export = () => {
 			const app2 = new App();
 			const plugin2 = new LogPlugin();
 
-			// 由于 error 函数会输出错误，这里只验证不会崩溃
-			expect(() => {
-				app2.addPlugin(plugin2);
-			}).never.to.throw();
+			// 这会产生一个预期的警告，但不会崩溃
+			app2.addPlugin(plugin2);
+
+			// 验证仍然只有第一个订阅器生效
+			expect(LogSubscriber.getGlobal()).to.be.ok();
 		});
 
 		it("应该正确设置过滤器", () => {

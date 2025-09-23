@@ -3,7 +3,7 @@
  * 管理多个调度阶段，提供系统注册和执行协调功能
  */
 
-import type { World } from "@rbxts/matter";
+import { BevyWorld } from "../bevy-world";
 import { Loop } from "./loop";
 import { Schedule } from "./schedule";
 import type {
@@ -30,7 +30,7 @@ import { BevySystem, Context } from "../types";
  */
 export class Schedules {
 	private readonly schedules = new Map<ScheduleLabel, Schedule>();
-	private readonly loop: Loop<[World, Context]>;
+	private readonly loop: Loop<[BevyWorld, Context]>;
 	private readonly resourceManager: ResourceManager;
 	private readonly commandBuffer: CommandBuffer;
 	private compiled = false;
@@ -38,12 +38,12 @@ export class Schedules {
 
 	/**
 	 * 创建调度器管理器
-	 * @param world - Matter World 实例
+	 * @param world - BevyWorld 实例
 	 * @param resourceManager - 资源管理器实例
 	 * @param commandBuffer - 命令缓冲器实例
 	 * @param deltaTime - 初始帧时间
 	 */
-	public constructor(world: World, options: Omit<Context, "deltaTime">) {
+	public constructor(world: BevyWorld, options: Omit<Context, "deltaTime">) {
 		// 创建包含 deltaTime 的完整上下文
 		const context: Context = {
 			...options,
@@ -186,7 +186,6 @@ export class Schedules {
 			}
 		}
 
-		print(`Started ${this.runningSchedules.size()} schedules`);
 		return connections;
 	}
 
@@ -200,7 +199,6 @@ export class Schedules {
 			this.runningSchedules.delete(scheduleLabel as string);
 		}
 		const connectionCount = Object.keys(connections).size();
-		print(`Stopped ${connectionCount} schedule connections`);
 	}
 
 	/**
@@ -287,7 +285,7 @@ export class Schedules {
 	 * 获取底层的 Matter Loop 实例
 	 * @returns Loop 实例
 	 */
-	public getLoop(): Loop<[World, Context]> {
+	public getLoop(): Loop<[BevyWorld, Context]> {
 		return this.loop;
 	}
 

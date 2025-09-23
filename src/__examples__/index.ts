@@ -2,6 +2,7 @@ const exampleFolder: string = "app";
 const exampleName: string = "empty_defaults";
 
 export function bootstrap() {
+	// 然后运行原有的示例
 	const folder = script.FindFirstChild(exampleFolder);
 	assert(folder, "can't find exampleFolder :" + exampleFolder);
 	const exampleScript = folder.FindFirstChild(exampleName) as ModuleScript;

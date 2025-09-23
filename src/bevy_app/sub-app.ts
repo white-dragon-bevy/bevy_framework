@@ -5,7 +5,7 @@
 
 import { AppLabel, ErrorHandler, Message, ScheduleLabel } from "./types";
 import { Plugin, PluginState } from "./plugin";
-import { WorldContainer, createWorldContainer, World } from "../bevy_ecs";
+import { WorldContainer, createWorldContainer, World, Context } from "../bevy_ecs";
 import { ResourceManager, ResourceConstructor, Resource } from "../bevy_ecs/resource";
 import { CommandBuffer } from "../bevy_ecs/command-buffer";
 import { EventManager } from "../bevy_ecs/events";
@@ -14,6 +14,9 @@ import { App } from "./app";
 import { Schedule } from "../bevy_ecs/schedule/schedule";
 import { Schedules } from "../bevy_ecs/schedule/schedules";
 import type { SystemFunction, SystemConfig } from "../bevy_ecs/schedule/types";
+import { intoSystemConfigs } from "../bevy_ecs/schedule/system-configs";
+import type { IntoSystemConfigs } from "../bevy_ecs/schedule";
+import { createContext } from "../bevy_ecs/context-provider";
 
 // 前向声明 App 类型
 interface AppInterface {
@@ -40,6 +43,7 @@ export class SubApp {
 	private errorHandler?: ErrorHandler;
 	private appReference?: AppInterface; // 保存App引用用于插件回调
 	private scheduleOrder: MainScheduleOrder;
+	private context: Context;
 
 	constructor() {
 		this._world = createWorldContainer();
@@ -51,6 +55,13 @@ export class SubApp {
 		});
 		this.eventManager = new EventManager(this._world.getWorld());
 		this.scheduleOrder = new MainScheduleOrder();
+
+		// Initialize context
+		this.context = {
+			deltaTime: 0,
+			resources: this.resourceManager,
+			commands: this.commandBuffer,
+		};
 	}
 
 	/**
@@ -175,13 +186,18 @@ export class SubApp {
 
 	/**
 	 * 添加系统到指定调度
+	 * 支持简单系统函数和配置对象
 	 */
-	addSystems(schedule: ScheduleLabel, ...systems: SystemFunction[]): void {
+	addSystems(schedule: ScheduleLabel, ...systems: IntoSystemConfigs[]): void {
 		for (const system of systems) {
-			const config: SystemConfig = {
-				system: system,
-			};
-			this.schedules.addSystemToSchedule(schedule, config);
+			// 转换为 SystemConfigs
+			const systemConfigs = intoSystemConfigs(system);
+			// 转换为 SystemConfig 数组
+			const configs = systemConfigs.toSystemConfigs();
+			// 添加到调度
+			for (const config of configs) {
+				this.schedules.addSystemToSchedule(schedule, config);
+			}
 		}
 	}
 

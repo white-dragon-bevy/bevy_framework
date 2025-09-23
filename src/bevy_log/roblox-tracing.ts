@@ -103,8 +103,15 @@ export class RobloxLayer implements Layer {
 			case Level.WARN:
 				warn(message);
 				break;
-			default:
+			case Level.INFO:
 				print(message);
+				break;
+			case Level.DEBUG:
+			case Level.TRACE:
+				// 只在调试模式下输出 DEBUG 和 TRACE 级别
+				if (RunService.IsStudio()) {
+					print(message);
+				}
 				break;
 		}
 	}

@@ -596,7 +596,8 @@ export = (): void => {
 					};
 
 					const faultySystem = () => {
-						error("Test error");
+						// Intentional test error - using throw instead of error() to avoid console output
+						throw "Test error";
 					};
 
 					subApp.setErrorHandler(errorHandler);

@@ -3,7 +3,7 @@
  * 验证新的 Schedule 和 Schedules 系统功能
  */
 
-import { World } from "@rbxts/matter";
+import { BevyWorld } from "../bevy-world";
 import { Schedule, Schedules, SystemConfig, SystemSetConfig } from "../schedule/index";
 import { MainScheduleLabel, CoreSystemSet } from "../../bevy_app/main-schedule";
 import { ResourceManager } from "../resource";
@@ -12,11 +12,11 @@ import { CommandBuffer } from "../command-buffer";
 export = () => {
 	describe("Schedule", () => {
 		let schedule: Schedule;
-		let world: World;
+		let world: BevyWorld;
 
 		beforeEach(() => {
 			schedule = new Schedule(MainScheduleLabel.UPDATE);
-			world = new World();
+			world = new BevyWorld();
 		});
 
 		afterEach(() => {
@@ -287,7 +287,8 @@ export = () => {
 
 				schedule.addSystem({
 					system: () => {
-						error("Test error");
+						// This is an intentional test error - using throw instead of error() to avoid console output
+						throw "Test error";
 					},
 					name: "error_system",
 				});
@@ -314,10 +315,10 @@ export = () => {
 
 	describe("Schedules", () => {
 		let schedules: Schedules;
-		let world: World;
+		let world: BevyWorld;
 
 		beforeEach(() => {
-			world = new World();
+			world = new BevyWorld();
 			schedules = new Schedules(world, {
 				resources: undefined as unknown as ResourceManager,
 				commands: undefined as unknown as CommandBuffer,

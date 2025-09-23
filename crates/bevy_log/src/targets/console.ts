@@ -44,7 +44,7 @@ export class ConsoleLogger extends BaseLogger {
 		switch (level) {
 			case LogLevel.Trace:
 			case LogLevel.Debug:
-				print(`[DEBUG] ${message}`);
+				print(message);
 				break;
 			case LogLevel.Info:
 				print(message);

@@ -1,3 +1,5 @@
+@.claude/agents/roblox-ts-pro.md
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -80,4 +82,11 @@ pnpm install
 - 所有TypeScript代码必须兼容roblox-ts编译器限制
 - 使用Matter ECS的查询和组件系统
 - 客户端和服务端代码需要使用RobloxEnvironment区分
-- 测试使用@rbxts/testez框架
+
+## 单元测试
+
+- 编码后主动运行单元测试
+- 使用 `npm test` 命令运行单元测试, 该命令将调用 `testez-companion-node-cli`, 同时使用 `testez-companion.toml` 配置
+- 使用 `npm test -- -p <robloxPath>`, 该命令将不再读取 testez-companion.toml, 直接测试提供的路径
+  - 修改的地址为模块在 dataModel地址, 以 `/` 分割, 比如 `ReplicatedStorage/src/Core/BattleUtilities/Unit`
+- 根据测试堆栈, 从 `out/` 目录阅读错误代码 (lua), 再到 `src` 目录定位错误 (ts)

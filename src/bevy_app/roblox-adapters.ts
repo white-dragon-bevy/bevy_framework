@@ -57,7 +57,6 @@ export class RobloxRunnerPlugin extends BasePlugin {
 					return exit;
 				}
 			} catch (e) {
-				warn(`App update failed: ${e}`);
 				const errorHandler = app.getErrorHandler();
 				if (errorHandler) {
 					errorHandler(e);
@@ -89,7 +88,6 @@ export class RobloxRunnerPlugin extends BasePlugin {
 					return exit;
 				}
 			} catch (error) {
-				warn(`App update failed: ${error}`);
 				const errorHandler = app.getErrorHandler();
 				if (errorHandler) {
 					errorHandler(error);
@@ -124,7 +122,6 @@ export class RobloxRunnerPlugin extends BasePlugin {
 					return exit;
 				}
 			} catch (error) {
-				warn(`App update failed: ${error}`);
 				const errorHandler = app.getErrorHandler();
 				if (errorHandler) {
 					errorHandler(error);

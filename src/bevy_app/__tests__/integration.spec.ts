@@ -267,9 +267,6 @@ export = (): void => {
 
 		describe("错误处理和恢复", () => {
 			it("系统错误不应该阻止其他系统执行", () => {
-				// 测试期间静默错误警告
-				const originalSilent = LogConfig.silentErrors;
-				LogConfig.silentErrors = true;
 
 				const tracker = new ExecutionTracker();
 
@@ -300,9 +297,6 @@ export = (): void => {
 				// 其他系统应该继续执行
 				expect(tracker.executionOrder.includes("System1")).to.equal(true);
 				expect(tracker.executionOrder.includes("System3")).to.equal(true);
-
-				// 恢复原始设置
-				LogConfig.silentErrors = originalSilent;
 			});
 
 			it("插件构建错误应该被正确处理", () => {

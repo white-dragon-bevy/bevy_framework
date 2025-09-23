@@ -8,6 +8,7 @@ import { BasePlugin, Plugin } from "../bevy_app/plugin";
 import { Level } from "./level";
 import { EnvFilter, DEFAULT_FILTER } from "./filter";
 import { Layer, LogRecord, LogSubscriber, RobloxLayer } from "./roblox-tracing";
+import { RunService } from "@rbxts/services";
 
 /**
  * BoxedLayer 类型
@@ -96,7 +97,8 @@ export class LogPlugin extends BasePlugin {
 		// 设置全局默认订阅器
 		const subscriberAlreadySet = !LogSubscriber.setGlobalDefault(subscriber);
 
-		if (subscriberAlreadySet) {
+		if (subscriberAlreadySet && RunService.IsStudio()) {
+			// 只在 Studio 模式下输出警告，避免在生产环境中产生噪音
 			warn("Could not set global tracing subscriber as it is already set. Consider disabling LogPlugin.");
 		}
 	}

@@ -1,4 +1,4 @@
-import { World } from "@rbxts/matter";
+import { BevyWorld } from "../bevy-world";
 import {
 	Event,
 	EventWriter,
@@ -32,11 +32,11 @@ class AnotherTestEvent implements Event {
 }
 
 export = () => {
-	let world: World;
+	let world: BevyWorld;
 	let eventManager: EventManager;
 
 	beforeEach(() => {
-		world = new World();
+		world = new BevyWorld();
 		eventManager = new EventManager(world);
 	});
 

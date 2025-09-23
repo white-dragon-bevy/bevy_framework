@@ -1,4 +1,4 @@
-import { World } from "@rbxts/matter";
+import { BevyWorld } from "./bevy-world";
 import { CommandBuffer } from "./command-buffer";
 import { ResourceManager } from "./resource";
 import { BevySystemStruct } from "./schedule/loop";
@@ -9,7 +9,8 @@ export type Context = {
 	commands: CommandBuffer;
 };
 
-export type BevyWorld = World;
+// 导出 BevyWorld 类
+export { BevyWorld } from "./bevy-world";
 
-export type BevySystemParameters = [World, Context];
+export type BevySystemParameters = [BevyWorld, Context];
 export type BevySystem = BevySystemStruct<BevySystemParameters>;

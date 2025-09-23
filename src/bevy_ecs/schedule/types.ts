@@ -4,17 +4,17 @@
  */
 
 import type { World } from "@rbxts/matter";
-import { BevySystem, Context } from "../types";
+import { BevySystem, BevyWorld, Context } from "../types";
 
 /**
  * 系统函数签名 - 接收 World 和 deltaTime
  */
-export type SystemFunction = (world: World, context: Context) => void;
+export type SystemFunction = (world: BevyWorld, context: Context) => void;
 
 /**
  * 系统运行条件函数
  */
-export type RunCondition = (world: World) => boolean;
+export type RunCondition = (world: BevyWorld) => boolean;
 
 /**
  * 系统集标识符

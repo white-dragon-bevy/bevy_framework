@@ -11,6 +11,7 @@ import { SubApp, SubApps } from "./sub-app";
 import { WorldContainer } from "../bevy_ecs";
 import { Schedule } from "../bevy_ecs/schedule/schedule";
 import type { SystemFunction } from "../bevy_ecs/schedule/types";
+import type { IntoSystemConfigs } from "../bevy_ecs/schedule";
 
 /**
  * Bevy App主类
@@ -239,8 +240,24 @@ export class App {
 	/**
 	 * 添加系统到指定调度
 	 * 对应 Rust App::add_systems
+	 *
+	 * @param schedule - 调度标签
+	 * @param systems - 系统或系统配置
+	 *
+	 * @example
+	 * // 简单用法
+	 * app.addSystems(Update, system_a);
+	 * app.addSystems(Update, system_a, system_b, system_c);
+	 *
+	 * @example
+	 * // 链式配置
+	 * app.addSystems(Update, system_b.after(system_a).runIf(condition));
+	 *
+	 * @example
+	 * // 元组链式执行
+	 * app.addSystems(Update, [system_c, system_d].chain());
 	 */
-	addSystems(schedule: ScheduleLabel, ...systems: SystemFunction[]): this {
+	addSystems(schedule: ScheduleLabel, ...systems: IntoSystemConfigs[]): this {
 		this.subApps.main().addSystems(schedule, ...systems);
 		return this;
 	}

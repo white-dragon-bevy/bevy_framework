@@ -7,6 +7,10 @@
 export { Loop } from "./loop";
 export { Schedule } from "./schedule";
 export { Schedules } from "./schedules";
+export { SystemConfigs, extendSystemFunction, extendSystemArray, intoSystemConfigs } from "./system-configs";
+
+// 系统构建器导出
+export { system, systemArray, chain, when, after, before, inSet } from "./system-builder";
 
 // 类型定义导出
 export type {
@@ -29,3 +33,9 @@ export type {
 	System,
 	AnySystem,
 } from "./loop";
+
+// SystemConfigs 类型导出
+export type {
+	SystemConfigItem,
+	IntoSystemConfigs,
+} from "./system-configs";

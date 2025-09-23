@@ -3,7 +3,7 @@
  * 提供系统调度、依赖解析和执行管理功能
  */
 
-import type { World } from "@rbxts/matter";
+import { RunService } from "@rbxts/services";
 import type {
 	SystemConfig,
 	SystemSetConfig,
@@ -15,7 +15,7 @@ import type {
 	SchedulerState,
 	ScheduleStats,
 } from "./types";
-import type { BevySystem, Context } from "../types";
+import type { BevySystem, BevyWorld, Context } from "../types";
 
 /**
  * 系统调度器 - 管理单个调度阶段的系统执行
@@ -32,6 +32,7 @@ export class Schedule {
 	private readonly systemSets = new Map<string, SystemSetConfig>();
 	private readonly systemsByFunction = new Map<SystemFunction, string>();
 	private compiled = false;
+	private compiledSystems?: Array<BevySystem>;
 	private nextSystemId = 1;
 	private stats: ScheduleStats = {
 		executionCount: 0,
@@ -82,7 +83,8 @@ export class Schedule {
 
 		// 检查系统是否已注册
 		if (this.systemsByFunction.has(config.system)) {
-			error(`System ${config.name ?? "unnamed"} is already registered`);
+			// 系统已经注册，返回已存在的ID（避免重复注册）
+			return this.systemsByFunction.get(config.system)!;
 		}
 
 		const internalSystem: InternalSystemStruct = {
@@ -118,8 +120,8 @@ export class Schedule {
 	 * @returns 编译后的系统列表，可直接用于 Matter Loop
 	 */
 	public compile(): Array<BevySystem> {
-		if (this.compiled) {
-			return this.getCompiledSystems();
+		if (this.compiled && this.compiledSystems) {
+			return this.compiledSystems;
 		}
 
 		// 1. 解析系统集依赖
@@ -134,13 +136,14 @@ export class Schedule {
 		// 4. 生成执行顺序
 		const sortedSystems = this.topologicalSort();
 
-		// 5. 创建最终的 Loop 系统结构
-		const compiledSystems = sortedSystems.map((systemId) => {
+		// 5. 创建最终的 Loop 系统结构，并分配优先级确保执行顺序
+		const compiledSystems = sortedSystems.map((systemId, index) => {
 			const system = this.systems.get(systemId)!;
-			return this.enhanceLoopSystem(system);
+			return this.enhanceLoopSystem(system, index);
 		});
 
 		this.compiled = true;
+		this.compiledSystems = compiledSystems;
 		return compiledSystems;
 	}
 
@@ -190,6 +193,7 @@ export class Schedule {
 		this.systemSets.clear();
 		this.systemsByFunction.clear();
 		this.compiled = false;
+		this.compiledSystems = undefined;
 		this.nextSystemId = 1;
 		this.stats = {
 			executionCount: 0,
@@ -219,7 +223,7 @@ export class Schedule {
 	 */
 	private createLoopSystem(config: SystemConfig): BevySystem {
 		// 创建一个适配函数，将 (World, number) 转换为 (World, Context)
-		const adaptedSystem = (world: World, context: Context): void => {
+		const adaptedSystem = (world: BevyWorld, context: Context): void => {
 			// 这里会在 enhanceLoopSystem 中被正确的包装函数替换
 			config.system(world, context);
 		};
@@ -236,13 +240,14 @@ export class Schedule {
 	/**
 	 * 增强 Loop 系统结构，添加统计和错误处理
 	 * @param system - 内部系统结构
+	 * @param sortIndex - 拓扑排序的索引，用于设置优先级
 	 * @returns 增强的 Loop 系统结构
 	 */
-	private enhanceLoopSystem(system: InternalSystemStruct): BevySystem {
+	private enhanceLoopSystem(system: InternalSystemStruct, sortIndex?: number): BevySystem {
 		const originalSystem = system.system;
 
 		// 包装系统函数以添加统计和错误处理
-		const wrappedSystem = (world: World, context: Context): void => {
+		const wrappedSystem = (world: BevyWorld, context: Context): void => {
 			const startTime = os.clock();
 
 			try {
@@ -262,14 +267,21 @@ export class Schedule {
 					lastExecutionTime: executionTime,
 				};
 			} catch (err) {
-				warn(`Error in system '${system.name ?? system.id}': ${err}`);
+				// 不输出警告，直接抛出错误
 				throw err;
 			}
 		};
 
+		const finalPriority = sortIndex !== undefined ? sortIndex : (system.priority ?? 0);
+
 		return {
 			...system.loopSystem,
 			system: wrappedSystem,
+			// 使用拓扑排序的索引作为优先级，确保系统按正确顺序执行
+			priority: finalPriority,
+			// 清除 after 依赖，因为 Schedule 已经通过拓扑排序处理了依赖关系
+			// 如果保留 after，Loop 会重新计算优先级，破坏我们的排序
+			after: undefined,
 		};
 	}
 
@@ -527,18 +539,6 @@ export class Schedule {
 			return false;
 		});
 		return sorted;
-	}
-
-	/**
-	 * 获取已编译的系统列表
-	 * @returns 编译后的系统列表
-	 */
-	private getCompiledSystems(): Array<BevySystem> {
-		const sortedSystemIds = this.topologicalSort();
-		return sortedSystemIds.map((systemId) => {
-			const system = this.systems.get(systemId)!;
-			return this.enhanceLoopSystem(system);
-		});
 	}
 
 	/**
