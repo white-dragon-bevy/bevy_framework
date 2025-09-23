@@ -1,3 +1,6 @@
 [submodule "bevy-origin"]
 	path = bevy-origin
 	url = git@github.com:bevyengine/bevy.git
+[submodule "bevy-origin-packages/bevy_replicon"]
+	path = bevy-origin-packages/bevy_replicon
+	url = git@github.com:simgine/bevy_replicon.git
