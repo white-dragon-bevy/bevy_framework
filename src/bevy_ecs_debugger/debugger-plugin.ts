@@ -40,10 +40,6 @@ export class DebuggerPlugin implements BasePlugin {
 	) {
 		this.options = { ...DefaultDebuggerOptions, ...options };
 		this.getRenderableComponent = getRenderableComponent;
-
-		const isServer = RunService.IsServer();
-		print(`[DebuggerPlugin] Constructor called on ${isServer ? "SERVER" : "CLIENT"}`);
-		print(debug.traceback());
 	}
 	ready(_app: App): boolean {
 		return true;

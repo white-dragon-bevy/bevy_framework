@@ -3,7 +3,8 @@
  * 从 bull-ecs start.ts 迁移的 getDebugger 逻辑
  */
 
-import { Debugger, World } from "@rbxts/matter";
+import { World } from "@rbxts/matter";
+import Debugger from "./matter-debugger/debugger";
 import Plasma from "@rbxts/plasma";
 import type { DebuggerOptions, IDebugger } from "./types";
 
@@ -21,7 +22,7 @@ const RunService = game.GetService("RunService");
 export function createDebugger(
 	world: World,
 	options: DebuggerOptions,
-	getRenderableComponent?: (entityId: number) => { model: Model } | undefined
+	getRenderableComponent?: (entityId: number) => { model: Model } | undefined,
 ): IDebugger {
 	// 设置调试器
 	const myDebugger = new Debugger(Plasma);
@@ -29,7 +30,6 @@ export function createDebugger(
 	// 添加调试日志
 	const isServer = RunService.IsServer();
 	print(`[createDebugger] Creating debugger on ${isServer ? "SERVER" : "CLIENT"}`);
-
 
 	// 配置查找实体对应模型的方法
 	// 对应 start.ts:24-32
