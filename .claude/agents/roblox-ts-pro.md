@@ -481,9 +481,8 @@ export = () => {
 **注意**, 必须使用 `export = () => {}` 导出测试用例, `任何错误导出都会导致 testez bug`, 无法执行任何测试.
 
 ## PolyFill
-- @rbxts/string-utils
-- @rbxts/object-utils
-- @@rbxts/sift: (array, map, record)
+- @rbxts/sift: (array, map, record)
+- @rbxts/luau-polyfill
 
 ## Other
 Remember: **Quality > Speed**. Take time to validate before writing. A perfect file on first attempt saves debugging time.

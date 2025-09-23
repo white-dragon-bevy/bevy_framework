@@ -85,7 +85,7 @@ pnpm install
 
 ## 单元测试
 
-- 编码后主动运行单元测试
+- 编码后主动编译 `npm run build`, 然后运行单元测试
 - 使用 `npm test` 命令运行单元测试, 该命令将调用 `testez-companion-node-cli`, 同时使用 `testez-companion.toml` 配置
 - 使用 `npm test -- -p <robloxPath>`, 该命令将不再读取 testez-companion.toml, 直接测试提供的路径
   - 修改的地址为模块在 dataModel地址, 以 `/` 分割, 比如 `ReplicatedStorage/src/Core/BattleUtilities/Unit`

@@ -218,8 +218,29 @@ export class ResourceManager {
 	 * @returns 唯一的资源ID
 	 */
 	private getResourceId<T extends Resource>(resourceType: ResourceConstructor<T>): ResourceId {
-		// 使用构造函数名称作为资源ID
-		// 在生产环境中可能需要更健壮的ID生成策略
+		// 如果是字符串类型，直接返回
+		if (typeIs(resourceType, "string")) {
+			return resourceType;
+		}
+
+		// 对于表类型（roblox-ts生成的类）
+		if (typeIs(resourceType, "table")) {
+			// 尝试获取类名
+			const name = (resourceType as unknown as { name?: string }).name;
+			if (name && typeIs(name, "string")) {
+				return name;
+			}
+
+			// 检查是否有 __tostring 元方法
+			const mt = getmetatable(resourceType as object) as { __tostring?: () => string } | undefined;
+			if (mt && mt.__tostring) {
+				// 使用元表的 __tostring 方法
+				return tostring(resourceType);
+			}
+		}
+
+		// 直接使用tostring
+		// 对于函数和其他类型，这会生成唯一的标识符
 		return tostring(resourceType);
 	}
 }

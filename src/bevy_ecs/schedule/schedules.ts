@@ -16,7 +16,6 @@ import type {
 } from "./types";
 import type { ResourceManager } from "../resource";
 import type { CommandBuffer } from "../command-buffer";
-import Object from "@rbxts/object-utils";
 import { BevySystem, Context } from "../types";
 
 /**

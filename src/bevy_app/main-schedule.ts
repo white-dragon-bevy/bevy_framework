@@ -4,7 +4,6 @@
  */
 
 import type { ScheduleLabel, SystemSet } from "../bevy_ecs/schedule";
-import Object from "@rbxts/object-utils";
 
 /**
  * 内置调度阶段 - 对应 Rust Bevy 的调度阶段
@@ -58,7 +57,22 @@ export const MainScheduleLabel = {
  * @returns 所有内置调度阶段的数组
  */
 export function getAllMainScheduleLabels(): Array<ScheduleLabel> {
-	return Object.values(MainScheduleLabel);
+	return [
+		MainScheduleLabel.MAIN,
+		MainScheduleLabel.STARTUP,
+		MainScheduleLabel.FIRST,
+		MainScheduleLabel.PRE_UPDATE,
+		MainScheduleLabel.UPDATE,
+		MainScheduleLabel.POST_UPDATE,
+		MainScheduleLabel.LAST,
+		MainScheduleLabel.PRE_STARTUP,
+		MainScheduleLabel.POST_STARTUP,
+		MainScheduleLabel.RENDER,
+		MainScheduleLabel.EXTRACT,
+		MainScheduleLabel.PREPARE,
+		MainScheduleLabel.QUEUE,
+		MainScheduleLabel.CLEANUP,
+	];
 }
 
 /**
@@ -146,7 +160,21 @@ export const CoreSystemSet = {
  * @returns 所有内置系统集的数组
  */
 export function getAllCoreSystemSets(): Array<SystemSet> {
-	return Object.values(CoreSystemSet);
+	return [
+		CoreSystemSet.CORE,
+		CoreSystemSet.INPUT,
+		CoreSystemSet.PHYSICS,
+		CoreSystemSet.TRANSFORM,
+		CoreSystemSet.ANIMATION,
+		CoreSystemSet.AUDIO,
+		CoreSystemSet.NETWORKING,
+		CoreSystemSet.UI,
+		CoreSystemSet.RENDERING,
+		CoreSystemSet.DIAGNOSTICS,
+		CoreSystemSet.EVENTS,
+		CoreSystemSet.TIME,
+		CoreSystemSet.APP,
+	];
 }
 
 /**
@@ -357,11 +385,7 @@ export class MainScheduleOrder {
 		// 第一次运行时，执行启动调度
 		if (!this.hasRunStartup) {
 			this.hasRunStartup = true;
-			return [
-				BuiltinSchedules.PRE_STARTUP,
-				BuiltinSchedules.STARTUP,
-				BuiltinSchedules.POST_STARTUP,
-			];
+			return [BuiltinSchedules.PRE_STARTUP, BuiltinSchedules.STARTUP, BuiltinSchedules.POST_STARTUP];
 		}
 		// 后续运行执行常规调度序列
 		return [...this.order];
@@ -426,3 +450,8 @@ export function runMainSchedule(
 		runner(scheduleLabel);
 	}
 }
+
+// 导出常用的调度标签，方便使用
+export const Update = BuiltinSchedules.UPDATE;
+export const PostUpdate = BuiltinSchedules.POST_UPDATE;
+export const Last = BuiltinSchedules.LAST;

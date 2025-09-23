@@ -107,8 +107,9 @@ export class EventWriter<T extends Event> {
 	/**
 	 * 发送事件 - 对应 Bevy 的 EventWriter::send()
 	 */
-	public send(event: T): void {
+	public send(event: T): boolean {
 		this.storage.send(event);
+		return true;
 	}
 }
 

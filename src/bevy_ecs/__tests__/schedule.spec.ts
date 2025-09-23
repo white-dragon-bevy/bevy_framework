@@ -40,7 +40,9 @@ export = () => {
 				const systemId = schedule.addSystem(systemConfig);
 
 				expect(systemId).to.be.a("string");
-				expect(systemId.find("test_system")).to.never.equal(undefined);
+				// 使用 gsub 检查字符串包含
+				const [replaced] = systemId.gsub("test_system", "");
+				expect(replaced.size() !== systemId.size()).to.equal(true);
 			});
 
 			it("应该获取调度器状态", () => {

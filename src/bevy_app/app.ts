@@ -12,6 +12,7 @@ import { BevyWorld, WorldContainer } from "../bevy_ecs";
 import { Schedule } from "../bevy_ecs/schedule/schedule";
 import type { SystemFunction } from "../bevy_ecs/schedule/types";
 import type { IntoSystemConfigs } from "../bevy_ecs/schedule";
+import type { Diagnostic, DiagnosticsStore } from "../bevy_diagnostic/diagnostic";
 
 /**
  * Bevy App主类
@@ -440,14 +441,4 @@ export class App {
 	getErrorHandler(): ErrorHandler | undefined {
 		return this.defaultErrorHandler;
 	}
-
-	/**
-	 * 注册诊断
-	 * 对应 Rust RegisterDiagnostic trait
-	 * @param diagnostic - 诊断实例
-	 * @returns App实例（链式调用）
-	 */
-	// registerDiagnostic(diagnostic: Diagnostic): this {
-	// 	return registerDiagnosticImpl(this, diagnostic);
-	// }
 }

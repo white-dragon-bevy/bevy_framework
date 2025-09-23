@@ -223,7 +223,15 @@ export class SubApp {
 			// 使用对象的构造函数作为类型
 			const instance = resourceOrType as T;
 			const ResourceType = (instance as unknown as { constructor: ResourceConstructor<T> }).constructor;
-			this.resourceManager.insertResource(ResourceType, instance);
+
+			if (ResourceType) {
+				// 如果有构造函数，使用它作为资源类型
+				this.resourceManager.insertResource(ResourceType, instance);
+			} else {
+				// 如果没有构造函数（例如对象字面量），生成一个唯一的标识符
+				const uniqueId = `Resource_${tostring(instance)}`;
+				this.resourceManager.insertResource(uniqueId as ResourceConstructor<T>, instance);
+			}
 		}
 	}
 
@@ -232,25 +240,25 @@ export class SubApp {
 	 */
 	initResource<T extends Resource>(resourceFactory: () => T): void {
 		const resource = resourceFactory();
-		this.insertResource(resource);
+		// 获取资源的构造函数作为类型标识
+		const ResourceType = (resource as unknown as { constructor: ResourceConstructor<T> }).constructor;
+
+		if (ResourceType) {
+			// 使用构造函数作为资源类型进行注册
+			this.resourceManager.insertResource(ResourceType, resource);
+		} else {
+			// 如果没有构造函数（例如对象字面量），生成一个唯一的标识符
+			const uniqueId = `Resource_${tostring(resource)}` as ResourceConstructor<T>;
+			this.resourceManager.insertResource(uniqueId, resource);
+		}
 	}
 
 	/**
 	 * 获取资源
 	 */
 	getResource<T extends Resource>(resourceType: ResourceConstructor<T>): T | undefined {
-		// Try to get the resource directly
-		const resource = this.resourceManager.getResource(resourceType);
-		if (resource) return resource;
-
-		// If not found, check if there's a resource without proper constructor
-		const allResources = this.resourceManager.getAllResources();
-		for (const [_, res] of allResources) {
-			if (res === resourceType || (res as unknown as { value?: unknown }).value === resourceType) {
-				return res as T;
-			}
-		}
-		return undefined;
+		// 直接从资源管理器获取资源
+		return this.resourceManager.getResource(resourceType);
 	}
 
 	/**

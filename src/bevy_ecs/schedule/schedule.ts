@@ -83,8 +83,8 @@ export class Schedule {
 
 		// 检查系统是否已注册
 		if (this.systemsByFunction.has(config.system)) {
-			// 系统已经注册，返回已存在的ID（避免重复注册）
-			return this.systemsByFunction.get(config.system)!;
+			// 系统已经注册，抛出错误
+			error(`System "${config.name || "unnamed"}" has already been added to schedule "${this.label}"`);
 		}
 
 		const internalSystem: InternalSystemStruct = {
