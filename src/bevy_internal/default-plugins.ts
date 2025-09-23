@@ -9,6 +9,7 @@ import { Plugin, PluginGroup, PluginGroupBuilder, BasePluginGroup } from "../bev
 import { RobloxRunnerPlugin } from "../bevy_app/roblox-adapters";
 import { DiagnosticsPlugin } from "../bevy_diagnostic/diagnostics-plugin";
 import { FrameCountPlugin } from "../bevy_diagnostic/frame-count-diagnostics-plugin";
+import { DebuggerPlugin } from "../bevy_ecs_debugger";
 import { InputPlugin } from "../bevy_input/plugin";
 import { LogPlugin } from "../bevy_log/lib";
 import { TimePlugin } from "../bevy_time/time-plugin";
@@ -33,6 +34,7 @@ export class DefaultPlugins extends BasePluginGroup {
 		builder.add(new TransformPlugin());
 		builder.add(new DiagnosticsPlugin());
 		builder.add(new FrameCountPlugin());
+		builder.add(new DebuggerPlugin());
 		builder.add(new InputPlugin());
 
 		// Roblox 运行时插件

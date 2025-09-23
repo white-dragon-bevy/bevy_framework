@@ -109,11 +109,7 @@ export class FunctionPlugin implements Plugin {
 /**
  * 创建函数式插件的便捷方法
  */
-export function createPlugin(
-	buildFn: (app: App) => void,
-	name?: string,
-	unique: boolean = true,
-): Plugin {
+export function createPlugin(buildFn: (app: App) => void, name?: string, unique: boolean = true): Plugin {
 	return new FunctionPlugin(buildFn, name, unique);
 }
 
@@ -152,7 +148,7 @@ export class PluginGroupBuilder {
 	 * 添加插件到指定位置之前
 	 */
 	addBefore<T extends Plugin>(beforePlugin: new (...args: any[]) => T, plugin: Plugin): this {
-		const index = this.plugins.findIndex(p => p instanceof beforePlugin);
+		const index = this.plugins.findIndex((p) => p instanceof beforePlugin);
 		if (index !== -1) {
 			this.plugins.insert(index, plugin);
 		} else {
@@ -165,7 +161,7 @@ export class PluginGroupBuilder {
 	 * 添加插件到指定位置之后
 	 */
 	addAfter<T extends Plugin>(afterPlugin: new (...args: any[]) => T, plugin: Plugin): this {
-		const index = this.plugins.findIndex(p => p instanceof afterPlugin);
+		const index = this.plugins.findIndex((p) => p instanceof afterPlugin);
 		if (index !== -1) {
 			this.plugins.insert(index + 1, plugin);
 		} else {
@@ -178,7 +174,7 @@ export class PluginGroupBuilder {
 	 * 禁用指定插件
 	 */
 	disable<T extends Plugin>(pluginType: new (...args: any[]) => T): this {
-		this.plugins = this.plugins.filter(p => !(p instanceof pluginType));
+		this.plugins = this.plugins.filter((p) => !(p instanceof pluginType));
 		return this;
 	}
 
@@ -199,10 +195,22 @@ export class PluginGroupBuilder {
 	}
 }
 
+export function isPluginGroup(obj: unknown) {
+	if (typeOf(obj) !== "table") {
+		return false;
+	}
+	if ((obj as Record<string, string>).__brand === "PluginGroup") {
+		return true;
+	}
+	return false;
+}
+
 /**
  * 基础插件组抽象类
  */
 export abstract class BasePluginGroup implements PluginGroup {
+	readonly __brand = "PluginGroup";
+
 	abstract build(): PluginGroupBuilder;
 
 	name(): string {

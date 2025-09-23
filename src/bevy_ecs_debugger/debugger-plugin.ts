@@ -25,6 +25,8 @@ export class DebuggerPlugin implements BasePlugin {
 	private getRenderableComponent?: (entityId: number) => { model: Model } | undefined;
 	private loop?: Loop<unknown[]>;
 	private state?: DebuggerState;
+	private app?: App;
+	private isInitialized = false;
 
 	/**
 	 * 构造函数
@@ -62,23 +64,21 @@ export class DebuggerPlugin implements BasePlugin {
 	 * 构建插件
 	 */
 	build(app: App): void {
-		// 获取 World
-		// 使用 App.world() 方法获取 WorldContainer，然后获取 Matter World
-		const world = app.getWorld();
-		if (!world) {
-			warn("DebuggerPlugin: World not found in App");
-			return;
+		// 保存 app 引用，稍后使用
+		this.app = app;
+
+		// 服务端需要预先初始化 RemoteEvent 和调试器
+		// 这样客户端的 WaitForChild 才不会无限等待
+		if (RunService.IsServer()) {
+			this.ensureRemoteEventExists();
+			// 服务端在 Studio 环境下也初始化调试器
+			if (RunService.IsStudio()) {
+				task.defer(() => {
+					// 延迟一帧，确保 App 完全初始化
+					this.ensureDebuggerInitialized();
+				});
+			}
 		}
-
-		// 创建调试器实例
-		// 对应 start.ts:200 getDebugger 调用
-		this.debugger = createDebugger(world, this.options, this.getRenderableComponent);
-
-		// 设置 Widgets（需要根据实际 context 结构调整）
-		// 对应 start.ts:203
-		const widgets = this.debugger.getWidgets();
-		// 这里需要将 widgets 存储到合适的位置，比如 App 的资源系统
-		app.insertResource({ debuggerWidgets: widgets });
 
 		// 设置输入处理（仅客户端）
 		// 对应 start.ts:296-306
@@ -93,14 +93,16 @@ export class DebuggerPlugin implements BasePlugin {
 	 * 对应 start.ts:296-306
 	 */
 	private setupInputHandling(): void {
-		if (!this.debugger) return;
-
 		UserInputService.InputBegan.Connect((input) => {
 			if (input.KeyCode === this.options.toggleKey && RunService.IsStudio()) {
-				this.debugger!.toggle();
-				// 更新状态（如果有状态对象）
-				if (this.state) {
-					this.state.debugEnabled = !!(RunService.IsStudio() && this.debugger!.enabled);
+				// 延迟初始化调试器
+				this.ensureDebuggerInitialized();
+				if (this.debugger) {
+					this.debugger.toggle();
+					// 更新状态（如果有状态对象）
+					if (this.state) {
+						this.state.debugEnabled = !!(RunService.IsStudio() && this.debugger.enabled);
+					}
 				}
 			}
 		});
@@ -111,8 +113,6 @@ export class DebuggerPlugin implements BasePlugin {
 	 * 对应 start.ts:307-319
 	 */
 	private setupChatCommands(): void {
-		if (!this.debugger) return;
-
 		let matterOpenCmd = TextChatService.FindFirstChild("TextChatCommands")?.FindFirstChild("MatterOpenCmd") as
 			| TextChatCommand
 			| undefined;
@@ -123,7 +123,11 @@ export class DebuggerPlugin implements BasePlugin {
 			matterOpenCmd.PrimaryAlias = "/matter";
 			matterOpenCmd.SecondaryAlias = "/matterdebug";
 			matterOpenCmd.Triggered.Connect(() => {
-				this.debugger!.toggle();
+				// 延迟初始化调试器
+				this.ensureDebuggerInitialized();
+				if (this.debugger) {
+					this.debugger.toggle();
+				}
 			});
 			matterOpenCmd.Parent = TextChatService.FindFirstChild("TextChatCommands");
 		}
@@ -172,5 +176,61 @@ export class DebuggerPlugin implements BasePlugin {
 	 */
 	public getWidgets(): Plasma.Widgets | undefined {
 		return this.debugger?.getWidgets();
+	}
+
+	/**
+	 * 确保调试器已初始化
+	 * 延迟初始化，仅在需要时创建
+	 */
+	private ensureDebuggerInitialized(): void {
+		if (this.isInitialized || !this.app) return;
+
+		const world = this.app.getWorld();
+		if (!world) {
+			warn("DebuggerPlugin: World not found in App");
+			return;
+		}
+
+		// 创建调试器实例
+		this.debugger = createDebugger(world, this.options, this.getRenderableComponent);
+
+		// 获取主 SubApp 的调度器并从中获取 Loop
+		const mainApp = this.app.main();
+		const schedules = mainApp.getSchedules();
+
+		// 从 Schedules 获取 Loop
+		if (schedules) {
+			const loop = schedules.getLoop();
+			if (loop) {
+				// 调用 autoInitialize 设置 loop
+				this.debugger.autoInitialize(loop);
+				this.loop = loop;
+			} else {
+				warn("DebuggerPlugin: Loop not found in Schedules");
+			}
+		}
+
+		// 设置 Widgets
+		const widgets = this.debugger.getWidgets();
+		if (widgets) {
+			this.app.insertResource({ debuggerWidgets: widgets });
+		}
+
+		this.isInitialized = true;
+	}
+
+	/**
+	 * 确保 RemoteEvent 存在（服务端）
+	 * 预先创建 RemoteEvent，避免客户端无限等待
+	 */
+	private ensureRemoteEventExists(): void {
+		const ReplicatedStorage = game.GetService("ReplicatedStorage");
+		let remoteEvent = ReplicatedStorage.FindFirstChild("MatterDebuggerRemote") as RemoteEvent | undefined;
+
+		if (!remoteEvent) {
+			remoteEvent = new Instance("RemoteEvent");
+			remoteEvent.Name = "MatterDebuggerRemote";
+			remoteEvent.Parent = ReplicatedStorage;
+		}
 	}
 }

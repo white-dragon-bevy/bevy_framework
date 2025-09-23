@@ -6,7 +6,7 @@
 import { AppExit, AppLabel, ErrorHandler, Message, ScheduleLabel } from "./types";
 import { Resource, ResourceConstructor } from "../bevy_ecs/resource";
 import { BuiltinSchedules } from "./main-schedule";
-import { DuplicatePluginError, Plugin, PluginGroup, PluginState } from "./plugin";
+import { DuplicatePluginError, isPluginGroup, Plugin, PluginGroup, PluginState } from "./plugin";
 import { SubApp, SubApps } from "./sub-app";
 import { BevyWorld, WorldContainer } from "../bevy_ecs";
 import { Schedule } from "../bevy_ecs/schedule/schedule";
@@ -196,13 +196,13 @@ export class App {
 	 */
 	addPlugins(...plugins: (Plugin | PluginGroup)[]): this {
 		for (const plugin of plugins) {
-			if ("build" in plugin && typeIs(plugin.build, "function")) {
-				// 是Plugin
-				this.addPlugin(plugin as Plugin);
-			} else if ("build" in plugin && typeIs((plugin as PluginGroup).build, "function")) {
+			if (isPluginGroup(plugin)) {
 				// 是PluginGroup
 				const group = plugin as PluginGroup;
 				group.build().finish(this);
+			} else {
+				// 是Plugin
+				this.addPlugin(plugin as Plugin);
 			}
 		}
 		return this;
