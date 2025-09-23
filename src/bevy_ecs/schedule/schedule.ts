@@ -277,6 +277,8 @@ export class Schedule {
 		return {
 			...system.loopSystem,
 			system: wrappedSystem,
+			// 保存原始系统函数引用，用于调试器获取正确的函数名
+			originalSystem: originalSystem,
 			// 使用拓扑排序的索引作为优先级，确保系统按正确顺序执行
 			priority: finalPriority,
 			// 清除 after 依赖，因为 Schedule 已经通过拓扑排序处理了依赖关系

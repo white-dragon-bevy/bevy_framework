@@ -5,7 +5,8 @@
 
 import { BasePlugin, Plugin } from "../bevy_app/plugin";
 import { App } from "../bevy_app/app";
-import { World, Loop, AnySystem } from "@rbxts/matter";
+import { World, AnySystem } from "@rbxts/matter";
+import type { Loop as BevyLoop } from "../bevy_ecs/schedule/loop";
 import type Plasma from "@rbxts/plasma";
 import { createDebugger } from "./debugger";
 import type { DebuggerOptions, IDebugger, DebuggerState } from "./types";
@@ -23,7 +24,7 @@ export class DebuggerPlugin implements BasePlugin {
 	private debugger?: IDebugger;
 	private options: DebuggerOptions;
 	private getRenderableComponent?: (entityId: number) => { model: Model } | undefined;
-	private loop?: Loop<unknown[]>;
+	private loop?: BevyLoop<any>;
 	private state?: DebuggerState;
 	private app?: App;
 	private isInitialized = false;
@@ -39,6 +40,10 @@ export class DebuggerPlugin implements BasePlugin {
 	) {
 		this.options = { ...DefaultDebuggerOptions, ...options };
 		this.getRenderableComponent = getRenderableComponent;
+
+		const isServer = RunService.IsServer();
+		print(`[DebuggerPlugin] Constructor called on ${isServer ? "SERVER" : "CLIENT"}`);
+		print(debug.traceback());
 	}
 	ready(_app: App): boolean {
 		return true;
@@ -67,21 +72,55 @@ export class DebuggerPlugin implements BasePlugin {
 		// 保存 app 引用，稍后使用
 		this.app = app;
 
-		// 服务端需要预先初始化 RemoteEvent 和调试器
-		// 这样客户端的 WaitForChild 才不会无限等待
-		if (RunService.IsServer()) {
-			this.ensureRemoteEventExists();
-			// 服务端在 Studio 环境下也初始化调试器
-			if (RunService.IsStudio()) {
-				task.defer(() => {
-					// 延迟一帧，确保 App 完全初始化
-					this.ensureDebuggerInitialized();
-				});
-			}
+		// Studio 环境下初始化调试器
+		// 服务端和客户端都需要初始化，以支持server view切换
+		// 必须在 Loop.begin 之前调用 autoInitialize
+		// 但跳过测试环境，避免访问不存在的 PlayerGui
+		if (RunService.IsStudio() && !this.isTestEnvironment()) {
+			task.defer(() => {
+				// 延迟一帧，确保 App 完全初始化
+				this.initializeDebugger();
+
+				// 服务端GUI验证
+				if (RunService.IsServer()) {
+					print("[DebuggerPlugin] Server debugger initialized, checking GUI...");
+					task.wait(0.1);
+					const ReplicatedStorage = game.GetService("ReplicatedStorage");
+					const debuggerGui = ReplicatedStorage.FindFirstChild("MatterDebugger");
+					if (debuggerGui) {
+						print("[DebuggerPlugin] Server GUI confirmed in ReplicatedStorage");
+						print("[DebuggerPlugin] Server GUI ClassName:", debuggerGui.ClassName);
+						print("[DebuggerPlugin] Server GUI Children count:", debuggerGui.GetChildren().size());
+
+						// 监控GUI的Parent变化
+						debuggerGui.GetPropertyChangedSignal("Parent").Connect(() => {
+							print(
+								"[DebuggerPlugin] Server GUI Parent changed to:",
+								debuggerGui.Parent?.GetFullName() || "nil",
+							);
+						});
+					} else {
+						warn("[DebuggerPlugin] Server GUI NOT found in ReplicatedStorage!");
+					}
+				}
+
+				// 客户端检查
+				if (RunService.IsClient()) {
+					print("[DebuggerPlugin] Client debugger initialized, checking for server GUI...");
+					task.wait(0.2); // 等待服务端GUI创建
+					const ReplicatedStorage = game.GetService("ReplicatedStorage");
+					const serverGui = ReplicatedStorage.FindFirstChild("MatterDebugger");
+					if (serverGui) {
+						print("[DebuggerPlugin] Client: Server GUI found in ReplicatedStorage");
+						print("[DebuggerPlugin] Client: Server GUI ClassName:", serverGui.ClassName);
+					} else {
+						warn("[DebuggerPlugin] Client: Server GUI NOT found in ReplicatedStorage!");
+					}
+				}
+			});
 		}
 
 		// 设置输入处理（仅客户端）
-		// 对应 start.ts:296-306
 		if (RunService.IsClient()) {
 			this.setupInputHandling();
 			this.setupChatCommands();
@@ -95,14 +134,18 @@ export class DebuggerPlugin implements BasePlugin {
 	private setupInputHandling(): void {
 		UserInputService.InputBegan.Connect((input) => {
 			if (input.KeyCode === this.options.toggleKey && RunService.IsStudio()) {
-				// 延迟初始化调试器
-				this.ensureDebuggerInitialized();
 				if (this.debugger) {
 					this.debugger.toggle();
+					// 启用/禁用 Loop 的 profiling
+					if (this.loop) {
+						this.loop.profiling = this.debugger.enabled ? {} : undefined;
+					}
 					// 更新状态（如果有状态对象）
 					if (this.state) {
 						this.state.debugEnabled = !!(RunService.IsStudio() && this.debugger.enabled);
 					}
+				} else {
+					warn("[DebuggerPlugin] Debugger not initialized yet!");
 				}
 			}
 		});
@@ -123,10 +166,10 @@ export class DebuggerPlugin implements BasePlugin {
 			matterOpenCmd.PrimaryAlias = "/matter";
 			matterOpenCmd.SecondaryAlias = "/matterdebug";
 			matterOpenCmd.Triggered.Connect(() => {
-				// 延迟初始化调试器
-				this.ensureDebuggerInitialized();
 				if (this.debugger) {
 					this.debugger.toggle();
+				} else {
+					warn("[DebuggerPlugin] Debugger not initialized yet!");
 				}
 			});
 			matterOpenCmd.Parent = TextChatService.FindFirstChild("TextChatCommands");
@@ -137,7 +180,7 @@ export class DebuggerPlugin implements BasePlugin {
 	 * 设置 Loop（供外部调用）
 	 * 对应 start.ts:280 autoInitialize 调用
 	 */
-	public setLoop(loop: Loop<unknown[]>): void {
+	public setLoop(loop: BevyLoop<any>): void {
 		this.loop = loop;
 		if (this.debugger) {
 			this.debugger.autoInitialize(loop);
@@ -179,18 +222,19 @@ export class DebuggerPlugin implements BasePlugin {
 	}
 
 	/**
-	 * 确保调试器已初始化
-	 * 延迟初始化，仅在需要时创建
+	 * 初始化调试器
+	 * 必须在 Loop.begin() 之前调用
 	 */
-	private ensureDebuggerInitialized(): void {
-		if (this.isInitialized || !this.app) return;
+	private initializeDebugger(): void {
+		if (this.isInitialized || !this.app) {
+			return;
+		}
 
 		const world = this.app.getWorld();
 		if (!world) {
 			warn("DebuggerPlugin: World not found in App");
 			return;
 		}
-
 		// 创建调试器实例
 		this.debugger = createDebugger(world, this.options, this.getRenderableComponent);
 
@@ -203,11 +247,18 @@ export class DebuggerPlugin implements BasePlugin {
 			const loop = schedules.getLoop();
 			if (loop) {
 				// 调用 autoInitialize 设置 loop
+				// 这个必须在 loop.begin() 之前调用
 				this.debugger.autoInitialize(loop);
 				this.loop = loop;
+				// 启用 profiling
+				if (this.debugger.enabled) {
+					loop.profiling = {};
+				}
 			} else {
 				warn("DebuggerPlugin: Loop not found in Schedules");
 			}
+		} else {
+			warn("[DebuggerPlugin] Schedules not found!");
 		}
 
 		// 设置 Widgets
@@ -220,17 +271,15 @@ export class DebuggerPlugin implements BasePlugin {
 	}
 
 	/**
-	 * 确保 RemoteEvent 存在（服务端）
-	 * 预先创建 RemoteEvent，避免客户端无限等待
+	 * 检查是否在测试环境中运行
 	 */
-	private ensureRemoteEventExists(): void {
-		const ReplicatedStorage = game.GetService("ReplicatedStorage");
-		let remoteEvent = ReplicatedStorage.FindFirstChild("MatterDebuggerRemote") as RemoteEvent | undefined;
-
-		if (!remoteEvent) {
-			remoteEvent = new Instance("RemoteEvent");
-			remoteEvent.Name = "MatterDebuggerRemote";
-			remoteEvent.Parent = ReplicatedStorage;
+	private isTestEnvironment(): boolean {
+		// 在测试环境中，通常没有 Players.LocalPlayer
+		if (RunService.IsClient()) {
+			const Players = game.GetService("Players");
+			return Players.LocalPlayer === undefined || Players.LocalPlayer.FindFirstChild("PlayerGui") === undefined;
 		}
+		// 服务端测试环境检查
+		return game.GetService("TestService").FindFirstChild("TestEz") !== undefined;
 	}
 }

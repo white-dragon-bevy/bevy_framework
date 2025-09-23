@@ -7,6 +7,10 @@ import { RunService } from "@rbxts/services";
 import type { World } from "@rbxts/matter";
 import type { BevySystem, Context } from "../types";
 
+// Declare Lua functions for direct table access
+declare function rawget<T>(table: unknown, key: unknown): T | undefined;
+declare function rawset(table: unknown, key: unknown, value: unknown): void;
+
 /**
  * 系统函数类型
  */
@@ -41,6 +45,8 @@ export type BevySystemStruct<T extends Array<unknown>> = SystemStruct<T> & {
 	beforeSet?: string;
 	/** 在某个系统集之后运行 */
 	afterSet?: string;
+	/** 原始系统函数（用于调试器获取正确的函数名） */
+	originalSystem?: SystemFn<T>;
 };
 
 export type System<T extends Array<unknown>> = SystemFn<T> | SystemStruct<T> | BevySystemStruct<T>;
@@ -65,8 +71,12 @@ export class Loop<T extends Array<unknown>> {
 	private readonly _systemLogs: Map<System<T>, Array<unknown>> = new Map();
 	private readonly _systemSets: Map<string, Array<System<T>>> = new Map();
 	private _bevyScheduleMap?: { [schedule: string]: RBXScriptSignal };
+	public _debugger?: unknown; // Matter debugger instance
 
-	public profiling: Map<System<T>, { samples: number[]; total: number; average: number }> | undefined = undefined;
+	// 使用普通对象而不是 Map，以兼容 Matter 调试器
+	// Matter 调试器期望 profiling 是一个Lua表，系统对象作为键
+	// 使用unknown类型，运行时是Lua表
+	public profiling: unknown;
 	public trackErrors = false;
 
 	/**
@@ -258,12 +268,11 @@ export class Loop<T extends Array<unknown>> {
 				generation = !generation;
 
 				const dirtyWorlds = new Set<World>();
-				const profiling = this.profiling;
 
 				for (const system of orderedSystems) {
 					if (this._skipSystems.get(system)) {
-						if (profiling) {
-							profiling.delete(system);
+						if (this.profiling !== undefined) {
+							rawset(this.profiling, system, undefined);
 						}
 						continue;
 					}
@@ -272,8 +281,8 @@ export class Loop<T extends Array<unknown>> {
 					if (this.isBevySystemStruct(system) && system.runCondition) {
 						const shouldRun = system.runCondition(...this._state);
 						if (!shouldRun) {
-							if (profiling) {
-								profiling.delete(system);
+							if (this.profiling !== undefined) {
+								rawset(this.profiling, system, undefined);
 							}
 							continue;
 						}
@@ -285,8 +294,8 @@ export class Loop<T extends Array<unknown>> {
 						const world = this._state[0] as unknown;
 						const currentState = (world as { currentAppState?: string })?.currentAppState;
 						if (currentState !== system.state) {
-							if (profiling) {
-								profiling.delete(system);
+							if (this.profiling !== undefined) {
+								rawset(this.profiling, system, undefined);
 							}
 							continue;
 						}
@@ -303,21 +312,22 @@ export class Loop<T extends Array<unknown>> {
 					const startTime = os.clock();
 					const [success, errorValue] = coroutine.resume(thread, ...this._state);
 
-					if (profiling) {
+					if (this.profiling !== undefined) {
 						const duration = os.clock() - startTime;
-						let profilingData = profiling.get(system);
+
+						// Matter uses a different structure for profiling data
+						// It's an array with an index property for rolling average
+						let profilingData = rawget<number[] & { index?: number }>(this.profiling, system);
 						if (!profilingData) {
-							profilingData = { samples: [], total: 0, average: 0 };
-							profiling.set(system, profilingData);
+							profilingData = [] as number[] & { index?: number };
+							rawset(this.profiling, system, profilingData);
 						}
 
-						profilingData.samples.push(duration);
-						profilingData.total += duration;
-						if (profilingData.samples.size() > 100) {
-							const removedSample = profilingData.samples.remove(0)!;
-							profilingData.total -= removedSample;
-						}
-						profilingData.average = profilingData.total / profilingData.samples.size();
+						// Implement rolling average like Matter does
+						const MAX_SAMPLES = 60;
+						const currentIndex = (profilingData.index || 1) - 1; // Convert to 0-based
+						profilingData[currentIndex] = duration;
+						profilingData.index = ((currentIndex + 1) % MAX_SAMPLES) + 1; // Back to 1-based
 					}
 
 					if (coroutine.status(thread) !== "dead") {
@@ -580,7 +590,20 @@ export class Loop<T extends Array<unknown>> {
 		return system.system;
 	}
 
+	/**
+	 * Matter调试器期望的公共方法
+	 */
+	public systemName(system: System<T>): string {
+		return this.getSystemName(system);
+	}
+
 	private getSystemName(system: System<T>): string {
+		// 如果是 Bevy 系统且有原始函数，使用原始函数获取名称
+		if (this.isBevySystemStruct(system) && system.originalSystem) {
+			const fn = system.originalSystem;
+			return `${debug.info(fn, "s")}->${debug.info(fn, "n")}`;
+		}
+		// 否则使用常规方式获取函数
 		const fn = this.getSystemFn(system);
 		return `${debug.info(fn, "s")}->${debug.info(fn, "n")}`;
 	}

@@ -44,6 +44,8 @@ export class SubApp {
 	private appReference?: AppInterface; // 保存App引用用于插件回调
 	private scheduleOrder: MainScheduleOrder;
 	private context: Context;
+	private loopConnections?: { [scheduleLabel: string]: RBXScriptConnection };
+	private isLoopRunning = false;
 
 	constructor() {
 		this._world = createWorldContainer();
@@ -129,6 +131,18 @@ export class SubApp {
 	 * 对应 Rust SubApp::update
 	 */
 	update(): void {
+		// 如果 Loop 正在运行，它会自动处理系统执行
+		// 我们只需要处理命令缓冲和事件清理
+		if (this.isLoopRunning) {
+			// Loop 正在运行，系统通过 Loop 执行
+			// 执行命令缓冲
+			this.commandBuffer.flush(this._world.getWorld());
+			// 清理事件
+			this.eventManager.cleanup();
+			return;
+		}
+
+		// 向后兼容：如果 Loop 没有运行，使用旧的直接执行方式
 		// 创建 Context 对象
 		const context = {
 			deltaTime: 0, // 这个值会被 Loop 覆盖
@@ -421,6 +435,42 @@ export class SubApp {
 	 */
 	getSchedules(): Schedules {
 		return this.schedules;
+	}
+
+	/**
+	 * 启动 Loop 执行
+	 * 使用 Loop 和中间件来执行系统，支持调试器
+	 * @param events - 事件映射
+	 */
+	startLoop(events: { [scheduleLabel: string]: RBXScriptSignal }): void {
+		if (this.isLoopRunning) {
+			warn("Loop is already running");
+			return;
+		}
+
+		// 编译并启动 Loop
+		this.schedules.compile();
+		this.loopConnections = this.schedules.begin(events);
+		this.isLoopRunning = true;
+		const eventKeys: string[] = [];
+		for (const [key] of pairs(events)) {
+			eventKeys.push(key as string);
+		}
+		print("[SubApp] Loop started with events:", eventKeys);
+	}
+
+	/**
+	 * 停止 Loop 执行
+	 */
+	stopLoop(): void {
+		if (!this.isLoopRunning || !this.loopConnections) {
+			return;
+		}
+
+		this.schedules.stop(this.loopConnections);
+		this.loopConnections = undefined;
+		this.isLoopRunning = false;
+		print("[SubApp] Loop stopped");
 	}
 }
 

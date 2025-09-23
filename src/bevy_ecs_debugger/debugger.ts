@@ -26,6 +26,11 @@ export function createDebugger(
 	// 设置调试器
 	const myDebugger = new Debugger(Plasma);
 
+	// 添加调试日志
+	const isServer = RunService.IsServer();
+	print(`[createDebugger] Creating debugger on ${isServer ? "SERVER" : "CLIENT"}`);
+
+
 	// 配置查找实体对应模型的方法
 	// 对应 start.ts:24-32
 	myDebugger.findInstanceFromEntity = (id): Model | undefined => {
@@ -54,6 +59,11 @@ export function createDebugger(
 		const role = player.GetRoleInGroup(groupId);
 		return studio || role === "Admin" || role === "Owner";
 	};
+
+	// 在客户端添加日志说明
+	if (!isServer) {
+		print("[createDebugger] Client debugger created with switchToServerView support");
+	}
 
 	return myDebugger as IDebugger;
 }
