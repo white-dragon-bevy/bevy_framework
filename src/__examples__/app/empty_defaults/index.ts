@@ -11,7 +11,7 @@
  */
 
 import { App } from "../../../bevy_app";
-import { RobloxDefaultPlugins } from "../../../bevy_app/roblox-adapters";
+import { DefaultPlugins } from "../../../bevy_internal";
 
 /**
  * 主入口函数
@@ -20,9 +20,7 @@ import { RobloxDefaultPlugins } from "../../../bevy_app/roblox-adapters";
 function main(): void {
 	// 创建新的 App 实例并添加 Roblox 默认插件集
 	// 这相当于 Rust Bevy 中的：App::new().add_plugins(DefaultPlugins).run()
-	const app = App.create()
-		.addPlugins(...RobloxDefaultPlugins.create().build())
-		.run();
+	const app = App.create().addPlugins(new DefaultPlugins()).run();
 }
 
 // 执行主函数

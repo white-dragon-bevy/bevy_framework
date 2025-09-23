@@ -3,7 +3,7 @@
  * 从 bull-ecs start.ts 迁移的 debugger 逻辑
  */
 
-import { Plugin } from "../bevy_app/plugin";
+import { BasePlugin, Plugin } from "../bevy_app/plugin";
 import { App } from "../bevy_app/app";
 import { World, Loop, AnySystem } from "@rbxts/matter";
 import type Plasma from "@rbxts/plasma";
@@ -19,7 +19,7 @@ const TextChatService = game.GetService("TextChatService");
  * ECS Debugger 插件
  * 提供 Matter ECS 的调试界面和功能
  */
-export class DebuggerPlugin implements Plugin {
+export class DebuggerPlugin implements BasePlugin {
 	private debugger?: IDebugger;
 	private options: DebuggerOptions;
 	private getRenderableComponent?: (entityId: number) => { model: Model } | undefined;
@@ -38,6 +38,11 @@ export class DebuggerPlugin implements Plugin {
 		this.options = { ...DefaultDebuggerOptions, ...options };
 		this.getRenderableComponent = getRenderableComponent;
 	}
+	ready(_app: App): boolean {
+		return true;
+	}
+	finish?(_app: App): void {}
+	cleanup?(_app: App): void {}
 
 	/**
 	 * 插件名称

@@ -3,12 +3,7 @@
  */
 
 import { App } from "../../bevy_app/app";
-import {
-	DefaultPlugins,
-	DefaultPluginsBuilder,
-	MinimalPlugins,
-	MinimalPluginsBuilder,
-} from "../default-plugins";
+import { DefaultPlugins, DefaultPluginsBuilder, MinimalPlugins, MinimalPluginsBuilder } from "../default-plugins";
 import { BasePlugin } from "../../bevy_app/plugin";
 import { LogPlugin } from "../../bevy_log/lib";
 import { TimePlugin } from "../../bevy_time/time-plugin";
@@ -16,7 +11,7 @@ import { TransformPlugin } from "../../bevy_transform/src/plugin";
 import { DiagnosticsPlugin } from "../../bevy_diagnostic/diagnostics-plugin";
 import { FrameCountPlugin } from "../../bevy_diagnostic/frame-count-diagnostics-plugin";
 import { InputPlugin } from "../../bevy_input/plugin";
-import { RobloxRunnerPlugin } from "../../bevy_app/roblox-adapters";
+import { RobloxRunnerPlugin } from "../../bevy_app";
 
 // 测试用的自定义插件
 class TestPlugin extends BasePlugin {
@@ -129,7 +124,10 @@ export = () => {
 			const testPlugin1 = new TestPlugin();
 			const testPlugin2 = new TestPlugin();
 
-			const result = builder.add(testPlugin1).add(testPlugin2).disable(LogPlugin as any);
+			const result = builder
+				.add(testPlugin1)
+				.add(testPlugin2)
+				.disable(LogPlugin as any);
 
 			expect(result).to.equal(builder);
 		});
@@ -204,7 +202,10 @@ export = () => {
 			const testPlugin1 = new TestPlugin();
 			const testPlugin2 = new TestPlugin();
 
-			const result = builder.add(testPlugin1).add(testPlugin2).disable(TimePlugin as any);
+			const result = builder
+				.add(testPlugin1)
+				.add(testPlugin2)
+				.disable(TimePlugin as any);
 
 			expect(result).to.equal(builder);
 		});

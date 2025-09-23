@@ -4,14 +4,7 @@
  */
 
 import { World } from "@rbxts/matter";
-import {
-	App,
-	BasePlugin,
-	BuiltinSchedules,
-	createPlugin,
-	RobloxEnvironment,
-	AppExit,
-} from "./index";
+import { App, BasePlugin, BuiltinSchedules, createPlugin, AppExit } from "./index";
 
 /**
  * 测试基础App创建和运行
@@ -86,15 +79,12 @@ function testFunctionPlugin() {
 
 	let functionCalled = false;
 
-	const testPlugin = createPlugin(
-		(app: App) => {
-			functionCalled = true;
-			app.addSystems(BuiltinSchedules.UPDATE, () => {
-				print("Function plugin system running");
-			});
-		},
-		"TestFunctionPlugin",
-	);
+	const testPlugin = createPlugin((app: App) => {
+		functionCalled = true;
+		app.addSystems(BuiltinSchedules.UPDATE, () => {
+			print("Function plugin system running");
+		});
+	}, "TestFunctionPlugin");
 
 	App.create().addPlugin(testPlugin);
 
@@ -176,26 +166,6 @@ function testErrorHandling() {
 }
 
 /**
- * 测试Roblox环境检测
- */
-function testRobloxEnvironment() {
-	print("Testing Roblox environment detection...");
-
-	// 这些测试依赖于实际的Roblox环境
-	print(`Is Studio: ${RobloxEnvironment.isStudio()}`);
-	print(`Is Server: ${RobloxEnvironment.isServer()}`);
-	print(`Is Client: ${RobloxEnvironment.isClient()}`);
-
-	// 基本的环境检测应该工作
-	const isServer = RobloxEnvironment.isServer();
-	const isClient = RobloxEnvironment.isClient();
-
-	// 在正常情况下，应该是服务端或客户端之一
-	// 但在某些测试环境中可能都是false
-	print("✓ Roblox environment test completed");
-}
-
-/**
  * 运行所有测试
  */
 export function runAllTests() {
@@ -209,7 +179,6 @@ export function runAllTests() {
 		testScheduleSystem();
 		testResourceSystem();
 		testErrorHandling();
-		testRobloxEnvironment();
 
 		print(string.rep("=", 50));
 		print("✅ All tests completed successfully!");
