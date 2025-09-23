@@ -101,7 +101,7 @@ export = (): void => {
 					.addSystems(BuiltinSchedules.UPDATE, () => {
 						tracker.record("Update");
 						// 在更新中应该能访问启动时添加的资源
-						const world = app.world();
+						const world = app.getWorld();
 						// 这里简化测试，实际需要资源访问API
 					});
 

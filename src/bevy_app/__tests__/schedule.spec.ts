@@ -96,9 +96,9 @@ export = (): void => {
 			it("getAllMainScheduleLabels 应该返回所有标签", () => {
 				const allLabels = getAllMainScheduleLabels();
 				expect(allLabels.size()).to.equal(14);
-				expect(indexOf(allLabels,MainScheduleLabel.MAIN)).to.never.equal(-1);
-				expect(indexOf(allLabels,MainScheduleLabel.STARTUP)).to.never.equal(-1);
-				expect(indexOf(allLabels,MainScheduleLabel.UPDATE)).to.never.equal(-1);
+				expect(indexOf(allLabels, MainScheduleLabel.MAIN)).to.never.equal(-1);
+				expect(indexOf(allLabels, MainScheduleLabel.STARTUP)).to.never.equal(-1);
+				expect(indexOf(allLabels, MainScheduleLabel.UPDATE)).to.never.equal(-1);
 			});
 
 			it("getStartupScheduleLabels 应该返回启动相关标签", () => {
@@ -165,9 +165,9 @@ export = (): void => {
 			it("getAllCoreSystemSets 应该返回所有系统集", () => {
 				const allSets = getAllCoreSystemSets();
 				expect(allSets.size()).to.equal(13);
-				expect(indexOf(allSets,CoreSystemSet.CORE)).to.never.equal(-1);
-				expect(indexOf(allSets,CoreSystemSet.PHYSICS)).to.never.equal(-1);
-				expect(indexOf(allSets,CoreSystemSet.UI)).to.never.equal(-1);
+				expect(indexOf(allSets, CoreSystemSet.CORE)).to.never.equal(-1);
+				expect(indexOf(allSets, CoreSystemSet.PHYSICS)).to.never.equal(-1);
+				expect(indexOf(allSets, CoreSystemSet.UI)).to.never.equal(-1);
 			});
 
 			it("应该有正确的系统集描述信息", () => {
@@ -187,7 +187,11 @@ export = (): void => {
 			it("第一次调用 getOrder 应该返回启动调度序列", () => {
 				const order = scheduleOrder.getOrder();
 				expect(order.size()).to.equal(3);
-				expectExecutionOrder(order, [BuiltinSchedules.PRE_STARTUP, BuiltinSchedules.STARTUP, BuiltinSchedules.POST_STARTUP]);
+				expectExecutionOrder(order, [
+					BuiltinSchedules.PRE_STARTUP,
+					BuiltinSchedules.STARTUP,
+					BuiltinSchedules.POST_STARTUP,
+				]);
 			});
 
 			it("第二次调用 getOrder 应该返回主循环调度序列", () => {
@@ -220,8 +224,8 @@ export = (): void => {
 				scheduleOrder.insertBefore(BuiltinSchedules.UPDATE, newSchedule);
 
 				const order = scheduleOrder.getOrder();
-				const updateIndex = indexOf(order,BuiltinSchedules.UPDATE);
-				const newIndex = indexOf(order,newSchedule);
+				const updateIndex = indexOf(order, BuiltinSchedules.UPDATE);
+				const newIndex = indexOf(order, newSchedule);
 
 				expect(newIndex).to.equal(updateIndex - 1);
 				expect(order[newIndex]).to.equal(newSchedule);
@@ -235,8 +239,8 @@ export = (): void => {
 				scheduleOrder.insertAfter(BuiltinSchedules.UPDATE, newSchedule);
 
 				const order = scheduleOrder.getOrder();
-				const updateIndex = indexOf(order,BuiltinSchedules.UPDATE);
-				const newIndex = indexOf(order,newSchedule);
+				const updateIndex = indexOf(order, BuiltinSchedules.UPDATE);
+				const newIndex = indexOf(order, newSchedule);
 
 				expect(newIndex).to.equal(updateIndex + 1);
 				expect(order[updateIndex]).to.equal(BuiltinSchedules.UPDATE);
@@ -269,9 +273,9 @@ export = (): void => {
 				scheduleOrder.insertBefore(schedule1, schedule2);
 
 				const order = scheduleOrder.getOrder();
-				const updateIndex = indexOf(order,BuiltinSchedules.UPDATE);
-				const schedule1Index = indexOf(order,schedule1);
-				const schedule2Index = indexOf(order,schedule2);
+				const updateIndex = indexOf(order, BuiltinSchedules.UPDATE);
+				const schedule1Index = indexOf(order, schedule1);
+				const schedule2Index = indexOf(order, schedule2);
 
 				expect(schedule2Index < schedule1Index).to.equal(true);
 				expect(schedule1Index < updateIndex).to.equal(true);
@@ -456,7 +460,11 @@ export = (): void => {
 				scheduleOrder.getOrder();
 
 				// 设置自定义顺序
-				const customOrder = ["Custom1" as ScheduleLabel, "Custom2" as ScheduleLabel, "Custom3" as ScheduleLabel];
+				const customOrder = [
+					"Custom1" as ScheduleLabel,
+					"Custom2" as ScheduleLabel,
+					"Custom3" as ScheduleLabel,
+				];
 				scheduleOrder.setOrder(customOrder);
 
 				const runner = (label: ScheduleLabel) => {
@@ -567,7 +575,7 @@ export = (): void => {
 				// empty app 仍然会有一些基础设置，但不会预先初始化所有调度
 				// 这需要根据实际实现来验证
 				expect(app).to.be.ok();
-				expect(app.world()).to.be.ok();
+				expect(app.getWorld()).to.be.ok();
 			});
 		});
 
@@ -668,9 +676,9 @@ export = (): void => {
 				expect(modifiedOrder.size()).to.equal(7);
 
 				// 验证顺序
-				const custom1Index = indexOf(modifiedOrder,custom1);
-				const updateIndex = indexOf(modifiedOrder,BuiltinSchedules.UPDATE);
-				const custom2Index = indexOf(modifiedOrder,custom2);
+				const custom1Index = indexOf(modifiedOrder, custom1);
+				const updateIndex = indexOf(modifiedOrder, BuiltinSchedules.UPDATE);
+				const custom2Index = indexOf(modifiedOrder, custom2);
 
 				expect(custom1Index < updateIndex).to.equal(true);
 				expect(updateIndex < custom2Index).to.equal(true);
@@ -690,9 +698,9 @@ export = (): void => {
 				const order = scheduleOrder.getOrder();
 
 				// 验证所有插入的调度都在 UPDATE 之前
-				const updateIndex = indexOf(order,BuiltinSchedules.UPDATE);
+				const updateIndex = indexOf(order, BuiltinSchedules.UPDATE);
 				for (const schedule of schedules) {
-					const index = indexOf(order,schedule);
+					const index = indexOf(order, schedule);
 					expect(index < updateIndex).to.equal(true);
 				}
 			});

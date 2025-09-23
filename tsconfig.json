@@ -30,6 +30,6 @@
 		"docs/**/*",
 		"out/",
 		"bevy-origin/**/*",
-		"todos"
+		"todos",
 	]
 }

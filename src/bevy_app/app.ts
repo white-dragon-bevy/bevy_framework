@@ -8,7 +8,7 @@ import { Resource, ResourceConstructor } from "../bevy_ecs/resource";
 import { BuiltinSchedules } from "./main-schedule";
 import { DuplicatePluginError, Plugin, PluginGroup, PluginState } from "./plugin";
 import { SubApp, SubApps } from "./sub-app";
-import { WorldContainer } from "../bevy_ecs";
+import { BevyWorld, WorldContainer } from "../bevy_ecs";
 import { Schedule } from "../bevy_ecs/schedule/schedule";
 import type { SystemFunction } from "../bevy_ecs/schedule/types";
 import type { IntoSystemConfigs } from "../bevy_ecs/schedule";
@@ -309,6 +309,13 @@ export class App {
 	 */
 	world(): WorldContainer {
 		return this.subApps.main().world();
+	}
+
+	/**
+	 * 获取BevyWorld实例
+	 */
+	getWorld(): BevyWorld {
+		return this.subApps.main().world().world;
 	}
 
 	/**

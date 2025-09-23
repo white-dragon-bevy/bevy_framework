@@ -1,9 +1,5 @@
 import { World } from "@rbxts/matter";
-import {
-	App,
-	AppExit,
-	PluginState
-} from "../index";
+import { App, AppExit, PluginState } from "../index";
 import { MainScheduleLabel as BuiltinSchedules } from "../main-schedule";
 import { SubApp } from "../sub-app";
 import { createTestApp } from "./test-helpers";
@@ -26,7 +22,7 @@ export = (): void => {
 				const app = createTestApp();
 
 				expect(app).to.be.ok();
-				expect(app.world()).to.be.ok();
+				expect(app.getWorld()).to.be.ok();
 				expect(app.main()).to.be.ok();
 			});
 
@@ -34,7 +30,7 @@ export = (): void => {
 				const app = App.empty();
 
 				expect(app).to.be.ok();
-				expect(app.world()).to.be.ok();
+				expect(app.getWorld()).to.be.ok();
 			});
 
 			it("应该支持链式调用", () => {
@@ -60,7 +56,7 @@ export = (): void => {
 				const resource: TestResource = {
 					__brand: "Resource",
 					value: 42,
-					name: "TestResource"
+					name: "TestResource",
 				};
 
 				app.insertResource(resource);
@@ -74,7 +70,7 @@ export = (): void => {
 				const resourceFactory = () => ({
 					__brand: "Resource" as const,
 					value: 100,
-					name: "InitializedResource"
+					name: "InitializedResource",
 				});
 
 				app.initResource(resourceFactory);
@@ -88,13 +84,13 @@ export = (): void => {
 				const firstResource: TestResource = {
 					__brand: "Resource",
 					value: 1,
-					name: "First"
+					name: "First",
 				};
 
 				const secondResource: TestResource = {
 					__brand: "Resource",
 					value: 2,
-					name: "Second"
+					name: "Second",
 				};
 
 				app.insertResource(firstResource);
@@ -166,7 +162,7 @@ export = (): void => {
 					BuiltinSchedules.UPDATE,
 					BuiltinSchedules.POST_UPDATE,
 					BuiltinSchedules.LAST,
-					BuiltinSchedules.MAIN
+					BuiltinSchedules.MAIN,
 				];
 
 				for (const schedule of schedules) {

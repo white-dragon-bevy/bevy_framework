@@ -33,7 +33,7 @@ export class DebuggerPlugin implements Plugin {
 	 */
 	constructor(
 		options?: DebuggerOptions,
-		getRenderableComponent?: (entityId: number) => { model: Model } | undefined
+		getRenderableComponent?: (entityId: number) => { model: Model } | undefined,
 	) {
 		this.options = { ...DefaultDebuggerOptions, ...options };
 		this.getRenderableComponent = getRenderableComponent;
@@ -59,8 +59,7 @@ export class DebuggerPlugin implements Plugin {
 	build(app: App): void {
 		// 获取 World
 		// 使用 App.world() 方法获取 WorldContainer，然后获取 Matter World
-		const worldContainer = app.world();
-		const world = worldContainer.getWorld();
+		const world = app.getWorld();
 		if (!world) {
 			warn("DebuggerPlugin: World not found in App");
 			return;
@@ -109,9 +108,9 @@ export class DebuggerPlugin implements Plugin {
 	private setupChatCommands(): void {
 		if (!this.debugger) return;
 
-		let matterOpenCmd = TextChatService.FindFirstChild("TextChatCommands")?.FindFirstChild(
-			"MatterOpenCmd",
-		) as TextChatCommand | undefined;
+		let matterOpenCmd = TextChatService.FindFirstChild("TextChatCommands")?.FindFirstChild("MatterOpenCmd") as
+			| TextChatCommand
+			| undefined;
 
 		if (matterOpenCmd === undefined) {
 			matterOpenCmd = new Instance("TextChatCommand");

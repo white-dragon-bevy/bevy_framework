@@ -205,7 +205,7 @@ export class RobloxPlayerPlugin extends BasePlugin {
 	private onPlayerAdded(player: Player, app: App): void {
 		print(`Player ${player.Name} joined the game`);
 		// 在ECS世界中为玩家创建实体
-		const world = app.world();
+		const world = app.getWorld();
 		// 这里需要根据Matter的API来创建玩家实体
 	}
 
@@ -215,7 +215,7 @@ export class RobloxPlayerPlugin extends BasePlugin {
 	private onPlayerRemoving(player: Player, app: App): void {
 		print(`Player ${player.Name} left the game`);
 		// 清理玩家相关的ECS数据
-		const world = app.world();
+		const world = app.getWorld();
 		// 这里需要根据Matter的API来清理玩家实体
 	}
 }
