@@ -22,6 +22,7 @@ import {
 	EntityCountDiagnosticsPlugin,
 	registerDiagnostic,
 } from "../index";
+import { EcsResourcePlugin } from "../../bevy_ecs/resource-plugin";
 
 export = () => {
 	describe("DiagnosticsPlugin", () => {
@@ -49,20 +50,14 @@ export = () => {
 
 		it("should increment frame count", () => {
 			const app = App.create();
-			const frameCount = new FrameCount();
-			app.insertResource(frameCount);
-			const world = app.main().world().getWorld();
+			app.addPlugin(new EcsResourcePlugin());
+			app.finish();
 
-			// 创建测试上下文
-			const context = new AppContext();
-			context.registerExtension("resources", {
-				getResource: (resourceType: unknown) => {
-					if (resourceType === FrameCount) {
-						return frameCount;
-					}
-					return undefined;
-				},
-			} as any);
+			const frameCount = new FrameCount();
+			app.insertResource(FrameCount, frameCount);
+			const world = app.main().world().getWorld();
+			const context = app.context;
+
 			updateFrameCount(world, context);
 			expect(frameCount.value).to.equal(1);
 
@@ -72,20 +67,14 @@ export = () => {
 
 		it("should wrap around at max value", () => {
 			const app = App.create();
-			const frameCount = new FrameCount(2 ** 32 - 1);
-			app.insertResource(frameCount);
-			const world = app.main().world().getWorld();
+			app.addPlugin(new EcsResourcePlugin());
+			app.finish();
 
-			// 创建测试上下文
-			const context = new AppContext();
-			context.registerExtension("resources", {
-				getResource: (resourceType: unknown) => {
-					if (resourceType === FrameCount) {
-						return frameCount;
-					}
-					return undefined;
-				},
-			} as any);
+			const frameCount = new FrameCount(2 ** 32 - 1);
+			app.insertResource(FrameCount, frameCount);
+			const world = app.main().world().getWorld();
+			const context = app.context;
+
 			updateFrameCount(world, context);
 			expect(frameCount.value).to.equal(0);
 		});
