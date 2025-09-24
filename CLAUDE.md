@@ -90,3 +90,5 @@ pnpm install
 - 使用 `npm test -- -p <robloxPath>`, 该命令将不再读取 testez-companion.toml, 直接测试提供的路径
   - 修改的地址为模块在 dataModel地址, 以 `/` 分割, 比如 `ReplicatedStorage/src/Core/BattleUtilities/Unit`
 - 根据测试堆栈, 从 `out/` 目录阅读错误代码 (lua), 再到 `src` 目录定位错误 (ts)
+  - 比如, 我们需要测试 `src/roblox_rvo`目录, 根据其转换后地址, 我们需要运行 `npm test -- -p  ReplicatedStorage/rbxts_include/node_modules/@white-dragon-bevy/bevy-framework/roblox_rvo`, 
+  - `src/<name>` 对应地址 `ReplicatedStorage/.../bevy-framework/<name>`

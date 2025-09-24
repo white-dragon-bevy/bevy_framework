@@ -38,6 +38,7 @@
 		"docs/**/*",
 		"out/",
 		"bevy-origin/**/*",
+		"bevy-origin-packages/**/*",
 		"todos",
 	]
 }
