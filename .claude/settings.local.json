@@ -11,7 +11,8 @@
       "Bash(__NEW_LINE__ done)",
       "Bash(for plugin in \"bevy_render\" \"bevy_input\" \"bevy_animation\" \"bevy_audio\" \"bevy_asset\" \"bevy_transform\" \"bevy_ui\" \"bevy_pbr\" \"bevy_sprite\" \"bevy_time\" \"bevy_state\" \"bevy_gizmos\")",
       "Bash(do echo \"Searching in $plugin:\")",
-      "Bash(__NEW_LINE__ grep -r \"add_systems\\|configure_sets\\|add_schedule\\|SystemSet\" \"D:\\projects\\white-dragon-bevy\\bevy-origin\\crates$plugin\")"
+      "Bash(__NEW_LINE__ grep -r \"add_systems\\|configure_sets\\|add_schedule\\|SystemSet\" \"D:\\projects\\white-dragon-bevy\\bevy-origin\\crates$plugin\")",
+      "Read(//d/projects/white-dragon-bevy/**)"
     ]
   },
   "enableAllProjectMcpServers": true,

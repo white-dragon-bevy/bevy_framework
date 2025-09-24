@@ -232,11 +232,16 @@ export class InputMap<Action extends Actionlike> {
 					const buttonPressed = input.pressed(inputStore, this.gamepadAssociation);
 					const buttonValue = input.value(inputStore, this.gamepadAssociation);
 
+					// Debug logging for Space key
+					if (inputHash === "keyboard_Space") {
+						print(`[InputMap] Checking Space key: pressed=${buttonPressed}, value=${buttonValue}`);
+					}
 
 					if (buttonPressed) {
 						pressed = true;
 						value = math.max(value, buttonValue);
 						consumedInputs.add(inputHash);
+						print(`[InputMap] Button ${inputHash} pressed for action ${actionKey}`);
 					}
 				} else if (controlKind === InputControlKind.Axis && this.isAxislike(input)) {
 					const axisValue = input.value(inputStore, this.gamepadAssociation);

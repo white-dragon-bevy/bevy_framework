@@ -15,7 +15,6 @@ import {
 	KeyCode,
 	MouseButton,
 	InputManagerPlugin,
-	InputManagerPluginResource,
 	InputMapComponent,
 	ActionStateComponent,
 	InputEnabled,
@@ -23,7 +22,10 @@ import {
 	isJustPressed,
 	isJustReleased,
 } from "../../leafwing-input-manager";
+import { getKeyboardInput, getMouseInput } from "../../bevy_input";
 import { component, type World } from "@rbxts/matter";
+import { Context } from "../../bevy_ecs";
+import { InputManagerExtension } from "../../leafwing-input-manager/plugin/extensions";
 
 /**
  * 玩家动作枚举
@@ -72,13 +74,17 @@ function spawnPlayer(world: World): void {
 		LocalPlayer({ playerId: 1 }),
 	);
 
-	// 手动注册实例到 InstanceManager
-	const resource = getInputManagerResource();
-	if (resource) {
-		const instanceManager = resource.plugin.getInstanceManager();
-		if (instanceManager) {
-			instanceManager.registerInputMap(entity, inputMap);
-			instanceManager.registerActionState(entity, actionState);
+	// 通过 Context 获取 InputManager 扩展并注册实例
+	if (globalApp) {
+		const context = globalApp.getContext();
+		const inputManagerExt = context.tryGet("input-manager") as InputManagerExtension<PlayerAction> | undefined;
+		if (inputManagerExt) {
+			const plugin = inputManagerExt.getPlugin() as unknown as InputManagerPlugin<PlayerAction>;
+			const instanceManager = plugin.getInstanceManager();
+			if (instanceManager) {
+				instanceManager.registerInputMap(entity, inputMap);
+				instanceManager.registerActionState(entity, actionState);
+			}
 		}
 	}
 
@@ -91,30 +97,25 @@ function spawnPlayer(world: World): void {
 }
 
 /**
- * 获取 InputManagerPlugin 资源
+ * 全局 App 实例
  */
 let globalApp: App | undefined;
-
-function getInputManagerResource(): InputManagerPluginResource<PlayerAction> | undefined {
-	// 使用全局存储的 App 实例
-	if (!globalApp) {
-		return undefined;
-	}
-	return globalApp.getResource(InputManagerPluginResource<PlayerAction>);
-}
 
 /**
  * 处理玩家动作
  * 响应玩家的输入动作
  * @param world - Matter World实例
+ * @param context - App 上下文
  */
-function handlePlayerActions(world: World): void {
-	const resource = getInputManagerResource();
-	if (!resource) {
+function handlePlayerActions(world: World, context: Context): void {
+	// 从 Context 获取 InputManager 扩展
+	const inputManagerExt = context.tryGet("input-manager") as InputManagerExtension<PlayerAction> | undefined;
+	if (!inputManagerExt) {
 		return;
 	}
 
-	const instanceManager = resource.plugin.getInstanceManager();
+	const plugin = inputManagerExt.getPlugin() as unknown as InputManagerPlugin<PlayerAction>;
+	const instanceManager = plugin.getInstanceManager();
 	if (!instanceManager) {
 		return;
 	}
@@ -125,6 +126,24 @@ function handlePlayerActions(world: World): void {
 		if (!state) {
 			continue;
 		}
+
+		// // 每隔一段时间输出一次调试信息
+		// debugCounter++;
+		// if (debugCounter % 120 === 0) { // 每2秒输出一次
+		// 	print("[DEBUG] Checking input for player:", player.name);
+
+		// 	// 检查原始输入状态
+		// 	const keyboardInput = getKeyboardInput(world);
+		// 	const mouseInput = getMouseInput(world);
+		// 	if (keyboardInput) {
+		// 		print("[DEBUG] Space is pressed:", keyboardInput.isPressed(Enum.KeyCode.Space));
+		// 		print("[DEBUG] Space just pressed:", keyboardInput.justPressed(Enum.KeyCode.Space));
+		// 	}
+		// 	if (mouseInput) {
+		// 		print("[DEBUG] Mouse left is pressed:", mouseInput.isPressed(Enum.UserInputType.MouseButton1));
+		// 		print("[DEBUG] Mouse left just pressed:", mouseInput.justPressed(Enum.UserInputType.MouseButton1));
+		// 	}
+		// }
 
 		// 使用包装函数安全地调用 ActionState 方法
 		// 处理跳跃

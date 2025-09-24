@@ -9,6 +9,8 @@ import { getKeyboardInput, getMouseInput, getMouseMotion, getMouseWheel } from "
 import { Plugin } from "../../bevy_app/plugin";
 import { App } from "../../bevy_app";
 import { MainScheduleLabel } from "../../bevy_app";
+import { AppContext } from "../../bevy_app/context";
+import { InputManagerExtension } from "./extensions";
 import { InputMapComponent, ActionStateComponent } from "./components";
 import { Resource } from "../../bevy_ecs";
 
@@ -94,6 +96,12 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 	 * @param app - The Bevy App instance
 	 */
 	build(app: App): void {
+		// Only run on client
+		if (RunService.IsServer()) {
+			print("[InputManagerPlugin] Skipping initialization on server");
+			return;
+		}
+
 		// Initialize internal state
 		this.world = app.getWorld() as unknown as World;
 		this.centralStore = new CentralInputStore();
@@ -102,6 +110,21 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 
 		// Store the plugin instance as a resource for access by systems
 		app.insertResource(InputManagerPluginResource<A>, new InputManagerPluginResource(this));
+
+		// Register extension to AppContext
+		const context = app.getContext();
+		const pluginInstance = this;
+		const extension: InputManagerExtension<A> = {
+			getPlugin(): InputManagerPlugin<A> {
+				return pluginInstance;
+			},
+		};
+		context.registerExtension("input-manager", extension as InputManagerExtension, {
+			description: "Leafwing Input Manager Plugin",
+			version: "0.1.0",
+		});
+
+		print("[InputManagerPlugin] Initialized successfully");
 
 		// Register systems with the App scheduler
 		// PreUpdate: tick and update action states
@@ -178,6 +201,13 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 		const mouseMotion = getMouseMotion(this.world);
 		const mouseWheel = getMouseWheel(this.world);
 
+		// Debug: Check if resources exist
+		if (!keyboardInput) {
+			print("[InputManagerPlugin] WARNING: keyboardInput is null");
+		}
+		if (!mouseInput) {
+			print("[InputManagerPlugin] WARNING: mouseInput is null");
+		}
 
 		// Sync to central store
 		this.centralStore!.syncFromBevyInput(

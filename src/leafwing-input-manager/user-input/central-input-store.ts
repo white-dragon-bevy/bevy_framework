@@ -252,6 +252,11 @@ export class CentralInputStore {
 				const key = `keyboard_${keyCode.Name}`;
 				const pressed = keyboardInput.isPressed(keyCode);
 
+				// Debug space key
+				if (keyCode === Enum.KeyCode.Space && pressed) {
+					print(`[CentralInputStore] Space key is pressed! key=${key}`);
+				}
+
 				// Always update the state, whether pressed or not
 				this.updateButtonlike(key, {
 					pressed,

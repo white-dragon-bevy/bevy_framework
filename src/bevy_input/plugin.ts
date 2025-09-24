@@ -12,7 +12,8 @@ import { MainScheduleLabel } from "../bevy_app/main-schedule";
 import { ButtonInput } from "./button-input";
 import { AccumulatedMouseMotion, AccumulatedMouseWheel, MouseButton, MousePosition } from "./mouse";
 import * as ResourceStorage from "./resource-storage";
-import { RobloxContext } from "../utils/roblox-utils";
+import { RobloxContext, isMatchRobloxContext } from "../utils/roblox-utils";
+import { RunService } from "@rbxts/services";
 import { EventWriter } from "../bevy_ecs/events";
 import { ButtonState, CursorMoved, MouseButtonInput, MouseMotion, MouseWheel } from "./mouse-events";
 
@@ -41,6 +42,11 @@ export class InputPlugin implements Plugin {
 	 * @param app - 应用实例
 	 */
 	public build(app: App): void {
+		// 只在客户端运行
+		if (RunService.IsServer()) {
+			return;
+		}
+
 		const world = app.getWorld();
 
 		// 初始化输入资源
@@ -63,6 +69,9 @@ export class InputPlugin implements Plugin {
 		const mouseMotionWriter = eventManager.createWriter(MouseMotion);
 		const mouseWheelWriter = eventManager.createWriter(MouseWheel);
 		const cursorMovedWriter = eventManager.createWriter(CursorMoved);
+
+		// 添加调试日志
+		print("[InputPlugin] Initializing input handlers on", RunService.IsClient() ? "CLIENT" : "SERVER");
 
 		// 连接 Roblox 输入事件
 		this.setupInputHandlers(
@@ -114,12 +123,14 @@ export class InputPlugin implements Plugin {
 			}
 
 			if (input.UserInputType === Enum.UserInputType.Keyboard) {
+				print(`[InputPlugin] Key pressed: ${input.KeyCode}`);
 				keyboard.press(input.KeyCode);
 			} else if (
 				input.UserInputType === Enum.UserInputType.MouseButton1 ||
 				input.UserInputType === Enum.UserInputType.MouseButton2 ||
 				input.UserInputType === Enum.UserInputType.MouseButton3
 			) {
+				print(`[InputPlugin] Mouse button pressed: ${input.UserInputType}`);
 				mouse.press(input.UserInputType);
 				// 发送鼠标按钮按下事件
 				mouseButtonWriter.send(new MouseButtonInput(input.UserInputType, ButtonState.Pressed));

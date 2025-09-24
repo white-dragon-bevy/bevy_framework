@@ -469,4 +469,12 @@ export class App {
 	getErrorHandler(): ErrorHandler | undefined {
 		return this.defaultErrorHandler;
 	}
+
+	/**
+	 * 获取应用上下文
+	 * @returns AppContext 实例
+	 */
+	getContext(): AppContext {
+		return this.context;
+	}
 }
