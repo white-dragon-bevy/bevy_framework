@@ -6,6 +6,11 @@ import { Actionlike } from "../core/actionlike";
 import { InputMap } from "../input-map/input-map";
 import { ActionState } from "../action-state/action-state";
 import { getKeyboardInput, getMouseInput, getMouseMotion, getMouseWheel } from "../../bevy_input/resource-storage";
+import { Plugin } from "../../bevy_app/plugin";
+import { App } from "../../bevy_app";
+import { MainScheduleLabel } from "../../bevy_app";
+import { InputMapComponent, ActionStateComponent } from "./components";
+import { Resource } from "../../bevy_ecs";
 
 /**
  * Configuration for the InputManagerPlugin
@@ -57,30 +62,61 @@ export interface InputManagerComponents<A extends Actionlike> {
 }
 
 /**
+ * Resource to store the InputManagerPlugin instance in the App
+ */
+export class InputManagerPluginResource<A extends Actionlike> implements Resource {
+	constructor(public plugin: InputManagerPlugin<A>) {}
+}
+
+/**
  * Main plugin for the leafwing input manager
  * Integrates with bevy_input for input handling and provides action mapping
+ *
+ * This plugin implements the Bevy Plugin interface and manages:
+ * - Input state synchronization from bevy_input
+ * - Action state updates based on input mappings
+ * - System scheduling for input processing
  */
-export class InputManagerPlugin<A extends Actionlike> {
-	private world: World;
+export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 	private config: InputManagerPluginConfig<A>;
-	private centralStore: CentralInputStore;
-	private inputSystem: InputManagerSystem<A>;
+	private world?: World;
+	private centralStore?: CentralInputStore;
+	private inputSystem?: InputManagerSystem<A>;
 	private connections: RBXScriptConnection[] = [];
-	private instanceManager: InputInstanceManager<A>;
+	private instanceManager?: InputInstanceManager<A>;
 
-	constructor(world: World, config: InputManagerPluginConfig<A>) {
-		this.world = world;
+	constructor(config: InputManagerPluginConfig<A>) {
 		this.config = config;
-		this.centralStore = new CentralInputStore();
-		this.instanceManager = new InputInstanceManager<A>();
-		this.inputSystem = new InputManagerSystem(world, this.centralStore, config, this.instanceManager);
 	}
 
 	/**
-	 * Initializes the plugin and starts systems
+	 * Builds the plugin and registers systems with the App
+	 * @param app - The Bevy App instance
 	 */
-	build(): void {
-		this.setupSystems();
+	build(app: App): void {
+		// Initialize internal state
+		this.world = app.getWorld() as unknown as World;
+		this.centralStore = new CentralInputStore();
+		this.instanceManager = new InputInstanceManager<A>();
+		this.inputSystem = new InputManagerSystem(this.world, this.centralStore, this.config, this.instanceManager);
+
+		// Store the plugin instance as a resource for access by systems
+		app.insertResource(InputManagerPluginResource<A>, new InputManagerPluginResource(this));
+
+		// Register systems with the App scheduler
+		// PreUpdate: tick and update action states
+		app.addSystems(MainScheduleLabel.PRE_UPDATE, (world: World) => {
+			this.tickActionState(world);
+		});
+
+		app.addSystems(MainScheduleLabel.PRE_UPDATE, (world: World) => {
+			this.updateActionState(world);
+		});
+
+		// PostUpdate: cleanup and finalization
+		app.addSystems(MainScheduleLabel.POST_UPDATE, (world: World) => {
+			this.releaseOnInputMapRemoved(world);
+		});
 
 		if (this.config.networkSync?.enabled) {
 			this.setupNetworkSync();
@@ -88,26 +124,54 @@ export class InputManagerPlugin<A extends Actionlike> {
 	}
 
 	/**
-	 * Sets up the ECS systems
+	 * Ticks the action state - clears just_pressed and just_released
+	 * Corresponds to Rust's tick_action_state system
 	 */
-	private setupSystems(): void {
-		// Run input system every frame
-		// This now syncs from bevy_input instead of listening to raw events
-		this.connections.push(
-			RunService.Heartbeat.Connect((deltaTime) => {
-				// Sync input state from bevy_input resources
-				this.syncFromBevyInput();
+	private tickActionState(world: World): void {
+		if (!this.inputSystem) return;
+		this.inputSystem.tickAll(1 / 60);
+	}
 
-				// Update the input system
-				this.inputSystem.update(deltaTime);
-			}),
-		);
+	/**
+	 * Updates the action state based on current inputs
+	 * Corresponds to Rust's update_action_state system
+	 */
+	private updateActionState(world: World): void {
+		if (!this.inputSystem || !this.instanceManager) return;
+
+		// Sync input state from bevy_input resources
+		this.syncFromBevyInput();
+
+		// Update action states for all entities with input components
+		for (const [entity, inputMap, actionState] of world.query(InputMapComponent, ActionStateComponent)) {
+			// Register the actual instances with the manager if not already registered
+			if (!this.instanceManager.getInputMap(entity)) {
+				this.instanceManager.registerInputMap(entity, inputMap as unknown as InputMap<A>);
+			}
+			if (!this.instanceManager.getActionState(entity)) {
+				this.instanceManager.registerActionState(entity, actionState as unknown as ActionState<A>);
+			}
+		}
+
+		// Update the input system
+		this.inputSystem.update(1 / 60);
+	}
+
+	/**
+	 * Releases action states when input maps are removed
+	 * Corresponds to Rust's release_on_input_map_removed system
+	 */
+	private releaseOnInputMapRemoved(world: World): void {
+		// This will be implemented when we have proper component tracking
+		// For now, it's a placeholder for consistency with Rust version
 	}
 
 	/**
 	 * Syncs input state from bevy_input resources
 	 */
 	private syncFromBevyInput(): void {
+		if (!this.world || !this.centralStore) return;
+
 		// Get bevy_input resources from the world
 		const keyboardInput = getKeyboardInput(this.world);
 		const mouseInput = getMouseInput(this.world);
@@ -116,7 +180,7 @@ export class InputManagerPlugin<A extends Actionlike> {
 
 
 		// Sync to central store
-		this.centralStore.syncFromBevyInput(
+		this.centralStore!.syncFromBevyInput(
 			keyboardInput,
 			mouseInput,
 			mouseMotion,
@@ -137,60 +201,53 @@ export class InputManagerPlugin<A extends Actionlike> {
 				const currentTime = os.clock();
 				if (currentTime - lastSyncTime >= syncInterval) {
 					lastSyncTime = currentTime;
-					this.inputSystem.syncNetwork();
+					if (this.inputSystem) {
+						this.inputSystem.syncNetwork();
+					}
 				}
 			}),
 		);
 	}
 
 	/**
-	 * Creates an input bundle for an entity
-	 * @param inputMap - The input map for the entity
-	 * @returns A bundle of components
+	 * Gets the plugin name
+	 * @returns The plugin name
 	 */
-	createInputBundle(inputMap?: InputMap<A>): InputManagerComponents<A> {
-		const map = inputMap ?? this.config.defaultInputMap ?? new InputMap<A>();
-		const actionState = new ActionState<A>();
-
-		return {
-			InputMap: map,
-			ActionState: actionState,
-			InputEnabled: true,
-			LocalPlayer: false,
-		};
+	name(): string {
+		return "InputManagerPlugin";
 	}
 
 	/**
-	 * Cleans up the plugin
+	 * Checks if the plugin is unique
+	 * @returns Always true - only one input manager should exist per action type
 	 */
-	destroy(): void {
+	isUnique(): boolean {
+		return true;
+	}
+
+	/**
+	 * Cleans up the plugin resources
+	 * @param app - The App instance
+	 */
+	cleanup(app: App): void {
+		// Disconnect all event connections
 		for (const connection of this.connections) {
 			connection.Disconnect();
 		}
 		this.connections.clear();
+
+		// Clear internal state
+		this.world = undefined;
+		this.centralStore = undefined;
+		this.inputSystem = undefined;
+		this.instanceManager = undefined;
 	}
 
 	/**
-	 * Gets the central input store
-	 * @returns The central input store
+	 * Internal getter for instance manager - used by systems
+	 * @internal
 	 */
-	getCentralStore(): CentralInputStore {
-		return this.centralStore;
-	}
-
-	/**
-	 * Gets the input system
-	 * @returns The input system
-	 */
-	getInputSystem(): InputManagerSystem<A> {
-		return this.inputSystem;
-	}
-
-	/**
-	 * Gets the instance manager
-	 * @returns The instance manager
-	 */
-	getInstanceManager(): InputInstanceManager<A> {
+	getInstanceManager(): InputInstanceManager<A> | undefined {
 		return this.instanceManager;
 	}
 }

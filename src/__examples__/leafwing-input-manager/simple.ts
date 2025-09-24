@@ -5,7 +5,7 @@
  */
 
 import { App } from "../../bevy_app";
-import { BevyWorld } from "../../bevy_ecs";
+import { MainScheduleLabel } from "../../bevy_app";
 import { DefaultPlugins } from "../../bevy_internal";
 import {
 	InputMap,
@@ -15,16 +15,20 @@ import {
 	KeyCode,
 	MouseButton,
 	InputManagerPlugin,
-	CentralInputStore,
+	InputManagerPluginResource,
+	InputMapComponent,
+	ActionStateComponent,
+	InputEnabled,
+	LocalPlayer,
+	isJustPressed,
+	isJustReleased,
 } from "../../leafwing-input-manager";
-import { component, World } from "@rbxts/matter";
-import { getKeyboardInput, getMouseInput } from "../../bevy_input/resource-storage";
-import { InputMapComponent } from "../../leafwing-input-manager/input-map/input-map";
-import { ActionStateComponent } from "../../leafwing-input-manager/action-state/action-state";
-import { InputEnabled } from "../../leafwing-input-manager/plugin/input-enabled";
-import { LocalPlayer } from "../../leafwing-input-manager/plugin/local-player";
+import { component, type World } from "@rbxts/matter";
 
-// 2. 定义一个类来表示所有可能的游戏内动作
+/**
+ * 玩家动作枚举
+ * 定义游戏中的所有可能动作
+ */
 class PlayerAction extends ActionlikeEnum {
 	static readonly Jump = new PlayerAction("Jump");
 	static readonly Shoot = new PlayerAction("Shoot");
@@ -34,210 +38,137 @@ class PlayerAction extends ActionlikeEnum {
 	}
 }
 
-// Player 组件（使用 Matter 的 component 函数）
+/**
+ * Player组件 - 标识玩家实体
+ */
 const Player = component<{ name: string }>("Player");
 
-// 存储插件实例的全局变量
-let inputPlugin: InputManagerPlugin<PlayerAction> | undefined;
-let centralStore: CentralInputStore | undefined;
-
-// 3. 在启动时，生成一个玩家实体
-function spawnPlayer(world: BevyWorld): void {
-	// 检查是否已经生成过玩家
-	const worldWithData = world as unknown as {
-		playerEntity?: number;
-		playerSpawned?: boolean;
-	};
-
-	// 如果已经生成过，直接返回
-	if (worldWithData.playerSpawned) {
-		return;
+/**
+ * 在启动时生成玩家实体
+ * @param world - Matter World实例
+ */
+function spawnPlayer(world: World): void {
+	// 检查是否已存在玩家
+	for (const [_entity, _player] of world.query(Player)) {
+		return; // 玩家已存在
 	}
 
 	// 创建输入映射
 	const inputMap = new InputMap<PlayerAction>();
-
-	// 将动作连接到输入
 	inputMap.insert(PlayerAction.Jump, KeyCode.Space);
 	inputMap.insert(PlayerAction.Shoot, MouseButton.left());
 
-
 	// 创建动作状态
 	const actionState = new ActionState<PlayerAction>();
-
-	// 注册所有动作到 ActionState
 	actionState.registerAction(PlayerAction.Jump);
 	actionState.registerAction(PlayerAction.Shoot);
 
-	// 生成玩家实体，使用 Matter 组件系统
-	// 注意：我们传递空对象作为组件数据，实际的实例存储在管理器中
+	// 生成玩家实体 - 仅使用组件作为标记，实际实例存储在 InstanceManager
 	const entity = world.spawn(
 		Player({ name: "Player1" }),
-		InputMapComponent({} as unknown as InputMap<ActionlikeEnum>),
-		ActionStateComponent({} as unknown as ActionState<ActionlikeEnum>),
+		InputMapComponent({} as unknown as InputMap<ActionlikeEnum>), // 空占位符
+		ActionStateComponent({} as unknown as ActionState<ActionlikeEnum>), // 空占位符
 		InputEnabled({ enabled: true }),
 		LocalPlayer({ playerId: 1 }),
 	);
 
-	// 注册实际的实例到管理器
-	if (inputPlugin) {
-		const instanceManager = inputPlugin.getInstanceManager();
-		instanceManager.registerInputMap(entity, inputMap as unknown as InputMap<PlayerAction>);
-		instanceManager.registerActionState(entity, actionState as unknown as ActionState<PlayerAction>);
+	// 手动注册实例到 InstanceManager
+	const resource = getInputManagerResource();
+	if (resource) {
+		const instanceManager = resource.plugin.getInstanceManager();
+		if (instanceManager) {
+			instanceManager.registerInputMap(entity, inputMap);
+			instanceManager.registerActionState(entity, actionState);
+		}
 	}
 
-	// 存储实体 ID
-	worldWithData.playerEntity = entity;
-	worldWithData.playerSpawned = true;
-
-	print("Player spawned with input bindings:");
-	print("  - Space: Jump");
-	print("  - Left Mouse Button: Shoot");
+	print("========================================");
+	print("Leafwing Input Manager Example");
+	print("Controls:");
+	print("  Space - Jump");
+	print("  Left Mouse Button - Shoot");
+	print("========================================");
 }
 
-// 处理输入系统更新
-function updateInputSystem(world: BevyWorld): void {
-	// 首先让输入管理系统处理输入
-	if (inputPlugin) {
-		// 添加调试输出来检查 CentralInputStore 中的鼠标按钮状态
-		const store = inputPlugin.getCentralStore();
-		const mouseLeftKey = "mouse_MouseButton1";
-		const pressed = store.pressed(mouseLeftKey);
+/**
+ * 获取 InputManagerPlugin 资源
+ */
+let globalApp: App | undefined;
 
-		// 只在状态改变时打印
-		const worldData = world as unknown as { lastMousePressed?: boolean };
-		if (pressed !== worldData.lastMousePressed) {
-			print(`[CentralInputStore] Mouse left button pressed = ${pressed ?? "undefined"}`);
-			worldData.lastMousePressed = pressed ?? false;
-		}
-
-		inputPlugin.getInputSystem().update(1 / 60); // 假设 60 FPS
+function getInputManagerResource(): InputManagerPluginResource<PlayerAction> | undefined {
+	// 使用全局存储的 App 实例
+	if (!globalApp) {
+		return undefined;
 	}
+	return globalApp.getResource(InputManagerPluginResource<PlayerAction>);
 }
 
-// 4. 在每帧更新时，查询玩家的 ActionState
-function checkActions(world: BevyWorld): void {
-	// 测试 bevy_input 是否工作
-	const mouseInputResource = getMouseInput(world as unknown as World);
-	if (mouseInputResource) {
-		const mousePressed = mouseInputResource.isPressed(Enum.UserInputType.MouseButton1);
-		const worldData = world as unknown as { bevyMousePressed?: boolean };
-		if (mousePressed !== worldData.bevyMousePressed) {
-			print(`[bevy_input] Mouse left button pressed = ${mousePressed}`);
-			worldData.bevyMousePressed = mousePressed;
-		}
+/**
+ * 处理玩家动作
+ * 响应玩家的输入动作
+ * @param world - Matter World实例
+ */
+function handlePlayerActions(world: World): void {
+	const resource = getInputManagerResource();
+	if (!resource) {
+		return;
 	}
 
-	const keyboard = getKeyboardInput(world as unknown as World);
-	if (keyboard) {
-		if (keyboard.justPressed(Enum.KeyCode.Space)) {
-			print("[TEST] bevy_input detected Space!");
-		}
-		// 也测试 pressed 状态
-		if (keyboard.isPressed(Enum.KeyCode.Space)) {
-			const worldData = world as unknown as { spaceHeldCounter?: number };
-			worldData.spaceHeldCounter = (worldData.spaceHeldCounter ?? 0) + 1;
-			if (worldData.spaceHeldCounter === 1) {
-				print("[TEST] Space is being held");
-			}
-		} else {
-			const worldData = world as unknown as { spaceHeldCounter?: number };
-			worldData.spaceHeldCounter = 0;
-		}
+	const instanceManager = resource.plugin.getInstanceManager();
+	if (!instanceManager) {
+		return;
 	}
 
-	// 查询玩家实体的动作状态
 	for (const [entity, player] of world.query(Player)) {
-		// 从管理器获取实际的 ActionState 实例
-		const instanceManager = inputPlugin?.getInstanceManager();
-		const actionState = instanceManager?.getActionState(entity) as ActionState<PlayerAction> | undefined;
-
-		if (!actionState) {
-			print("[ERROR] No ActionState found for player entity");
+		// 从 InstanceManager 获取实际的 ActionState 实例
+		const state = instanceManager.getActionState(entity) as ActionState<PlayerAction> | undefined;
+		if (!state) {
 			continue;
 		}
 
-		// 检查跳跃动作
-		if (actionState.justPressed(PlayerAction.Jump)) {
+		// 使用包装函数安全地调用 ActionState 方法
+		// 处理跳跃
+		if (isJustPressed(state, PlayerAction.Jump)) {
 			print(`${player.name} jumped!`);
 		}
-		if (actionState.justReleased(PlayerAction.Jump)) {
+		if (isJustReleased(state, PlayerAction.Jump)) {
 			print(`${player.name} stopped jumping`);
 		}
 
-		// 检查射击动作
-		if (actionState.justPressed(PlayerAction.Shoot)) {
+		// 处理射击
+		if (isJustPressed(state, PlayerAction.Shoot)) {
 			print(`${player.name} started shooting!`);
 		}
-
-		// 调试：直接检查 pressed 状态
-		const isPressed = actionState.pressed(PlayerAction.Shoot);
-		if (isPressed) {
-			const worldData = world as unknown as { shootCounter?: number };
-			worldData.shootCounter = (worldData.shootCounter ?? 0) + 1;
-			if (worldData.shootCounter === 1) {
-				print(`[DEBUG] Shoot pressed = true`);
-			}
-			if (worldData.shootCounter % 30 === 0) {
-				print(`${player.name} is still shooting...`);
-			}
-		} else {
-			const worldData = world as unknown as { shootCounter?: number };
-			if (worldData.shootCounter && worldData.shootCounter > 0) {
-				print(`[DEBUG] Shoot pressed = false (was pressed for ${worldData.shootCounter} frames)`);
-			}
-			worldData.shootCounter = 0;
-		}
-
-		if (actionState.justReleased(PlayerAction.Shoot)) {
+		if (isJustReleased(state, PlayerAction.Shoot)) {
 			print(`${player.name} stopped shooting`);
 		}
 	}
 }
 
-// 在帧末尾执行 tick
-function tickActionStates(world: BevyWorld): void {
-	if (inputPlugin) {
-		inputPlugin.getInputSystem().tickAll(1 / 60);
-	}
-}
-
-
-export function main(): void {
-	// 创建应用
+/**
+ * 主函数
+ * 创建应用并设置输入管理系统
+ */
+export function main(): App {
 	const app = App.create();
+	globalApp = app; // 保存 App 实例以供系统使用
 
-	// 添加默认插件
-	app.addPlugins(DefaultPlugins.create());
+	// 添加默认插件组
+	app.addPlugins(...DefaultPlugins.create().build().getPlugins());
 
-	// 1. 创建并配置输入管理器插件
-	// 现在 InputManagerPlugin 使用 bevy_input 作为输入源
-	// 不需要单独监听 UserInputService
-	const world = app.getWorld();
-	inputPlugin = new InputManagerPlugin(world as unknown as World, {
-		actionType: PlayerAction as unknown as new () => PlayerAction,
-	});
+	// 添加 InputManagerPlugin - 像 Rust 版本一样简洁
+	app.addPlugin(
+		new InputManagerPlugin<PlayerAction>({
+			actionType: PlayerAction as unknown as new () => PlayerAction,
+		}),
+	);
 
-	// 初始化插件
-	inputPlugin.build();
+	// 添加系统 - 不再需要包装器
+	app.addSystems(MainScheduleLabel.STARTUP, spawnPlayer);
+	app.addSystems(MainScheduleLabel.UPDATE, handlePlayerActions);
 
-	// 获取中央输入存储以便调试
-	centralStore = inputPlugin.getCentralStore();
-
-	// 添加系统 - 按正确的顺序
-	app.addSystems("Startup", spawnPlayer);
-	app.addSystems("PreUpdate", updateInputSystem);  // 先更新输入
-	app.addSystems("Update", checkActions);           // 再检查动作
-	app.addSystems("PostUpdate", tickActionStates);   // 最后 tick
-
-	print("========================================");
-	print("Leafwing Input Manager Example Started");
-	print("Press Space to jump, Left Mouse Button to shoot");
-	print("========================================");
-
-	// 运行应用
-	app.run();
+	return app;
 }
 
-// 导出 main 函数以便运行
-main();
+// 运行应用
+main().run();

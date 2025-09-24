@@ -28,6 +28,7 @@ export * from "./input-map/input-map";
 export { ActionData } from "./action-state/action-data";
 export { ActionState, UpdatedActions } from "./action-state/action-state";
 export { ButtonData } from "./action-state/button-data";
+export { isJustPressed, isJustReleased, isPressed } from "./action-state/action-state-wrapper";
 
 // Input processing
 export * from "./input-processing";

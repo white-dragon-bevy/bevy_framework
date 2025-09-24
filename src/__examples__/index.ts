@@ -1,5 +1,5 @@
-const exampleFolder: string = "app";
-const exampleName: string = "custom_loop";
+const exampleFolder: string = "leafwing-input-manager";
+const exampleName: string = "simple";
 
 export function bootstrap() {
 	// 然后运行原有的示例
