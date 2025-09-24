@@ -13,6 +13,8 @@ import { ButtonInput } from "./button-input";
 import { AccumulatedMouseMotion, AccumulatedMouseWheel, MouseButton, MousePosition } from "./mouse";
 import * as ResourceStorage from "./resource-storage";
 import { RobloxContext } from "../utils/roblox-utils";
+import { EventWriter } from "../bevy_ecs";
+import { MouseButtonInput, MouseMotion, MouseWheel, CursorMoved, ButtonState } from "./mouse-events";
 
 /**
  * 输入资源键名常量
