@@ -53,7 +53,11 @@ export = () => {
 			app.addPlugin(new EcsResourcePlugin());
 			app.finish();
 
+			app.addPlugin(new EcsResourcePlugin());
+			app.finish();
+
 			const frameCount = new FrameCount();
+			app.insertResource(FrameCount, frameCount);
 			app.insertResource(FrameCount, frameCount);
 			const world = app.main().world().getWorld();
 			const context = app.context;
@@ -70,7 +74,11 @@ export = () => {
 			app.addPlugin(new EcsResourcePlugin());
 			app.finish();
 
+			app.addPlugin(new EcsResourcePlugin());
+			app.finish();
+
 			const frameCount = new FrameCount(2 ** 32 - 1);
+			app.insertResource(FrameCount, frameCount);
 			app.insertResource(FrameCount, frameCount);
 			const world = app.main().world().getWorld();
 			const context = app.context;

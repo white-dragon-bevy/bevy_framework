@@ -220,6 +220,7 @@ export class App {
 		const mainApp = this.subApps.main();
 
 		if (plugin.isUnique() && mainApp.hasPlugin(plugin.name())) {
+			print(`Duplicate plugin detected: ${plugin.name()}`);
 			throw new DuplicatePluginError(plugin.name());
 		}
 

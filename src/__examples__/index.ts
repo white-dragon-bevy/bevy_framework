@@ -6,8 +6,15 @@ export function bootstrap() {
 	const folder = script.FindFirstChild(exampleFolder);
 	assert(folder, "can't find exampleFolder :" + exampleFolder);
 	const exampleScript = folder.FindFirstChild(exampleName) as ModuleScript;
-	assert(exampleScript, "can't find exampleScript :" + exampleFolder);
+	assert(exampleScript, "can't find exampleScript :" + exampleName);
 
 	// eslint-disable-next-line @typescript-eslint/no-require-imports
-	require(exampleScript);
+	const exampleModule = require(exampleScript) as { runComputedStatesExample?: () => void };
+
+	// Call the example function if it exists
+	if (exampleModule.runComputedStatesExample) {
+		exampleModule.runComputedStatesExample();
+	} else {
+		error(`Example module does not export runComputedStatesExample function`);
+	}
 }

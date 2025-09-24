@@ -33,6 +33,7 @@
 	},
 	"exclude": [
 		"examples/**/*",
+		"tmp/**/*",
 		"crates/**/*",
 		"docs/**/*",
 		"out/",

@@ -9,6 +9,7 @@
 ## 输入目录
 
 - `bevy-origin/crates/<pluginName>/` - Bevy 原始应用框架代码
+- `bevy-origin-packages/<pluginName>/` - 社区贡献, 上面的找不到就在这里找
 
 ## 输出目录
 
@@ -17,9 +18,10 @@
 ## 任务要求
 
 ### 1. 核心功能迁移
-
-- 实现 `MatterApp` 应用构建器类
-- 实现插件系统接口 `MatterPlugin`
+- 阅读 `src/` 目录下所有 README.md, 了解已迁移功能和接口.
+- 阅读 `src/` 目录下代码, 了解插件结构规范
+- 阅读 @.claude/commands/bevy/bevy-readme.md 了解插件结构规范.
+- 实现插件系统接口 `Plugin`
 - 支持插件的注册、初始化和生命周期管理
 - 建立插件间的依赖关系处理
 - 严格符合源代码设计逻辑, 接口命名应基本一致(使用roblox-ts 命名规范)

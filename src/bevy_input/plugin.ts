@@ -2,6 +2,7 @@
  * InputPlugin - 轻量级输入管理插件
  * 集成 Roblox UserInputService 与 ButtonInput 状态管理
  * 支持事件系统和状态管理
+ * 支持事件系统和状态管理
  */
 
 import { UserInputService } from "@rbxts/services";
@@ -30,6 +31,7 @@ export const InputResources = {
 
 /**
  * 输入管理插件
+ * 提供键盘、鼠标输入的状态管理和事件系统
  * 提供键盘、鼠标输入的状态管理和事件系统
  */
 export class InputPlugin implements Plugin {
@@ -73,7 +75,7 @@ export class InputPlugin implements Plugin {
 		// 添加调试日志
 		print("[InputPlugin] Initializing input handlers on", RunService.IsClient() ? "CLIENT" : "SERVER");
 
-		// 连接 Roblox 输入事件
+
 		this.setupInputHandlers(
 			keyboard,
 			mouse,
@@ -114,6 +116,7 @@ export class InputPlugin implements Plugin {
 		mouseMotionWriter: EventWriter<MouseMotion>,
 		mouseWheelWriter: EventWriter<MouseWheel>,
 		cursorMovedWriter: EventWriter<CursorMoved>,
+		
 	): void {
 		// 处理输入开始事件
 		const inputBegan = UserInputService.InputBegan.Connect((input, gameProcessed) => {
@@ -134,6 +137,8 @@ export class InputPlugin implements Plugin {
 				mouse.press(input.UserInputType);
 				// 发送鼠标按钮按下事件
 				mouseButtonWriter.send(new MouseButtonInput(input.UserInputType, ButtonState.Pressed));
+				// 发送鼠标按钮按下事件
+				mouseButtonWriter.send(new MouseButtonInput(input.UserInputType, ButtonState.Pressed));
 			}
 		});
 
@@ -148,6 +153,8 @@ export class InputPlugin implements Plugin {
 				input.UserInputType === Enum.UserInputType.MouseButton3
 			) {
 				mouse.release(input.UserInputType);
+				// 发送鼠标按钮释放事件
+				mouseButtonWriter.send(new MouseButtonInput(input.UserInputType, ButtonState.Released));
 				// 发送鼠标按钮释放事件
 				mouseButtonWriter.send(new MouseButtonInput(input.UserInputType, ButtonState.Released));
 			}
@@ -167,12 +174,21 @@ export class InputPlugin implements Plugin {
 					// 发送鼠标移动事件
 					mouseMotionWriter.send(new MouseMotion(delta.X, delta.Y));
 				}
+				// 只有当有实际移动时才累积
+				if (delta.X !== 0 || delta.Y !== 0) {
+					mouseMotion.accumulate(delta.X, delta.Y);
+					// 发送鼠标移动事件
+					mouseMotionWriter.send(new MouseMotion(delta.X, delta.Y));
+				}
 
 				// 更新鼠标位置
 				const position = input.Position;
 				const newPos = new Vector2(position.X, position.Y);
 				const oldPos = mousePosition.getPosition();
 				mousePosition.update(newPos);
+
+				// 发送光标移动事件
+				cursorMovedWriter.send(new CursorMoved(newPos, newPos.sub(oldPos)));
 
 				// 发送光标移动事件
 				cursorMovedWriter.send(new CursorMoved(newPos, newPos.sub(oldPos)));
@@ -185,6 +201,7 @@ export class InputPlugin implements Plugin {
 					// 发送鼠标滚轮事件
 					mouseWheelWriter.send(new MouseWheel(0, scrollDelta));
 				}
+				
 			}
 		});
 
