@@ -121,6 +121,9 @@ export class App {
 			error("App.run() was called while a plugin was building.");
 		}
 
+		// 注意：启动调度现在由 Main 调度在第一次 update() 时自动处理
+		// 这与 Rust Bevy 的 Main::run_main 行为一致
+
 		const runner = this.runner;
 		const app = this;
 		return runner(app);

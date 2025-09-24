@@ -16,7 +16,6 @@ import {
 	getRenderScheduleLabels,
 	getAllCoreSystemSets,
 	getDefaultScheduleEventMapping,
-	getStartupScheduleEventMapping,
 	BuiltinSchedules,
 	runMainSchedule,
 	ScheduleDescriptions,
@@ -184,19 +183,8 @@ export = (): void => {
 				scheduleOrder = new MainScheduleOrder();
 			});
 
-			it("第一次调用 getOrder 应该返回启动调度序列", () => {
+			it("getOrder 应该返回常规调度序列", () => {
 				const order = scheduleOrder.getOrder();
-				expect(order.size()).to.equal(3);
-				expectExecutionOrder(order, [
-					BuiltinSchedules.PRE_STARTUP,
-					BuiltinSchedules.STARTUP,
-					BuiltinSchedules.POST_STARTUP,
-				]);
-			});
-
-			it("第二次调用 getOrder 应该返回主循环调度序列", () => {
-				scheduleOrder.getOrder(); // 第一次调用
-				const order = scheduleOrder.getOrder(); // 第二次调用
 				expect(order.size()).to.equal(5);
 				expectExecutionOrder(order, [
 					BuiltinSchedules.FIRST,
@@ -207,8 +195,17 @@ export = (): void => {
 				]);
 			});
 
+			it("getStartupOrder 应该返回启动调度序列", () => {
+				const order = scheduleOrder.getStartupOrder();
+				expect(order.size()).to.equal(3);
+				expectExecutionOrder(order, [
+					BuiltinSchedules.PRE_STARTUP,
+					BuiltinSchedules.STARTUP,
+					BuiltinSchedules.POST_STARTUP,
+				]);
+			});
+
 			it("setOrder 应该设置自定义执行顺序", () => {
-				scheduleOrder.getOrder(); // 触发启动序列
 				const customOrder = ["CustomFirst" as ScheduleLabel, "CustomSecond" as ScheduleLabel];
 				scheduleOrder.setOrder(customOrder);
 
@@ -218,8 +215,6 @@ export = (): void => {
 			});
 
 			it("insertBefore 应该在指定位置前插入调度", () => {
-				scheduleOrder.getOrder(); // 触发启动序列
-
 				const newSchedule = "NewSchedule" as ScheduleLabel;
 				scheduleOrder.insertBefore(BuiltinSchedules.UPDATE, newSchedule);
 
@@ -233,8 +228,6 @@ export = (): void => {
 			});
 
 			it("insertAfter 应该在指定位置后插入调度", () => {
-				scheduleOrder.getOrder(); // 触发启动序列
-
 				const newSchedule = "NewSchedule" as ScheduleLabel;
 				scheduleOrder.insertAfter(BuiltinSchedules.UPDATE, newSchedule);
 
@@ -369,14 +362,6 @@ export = (): void => {
 				expect(mapping[MainScheduleLabel.CLEANUP]).to.equal(RunService.RenderStepped);
 			});
 
-			it("getStartupScheduleEventMapping 应该返回启动事件映射", () => {
-				const mapping = getStartupScheduleEventMapping();
-				const RunService = game.GetService("RunService");
-
-				expect(mapping[MainScheduleLabel.PRE_STARTUP]).to.equal(RunService.Heartbeat);
-				expect(mapping[MainScheduleLabel.STARTUP]).to.equal(RunService.Heartbeat);
-				expect(mapping[MainScheduleLabel.POST_STARTUP]).to.equal(RunService.Heartbeat);
-			});
 
 			it("主循环调度应该映射到 Heartbeat", () => {
 				const mapping = getDefaultScheduleEventMapping();
@@ -433,8 +418,6 @@ export = (): void => {
 				const scheduleOrder = new MainScheduleOrder();
 				const executionLog: string[] = [];
 
-				// 跳过启动序列
-				scheduleOrder.getOrder();
 
 				const runner = (label: ScheduleLabel) => {
 					executionLog.push(label);
@@ -456,8 +439,6 @@ export = (): void => {
 				const scheduleOrder = new MainScheduleOrder();
 				const executionLog: string[] = [];
 
-				// 跳过启动序列
-				scheduleOrder.getOrder();
 
 				// 设置自定义顺序
 				const customOrder = [
@@ -481,8 +462,6 @@ export = (): void => {
 				const scheduleOrder = new MainScheduleOrder();
 				const executionLog: string[] = [];
 
-				// 跳过启动序列
-				scheduleOrder.getOrder();
 				scheduleOrder.setOrder([]);
 
 				const runner = (label: ScheduleLabel) => {
@@ -659,7 +638,6 @@ export = (): void => {
 
 			it("应该支持动态修改调度顺序", () => {
 				const scheduleOrder = new MainScheduleOrder();
-				scheduleOrder.getOrder(); // 跳过启动
 
 				// 初始顺序
 				const initialOrder = [...scheduleOrder.getOrder()];
@@ -686,7 +664,6 @@ export = (): void => {
 
 			it("应该支持调度链式插入", () => {
 				const scheduleOrder = new MainScheduleOrder();
-				scheduleOrder.getOrder(); // 跳过启动
 
 				const schedules = ["A", "B", "C", "D", "E"].map((s) => s as ScheduleLabel);
 

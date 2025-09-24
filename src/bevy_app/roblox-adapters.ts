@@ -60,20 +60,25 @@ export class RobloxRunnerPlugin extends BasePlugin {
 			mainEvent = RunService.Heartbeat;
 		}
 
-		// 映射所有 Bevy 调度阶段到同一个事件
-		// 这样它们会按顺序执行
+		// 映射常规调度阶段到事件
+		// 注意：不包括启动调度（PRE_STARTUP, STARTUP, POST_STARTUP）
+		// 启动调度应该只在应用启动时运行一次，由 SubApp 内部管理
 		events["default"] = mainEvent;
 		events[BuiltinSchedules.FIRST] = mainEvent;
-		events[BuiltinSchedules.PRE_STARTUP] = mainEvent;
-		events[BuiltinSchedules.STARTUP] = mainEvent;
-		events[BuiltinSchedules.POST_STARTUP] = mainEvent;
+		// 不绑定启动调度到循环事件
+		// events[BuiltinSchedules.PRE_STARTUP] = mainEvent;
+		// events[BuiltinSchedules.STARTUP] = mainEvent;
+		// events[BuiltinSchedules.POST_STARTUP] = mainEvent;
 		events[BuiltinSchedules.PRE_UPDATE] = mainEvent;
 		events[BuiltinSchedules.UPDATE] = mainEvent;
 		events[BuiltinSchedules.POST_UPDATE] = mainEvent;
 		events[BuiltinSchedules.LAST] = mainEvent;
 		events[BuiltinSchedules.MAIN] = mainEvent;
 
-		// 启动 Loop
+		// 先运行一次启动调度
+		mainApp.runStartupSchedule();
+
+		// 启动 Loop（只包含常规调度）
 		mainApp.startLoop(events);
 	}
 }

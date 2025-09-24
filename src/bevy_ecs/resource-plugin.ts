@@ -369,8 +369,6 @@ export class EcsResourcePlugin extends BasePlugin {
 				dependencies: ["resources", "resources.metadata"],
 			},
 		);
-
-		print("EcsResourcePlugin initialized with all extensions");
 	}
 
 	name(): string {

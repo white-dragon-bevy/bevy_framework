@@ -288,21 +288,6 @@ export function getDefaultScheduleEventMapping(): { [scheduleLabel: string]: RBX
 }
 
 /**
- * 获取启动调度的事件映射
- * 启动调度通常在应用初始化时手动触发
- * @returns 启动调度事件映射
- */
-export function getStartupScheduleEventMapping(): { [scheduleLabel: string]: RBXScriptSignal } {
-	const RunService = game.GetService("RunService");
-
-	return {
-		[MainScheduleLabel.PRE_STARTUP]: RunService.Heartbeat,
-		[MainScheduleLabel.STARTUP]: RunService.Heartbeat,
-		[MainScheduleLabel.POST_STARTUP]: RunService.Heartbeat,
-	};
-}
-
-/**
  * BuiltinSchedules - 对应 Rust Bevy 的内置调度器
  * 提供与 Rust 版本兼容的常量
  */
@@ -367,52 +352,61 @@ export const BuiltinSchedules = {
 
 /**
  * 主调度序列管理类
+ * 对应 Rust bevy_app::main_schedule::MainScheduleOrder
  */
 export class MainScheduleOrder {
-	private order: Array<ScheduleLabel> = [
+	/** 常规调度标签（每帧运行） */
+	public labels: Array<ScheduleLabel> = [
 		BuiltinSchedules.FIRST,
 		BuiltinSchedules.PRE_UPDATE,
 		BuiltinSchedules.UPDATE,
 		BuiltinSchedules.POST_UPDATE,
 		BuiltinSchedules.LAST,
 	];
-	private hasRunStartup = false;
+
+	/** 启动调度标签（只运行一次） */
+	public startupLabels: Array<ScheduleLabel> = [
+		BuiltinSchedules.PRE_STARTUP,
+		BuiltinSchedules.STARTUP,
+		BuiltinSchedules.POST_STARTUP,
+	];
 
 	/**
-	 * 获取调度执行顺序
+	 * 获取常规调度执行顺序
 	 */
 	getOrder(): Array<ScheduleLabel> {
-		// 第一次运行时，执行启动调度
-		if (!this.hasRunStartup) {
-			this.hasRunStartup = true;
-			return [BuiltinSchedules.PRE_STARTUP, BuiltinSchedules.STARTUP, BuiltinSchedules.POST_STARTUP];
-		}
-		// 后续运行执行常规调度序列
-		return [...this.order];
+		return [...this.labels];
 	}
 
 	/**
-	 * 设置调度执行顺序
+	 * 获取启动调度执行顺序
+	 */
+	getStartupOrder(): Array<ScheduleLabel> {
+		return [...this.startupLabels];
+	}
+
+	/**
+	 * 设置常规调度执行顺序
 	 */
 	setOrder(order: Array<ScheduleLabel>): void {
-		this.order = [...order];
+		this.labels = [...order];
 	}
 
 	/**
 	 * 在指定调度前插入新调度
 	 */
 	insertBefore(target: ScheduleLabel, newSchedule: ScheduleLabel): void {
-		const index = this.order.indexOf(target);
+		const index = this.labels.indexOf(target);
 		if (index !== -1) {
 			// 在指定位置插入新调度
 			const newOrder: Array<ScheduleLabel> = [];
-			for (let i = 0; i < this.order.size(); i++) {
+			for (let i = 0; i < this.labels.size(); i++) {
 				if (i === index) {
 					newOrder.push(newSchedule);
 				}
-				newOrder.push(this.order[i]);
+				newOrder.push(this.labels[i]);
 			}
-			this.order = newOrder;
+			this.labels = newOrder;
 		}
 	}
 
@@ -420,23 +414,59 @@ export class MainScheduleOrder {
 	 * 在指定调度后插入新调度
 	 */
 	insertAfter(target: ScheduleLabel, newSchedule: ScheduleLabel): void {
-		const index = this.order.indexOf(target);
+		const index = this.labels.indexOf(target);
 		if (index !== -1) {
 			// 在指定位置后插入新调度
 			const newOrder: Array<ScheduleLabel> = [];
-			for (let i = 0; i < this.order.size(); i++) {
-				newOrder.push(this.order[i]);
+			for (let i = 0; i < this.labels.size(); i++) {
+				newOrder.push(this.labels[i]);
 				if (i === index) {
 					newOrder.push(newSchedule);
 				}
 			}
-			this.order = newOrder;
+			this.labels = newOrder;
+		}
+	}
+
+	/**
+	 * 在指定启动调度前插入新启动调度
+	 */
+	insertStartupBefore(target: ScheduleLabel, newSchedule: ScheduleLabel): void {
+		const index = this.startupLabels.indexOf(target);
+		if (index !== -1) {
+			const newOrder: Array<ScheduleLabel> = [];
+			for (let i = 0; i < this.startupLabels.size(); i++) {
+				if (i === index) {
+					newOrder.push(newSchedule);
+				}
+				newOrder.push(this.startupLabels[i]);
+			}
+			this.startupLabels = newOrder;
+		}
+	}
+
+	/**
+	 * 在指定启动调度后插入新启动调度
+	 */
+	insertStartupAfter(target: ScheduleLabel, newSchedule: ScheduleLabel): void {
+		const index = this.startupLabels.indexOf(target);
+		if (index !== -1) {
+			const newOrder: Array<ScheduleLabel> = [];
+			for (let i = 0; i < this.startupLabels.size(); i++) {
+				newOrder.push(this.startupLabels[i]);
+				if (i === index) {
+					newOrder.push(newSchedule);
+				}
+			}
+			this.startupLabels = newOrder;
 		}
 	}
 }
 
 /**
  * 运行主调度序列
+ * 对应 Rust bevy_app::main_schedule::Main::run_main
+ * 注意：这个函数现在只运行常规调度，启动调度由SubApp单独管理
  * @param world - Matter World 实例
  * @param scheduleOrder - 调度顺序管理器
  * @param runner - 调度执行函数
@@ -446,7 +476,8 @@ export function runMainSchedule(
 	scheduleOrder: MainScheduleOrder,
 	runner: (label: ScheduleLabel) => void,
 ): void {
-	for (const scheduleLabel of scheduleOrder.getOrder()) {
+	// 运行常规调度
+	for (const scheduleLabel of scheduleOrder.labels) {
 		runner(scheduleLabel);
 	}
 }

@@ -29,11 +29,12 @@ describe("System Configs API", () => {
 		it("应该支持添加简单系统", () => {
 			const systemA = createSystem("A");
 			app.addSystems(BuiltinSchedules.UPDATE, systemA);
-			// 第一次update运行启动调度，第二次运行主循环调度（包含UPDATE）
+			// 第一次update运行启动调度和常规调度，第二次也运行常规调度
 			app.update();
 			app.update();
-			expect(executionOrder.size()).to.equal(1);
+			expect(executionOrder.size()).to.equal(2);
 			expect(executionOrder[0]).to.equal("A");
+			expect(executionOrder[1]).to.equal("A");
 		});
 
 		it("应该支持添加多个系统", () => {
@@ -58,9 +59,11 @@ describe("System Configs API", () => {
 			app.update();
 			app.update();
 
-			expect(executionOrder.size()).to.equal(2);
+			expect(executionOrder.size()).to.equal(4);
 			expect(executionOrder[0]).to.equal("A");
 			expect(executionOrder[1]).to.equal("B");
+			expect(executionOrder[2]).to.equal("A");
+			expect(executionOrder[3]).to.equal("B");
 		});
 
 		it("应该支持 chain() 顺序执行", () => {
@@ -72,10 +75,13 @@ describe("System Configs API", () => {
 			app.update();
 			app.update();
 
-			expect(executionOrder.size()).to.equal(3);
+			expect(executionOrder.size()).to.equal(6);
 			expect(executionOrder[0]).to.equal("A");
 			expect(executionOrder[1]).to.equal("B");
 			expect(executionOrder[2]).to.equal("C");
+			expect(executionOrder[3]).to.equal("A");
+			expect(executionOrder[4]).to.equal("B");
+			expect(executionOrder[5]).to.equal("C");
 		});
 
 		it("应该支持数组的 chain() 方法", () => {
@@ -89,10 +95,13 @@ describe("System Configs API", () => {
 			app.update();
 			app.update();
 
-			expect(executionOrder.size()).to.equal(3);
+			expect(executionOrder.size()).to.equal(6);
 			expect(executionOrder[0]).to.equal("A");
 			expect(executionOrder[1]).to.equal("B");
 			expect(executionOrder[2]).to.equal("C");
+			expect(executionOrder[3]).to.equal("A");
+			expect(executionOrder[4]).to.equal("B");
+			expect(executionOrder[5]).to.equal("C");
 		});
 	});
 
@@ -122,8 +131,9 @@ describe("System Configs API", () => {
 
 			app.update();
 			app.update();
-			expect(executionOrder.size()).to.equal(1);
+			expect(executionOrder.size()).to.equal(2);
 			expect(executionOrder[0]).to.equal("A");
+			expect(executionOrder[1]).to.equal("A");
 
 			shouldRun = false;
 			executionOrder = [];
@@ -216,10 +226,13 @@ describe("System Configs API", () => {
 
 			app.update();
 			app.update();
-			expect(executionOrder.size()).to.equal(3);
+			expect(executionOrder.size()).to.equal(6);
 			expect(executionOrder[0]).to.equal("A");
 			expect(executionOrder[1]).to.equal("B");
 			expect(executionOrder[2]).to.equal("C");
+			expect(executionOrder[3]).to.equal("A");
+			expect(executionOrder[4]).to.equal("B");
+			expect(executionOrder[5]).to.equal("C");
 		});
 
 		// TODO: Fix nested chain with dependencies

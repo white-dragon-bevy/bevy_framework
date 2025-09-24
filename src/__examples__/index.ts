@@ -1,7 +1,16 @@
-const exampleFolder: string = "leafwing-input-manager";
-const exampleName: string = "simple";
+const exampleFolder: string = "state";
+const exampleName: string = "computed_states";
+
+// Import test function
+import { testStartupScheduleFix } from "./test_startup_fix";
 
 export function bootstrap() {
+	// 先运行测试
+	print("\n=== Running Startup Schedule Fix Test First ===");
+	testStartupScheduleFix();
+
+	print("\n=== Now Running Original Example ===");
+
 	// 然后运行原有的示例
 	const folder = script.FindFirstChild(exampleFolder);
 	assert(folder, "can't find exampleFolder :" + exampleFolder);

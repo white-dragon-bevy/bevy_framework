@@ -140,8 +140,8 @@ export = (): void => {
 
 				// 启动系统应该只执行一次
 				expect(tracker.getCallCount("StartupSystem")).to.equal(1);
-				// 更新系统应该执行2次（因为第一次update运行的是启动调度，不包含Update）
-				expect(tracker.getCallCount("UpdateSystem")).to.equal(2);
+				// 更新系统应该执行3次（第一次update运行启动调度和常规调度，后两次只运行常规调度）
+				expect(tracker.getCallCount("UpdateSystem")).to.equal(3);
 			});
 		});
 
@@ -389,8 +389,8 @@ export = (): void => {
 				expect(tracker.executionOrder.includes("CustomRunner:Start")).to.equal(true);
 				expect(tracker.executionOrder.includes("CustomRunner:End")).to.equal(true);
 				expect(runCount).to.equal(3);
-				// UpdateSystem只在主循环调度中运行，第一次update运行启动调度，所以只有2次
-				expect(tracker.getCallCount("UpdateSystem")).to.equal(2);
+				// UpdateSystem在每次update都运行（第一次update运行启动调度和常规调度，后两次只运行常规调度）
+				expect(tracker.getCallCount("UpdateSystem")).to.equal(3);
 				expect(exitCode).to.be.ok();
 			});
 		});

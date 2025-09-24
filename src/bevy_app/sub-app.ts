@@ -47,6 +47,7 @@ export class SubApp {
 	private context: Context;
 	private loopConnections?: { [scheduleLabel: string]: RBXScriptConnection };
 	private isLoopRunning = false;
+	private hasRunStartup = false; // 跟踪启动调度是否已经运行
 
 	constructor() {
 		this._world = createWorldContainer();
@@ -139,6 +140,43 @@ export class SubApp {
 	}
 
 	/**
+	 * 运行启动调度
+	 * 只应该在应用启动时调用一次
+	 * 对应 Rust Main::run_main 中的启动逻辑
+	 */
+	runStartupSchedule(): void {
+		if (this.hasRunStartup) {
+			return; // 已经运行过，不再重复运行
+		}
+		this.hasRunStartup = true;
+
+		// 运行启动调度序列
+		for (const label of this.scheduleOrder.startupLabels) {
+			const schedule = this.schedules.getSchedule(label);
+			if (schedule) {
+				const compiledSystems = schedule.compile();
+				for (const systemStruct of compiledSystems) {
+					try {
+						systemStruct.system(this._world.getWorld(), this.context);
+					} catch (err) {
+						if (this.errorHandler) {
+							this.errorHandler(err);
+						} else {
+							throw err;
+						}
+					}
+				}
+			}
+		}
+
+		// 执行命令缓冲
+		this.commandBuffer.flush(this._world.getWorld());
+
+		// 清理事件
+		this.eventManager.cleanup();
+	}
+
+	/**
 	 * 更新SubApp
 	 * 对应 Rust SubApp::update
 	 */
@@ -157,8 +195,15 @@ export class SubApp {
 		// 向后兼容：如果 Loop 没有运行，使用旧的直接执行方式
 		// 使用已初始化的 context
 
-		if (this.updateSchedule !== undefined) {
-			// 如果是主调度，运行完整的调度序列
+		// 特殊处理 Main 调度
+		// 在 Rust Bevy 中，Main 调度包含 run_main 系统，负责运行启动（仅第一次）和常规调度
+		if (this.updateSchedule === "Main") {
+			// Main 调度的特殊处理：先运行启动调度（只在第一次），然后运行常规调度
+			if (!this.hasRunStartup) {
+				this.runStartupSchedule();
+			}
+
+			// 运行常规调度序列
 			runMainSchedule(this._world.getWorld(), this.scheduleOrder, (label) => {
 				// 执行指定调度中的所有系统
 				const schedule = this.schedules.getSchedule(label);
@@ -463,7 +508,6 @@ export class SubApp {
 		for (const [key] of pairs(events)) {
 			eventKeys.push(key as string);
 		}
-		print("[SubApp] Loop started with events:", eventKeys);
 	}
 
 	/**

@@ -87,9 +87,9 @@ export function runComputedStatesExample(): void {
 	let startupCount = 0;
 	app.addSystems(BuiltinSchedules.STARTUP, (world: World) => {
 		startupCount++;
-		print(`Example startup complete (call #${startupCount})`);
+		print(`[computed_states] Startup system executed (call #${startupCount})`);
 		if (startupCount > 1) {
-			warn(`STARTUP system called multiple times! This should only happen once.`);
+			warn(`[computed_states] ERROR: STARTUP system called multiple times! This should only happen once.`);
 		}
 	});
 
