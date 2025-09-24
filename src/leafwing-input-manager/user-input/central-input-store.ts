@@ -1,5 +1,7 @@
 import { ButtonValue } from "./traits/buttonlike";
 import { HashMap } from "../core";
+import { ButtonInput } from "../../bevy_input/button-input";
+import { AccumulatedMouseMotion, AccumulatedMouseWheel, MouseButton } from "../../bevy_input/mouse";
 
 /**
  * An overarching store for all user inputs
@@ -216,5 +218,84 @@ export class CentralInputStore {
 	 */
 	updateGamepadStickRight(position: Vector3): void {
 		this.updateDualAxislike("gamepad_stick_right", new Vector2(position.X, position.Y));
+	}
+
+	/**
+	 * Synchronizes input state from bevy_input resources
+	 * @param keyboardInput - The keyboard ButtonInput resource
+	 * @param mouseInput - The mouse ButtonInput resource
+	 * @param mouseMotion - The mouse motion resource
+	 * @param mouseWheel - The mouse wheel resource
+	 */
+	syncFromBevyInput(
+		keyboardInput?: ButtonInput<Enum.KeyCode>,
+		mouseInput?: ButtonInput<Enum.UserInputType>,
+		mouseMotion?: AccumulatedMouseMotion,
+		mouseWheel?: AccumulatedMouseWheel,
+	): void {
+		// Don't clear state - we need to preserve it for proper state tracking
+		// Only update the values that have changed
+
+		// Sync keyboard state
+		if (keyboardInput) {
+			// Only check commonly used keys to improve performance
+			const commonKeys = [
+				Enum.KeyCode.Space, Enum.KeyCode.Return, Enum.KeyCode.LeftShift, Enum.KeyCode.LeftControl,
+				Enum.KeyCode.A, Enum.KeyCode.D, Enum.KeyCode.W, Enum.KeyCode.S,
+				Enum.KeyCode.Left, Enum.KeyCode.Right, Enum.KeyCode.Up, Enum.KeyCode.Down,
+				Enum.KeyCode.Q, Enum.KeyCode.E, Enum.KeyCode.R, Enum.KeyCode.F,
+				Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four,
+				Enum.KeyCode.Tab, Enum.KeyCode.Escape,
+			];
+
+			for (const keyCode of commonKeys) {
+				const key = `keyboard_${keyCode.Name}`;
+				const pressed = keyboardInput.isPressed(keyCode);
+
+				// Always update the state, whether pressed or not
+				this.updateButtonlike(key, {
+					pressed,
+					value: pressed ? 1 : 0
+				});
+			}
+		}
+
+		// Sync mouse button state
+		if (mouseInput) {
+			const mouseButtons = [
+				Enum.UserInputType.MouseButton1,
+				Enum.UserInputType.MouseButton2,
+				Enum.UserInputType.MouseButton3,
+			];
+
+			for (const button of mouseButtons) {
+				const key = `mouse_${button.Name}`;
+				const pressed = mouseInput.isPressed(button);
+
+				// Always update the state
+				this.updateButtonlike(key, {
+					pressed,
+					value: pressed ? 1 : 0
+				});
+			}
+		}
+
+		// Sync mouse motion
+		if (mouseMotion) {
+			const deltaX = mouseMotion.getDeltaX();
+			const deltaY = mouseMotion.getDeltaY();
+			const delta = new Vector2(deltaX, deltaY);
+			if (delta.Magnitude > 0) {
+				this.updateDualAxislike("mouse_move", delta);
+			}
+		}
+
+		// Sync mouse wheel
+		if (mouseWheel) {
+			const delta = mouseWheel.consume();
+			if (delta !== undefined && delta !== 0) {
+				this.updateAxislike("mouse_wheel", delta);
+			}
+		}
 	}
 }

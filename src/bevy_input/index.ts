@@ -7,6 +7,16 @@
 export { ButtonInput } from "./button-input";
 export { AccumulatedMouseMotion, AccumulatedMouseWheel, MouseButton, MousePosition } from "./mouse";
 
+// 事件类型导出
+export {
+	ButtonState,
+	CursorMoved,
+	MouseButtonInput,
+	MouseMotion,
+	MouseScrollUnit,
+	MouseWheel,
+} from "./mouse-events";
+
 // 条件函数导出
 export {
 	RunCondition,

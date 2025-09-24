@@ -41,6 +41,11 @@ export class ActionState<Action extends Actionlike> {
 	private disabled: boolean;
 
 	/**
+	 * Map from action hash to action instance for reverse lookup
+	 */
+	private readonly hashToAction: HashMap<string, Action>;
+
+	/**
 	 * Creates a new ActionState
 	 * @param disabled - Whether the action state is initially disabled
 	 */
@@ -49,6 +54,7 @@ export class ActionState<Action extends Actionlike> {
 		this.buttonData = new Map();
 		this.disabledActions = new Set();
 		this.disabled = disabled;
+		this.hashToAction = new Map();
 	}
 
 	/**
@@ -144,6 +150,12 @@ export class ActionState<Action extends Actionlike> {
 			return;
 		}
 
+		// Register the action in the hash map
+		const hash = action.hash();
+		if (!this.hashToAction.has(hash)) {
+			this.hashToAction.set(hash, action);
+		}
+
 		const actionData = this.getActionData(action);
 		const buttonData = this.getButtonData(action);
 		const wasPressed = actionData.pressed;
@@ -216,6 +228,18 @@ export class ActionState<Action extends Actionlike> {
 			for (const [, actionData] of this.actionData) {
 				actionData.tick(deltaTime);
 			}
+		}
+	}
+
+	/**
+	 * Registers an action in the state
+	 * This ensures the action can be looked up by its hash
+	 * @param action - The action to register
+	 */
+	public registerAction(action: Action): void {
+		const hash = action.hash();
+		if (!this.hashToAction.has(hash)) {
+			this.hashToAction.set(hash, action);
 		}
 	}
 
@@ -340,10 +364,7 @@ export class ActionState<Action extends Actionlike> {
 	 * @returns The action if found, undefined otherwise
 	 */
 	public getActionByHash(hash: string): Action | undefined {
-		// This is a simplified implementation
-		// In a real implementation, you'd need to maintain a reverse mapping
-		// from hash to action instance
-		return undefined;
+		return this.hashToAction.get(hash);
 	}
 
 	/**
@@ -428,6 +449,11 @@ export class ActionState<Action extends Actionlike> {
 	 */
 	private getActionData(action: Action): ActionData {
 		const actionHash = action.hash();
+		// Register the action in the hash map
+		if (!this.hashToAction.has(actionHash)) {
+			this.hashToAction.set(actionHash, action);
+		}
+
 		let actionData = this.actionData.get(actionHash);
 
 		if (actionData === undefined) {

@@ -92,7 +92,7 @@ export class KeyCode implements Buttonlike {
 	}
 
 	hash(): string {
-		return `KeyCode:${this.keyCode.Name}`;
+		return `keyboard_${this.keyCode.Name}`;
 	}
 
 	equals(other: UserInput): boolean {
