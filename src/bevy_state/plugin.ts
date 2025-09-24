@@ -66,6 +66,10 @@ export class StatesPlugin<S extends States> implements Plugin {
 
 		// 初始化状态资源
 		if (this.config.initOnStartup !== false) {
+			// Debug: Check if defaultState is a function
+			if (!typeIs(this.config.defaultState, "function")) {
+				error(`defaultState is not a function, got ${typeOf(this.config.defaultState)}`);
+			}
 			const defaultState = this.config.defaultState();
 			this.resourceManager.insertResource(State<S>, State.create(defaultState));
 			this.resourceManager.insertResource(NextState<S>, NextState.unchanged<S>());
