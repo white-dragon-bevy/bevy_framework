@@ -232,6 +232,7 @@ export class InputMap<Action extends Actionlike> {
 					const buttonPressed = input.pressed(inputStore, this.gamepadAssociation);
 					const buttonValue = input.value(inputStore, this.gamepadAssociation);
 
+
 					if (buttonPressed) {
 						pressed = true;
 						value = math.max(value, buttonValue);

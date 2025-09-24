@@ -46,7 +46,7 @@ export class MouseButton implements Buttonlike {
 	}
 
 	hash(): string {
-		return `MouseButton:${this.button.Name}`;
+		return `mouse_${this.button.Name}`;
 	}
 
 	equals(other: UserInput): boolean {
