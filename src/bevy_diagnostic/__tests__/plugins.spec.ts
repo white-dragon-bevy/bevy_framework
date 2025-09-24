@@ -55,14 +55,26 @@ export = () => {
 
 			// 创建测试上下文
 			const context = new AppContext();
-			context.registerExtension("resources", {
-				getResource: (resourceType: unknown) => {
+			const mockResourceManager = {
+				getResource: function (this: unknown, resourceType: unknown) {
 					if (resourceType === FrameCount) {
 						return frameCount;
 					}
 					return undefined;
 				},
-			} as any);
+				insertResource: () => {},
+				removeResource: () => undefined,
+				hasResource: () => false,
+				getResourceIds: () => [],
+				getResourceCount: () => 0,
+				clear: () => {},
+				getMetadata: () => undefined,
+				setMetadata: () => {},
+				batchInsert: () => {},
+				batchRemove: () => [],
+				cloneResource: () => undefined,
+			};
+			context.registerExtension("resources", mockResourceManager as any);
 			updateFrameCount(world, context);
 			expect(frameCount.value).to.equal(1);
 
@@ -78,14 +90,26 @@ export = () => {
 
 			// 创建测试上下文
 			const context = new AppContext();
-			context.registerExtension("resources", {
-				getResource: (resourceType: unknown) => {
+			const mockResourceManager = {
+				getResource: function (this: unknown, resourceType: unknown) {
 					if (resourceType === FrameCount) {
 						return frameCount;
 					}
 					return undefined;
 				},
-			} as any);
+				insertResource: () => {},
+				removeResource: () => undefined,
+				hasResource: () => false,
+				getResourceIds: () => [],
+				getResourceCount: () => 0,
+				clear: () => {},
+				getMetadata: () => undefined,
+				setMetadata: () => {},
+				batchInsert: () => {},
+				batchRemove: () => [],
+				cloneResource: () => undefined,
+			};
+			context.registerExtension("resources", mockResourceManager as any);
 			updateFrameCount(world, context);
 			expect(frameCount.value).to.equal(0);
 		});

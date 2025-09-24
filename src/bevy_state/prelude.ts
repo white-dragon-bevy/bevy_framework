@@ -1,0 +1,38 @@
+/**
+ * prelude.ts - 常用导出的便捷模块
+ * 包含 bevy_state 最常用的类型和函数
+ */
+
+// 核心状态类型
+export { States, EnumStates, createStates } from "./states";
+
+// 资源
+export { State, NextState } from "./resources";
+
+// 转换
+export {
+	StateTransition,
+	StateTransitionEvent,
+	OnEnter,
+	OnExit,
+	OnTransition,
+} from "./transitions";
+
+// 计算和子状态
+export { ComputedStates, createComputedState } from "./computed-states";
+export { SubStates, createEnumSubState } from "./sub-states";
+
+// 条件
+export {
+	RunCondition,
+	inState,
+	stateExists,
+	stateChanged,
+} from "./condition";
+
+// 插件
+export {
+	StatesPlugin,
+	ComputedStatesPlugin,
+	SubStatesPlugin,
+} from "./plugin";

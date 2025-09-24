@@ -283,7 +283,7 @@ export = () => {
 				// 捕获错误
 				for (const loopSystem of compiledSystems) {
 					try {
-						loopSystem.system(world, {} as AppContext);
+						loopSystem.system(world, new AppContext());
 					} catch {
 						errorCaught = true;
 					}
@@ -300,7 +300,7 @@ export = () => {
 
 		beforeEach(() => {
 			world = new BevyWorld();
-			schedules = new Schedules(world, {} as AppContext);
+			schedules = new Schedules(world, new AppContext());
 		});
 
 		afterEach(() => {

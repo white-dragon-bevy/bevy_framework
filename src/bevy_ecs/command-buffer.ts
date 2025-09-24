@@ -86,6 +86,13 @@ export interface RemoveResourceCommand extends BaseCommand {
 }
 
 /**
+ * 自定义命令接口 - 兼容 Rust 的 Command trait
+ */
+export interface CustomCommand extends Record<string, unknown> {
+	readonly type: string;
+}
+
+/**
  * 所有命令类型的联合
  */
 export type Command =
@@ -94,7 +101,8 @@ export type Command =
 	| AddComponentCommand
 	| RemoveComponentCommand
 	| InsertResourceCommand
-	| RemoveResourceCommand;
+	| RemoveResourceCommand
+	| CustomCommand;
 
 /**
  * 命令执行结果
@@ -122,6 +130,23 @@ export class CommandBuffer {
 	private readonly pendingEntityIds = new Map<number, EntityId>();
 	private nextTempEntityId = 0;
 	private resourceManager?: ResourceManagerLike;
+
+	/**
+	 * 添加一个通用命令到队列 (兼容 Rust 的 queue 方法)
+	 * @param command - 要添加的命令
+	 */
+	public queue<T extends Command | CustomCommand>(command: T): void {
+		this.commands.push(command as Command);
+	}
+
+	/**
+	 * 添加命令的别名方法 (为了向后兼容)
+	 * @deprecated 使用 queue() 代替
+	 * @param command - 要添加的命令
+	 */
+	public add<T extends Command | CustomCommand>(command: T): void {
+		this.queue(command);
+	}
 
 	/**
 	 * 生成新实体并添加组件
@@ -292,11 +317,12 @@ export class CommandBuffer {
 	private executeCommand(world: World, command: Command): CommandResult {
 		switch (command.type) {
 			case CommandType.Spawn: {
-				const entityId = world.spawn(...command.components);
+				const spawnCmd = command as SpawnCommand;
+				const entityId = world.spawn(...spawnCmd.components);
 
 				// 如果有临时ID，记录映射关系
-				if (command.entityId !== undefined) {
-					this.pendingEntityIds.set(command.entityId as number, entityId);
+				if (spawnCmd.entityId !== undefined) {
+					this.pendingEntityIds.set(spawnCmd.entityId as number, entityId);
 				}
 
 				return {
@@ -306,7 +332,8 @@ export class CommandBuffer {
 			}
 
 			case CommandType.Despawn: {
-				const realEntityId = this.resolveEntityId(command.entityId);
+				const despawnCmd = command as DespawnCommand;
+				const realEntityId = this.resolveEntityId(despawnCmd.entityId);
 				world.despawn(realEntityId);
 
 				return {
@@ -316,8 +343,9 @@ export class CommandBuffer {
 			}
 
 			case CommandType.AddComponent: {
-				const realEntityId = this.resolveEntityId(command.entityId);
-				world.insert(realEntityId, command.component);
+				const addCmd = command as AddComponentCommand;
+				const realEntityId = this.resolveEntityId(addCmd.entityId);
+				world.insert(realEntityId, addCmd.component);
 
 				return {
 					success: true,
@@ -326,8 +354,9 @@ export class CommandBuffer {
 			}
 
 			case CommandType.RemoveComponent: {
-				const realEntityId = this.resolveEntityId(command.entityId);
-				world.remove(realEntityId, command.componentType as never);
+				const removeCmd = command as RemoveComponentCommand;
+				const realEntityId = this.resolveEntityId(removeCmd.entityId);
+				world.remove(realEntityId, removeCmd.componentType as never);
 
 				return {
 					success: true,
@@ -357,10 +386,17 @@ export class CommandBuffer {
 			}
 
 			default: {
-				const _exhaustive: never = command;
+				// 处理自定义命令
+				if ("type" in command && typeIs(command.type, "string")) {
+					// 自定义命令应该由专门的处理器处理
+					// 这里返回成功，实际处理在外部系统中
+					return {
+						success: true,
+					};
+				}
 				return {
 					success: false,
-					error: `Unknown command type: ${tostring(_exhaustive)}`,
+					error: `Unknown command type: ${tostring(command)}`,
 				};
 			}
 		}
