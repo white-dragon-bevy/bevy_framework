@@ -14,6 +14,8 @@ import type { SystemFunction } from "../bevy_ecs/schedule/types";
 import type { IntoSystemConfigs } from "../bevy_ecs/schedule";
 import type { Diagnostic, DiagnosticsStore } from "../bevy_diagnostic/diagnostic";
 import { AppContext } from "./context";
+import { RunService } from "@rbxts/services";
+import { isMatchRobloxContext, RobloxContext } from "../utils/roblox-utils";
 
 /**
  * Bevy App主类
@@ -221,8 +223,11 @@ export class App {
 			throw new DuplicatePluginError(plugin.name());
 		}
 
-		// 添加到插件注册表
-		mainApp.addPlugin(plugin);
+		// add by roblox context
+		if (isMatchRobloxContext(plugin.robloxContext)) {
+			// 添加到插件注册表
+			mainApp.addPlugin(plugin);
+		}
 	}
 
 	/**
@@ -263,6 +268,26 @@ export class App {
 	 */
 	addSystems(schedule: ScheduleLabel, ...systems: IntoSystemConfigs[]): this {
 		this.subApps.main().addSystems(schedule, ...systems);
+		return this;
+	}
+
+	/**
+	 * 仅在服务端添加系统
+	 */
+	addServerSystems(schedule: ScheduleLabel, ...systems: IntoSystemConfigs[]): this {
+		if (isMatchRobloxContext(RobloxContext.Server)) {
+			this.subApps.main().addSystems(schedule, ...systems);
+		}
+		return this;
+	}
+
+	/**
+	 * 仅在客户端添加系统
+	 */
+	addClientSystems(schedule: ScheduleLabel, ...systems: IntoSystemConfigs[]): this {
+		if (isMatchRobloxContext(RobloxContext.Client)) {
+			this.subApps.main().addSystems(schedule, ...systems);
+		}
 		return this;
 	}
 

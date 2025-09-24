@@ -175,6 +175,11 @@ const CollisionEvent = component<{ entity: Entity }>("CollisionEvent");
    - 验证性能表现
    - 检查类型安全
 
+6. **修改启动入口**
+  - 修改 `src/__examples__/index.ts` 中的配置：
+  - `const exampleFolder: string = "<folderName>"`
+  - `const exampleName: string = "<scriptName>"`
+
 ### 6. 示例结构
 
 ```typescript
@@ -207,6 +212,8 @@ const app = App.create();
 app.addPlugin(new ExamplePlugin());
 // 注意：某些示例可能不需要 run()，取决于具体实现
 ```
+
+**注意** 例子代码结尾不用导出, `直接执行例子函数`.
 
 ### 7. 常见迁移映射
 

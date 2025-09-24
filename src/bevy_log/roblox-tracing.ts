@@ -98,7 +98,7 @@ export class RobloxLayer implements Layer {
 		// 根据级别使用不同的输出函数
 		switch (level) {
 			case Level.ERROR:
-				error(message);
+				warn(message);
 				break;
 			case Level.WARN:
 				warn(message);

@@ -1,5 +1,5 @@
 const exampleFolder: string = "app";
-const exampleName: string = "empty_defaults";
+const exampleName: string = "custom_loop";
 
 export function bootstrap() {
 	// 然后运行原有的示例
