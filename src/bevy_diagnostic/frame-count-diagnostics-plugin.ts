@@ -27,7 +27,9 @@ export class FrameCount implements Resource {
 	value: number = 0;
 
 	constructor(value: number = 0) {
-		this.value = value;
+		// 确保初始值也符合32位无符号整数约束
+		const MAX_U32 = 0xffffffff;
+		this.value = value & MAX_U32;
 	}
 }
 
@@ -74,8 +76,13 @@ export class FrameCountPlugin implements Plugin {
  */
 export function updateFrameCount(world: World, context: Context): void {
 	const resources = context.get("resources");
+	if (!resources) {
+		return;
+	}
 	const frameCount = resources.getResource(FrameCount);
 	if (frameCount) {
-		frameCount.value = (frameCount.value + 1) % 2 ** 32;
+		// 使用位运算确保32位无符号整数的回绕行为
+		const MAX_U32 = 0xffffffff;
+		frameCount.value = (frameCount.value + 1) & MAX_U32;
 	}
 }
