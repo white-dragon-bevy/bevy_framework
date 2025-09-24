@@ -3,3 +3,4 @@ out/
 include/
 testez-companion-info.model.json
 sourcemap.json
+tmp/

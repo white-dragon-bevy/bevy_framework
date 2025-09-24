@@ -9,6 +9,7 @@
 ## 输入目录
 
 - `bevy-origin/crates/<pluginName>/` - Bevy 原始应用框架代码
+- `bevy-origin-packages/<pluginName>/` - 社区贡献, 上面的找不到就在这里找
 
 ## 输出目录
 
