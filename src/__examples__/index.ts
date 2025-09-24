@@ -1,8 +1,14 @@
 const exampleFolder: string = "state";
 const exampleName: string = "computed_states";
 
+const exampleFolder: string = "render";
+const exampleName: string = "moving-entities";
 
 export function bootstrap() {
+	// 先运行测试
+	print("\n=== Running Startup Schedule Fix Test First ===");
+
+	print("\n=== Now Running Original Example ===");
 
 	// 然后运行原有的示例
 	const folder = script.FindFirstChild(exampleFolder);
@@ -10,5 +16,6 @@ export function bootstrap() {
 	const exampleScript = folder.FindFirstChild(exampleName) as ModuleScript;
 	assert(exampleScript, "can't find exampleScript :" + exampleName);
 
+	require(exampleScript)
 	require(exampleScript)
 }
