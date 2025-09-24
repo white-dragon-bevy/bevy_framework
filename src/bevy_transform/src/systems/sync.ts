@@ -5,7 +5,7 @@
 
 import { World, AnyEntity } from "@rbxts/matter";
 import { Transform, GlobalTransform, computeGlobalTransform } from "../components";
-import { Parent, Children } from "./propagation";
+import { Parent } from "../../../bevy_ecs/hierarchy";
 
 /**
  * 同步简单变换
@@ -16,10 +16,9 @@ export function syncSimpleTransforms(world: World): void {
 	// 查询所有有 Transform 但没有父级和子级的实体
 	for (const [entity, transform] of world.query(Transform)) {
 		const hasParent = world.get(entity, Parent) !== undefined;
-		const hasChildren = world.get(entity, Children) !== undefined;
 
-		// 只处理没有父子关系的实体
-		if (!hasParent && !hasChildren) {
+		// 只处理没有父级的实体（根实体）
+		if (!hasParent) {
 			// 直接从 Transform 计算 GlobalTransform
 			const globalTransform = computeGlobalTransform(transform);
 			world.insert(entity as AnyEntity, GlobalTransform(globalTransform));
