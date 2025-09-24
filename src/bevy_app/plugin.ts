@@ -3,6 +3,7 @@
  * 对应 Rust bevy_app 的 Plugin trait 和相关类型
  */
 
+import { RobloxContext } from "../utils/roblox-utils";
 import { App } from "./app";
 import { ExtensionConfig, ExtensionMetadata, ExtensionRegistry, PluginExtensions } from "./extensions";
 
@@ -46,6 +47,14 @@ export interface Plugin {
 	 * 对应 Rust Plugin::is_unique
 	 */
 	isUnique(): boolean;
+
+	/**
+	 * 该插件适应的roblox域
+	 * 空: 服务端和客户端
+	 * RobloxContext.Server : 服务端
+	 * RobloxContext.Client : 客户端
+	 */
+	robloxContext?: RobloxContext;
 }
 
 /**

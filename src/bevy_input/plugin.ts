@@ -11,6 +11,7 @@ import { MainScheduleLabel } from "../bevy_app/main-schedule";
 import { ButtonInput } from "./button-input";
 import { AccumulatedMouseMotion, AccumulatedMouseWheel, MouseButton, MousePosition } from "./mouse";
 import * as ResourceStorage from "./resource-storage";
+import { RobloxContext } from "../utils/roblox-utils";
 
 /**
  * 输入资源键名常量
@@ -29,6 +30,8 @@ export const InputResources = {
  */
 export class InputPlugin implements Plugin {
 	private connections: Array<RBXScriptConnection> = [];
+
+	robloxContext?: RobloxContext.Client;
 
 	/**
 	 * 构建插件
@@ -169,10 +172,4 @@ export class InputPlugin implements Plugin {
 }
 
 // 重新导出 ResourceStorage 中的辅助函数
-export {
-	getKeyboardInput,
-	getMouseInput,
-	getMouseMotion,
-	getMousePosition,
-	getMouseWheel,
-} from "./resource-storage";
+export { getKeyboardInput, getMouseInput, getMouseMotion, getMousePosition, getMouseWheel } from "./resource-storage";
