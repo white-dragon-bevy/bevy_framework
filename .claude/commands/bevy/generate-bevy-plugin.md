@@ -9,6 +9,7 @@
 ## 输入参考
 
 - `bevy-origin/crates/<pluginName>/` - 如果存在，参考 Bevy 原始实现
+- `bevy-origin-packages/<pluginName>/` - 社区贡献, 上面的找不到就在这里找
 - `src/bevy_*/` - 参考现有插件实现模式
 - `.claude/agents/roblox-ts-pro.md` - 编码规范
 
