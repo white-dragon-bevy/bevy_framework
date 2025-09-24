@@ -4,3 +4,6 @@
 [submodule "bevy-origin-packages/bevy_replicon"]
 	path = bevy-origin-packages/bevy_replicon
 	url = git@github.com:simgine/bevy_replicon.git
+[submodule "bevy-origin-packages/leafwing-input-manager"]
+	path = bevy-origin-packages/leafwing-input-manager
+	url = git@github.com:Leafwing-Studios/leafwing-input-manager.git

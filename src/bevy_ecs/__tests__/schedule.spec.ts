@@ -92,7 +92,7 @@ export = () => {
 
 				// 执行系统模拟
 				for (const loopSystem of compiledSystems) {
-					loopSystem.system(world, {} as AppContext);
+					loopSystem.system(world, new AppContext());
 				}
 
 				expect(executionOrder[0]).to.equal("high");
@@ -186,7 +186,7 @@ export = () => {
 
 				// 执行系统
 				for (const loopSystem of compiledSystems) {
-					loopSystem.system(world, {} as AppContext);
+					loopSystem.system(world, new AppContext());
 				}
 
 				expect(executionOrder[0]).to.equal("Input");
