@@ -12,7 +12,7 @@ import entityInspect from "./widgets/entityInspect";
 import valueInspect from "./widgets/valueInspect";
 import worldInspect from "./widgets/worldInspect";
 import hoverInspect from "./widgets/hoverInspect";
-import { AnyEntity } from "../World";
+import { AnyEntity } from "@rbxts/matter";
 
 declare namespace Debugger {
 	interface CustomWidgets {

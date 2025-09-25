@@ -61,10 +61,10 @@ export class SubApp {
 		const tempApp = {
 			main: () => this,
 			context: this.context,
-			registerExtension: (key: any, ext: any, meta?: any) => {
-				this.context.registerExtension(key, ext, meta);
-			}
-		} as any;
+			registerExtension: (key: string, ext: unknown, meta?: unknown) => {
+				this.context.registerExtension(key as any, ext, meta as any);
+			},
+		} as unknown as App;
 		resourcePlugin.build(tempApp);
 
 		this.schedules = new Schedules(this._world.getWorld(), this.context);
@@ -522,6 +522,23 @@ export class SubApp {
 		this.loopConnections = undefined;
 		this.isLoopRunning = false;
 		print("[SubApp] Loop stopped");
+	}
+
+	/**
+	 * 配置主调度顺序 - 在指定调度前插入新调度
+	 * @param target - 目标调度标签
+	 * @param newSchedule - 要插入的新调度标签
+	 */
+	public configureScheduleOrder(target: ScheduleLabel, newSchedule: ScheduleLabel): void {
+		this.scheduleOrder.insertBefore(target, newSchedule);
+	}
+
+	/**
+	 * 获取主调度顺序 - 只读访问
+	 * @returns 调度顺序的副本
+	 */
+	public getScheduleOrder(): Array<ScheduleLabel> {
+		return this.scheduleOrder.getOrder();
 	}
 }
 

@@ -219,34 +219,66 @@ export function updateInputSystem(world: World, resourceManager: ResourceManager
 }
 
 /**
+ * Safe resource access helper function
+ * @param resourceManager - The resource manager
+ * @param resourceKey - The resource key to access
+ * @returns The resource or undefined if not found
+ */
+function safeGetStateResource<T extends States>(
+	resourceManager: ResourceManager,
+	resourceKey: string,
+): State<T> | undefined {
+	try {
+		const stateConstructor = resourceKey as ResourceConstructor<State<T>>;
+		return resourceManager.getResource(stateConstructor) as State<T> | undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+/**
  * Complex tutorial state computation system
  * Since TutorialComputedState needs multiple sources, we handle it specially
  * @param world - The game world
  * @param resourceManager - Resource manager for resources
  */
 export function updateTutorialComputedState(world: World, resourceManager: ResourceManager): void {
-	// Temporarily skip this complex computation to avoid errors
-	return;
-
-	// TODO: Fix state resource access
-	// The following code needs proper state resource type handling
-	/*
-	// Get all the states we need
-	const tutorialStateResource = resourceManager.getResource(State<TutorialState>) as State<TutorialState> | undefined;
+	// Get all the states we need using safe access
+	const tutorialStateResource = safeGetStateResource<TutorialState>(resourceManager, "State<TutorialState>");
 	const tutorialState = tutorialStateResource?.get();
 
-	const appStateResource = resourceManager.getResource(State<AppState>) as State<AppState> | undefined;
+	const appStateResource = safeGetStateResource<AppState>(resourceManager, "State<AppState>");
 	const appState = appStateResource?.get();
 
-	const isPausedStateResource = resourceManager.getResource(State<IsPausedState>) as State<IsPausedState> | undefined;
-	const isPausedState = isPausedStateResource?.get();
+	if (!tutorialState || !appState) {
+		return;
+	}
 
-	// Check if we're in game
-	const inGame = appState && typeIs(appState.isInGame, "function") ? appState.isInGame() : false;
-	*/
+	// Compute the new tutorial state based on multiple sources
+	let newTutorialComputedState: TutorialComputedState;
 
-	// Simplified version - just return for now
-	// The rest of the function is commented out until we fix state resource access
+	if (!tutorialState.isActive()) {
+		// Tutorial is disabled - no computed state
+		newTutorialComputedState = TutorialComputedState.Inactive();
+	} else if (appState.isMenu()) {
+		// In menu - show main menu tutorial
+		newTutorialComputedState = TutorialComputedState.MainMenu();
+	} else if (appState.isInGame()) {
+		// In game - check pause state
+		const isPaused = appState.isPaused();
+		if (isPaused === true) {
+			newTutorialComputedState = TutorialComputedState.PauseInstructions();
+		} else {
+			newTutorialComputedState = TutorialComputedState.MovementInstructions();
+		}
+	} else {
+		// Unknown state - default to inactive
+		newTutorialComputedState = TutorialComputedState.Inactive();
+	}
+
+	// Update the computed state resource
+	const tutorialComputedStateKey = "State<TutorialComputedState>" as ResourceConstructor<State<TutorialComputedState>>;
+	resourceManager.insertResource(tutorialComputedStateKey, State.create(newTutorialComputedState));
 }
 
 // Type imports for state constructors
