@@ -7,7 +7,7 @@
 export { States, EnumStates, createStates } from "./states";
 
 // 资源
-export { State, NextState } from "./resources";
+export { State, NextState, NextStateVariant } from "./resources";
 
 // 转换
 export {
@@ -16,6 +16,8 @@ export {
 	OnEnter,
 	OnExit,
 	OnTransition,
+	lastTransition,
+	getStateTransitionReader,
 } from "./transitions";
 
 // 计算和子状态
@@ -36,3 +38,12 @@ export {
 	ComputedStatesPlugin,
 	SubStatesPlugin,
 } from "./plugin";
+
+// 状态作用域
+export {
+	StateScoped,
+	DespawnStrategy,
+	markForDespawnOnExit,
+	markForDespawnOnEnter,
+	despawnAllInState,
+} from "./state-scoped";

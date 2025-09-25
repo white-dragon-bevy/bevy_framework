@@ -21,6 +21,8 @@ export {
 } from "./states";
 
 export {
+	FreelyMutableState,
+	NextStateVariant,
 	State,
 	NextState,
 	StateConstructor,
@@ -39,6 +41,7 @@ export {
 	TransitionSchedules,
 	StateTransitionManager,
 	lastTransition,
+	getStateTransitionReader,
 } from "./transitions";
 
 export {
@@ -78,6 +81,25 @@ export {
 	ComputedStatesPlugin,
 	SubStatesPlugin,
 } from "./plugin";
+
+export {
+	StateScoped,
+	StateScopedComponent,
+	DespawnStrategy,
+	despawnOnExitStateSystem,
+	despawnOnEnterStateSystem,
+	cleanupOnStateExit,
+	cleanupOnStateEnter,
+	markForDespawnOnExit,
+	markForDespawnOnEnter,
+	getStateScopedData,
+	removeStateScopedMarker,
+	getEntitiesInState,
+	despawnAllInState,
+	registerStateScopedSystems,
+	StateScopedPluginConfig,
+	DEFAULT_STATE_SCOPED_CONFIG,
+} from "./state-scoped";
 
 // Prelude 导出
 export * as prelude from "./prelude";

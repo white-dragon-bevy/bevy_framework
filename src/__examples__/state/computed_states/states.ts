@@ -4,7 +4,7 @@
  */
 
 import { BaseStates, States } from "../../../bevy_state/states";
-import { BaseComputedStates, ComputedStates } from "../../../bevy_state/computed-states";
+import { BaseComputedStates, ComputedStates, SingleStateSet } from "../../../bevy_state/computed-states";
 
 /**
  * Main application state
@@ -144,6 +144,10 @@ export class InGameState extends BaseComputedStates<AppState> {
 	public static readonly name = "InGameState";
 	private exists = false;
 
+	constructor() {
+		super(new SingleStateSet(AppState));
+	}
+
 	public getStateId(): string {
 		return "InGame";
 	}
@@ -176,6 +180,10 @@ export class InGameState extends BaseComputedStates<AppState> {
 export class TurboModeState extends BaseComputedStates<AppState> {
 	public static readonly name = "TurboModeState";
 	private exists = false;
+
+	constructor() {
+		super(new SingleStateSet(AppState));
+	}
 
 	public getStateId(): string {
 		return "TurboMode";
@@ -212,7 +220,7 @@ export class IsPausedState extends BaseComputedStates<AppState> {
 	public static readonly name = "IsPausedState";
 
 	public constructor(private readonly paused: boolean) {
-		super();
+		super(new SingleStateSet(AppState));
 	}
 
 	public static Paused(): IsPausedState {
@@ -269,8 +277,16 @@ export class IsPausedState extends BaseComputedStates<AppState> {
 export class TutorialComputedState extends BaseComputedStates<TutorialState> {
 	public static readonly name = "TutorialComputedState";
 
-	public constructor(private readonly instructionType: "Movement" | "Pause") {
-		super();
+	public constructor(private readonly instructionType: "Inactive" | "MainMenu" | "Movement" | "Pause") {
+		super(new SingleStateSet(TutorialState));
+	}
+
+	public static Inactive(): TutorialComputedState {
+		return new TutorialComputedState("Inactive");
+	}
+
+	public static MainMenu(): TutorialComputedState {
+		return new TutorialComputedState("MainMenu");
 	}
 
 	public static MovementInstructions(): TutorialComputedState {
@@ -282,9 +298,16 @@ export class TutorialComputedState extends BaseComputedStates<TutorialState> {
 	}
 
 	public getStateId(): string {
-		return this.instructionType === "Movement"
-			? "MovementInstructions"
-			: "PauseInstructions";
+		switch (this.instructionType) {
+			case "Inactive":
+				return "TutorialInactive";
+			case "MainMenu":
+				return "TutorialMainMenu";
+			case "Movement":
+				return "MovementInstructions";
+			case "Pause":
+				return "PauseInstructions";
+		}
 	}
 
 	public clone(): States {
@@ -335,6 +358,14 @@ export class TutorialComputedState extends BaseComputedStates<TutorialState> {
 			return false;
 		}
 		return this.instructionType === other.instructionType;
+	}
+
+	public isInactive(): boolean {
+		return this.instructionType === "Inactive";
+	}
+
+	public isMainMenu(): boolean {
+		return this.instructionType === "MainMenu";
 	}
 
 	public isMovementInstructions(): boolean {

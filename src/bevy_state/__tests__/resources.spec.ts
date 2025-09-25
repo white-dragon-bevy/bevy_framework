@@ -2,7 +2,7 @@
  * resources.spec.ts - Resources 单元测试
  */
 
-import { State, NextState } from "../resources";
+import { State, NextState, NextStateVariant } from "../resources";
 import { EnumStates } from "../states";
 
 export = () => {
@@ -53,40 +53,83 @@ export = () => {
 
 		it("should create unchanged next state", () => {
 			const nextState = NextState.unchanged<EnumStates>();
+			expect(nextState.isUnchanged()).to.equal(true);
+			expect(nextState.isPending()).to.equal(false);
+			expect(nextState.pending()).to.equal(undefined);
+			// 兼容性测试
 			expect(nextState.hasPending()).to.equal(false);
 			expect(nextState.getPending()).to.equal(undefined);
 		});
 
-		it("should create pending next state", () => {
+		it("should create pending next state using static factory", () => {
 			const nextState = NextState.withPending(testState);
+			expect(nextState.isPending()).to.equal(true);
+			expect(nextState.isUnchanged()).to.equal(false);
+			expect(nextState.pending()?.getStateId()).to.equal("menu");
+		});
+
+		it("should support deprecated withPending method", () => {
+			const nextState = NextState.withPending(testState);
+			expect(nextState.isPending()).to.equal(true);
 			expect(nextState.hasPending()).to.equal(true);
 			expect(nextState.getPending()?.getStateId()).to.equal("menu");
 		});
 
-		it("should set next state", () => {
+		it("should set next state and change variant", () => {
 			const nextState = NextState.unchanged<EnumStates>();
 			const newState = new EnumStates("game");
 
+			// 初始状态应该是 Unchanged
+			expect(nextState.isUnchanged()).to.equal(true);
+
+			// 设置后应该变为 Pending
 			nextState.set(newState);
+			expect(nextState.isPending()).to.equal(true);
+			expect(nextState.isUnchanged()).to.equal(false);
+			expect(nextState.pending()?.getStateId()).to.equal("game");
+
+			// 兼容性测试
 			expect(nextState.hasPending()).to.equal(true);
 			expect(nextState.getPending()?.getStateId()).to.equal("game");
 		});
 
-		it("should reset next state", () => {
+		it("should reset next state to unchanged variant", () => {
 			const nextState = NextState.withPending(testState);
-			nextState.reset();
+			expect(nextState.isPending()).to.equal(true);
 
+			nextState.reset();
+			expect(nextState.isUnchanged()).to.equal(true);
+			expect(nextState.isPending()).to.equal(false);
+			expect(nextState.pending()).to.equal(undefined);
+
+			// 兼容性测试
 			expect(nextState.hasPending()).to.equal(false);
 			expect(nextState.getPending()).to.equal(undefined);
 		});
 
 		it("should take and clear pending state", () => {
 			const nextState = NextState.withPending(testState);
-			const taken = nextState.take();
+			expect(nextState.isPending()).to.equal(true);
 
+			const taken = nextState.take();
 			expect(taken?.getStateId()).to.equal("menu");
+
+			// 取出后应该重置为 Unchanged
+			expect(nextState.isUnchanged()).to.equal(true);
+			expect(nextState.isPending()).to.equal(false);
+			expect(nextState.pending()).to.equal(undefined);
+
+			// 兼容性测试
 			expect(nextState.hasPending()).to.equal(false);
 			expect(nextState.getPending()).to.equal(undefined);
+		});
+
+		it("should return undefined when taking unchanged state", () => {
+			const nextState = NextState.unchanged<EnumStates>();
+			const taken = nextState.take();
+
+			expect(taken).to.equal(undefined);
+			expect(nextState.isUnchanged()).to.equal(true);
 		});
 	});
 };

@@ -6,14 +6,14 @@ import { World } from "@rbxts/matter";
 import { ResourceManager, ResourceConstructor } from "../../bevy_ecs/resource";
 import { State } from "../resources";
 import { EnumStates } from "../states";
-import { BaseComputedStates, ComputedStateManager, MappedComputedState } from "../computed-states";
+import { BaseComputedStates, ComputedStateManager, MappedComputedState, SingleStateSet } from "../computed-states";
 
 // 测试用的计算状态
 class TestComputedState extends BaseComputedStates<EnumStates> {
 	private value: string;
 
-	public constructor(value: string) {
-		super();
+	public constructor(value: string = "default") {
+		super(new SingleStateSet(EnumStates));
 		this.value = value;
 	}
 
@@ -122,7 +122,6 @@ export = () => {
 			(TestComputedState as any).name = "TestComputedState";
 
 			const manager = new ComputedStateManager(
-				EnumStates as any,
 				TestComputedState as any,
 			);
 
@@ -163,7 +162,7 @@ export = () => {
 		});
 
 		it("should map source states correctly", () => {
-			const mapped = new MappedComputedState(mapping);
+			const mapped = new MappedComputedState(new SingleStateSet(EnumStates), mapping);
 			const menuState = new EnumStates("menu");
 			const result = mapped.compute(menuState);
 
@@ -172,7 +171,7 @@ export = () => {
 		});
 
 		it("should return undefined for unmapped states", () => {
-			const mapped = new MappedComputedState(mapping);
+			const mapped = new MappedComputedState(new SingleStateSet(EnumStates), mapping);
 			const unknownState = new EnumStates("unknown");
 			const result = mapped.compute(unknownState);
 
@@ -180,7 +179,7 @@ export = () => {
 		});
 
 		it("should return undefined when source is undefined", () => {
-			const mapped = new MappedComputedState(mapping);
+			const mapped = new MappedComputedState(new SingleStateSet(EnumStates), mapping);
 			const result = mapped.compute(undefined);
 
 			expect(result).to.equal(undefined);

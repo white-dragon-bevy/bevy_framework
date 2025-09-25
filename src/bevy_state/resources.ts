@@ -7,6 +7,12 @@ import { Resource } from "../bevy_ecs/resource";
 import { States } from "./states";
 
 /**
+ * 标记可以自由变更的状态
+ * 对应 Rust 的 FreelyMutableState trait
+ */
+export interface FreelyMutableState extends States {}
+
+/**
  * State 资源 - 存储当前状态
  * 对应 Rust State<S>
  */
@@ -111,18 +117,28 @@ export function getStateResource<S extends States>(stateType: StateConstructor<S
 }
 
 /**
+ * NextState 枚举变体标识
+ * 对应 Rust NextState 枚举的变体
+ */
+export enum NextStateVariant {
+	Unchanged = "Unchanged",
+	Pending = "Pending",
+}
+
+/**
  * NextState 资源 - 待处理的下一个状态
- * 对应 Rust NextState<S>
+ * 对应 Rust NextState<S> 枚举
  */
 @Resource
 export class NextState<S extends States> implements Resource {
 	public readonly __brand = "Resource" as const;
 	// 添加类型名称属性以支持唯一资源ID
 	public static readonly typeName?: string;
-	private pending?: S;
+	private variant: NextStateVariant = NextStateVariant.Unchanged;
+	private pendingState?: S;
 
 	/**
-	 * 创建空的 NextState
+	 * 创建 Unchanged 变体的 NextState
 	 * @returns NextState 实例
 	 */
 	public static unchanged<S extends States>(): NextState<S> {
@@ -130,56 +146,88 @@ export class NextState<S extends States> implements Resource {
 	}
 
 	/**
-	 * 创建带有待处理状态的 NextState
+	 * 创建 Pending 变体的 NextState
 	 * @param state - 待处理状态
 	 * @returns NextState 实例
 	 */
 	public static withPending<S extends States>(state: S): NextState<S> {
 		const nextState = new NextState<S>();
-		nextState.pending = state;
+		nextState.set(state);
 		return nextState;
 	}
 
 	/**
-	 * 设置下一个状态
+	 * 设置待处理状态（转换为 Pending 变体）
 	 * @param state - 要设置的状态
 	 */
 	public set(state: S): void {
-		this.pending = state;
+		this.variant = NextStateVariant.Pending;
+		this.pendingState = state;
 	}
 
 	/**
-	 * 重置，清除待处理状态
+	 * 重置为 Unchanged 变体
 	 */
 	public reset(): void {
-		this.pending = undefined;
+		this.variant = NextStateVariant.Unchanged;
+		this.pendingState = undefined;
 	}
 
 	/**
-	 * 获取待处理状态
-	 * @returns 待处理状态或 undefined
+	 * 检查是否为 Unchanged 变体
+	 * @returns 是否为 Unchanged 变体
 	 */
-	public getPending(): S | undefined {
-		return this.pending;
+	public isUnchanged(): boolean {
+		return this.variant === NextStateVariant.Unchanged;
 	}
 
 	/**
-	 * 检查是否有待处理状态
-	 * @returns 是否有待处理状态
+	 * 检查是否为 Pending 变体
+	 * @returns 是否为 Pending 变体
 	 */
-	public hasPending(): boolean {
-		return this.pending !== undefined;
+	public isPending(): boolean {
+		return this.variant === NextStateVariant.Pending;
 	}
 
 	/**
-	 * 取出并清除待处理状态
+	 * 取出并重置待处理状态（对应 Rust take_next_state）
 	 * @returns 待处理状态或 undefined
 	 */
 	public take(): S | undefined {
-		const state = this.pending;
-		this.pending = undefined;
-		return state;
+		if (this.variant === NextStateVariant.Pending) {
+			const state = this.pendingState;
+			this.reset();
+			return state;
+		}
+		return undefined;
 	}
+
+	/**
+	 * 获取待处理状态（不清除）
+	 * @returns 待处理状态或 undefined
+	 */
+	public pending(): S | undefined {
+		return this.pendingState;
+	}
+
+	/**
+	 * 兼容性方法：获取待处理状态（已弃用）
+	 * @deprecated 使用 pending() 方法替代
+	 * @returns 待处理状态或 undefined
+	 */
+	public getPending(): S | undefined {
+		return this.pendingState;
+	}
+
+	/**
+	 * 兼容性方法：检查是否有待处理状态（已弃用）
+	 * @deprecated 使用 isPending() 方法替代
+	 * @returns 是否有待处理状态
+	 */
+	public hasPending(): boolean {
+		return this.variant === NextStateVariant.Pending;
+	}
+
 }
 
 // NextState资源类缓存
