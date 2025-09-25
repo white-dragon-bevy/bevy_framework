@@ -36,7 +36,7 @@ export default class Agent {
 
   /* Search for the best new velocity. */
   computeNewVelocity() {
-    this.orcaLines.clear();
+    this.orcaLines = [];
     let orcaLines = this.orcaLines;
     const invTimeHorizonObst = 1.0 / this.timeHorizonObst;
 
@@ -328,26 +328,37 @@ export default class Agent {
     }
   }
 
-  insertAgentNeighbor(agent: Agent, rangeSq: number) {
-    if (this !==agent) {
-      let distSq = RVOMath.absSq(this.position.sub(agent.position))
+  insertAgentNeighbor(agent: Agent, rangeSq: number): number {
+    if (this !== agent) {
+      const distSq = RVOMath.absSq(this.position.sub(agent.position))
 
       if (distSq < rangeSq) {
         if (this.agentNeighbors.size() < this.maxNeighbors) {
           this.agentNeighbors.push(new KeyValuePair(distSq, agent))
+          let index = this.agentNeighbors.size() - 1
+          while (index !== 0 && distSq < this.agentNeighbors[index - 1].key) {
+            this.agentNeighbors[index] = this.agentNeighbors[index - 1]
+            --index
+          }
+          this.agentNeighbors[index] = new KeyValuePair(distSq, agent)
+        } else {
+          let index = this.agentNeighbors.size() - 1
+          if (distSq < this.agentNeighbors[index].key) {
+            while (index !== 0 && distSq < this.agentNeighbors[index - 1].key) {
+              this.agentNeighbors[index] = this.agentNeighbors[index - 1]
+              --index
+            }
+            this.agentNeighbors[index] = new KeyValuePair(distSq, agent)
+          }
         }
-        let i = this.agentNeighbors.size() - 1
-        while (i !==0 && distSq < this.agentNeighbors[i - 1].key) {
-          this.agentNeighbors[i] = this.agentNeighbors[i - 1]
-          --i
-        }
-        this.agentNeighbors[i] = new KeyValuePair(distSq, agent)
 
-        if (this.agentNeighbors.size() ===this.maxNeighbors) {
+        if (this.agentNeighbors.size() === this.maxNeighbors) {
           rangeSq = this.agentNeighbors[this.agentNeighbors.size() - 1].key
         }
       }
     }
+
+    return rangeSq
   }
 
   insertObstacleNeighbor(obstacle: Obstacle, rangeSq: number) {
