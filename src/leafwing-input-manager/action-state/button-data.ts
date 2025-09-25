@@ -13,6 +13,18 @@ export class ButtonData {
 	public justReleased: boolean;
 
 	/**
+	 * State that's swapped in during FixedUpdate schedule runs
+	 * This maintains separate state for fixed timestep operations
+	 */
+	public fixedUpdateState?: ButtonData;
+
+	/**
+	 * State that's active during normal Update schedule runs
+	 * This is saved when switching to FixedUpdate
+	 */
+	public updateState?: ButtonData;
+
+	/**
 	 * Creates a new ButtonData instance
 	 * @param justPressed - Initial just-pressed state
 	 * @param justReleased - Initial just-released state
@@ -54,6 +66,75 @@ export class ButtonData {
 	public reset(): void {
 		this.justPressed = false;
 		this.justReleased = false;
+		this.fixedUpdateState = undefined;
+		this.updateState = undefined;
+	}
+
+	/**
+	 * Swaps the current state to FixedUpdate state
+	 * This is used when transitioning from Update to FixedUpdate schedules
+	 */
+	public swapToFixedUpdateState(): void {
+		// Save current state as updateState if not already saved
+		if (!this.updateState) {
+			this.updateState = this.clone();
+		} else {
+			// Update the saved update state with current values
+			this.updateState.copyFrom(this);
+		}
+
+		// Initialize fixedUpdateState if it doesn't exist
+		if (!this.fixedUpdateState) {
+			this.fixedUpdateState = new ButtonData();
+		}
+
+		// Swap to fixed update state
+		this.copyFrom(this.fixedUpdateState);
+	}
+
+	/**
+	 * Legacy method name for backward compatibility
+	 * @deprecated Use swapToFixedUpdateState() instead
+	 */
+	public swapToFixedUpdate(): void {
+		this.swapToFixedUpdateState();
+	}
+
+	/**
+	 * Swaps back to Update state from FixedUpdate state
+	 * This is used when transitioning from FixedUpdate to Update schedules
+	 */
+	public swapToUpdateState(): void {
+		// Save current (fixed update) state
+		if (this.fixedUpdateState) {
+			this.fixedUpdateState.copyFrom(this);
+		}
+
+		// Restore update state
+		if (this.updateState) {
+			this.copyFrom(this.updateState);
+		} else {
+			// If no saved update state, reset to default
+			this.justPressed = false;
+			this.justReleased = false;
+		}
+	}
+
+	/**
+	 * Legacy method name for backward compatibility
+	 * @deprecated Use swapToUpdateState() instead
+	 */
+	public swapToUpdate(): void {
+		this.swapToUpdateState();
+	}
+
+	/**
+	 * Copies data from another ButtonData instance
+	 * @param other - The ButtonData to copy from
+	 */
+	public copyFrom(other: ButtonData): void {
+		this.justPressed = other.justPressed;
+		this.justReleased = other.justReleased;
 	}
 
 	/**

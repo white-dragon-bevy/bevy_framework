@@ -57,22 +57,10 @@ export function runComputedStatesExample(): void {
 	const baseApp = App.create();
 	const app = extendAppWithState(baseApp);
 
-	// Create a shared resource manager for state management
-	const resourceManager = new ResourceManager();
-	const world = app.getWorld();
-	(world as unknown as Record<string, unknown>)["stateResourceManager"] = resourceManager;
-
-	// Initialize Time resource
-	const timeContext = {} as any; // Empty context for now
-	resourceManager.insertResource(Time, new Time(timeContext));
-
-	// Initialize input resources
-	initInputResources(world, resourceManager);
-
-	// Add default plugins
+	// Add default plugins first
 	app.addPlugins(new DefaultPlugins());
 
-	// Initialize states
+	// Initialize states - this adds StatePlugin which creates the resourceManager
 	app.initState(AppState, () => AppState.Menu());
 	app.initState(TutorialState, () => TutorialState.Active());
 
@@ -82,6 +70,29 @@ export function runComputedStatesExample(): void {
 	// IsPausedState needs special handling as it returns different values
 	// We'll handle it manually in the update loop
 	// Note: TutorialComputedState requires special handling due to multiple sources
+
+	// Now get the world and resource manager that plugins created
+	const world = app.getWorld();
+	let resourceManager = (world as unknown as Record<string, unknown>)["stateResourceManager"] as ResourceManager | undefined;
+
+	// Wait a moment for plugins to fully initialize if needed
+	if (!resourceManager) {
+		// Try to force an update to trigger plugin build
+		app.update();
+		resourceManager = (world as unknown as Record<string, unknown>)["stateResourceManager"] as ResourceManager | undefined;
+	}
+
+	if (!resourceManager) {
+		error("ResourceManager not initialized by StatePlugin");
+	}
+
+	// Initialize Time resource
+	const timeContext = {} as any; // Empty context for now
+	if (resourceManager) {
+		resourceManager.insertResource(Time, new Time(timeContext));
+		// Initialize input resources
+		initInputResources(world, resourceManager);
+	}
 
 	// Startup system
 	let startupCount = 0;
@@ -95,22 +106,27 @@ export function runComputedStatesExample(): void {
 
 	// Menu state systems
 	app.addSystemsOnEnter(AppState.Menu(), (world: World) => {
-		setupMenu(world, resourceManager);
+		print("[OnEnter] Entering Menu state");
+		const rm = (world as unknown as Record<string, unknown>)["stateResourceManager"] as ResourceManager;
+		setupMenu(world, rm);
 	});
 
 	app.addSystemsOnExit(AppState.Menu(), (world: World) => {
+		print("[OnExit] Exiting Menu state");
 		cleanupMenu(world);
 	});
 
 	// InGame state systems (using computed state)
 	const inGameState = new InGameState();
 	app.addSystemsOnEnter(inGameState, (world: World) => {
+		print("[OnEnter] Entering InGame computed state");
 		setupGameSprite(world);
 	});
 
 	// Paused state systems
 	const pausedState = IsPausedState.Paused();
 	app.addSystemsOnEnter(pausedState, (world: World) => {
+		print("[OnEnter] Entering Paused state");
 		setupPausedScreen(world);
 		print("Game paused");
 	});
@@ -118,6 +134,7 @@ export function runComputedStatesExample(): void {
 	// Turbo mode systems
 	const turboState = new TurboModeState();
 	app.addSystemsOnEnter(turboState, (world: World) => {
+		print("[OnEnter] Entering Turbo mode");
 		setupTurboText(world);
 		print("TURBO MODE ACTIVATED!");
 	});
@@ -133,22 +150,29 @@ export function runComputedStatesExample(): void {
 		setupPauseInstructions(world);
 	});
 
+
 	// Update systems - These run every frame
 	app.addSystems(BuiltinSchedules.UPDATE, (world: World) => {
 		// Update Time resource (Time updates are handled internally)
 
+		// Get resource manager from world
+		const rm = (world as unknown as Record<string, unknown>)["stateResourceManager"] as ResourceManager | undefined;
+		if (!rm) {
+			return;
+		}
+
 		// Update input state
-		updateInputSystem(world, resourceManager);
+		updateInputSystem(world, rm);
 
 		// Process input
-		inputSystem(world, resourceManager);
+		inputSystem(world, rm);
 
 		// Update computed tutorial state (special handling for multiple sources)
-		updateTutorialComputedState(world, resourceManager);
+		updateTutorialComputedState(world, rm);
 
 		// Process state transitions and cleanup
-		const currentAppState = resourceManager.getResource(State<AppState>)?.get();
-		const previousAppState = resourceManager.getResource(PreviousState<AppState>)?.get();
+		const currentAppState = rm.getResource(State<AppState>)?.get();
+		const previousAppState = rm.getResource(PreviousState<AppState>)?.get();
 		if (previousAppState && currentAppState && !previousAppState.equals(currentAppState)) {
 			despawnOnExitSystem(world, previousAppState, currentAppState);
 		}
@@ -166,12 +190,14 @@ export function runComputedStatesExample(): void {
 	// Systems that run only when not paused
 	const notPausedState = IsPausedState.NotPaused();
 	app.addSystemsInState(BuiltinSchedules.UPDATE, notPausedState, (world: World) => {
-		movementSystem(world, resourceManager);
+		const rm = (world as unknown as Record<string, unknown>)["stateResourceManager"] as ResourceManager;
+		movementSystem(world, rm);
 	});
 
 	// Systems that run whenever in game (regardless of pause state)
 	app.addSystemsInState(BuiltinSchedules.UPDATE, inGameState, (world: World) => {
-		changeColorSystem(world, resourceManager);
+		const rm = (world as unknown as Record<string, unknown>)["stateResourceManager"] as ResourceManager;
+		changeColorSystem(world, rm);
 	});
 
 	// Debug logging
@@ -197,7 +223,7 @@ export function runComputedStatesExample(): void {
 
 		// Track if we should keep running
 		let frameCount = 0;
-		const maxFrames = 100; // Run for 100 frames then stop
+		const maxFrames = 60 * 60; // Run for 60 seconds (at 60 FPS)
 
 		// Main game loop
 		runnerConnection = RunService.Heartbeat.Connect(() => {
@@ -206,7 +232,7 @@ export function runComputedStatesExample(): void {
 
 			// Stop after maxFrames to prevent infinite loop in testing
 			if (frameCount >= maxFrames) {
-				print(`Stopping after ${maxFrames} frames`);
+				print(`Stopping after ${frameCount} frames (${frameCount / 60} seconds)`);
 				if (runnerConnection) {
 					runnerConnection.Disconnect();
 					runnerConnection = undefined;
@@ -237,5 +263,8 @@ class PreviousState<S extends States> {
 }
 
 // Import required State type
-import { State } from "../../../bevy_state/resources";
+import { State, NextState } from "../../../bevy_state/resources";
 import type { States } from "../../../bevy_state/states";
+
+
+runComputedStatesExample()

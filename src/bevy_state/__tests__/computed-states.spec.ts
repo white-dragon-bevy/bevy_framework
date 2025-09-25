@@ -3,7 +3,7 @@
  */
 
 import { World } from "@rbxts/matter";
-import { ResourceManager } from "../../bevy_ecs/resource";
+import { ResourceManager, ResourceConstructor } from "../../bevy_ecs/resource";
 import { State } from "../resources";
 import { EnumStates } from "../states";
 import { BaseComputedStates, ComputedStateManager, MappedComputedState } from "../computed-states";
@@ -75,6 +75,32 @@ export = () => {
 
 			expect(cloned.getStateId()).to.equal(original.getStateId());
 		});
+
+		it("should handle different source states", () => {
+			const computed = new TestComputedState("test");
+
+			// Test menu state
+			const menuResult = computed.compute(menuState);
+			expect(menuResult?.getStateId()).to.equal("in_menu");
+
+			// Test game state
+			const gameResult = computed.compute(gameState);
+			expect(gameResult?.getStateId()).to.equal("in_game");
+
+			// Test unknown state
+			const unknownState = new EnumStates("unknown");
+			const unknownResult = computed.compute(unknownState);
+			expect(unknownResult).to.equal(undefined);
+		});
+
+		it("should support equals method for computed states", () => {
+			const computed1 = new TestComputedState("test");
+			const computed2 = new TestComputedState("test");
+			const computed3 = new TestComputedState("different");
+
+			expect(computed1.equals(computed2)).to.equal(true);
+			expect(computed1.equals(computed3)).to.equal(false);
+		});
 	});
 
 	describe("ComputedStateManager", () => {
@@ -91,29 +117,37 @@ export = () => {
 		});
 
 		it("should manage computed state updates", () => {
+			// Add static name property to EnumStates for the test
+			(EnumStates as any).name = "EnumStates";
+			(TestComputedState as any).name = "TestComputedState";
+
 			const manager = new ComputedStateManager(
 				EnumStates as any,
 				TestComputedState as any,
 			);
 
+			// Use string-based resource keys
+			const sourceStateKey = "State<EnumStates>" as ResourceConstructor<State<EnumStates>>;
+			const computedStateKey = "State<TestComputedState>" as ResourceConstructor<State<TestComputedState>>;
+
 			// Initially no source state
 			manager.updateComputedState(world, resourceManager);
-			expect(resourceManager.hasResource(State<TestComputedState>)).to.equal(false);
+			expect(resourceManager.hasResource(computedStateKey)).to.equal(false);
 
-			// Add source state
-			resourceManager.insertResource(State<EnumStates>, State.create(menuState));
+			// Add source state with string key
+			resourceManager.insertResource(sourceStateKey, State.create(menuState));
 			manager.updateComputedState(world, resourceManager);
 
-			const computedResource = resourceManager.getResource(State<TestComputedState>);
+			const computedResource = resourceManager.getResource(computedStateKey);
 			expect(computedResource).to.be.ok();
 			expect(computedResource?.get().getStateId()).to.equal("in_menu");
 
 			// Change source state
-			const sourceResource = resourceManager.getResource(State<EnumStates>)!;
+			const sourceResource = resourceManager.getResource(sourceStateKey)!;
 			sourceResource._set(gameState);
 			manager.updateComputedState(world, resourceManager);
 
-			const updatedResource = resourceManager.getResource(State<TestComputedState>);
+			const updatedResource = resourceManager.getResource(computedStateKey);
 			expect(updatedResource?.get().getStateId()).to.equal("in_game");
 		});
 	});

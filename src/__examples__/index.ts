@@ -1,11 +1,8 @@
-const exampleFolder: string = "app";
-const exampleName: string = "empty_defaults";
+// Choose which example to run
+const exampleFolder: string = "app"; // Change to "state" for the other example
+const exampleName: string = "empty_defaults"; // Change to "computed_states" for the other example
 
 export function bootstrap() {
-	// 先运行测试
-	print("\n=== Running Startup Schedule Fix Test First ===");
-
-	print("\n=== Now Running Original Example ===");
 
 	// 然后运行原有的示例
 	const folder = script.FindFirstChild(exampleFolder);

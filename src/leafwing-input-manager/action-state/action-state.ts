@@ -132,6 +132,15 @@ export class ActionState<Action extends Actionlike> {
 	}
 
 	/**
+	 * How long was the action held down in the previous frame?
+	 * @param action - The action to check
+	 * @returns The previous duration in seconds, or 0 if not pressed
+	 */
+	public getPreviousDuration(action: Action): number {
+		return this.getActionData(action).getPreviousDuration();
+	}
+
+	/**
 	 * When was the action first pressed?
 	 * @param action - The action to check
 	 * @returns The instant when pressed, or undefined if not pressed
@@ -218,15 +227,62 @@ export class ActionState<Action extends Actionlike> {
 	/**
 	 * Advances the internal state to the next frame
 	 * This should be called once per frame after processing input
-	 * @param deltaTime - Time since last update
+	 * @param deltaTime - Time since last update in seconds
 	 */
 	public tick(deltaTime?: number): void {
+		// Always tick button data
 		for (const [, buttonData] of this.buttonData) {
 			buttonData.tick();
 		}
+
+		// Handle timing updates for action data
 		if (deltaTime !== undefined) {
 			for (const [, actionData] of this.actionData) {
-				actionData.tick(deltaTime);
+				actionData.tickDelta(deltaTime);
+			}
+		}
+	}
+
+	/**
+	 * Advances the internal state to the next frame using precise instant-based timing
+	 * @param currentInstant - Current time instant
+	 * @param previousInstant - Previous time instant
+	 */
+	public tickWithInstants(currentInstant: Instant, previousInstant: Instant): void {
+		// Always tick button data
+		for (const [, buttonData] of this.buttonData) {
+			buttonData.tick();
+		}
+
+		// Use precise instant-based timing
+		for (const [, actionData] of this.actionData) {
+			actionData.tick(currentInstant, previousInstant);
+		}
+	}
+
+	/**
+	 * Fixed timestep tick for consistent physics simulation
+	 * This method is called during FixedUpdate schedule runs
+	 * @param fixedDeltaTime - Fixed delta time in seconds (typically 1/50 or 1/60)
+	 */
+	public tickFixed(fixedDeltaTime: number): void {
+		// Always tick button data for fixed updates
+		for (const [, buttonData] of this.buttonData) {
+			buttonData.tick();
+		}
+
+		// Handle timing updates with fixed delta time
+		for (const [, actionData] of this.actionData) {
+			if (actionData.pressed) {
+				// Update duration with fixed delta time for consistent physics
+				actionData.duration += fixedDeltaTime;
+
+				// Also update timing system if available
+				if (actionData.timing.isActive()) {
+					const currentInstant = Instant.now();
+					const previousInstant = Instant.fromSeconds(currentInstant.elapsedSeconds() - fixedDeltaTime);
+					actionData.timing.tick(currentInstant, previousInstant);
+				}
 			}
 		}
 	}
@@ -440,6 +496,62 @@ export class ActionState<Action extends Actionlike> {
 	 */
 	public getActionDataMap(): Map<string, ActionData> {
 		return this.actionData;
+	}
+
+	/**
+	 * Swaps all action and button states to their FixedUpdate variants
+	 * This is called when transitioning from Update to FixedUpdate schedule
+	 */
+	public swapToFixedUpdateState(): void {
+		if (this.disabled) {
+			return;
+		}
+
+		// Swap all action data
+		for (const [, actionData] of this.actionData) {
+			actionData.swapToFixedUpdateState();
+		}
+
+		// Swap all button data
+		for (const [, buttonData] of this.buttonData) {
+			buttonData.swapToFixedUpdateState();
+		}
+	}
+
+	/**
+	 * Swaps all action and button states back to their Update variants
+	 * This is called when transitioning from FixedUpdate to Update schedule
+	 */
+	public swapToUpdateState(): void {
+		if (this.disabled) {
+			return;
+		}
+
+		// Swap all action data back
+		for (const [, actionData] of this.actionData) {
+			actionData.swapToUpdateState();
+		}
+
+		// Swap all button data back
+		for (const [, buttonData] of this.buttonData) {
+			buttonData.swapToUpdateState();
+		}
+	}
+
+	/**
+	 * Legacy method name for backward compatibility
+	 * @deprecated Use swapToFixedUpdateState() instead
+	 */
+	public swapToFixedUpdate(): void {
+		this.swapToFixedUpdateState();
+	}
+
+	/**
+	 * Legacy method name for backward compatibility
+	 * @deprecated Use swapToUpdateState() instead
+	 */
+	public swapToUpdate(): void {
+		this.swapToUpdateState();
 	}
 
 	/**

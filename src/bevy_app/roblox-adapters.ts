@@ -23,15 +23,17 @@ export class RobloxRunnerPlugin extends BasePlugin {
 	}
 
 	build(app: App): void {
-		// 启动 Loop 来执行系统
-		// 这样调试器的中间件才能正常工作
-		task.defer(() => {
-			this.startLoopExecution(app);
-		});
-
-		// 设置空的 runner，因为系统现在通过 Loop 运行
+		// 设置自定义 runner
 		app.setRunner((app: App) => {
-			// Loop 已经在运行，不需要做任何事
+			// 执行启动序列（只执行一次）
+			this.runStartupOnce(app);
+
+			// 启动主循环
+			task.defer(() => {
+				this.startMainLoop(app);
+			});
+
+			// 返回成功
 			return app.shouldExit() ?? AppExit.success();
 		});
 	}
@@ -41,13 +43,56 @@ export class RobloxRunnerPlugin extends BasePlugin {
 	}
 
 	/**
-	 * 启动 Loop 执行
+	 * 执行启动序列（只执行一次）
 	 */
-	private startLoopExecution(app: App): void {
+	private runStartupOnce(app: App): void {
+		// 等待所有插件准备完成
+		while (app.getPluginState() === "Adding") {
+			task.wait();
+		}
+
+		// 完成插件设置
+		app.finish();
+		app.cleanup();
+
+		// 手动执行启动调度（只执行一次）
+		const mainApp = app.main();
+		const world = mainApp.world();
+		const schedules = mainApp.getSchedules();
+
+		// 执行启动序列
+		const startupSchedules = [BuiltinSchedules.PRE_STARTUP, BuiltinSchedules.STARTUP, BuiltinSchedules.POST_STARTUP];
+		for (const scheduleLabel of startupSchedules) {
+			const schedule = schedules.getSchedule(scheduleLabel);
+			if (schedule) {
+				const compiledSystems = schedule.compile();
+				for (const systemStruct of compiledSystems) {
+					try {
+						systemStruct.system(world.getWorld(), mainApp.getContext());
+					} catch (err) {
+						const errorHandler = mainApp.getErrorHandler();
+						if (errorHandler) {
+							errorHandler(err);
+						} else {
+							throw err;
+						}
+					}
+				}
+			}
+		}
+
+		// 执行命令缓冲和事件清理
+		mainApp.getCommandBuffer().flush(world.getWorld());
+		mainApp.getEventManager().cleanup();
+	}
+
+	/**
+	 * 启动主循环
+	 */
+	private startMainLoop(app: App): void {
 		const mainApp = app.main();
 
-		// 创建事件映射
-		// 将 Bevy 调度阶段映射到 Roblox 事件
+		// 创建事件映射（只包含主循环调度）
 		const events: { [scheduleLabel: string]: RBXScriptSignal } = {};
 
 		// 选择主事件
@@ -60,15 +105,9 @@ export class RobloxRunnerPlugin extends BasePlugin {
 			mainEvent = RunService.Heartbeat;
 		}
 
-		// 映射常规调度阶段到事件
-		// 注意：不包括启动调度（PRE_STARTUP, STARTUP, POST_STARTUP）
-		// 启动调度应该只在应用启动时运行一次，由 SubApp 内部管理
+		// 只映射主循环调度（不包含 STARTUP）
 		events["default"] = mainEvent;
 		events[BuiltinSchedules.FIRST] = mainEvent;
-		// 不绑定启动调度到循环事件
-		// events[BuiltinSchedules.PRE_STARTUP] = mainEvent;
-		// events[BuiltinSchedules.STARTUP] = mainEvent;
-		// events[BuiltinSchedules.POST_STARTUP] = mainEvent;
 		events[BuiltinSchedules.PRE_UPDATE] = mainEvent;
 		events[BuiltinSchedules.UPDATE] = mainEvent;
 		events[BuiltinSchedules.POST_UPDATE] = mainEvent;

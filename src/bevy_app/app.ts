@@ -444,6 +444,15 @@ export class App {
 	}
 
 	/**
+	 * 运行指定的调度
+	 * @param label - 调度标签
+	 */
+	runSchedule(label: ScheduleLabel): void {
+		// 目前不实现，因为这需要复杂的 Loop 集成
+		// OnEnter/OnExit 系统将直接在 transitions.ts 中执行
+	}
+
+	/**
 	 * 检查是否应该退出
 	 * 对应 Rust App::should_exit
 	 */

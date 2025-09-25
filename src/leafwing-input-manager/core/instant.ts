@@ -22,6 +22,15 @@ export class Instant {
 	}
 
 	/**
+	 * Creates an Instant from elapsed seconds
+	 * @param seconds - The elapsed seconds value
+	 * @returns A new Instant for the given seconds
+	 */
+	static fromSeconds(seconds: number): Instant {
+		return new Instant(seconds);
+	}
+
+	/**
 	 * Calculates the duration since an earlier instant
 	 * @param earlier - The earlier instant
 	 * @returns The duration in seconds
@@ -35,6 +44,14 @@ export class Instant {
 	 * @returns The timestamp value
 	 */
 	getTimestamp(): number {
+		return this.timestamp;
+	}
+
+	/**
+	 * Gets the elapsed seconds since start of measurement
+	 * @returns The elapsed seconds value
+	 */
+	elapsedSeconds(): number {
 		return this.timestamp;
 	}
 

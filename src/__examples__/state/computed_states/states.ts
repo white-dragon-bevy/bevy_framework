@@ -155,10 +155,15 @@ export class InGameState extends BaseComputedStates<AppState> {
 	}
 
 	public compute(source: AppState | undefined): ComputedStates<AppState> | undefined {
-		if (source && source.isInGame()) {
-			const result = new InGameState();
-			result.exists = true;
-			return result;
+		// Type guard to ensure source has isInGame method
+		if (source && typeIs(source, "table") && typeIs(source.isInGame, "function")) {
+			// Call with proper context
+			const isInGameResult = (source as AppState).isInGame();
+			if (isInGameResult) {
+				const result = new InGameState();
+				result.exists = true;
+				return result;
+			}
 		}
 		return undefined;
 	}
@@ -183,10 +188,17 @@ export class TurboModeState extends BaseComputedStates<AppState> {
 	}
 
 	public compute(source: AppState | undefined): ComputedStates<AppState> | undefined {
-		if (source && source.isInGame() && source.isTurbo() === true) {
-			const result = new TurboModeState();
-			result.exists = true;
-			return result;
+		// Type guard to ensure source has methods
+		if (source && typeIs(source, "table")) {
+			if (typeIs(source.isInGame, "function") && typeIs(source.isTurbo, "function")) {
+				const isInGameResult = (source as AppState).isInGame();
+				const isTurboResult = (source as AppState).isTurbo();
+				if (isInGameResult && isTurboResult === true) {
+					const result = new TurboModeState();
+					result.exists = true;
+					return result;
+				}
+			}
 		}
 		return undefined;
 	}
@@ -220,12 +232,18 @@ export class IsPausedState extends BaseComputedStates<AppState> {
 	}
 
 	public compute(source: AppState | undefined): ComputedStates<AppState> | undefined {
-		if (source && source.isInGame()) {
-			const isPaused = source.isPaused();
-			if (isPaused === true) {
-				return IsPausedState.Paused();
-			} else if (isPaused === false) {
-				return IsPausedState.NotPaused();
+		// Type guard to ensure source has methods
+		if (source && typeIs(source, "table")) {
+			if (typeIs(source.isInGame, "function") && typeIs(source.isPaused, "function")) {
+				const isInGameResult = (source as AppState).isInGame();
+				if (isInGameResult) {
+					const isPaused = (source as AppState).isPaused();
+					if (isPaused === true) {
+						return IsPausedState.Paused();
+					} else if (isPaused === false) {
+						return IsPausedState.NotPaused();
+					}
+				}
 			}
 		}
 		return undefined;

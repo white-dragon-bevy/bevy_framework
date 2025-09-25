@@ -8,8 +8,8 @@ import { component } from "@rbxts/matter";
 import type { World, Entity } from "@rbxts/matter";
 import { AppState, TutorialState } from "./states";
 import { markForDespawnOnExit, markForDespawnOnComputedExit } from "./despawn-on-exit";
-import { NextState } from "../../../bevy_state/resources";
-import type { ResourceManager } from "../../../bevy_ecs/resource";
+import { NextState, State } from "../../../bevy_state/resources";
+import { ResourceManager, ResourceConstructor } from "../../../bevy_ecs/resource";
 
 // UI Colors
 export const NORMAL_BUTTON = new Color3(0.15, 0.15, 0.15);
@@ -65,10 +65,18 @@ export const GameSprite = component<{
  * Setup the main menu UI
  */
 export function setupMenu(world: World, resourceManager: ResourceManager): void {
+	print("[setupMenu] Starting menu setup");
 	const player = Players.LocalPlayer;
-	if (!player) return;
+	if (!player) {
+		print("[setupMenu] No LocalPlayer found");
+		return;
+	}
 	const playerGui = player.WaitForChild("PlayerGui") as PlayerGui;
-	if (!playerGui) return;
+	if (!playerGui) {
+		print("[setupMenu] No PlayerGui found");
+		return;
+	}
+	print("[setupMenu] Creating menu UI");
 
 	// Create ScreenGui
 	const screenGui = new Instance("ScreenGui");
@@ -105,38 +113,55 @@ export function setupMenu(world: World, resourceManager: ResourceManager): void 
 	tutorialButton.Parent = container;
 
 	// Check tutorial state and set initial button color
-	const tutorialState = resourceManager.getResource(
-		State<TutorialState>,
-	) as State<TutorialState> | undefined;
-	if (tutorialState && tutorialState.get().isActive()) {
-		tutorialButton.BackgroundColor3 = ACTIVE_BUTTON;
+	const tutorialStateKey = "State<TutorialState>" as ResourceConstructor<State<TutorialState>>;
+	const tutorialStateResource = resourceManager.getResource(tutorialStateKey) as State<TutorialState> | undefined;
+	if (tutorialStateResource) {
+		const tutorialState = tutorialStateResource.get();
+		if (tutorialState && typeIs(tutorialState, "table") && typeIs(tutorialState.isActive, "function")) {
+			const isActive = (tutorialState as TutorialState).isActive();
+			tutorialButton.BackgroundColor3 = isActive ? ACTIVE_BUTTON : NORMAL_BUTTON;
+		} else {
+			tutorialButton.BackgroundColor3 = NORMAL_BUTTON;
+		}
 	} else {
 		tutorialButton.BackgroundColor3 = NORMAL_BUTTON;
 	}
 
 	// Handle button interactions
 	playButton.MouseButton1Click.Connect(() => {
-		const nextStateResource = resourceManager.getResource(
-			NextState<AppState>,
-		) as NextState<AppState> | undefined;
+		print("[setupMenu] Play button clicked");
+		const nextStateKey = "NextState<AppState>" as ResourceConstructor<NextState<AppState>>;
+		const nextStateResource = resourceManager.getResource(nextStateKey) as NextState<AppState> | undefined;
 		if (nextStateResource) {
+			print("[setupMenu] Setting next state to InGame");
 			nextStateResource.set(AppState.InGame(false, false));
+		} else {
+			print("[setupMenu] ERROR: NextState resource not found!");
 		}
 	});
 
 	tutorialButton.MouseButton1Click.Connect(() => {
-		const currentTutorialState = resourceManager.getResource(
-			State<TutorialState>,
-		) as State<TutorialState> | undefined;
-		const nextTutorialState = resourceManager.getResource(
-			NextState<TutorialState>,
-		) as NextState<TutorialState> | undefined;
+		print("[setupMenu] Tutorial button clicked");
+		const tutorialStateKey = "State<TutorialState>" as ResourceConstructor<State<TutorialState>>;
+		const nextTutorialStateKey = "NextState<TutorialState>" as ResourceConstructor<NextState<TutorialState>>;
+		const currentTutorialState = resourceManager.getResource(tutorialStateKey) as State<TutorialState> | undefined;
+		const nextTutorialState = resourceManager.getResource(nextTutorialStateKey) as NextState<TutorialState> | undefined;
 
 		if (currentTutorialState && nextTutorialState) {
-			const isActive = currentTutorialState.get().isActive();
-			nextTutorialState.set(isActive ? TutorialState.Inactive() : TutorialState.Active());
-			// Update button color immediately
-			tutorialButton.BackgroundColor3 = isActive ? NORMAL_BUTTON : ACTIVE_BUTTON;
+			const currentState = currentTutorialState.get();
+			// Type guard to ensure isActive method exists
+			if (currentState && typeIs(currentState, "table") && typeIs(currentState.isActive, "function")) {
+				const isActive = (currentState as TutorialState).isActive();
+				print(`[setupMenu] Tutorial current state: ${isActive ? "Active" : "Inactive"}`);
+				print(`[setupMenu] Setting tutorial state to: ${isActive ? "Inactive" : "Active"}`);
+				nextTutorialState.set(isActive ? TutorialState.Inactive() : TutorialState.Active());
+				// Update button color immediately
+				tutorialButton.BackgroundColor3 = isActive ? NORMAL_BUTTON : ACTIVE_BUTTON;
+			} else {
+				print("[setupMenu] ERROR: Invalid TutorialState object");
+			}
+		} else {
+			print(`[setupMenu] ERROR: Tutorial resources not found! Current: ${currentTutorialState !== undefined}, Next: ${nextTutorialState !== undefined}`);
 		}
 	});
 
@@ -149,21 +174,33 @@ export function setupMenu(world: World, resourceManager: ResourceManager): void 
 	});
 
 	tutorialButton.MouseEnter.Connect(() => {
-		const state = resourceManager.getResource(
+		const stateResource = resourceManager.getResource(
 			State<TutorialState>,
 		) as State<TutorialState> | undefined;
-		if (state && state.get().isActive()) {
-			tutorialButton.BackgroundColor3 = HOVERED_ACTIVE_BUTTON;
+		if (stateResource) {
+			const state = stateResource.get();
+			if (state && typeIs(state, "table") && typeIs(state.isActive, "function")) {
+				const isActive = (state as TutorialState).isActive();
+				tutorialButton.BackgroundColor3 = isActive ? HOVERED_ACTIVE_BUTTON : HOVERED_BUTTON;
+			} else {
+				tutorialButton.BackgroundColor3 = HOVERED_BUTTON;
+			}
 		} else {
 			tutorialButton.BackgroundColor3 = HOVERED_BUTTON;
 		}
 	});
 	tutorialButton.MouseLeave.Connect(() => {
-		const state = resourceManager.getResource(
+		const stateResource = resourceManager.getResource(
 			State<TutorialState>,
 		) as State<TutorialState> | undefined;
-		if (state && state.get().isActive()) {
-			tutorialButton.BackgroundColor3 = ACTIVE_BUTTON;
+		if (stateResource) {
+			const state = stateResource.get();
+			if (state && typeIs(state, "table") && typeIs(state.isActive, "function")) {
+				const isActive = (state as TutorialState).isActive();
+				tutorialButton.BackgroundColor3 = isActive ? ACTIVE_BUTTON : NORMAL_BUTTON;
+			} else {
+				tutorialButton.BackgroundColor3 = NORMAL_BUTTON;
+			}
 		} else {
 			tutorialButton.BackgroundColor3 = NORMAL_BUTTON;
 		}
@@ -184,10 +221,18 @@ export function setupMenu(world: World, resourceManager: ResourceManager): void 
  * Setup the game sprite (Bevy logo equivalent)
  */
 export function setupGameSprite(world: World): void {
+	print("[setupGameSprite] Starting game sprite setup");
 	const player = Players.LocalPlayer;
-	if (!player) return;
+	if (!player) {
+		print("[setupGameSprite] No LocalPlayer found");
+		return;
+	}
 	const playerGui = player.WaitForChild("PlayerGui") as PlayerGui;
-	if (!playerGui) return;
+	if (!playerGui) {
+		print("[setupGameSprite] No PlayerGui found");
+		return;
+	}
+	print("[setupGameSprite] Creating game sprite");
 
 	// Create ScreenGui
 	const screenGui = new Instance("ScreenGui");
@@ -403,6 +448,3 @@ export function cleanupMenu(world: World): void {
 		world.despawn(entity);
 	}
 }
-
-// Import State for UI systems
-import { State } from "../../../bevy_state/resources";

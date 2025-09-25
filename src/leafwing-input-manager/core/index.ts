@@ -1,6 +1,7 @@
 export { Actionlike, ActionlikeEnum } from "./actionlike";
 export { InputControlKind } from "./input-control-kind";
 export { Instant } from "./instant";
+export { Timing } from "./timing";
 
 /**
  * Type alias for HashMap

@@ -31,6 +31,9 @@ import { RunService } from "@rbxts/services";
 class SimpleAction extends ActionlikeEnum {
 	static readonly Test = new SimpleAction("Test");
 
+	// 添加类名属性供 InputManager 使用
+	static readonly name = "SimpleAction";
+
 	constructor(name: string) {
 		super(name, InputControlKind.Button);
 	}
@@ -50,10 +53,13 @@ let globalApp: App | undefined;
  * 生成玩家
  */
 function spawnPlayer(world: World): void {
+	const isServer = RunService.IsServer();
+	const isClient = RunService.IsClient();
 	print("========================================");
 	print("Minimal Input Manager Example");
-	print("IsClient:", RunService.IsClient());
-	print("IsServer:", RunService.IsServer());
+	print("IsClient:", isClient);
+	print("IsServer:", isServer);
+	print(`Running on: ${isServer ? "SERVER" : "CLIENT"}`);
 	print("========================================");
 
 	// 检查是否已存在玩家
@@ -132,11 +138,12 @@ function handleActions(world: World): void {
 		}
 
 		// 使用安全包装函数
+		const isServer = RunService.IsServer();
 		if (isJustPressed(state, SimpleAction.Test)) {
-			print(`[SUCCESS] ${player.name} triggered Test action!`);
+			print(`[SUCCESS ${isServer ? "SERVER" : "CLIENT"}] ${player.name} triggered Test action!`);
 		}
 		if (isJustReleased(state, SimpleAction.Test)) {
-			print(`[SUCCESS] ${player.name} released Test action!`);
+			print(`[SUCCESS ${isServer ? "SERVER" : "CLIENT"}] ${player.name} released Test action!`);
 		}
 	}
 }
@@ -154,7 +161,7 @@ export function main(): App {
 	// 添加 InputManagerPlugin
 	app.addPlugin(
 		new InputManagerPlugin<SimpleAction>({
-			actionType: SimpleAction as unknown as new () => SimpleAction,
+			actionType: SimpleAction,
 		}),
 	);
 
@@ -165,5 +172,6 @@ export function main(): App {
 	return app;
 }
 
-// 运行应用
-main().run();
+// 创建并运行应用
+const app = main();
+app.run();

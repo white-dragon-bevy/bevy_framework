@@ -344,22 +344,7 @@ export function updateGamepadInput(inputStore: CentralInputStore): void {
 		inputStore.updateButtonlike(button.hash(), buttonValue);
 	}
 
-	// Update gamepad sticks
-	// Note: Roblox doesn't provide direct gamepad stick access through UserInputService
-	// You would need to use GamepadService or InputObject events for accurate stick values
-	// For now, we'll set them to zero
-	inputStore.updateDualAxislike(GamepadStick.left().hash(), Vector2.zero);
-	inputStore.updateDualAxislike(GamepadStick.right().hash(), Vector2.zero);
-
-	// In a real implementation, you would connect to InputChanged events:
-	// UserInputService.InputChanged.Connect((input) => {
-	//     if (input.UserInputType === Enum.UserInputType.Gamepad1) {
-	//         if (input.KeyCode === Enum.KeyCode.Thumbstick1) {
-	//             inputStore.updateDualAxislike(
-	//                 GamepadStick.left().hash(),
-	//                 new Vector2(input.Position.X, input.Position.Y)
-	//             );
-	//         }
-	//     }
-	// });
+	// Initialize gamepad listeners if not already done
+	// The actual stick values will be updated through InputChanged events
+	inputStore.initializeGamepadListeners();
 }

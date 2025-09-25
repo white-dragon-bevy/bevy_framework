@@ -2,6 +2,7 @@ import { ButtonValue } from "./traits/buttonlike";
 import { HashMap } from "../core";
 import { ButtonInput } from "../../bevy_input/button-input";
 import { AccumulatedMouseMotion, AccumulatedMouseWheel, MouseButton } from "../../bevy_input/mouse";
+import { UserInputService } from "@rbxts/services";
 
 /**
  * An overarching store for all user inputs
@@ -9,11 +10,30 @@ import { AccumulatedMouseMotion, AccumulatedMouseWheel, MouseButton } from "../.
  * This resource allows values to be updated and fetched in a single location,
  * and ensures that their values are only recomputed once per frame
  */
+/**
+ * Configuration for gamepad input handling
+ */
+export interface GamepadConfig {
+	readonly deadZone: number;
+	readonly sensitivity: number;
+}
+
+/**
+ * Default gamepad configuration
+ */
+const DEFAULT_GAMEPAD_CONFIG: GamepadConfig = {
+	deadZone: 0.1,
+	sensitivity: 1.0,
+};
+
 export class CentralInputStore {
 	private buttonStates: HashMap<string, ButtonValue> = new Map();
 	private axisValues: HashMap<string, number> = new Map();
 	private dualAxisValues: HashMap<string, Vector2> = new Map();
 	private tripleAxisValues: HashMap<string, Vector3> = new Map();
+	private gamepadConfig: GamepadConfig = DEFAULT_GAMEPAD_CONFIG;
+	private gamepadConnections: Array<RBXScriptConnection> = [];
+	private isGamepadListenerActive = false;
 
 	/**
 	 * Clears all existing values
@@ -25,6 +45,41 @@ export class CentralInputStore {
 		this.axisValues.clear();
 		this.dualAxisValues.clear();
 		this.tripleAxisValues.clear();
+	}
+
+	/**
+	 * Applies dead zone and sensitivity to a gamepad stick input
+	 * @param rawInput - Raw input from the gamepad stick
+	 * @returns Processed input with dead zone and sensitivity applied
+	 */
+	private processGamepadStickInput(rawInput: Vector2): Vector2 {
+		const magnitude = rawInput.Magnitude;
+
+		// Apply dead zone
+		if (magnitude < this.gamepadConfig.deadZone) {
+			return Vector2.zero;
+		}
+
+		// Normalize and apply sensitivity
+		const normalized = rawInput.Unit;
+		const adjustedMagnitude = math.min(
+			(magnitude - this.gamepadConfig.deadZone) / (1 - this.gamepadConfig.deadZone) * this.gamepadConfig.sensitivity,
+			1.0
+		);
+
+		return normalized.mul(adjustedMagnitude);
+	}
+
+	/**
+	 * Gets the gamepad key from UserInputType and KeyCode
+	 * @param userInputType - The gamepad type (Gamepad1-4)
+	 * @param keyCode - The key code (Thumbstick1/Thumbstick2)
+	 * @returns Formatted gamepad key string
+	 */
+	private getGamepadStickKey(userInputType: Enum.UserInputType, keyCode: Enum.KeyCode): string {
+		const gamepadNumber = userInputType.Name.gsub("Gamepad", "")[0];
+		const stickName = keyCode === Enum.KeyCode.Thumbstick1 ? "Left" : "Right";
+		return `GamepadStick:${stickName}:${gamepadNumber}`;
 	}
 
 	/**
@@ -192,6 +247,102 @@ export class CentralInputStore {
 	 */
 	updateMouseWheel(delta: number): void {
 		this.updateAxislike("mouse_wheel", delta);
+	}
+
+	/**
+	 * Initializes gamepad input listeners
+	 * This sets up UserInputService.InputChanged event handling for gamepad sticks
+	 */
+	initializeGamepadListeners(): void {
+		if (this.isGamepadListenerActive) {
+			return; // Already initialized
+		}
+
+		print("[CentralInputStore] Initializing gamepad listeners");
+
+		// Listen for gamepad input changes
+		const inputChangedConnection = UserInputService.InputChanged.Connect((input: InputObject) => {
+			this.handleGamepadInputChanged(input);
+		});
+
+		this.gamepadConnections.push(inputChangedConnection);
+		this.isGamepadListenerActive = true;
+	}
+
+	/**
+	 * Checks if the input type is a gamepad
+	 * @param inputType - The UserInputType to check
+	 * @returns True if the input type is a gamepad
+	 */
+	private isGamepadInputType(inputType: Enum.UserInputType): boolean {
+		return inputType === Enum.UserInputType.Gamepad1 ||
+			inputType === Enum.UserInputType.Gamepad2 ||
+			inputType === Enum.UserInputType.Gamepad3 ||
+			inputType === Enum.UserInputType.Gamepad4;
+	}
+
+	/**
+	 * Handles gamepad input changes from UserInputService
+	 * @param input - The input object from UserInputService
+	 */
+	private handleGamepadInputChanged(input: InputObject): void {
+		// Check if this is a gamepad input
+		if (!this.isGamepadInputType(input.UserInputType)) {
+			return;
+		}
+
+		// Handle thumbstick inputs
+		if (input.KeyCode === Enum.KeyCode.Thumbstick1 || input.KeyCode === Enum.KeyCode.Thumbstick2) {
+			const rawInput = new Vector2(input.Position.X, input.Position.Y);
+			const processedInput = this.processGamepadStickInput(rawInput);
+			const stickKey = this.getGamepadStickKey(input.UserInputType, input.KeyCode);
+
+			// Update dual axis value for the specific gamepad stick
+			this.updateDualAxislike(stickKey, processedInput);
+
+			// Also update the legacy gamepad stick keys for backwards compatibility
+			const legacyKey = input.KeyCode === Enum.KeyCode.Thumbstick1
+				? "gamepad_stick_left"
+				: "gamepad_stick_right";
+			this.updateDualAxislike(legacyKey, processedInput);
+		}
+	}
+
+	/**
+	 * Sets gamepad configuration
+	 * @param config - The gamepad configuration to apply
+	 */
+	setGamepadConfig(config: Partial<GamepadConfig>): void {
+		this.gamepadConfig = {
+			...this.gamepadConfig,
+			...config,
+		};
+		print(`[CentralInputStore] Updated gamepad config: deadZone=${this.gamepadConfig.deadZone}, sensitivity=${this.gamepadConfig.sensitivity}`);
+	}
+
+	/**
+	 * Gets the current gamepad configuration
+	 * @returns The current gamepad configuration
+	 */
+	getGamepadConfig(): GamepadConfig {
+		return { ...this.gamepadConfig };
+	}
+
+	/**
+	 * Cleans up gamepad input listeners
+	 */
+	cleanupGamepadListeners(): void {
+		if (!this.isGamepadListenerActive) {
+			return;
+		}
+
+		print("[CentralInputStore] Cleaning up gamepad listeners");
+
+		for (const connection of this.gamepadConnections) {
+			connection.Disconnect();
+		}
+		this.gamepadConnections.clear();
+		this.isGamepadListenerActive = false;
 	}
 
 	/**

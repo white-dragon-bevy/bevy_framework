@@ -1,7 +1,7 @@
 import { World } from "@rbxts/matter";
 import { CentralInputStore } from "../user-input/central-input-store";
-import { InputMap, InputMapComponent, UpdatedActions, ProcessedActionState } from "../input-map/input-map";
-import { ActionState, ActionStateComponent } from "../action-state/action-state";
+import { InputMap, InputMapComponent, ProcessedActionState } from "../input-map/input-map";
+import { ActionState, ActionStateComponent, UpdatedActions } from "../action-state/action-state";
 import { Actionlike } from "../core/actionlike";
 import { HashMap } from "../core";
 import { InputManagerPluginConfig } from "./input-manager-plugin";
@@ -71,67 +71,26 @@ export class InputManagerSystem<A extends Actionlike> {
 			// Store current processed states for next frame
 			this.previousProcessedStates.set(entityId, updatedActions.actionData);
 
-			// Resolve input clashes and apply the results
-			this.resolveClashes(updatedActions, actionStateInstance, inputMapInstance);
-		}
-	}
-
-	/**
-	 * Resolves input clashes for an entity
-	 * @param updatedActions - The updated actions with potential clashes
-	 * @param actionState - The action state to update
-	 * @param inputMap - The input map to get action information
-	 */
-	private resolveClashes(
-		updatedActions: UpdatedActions<A>,
-		actionState: ActionState<A>,
-		inputMap: InputMap<A>,
-	): void {
-		// Register all actions with the clash detector
-		this.clashDetector.clear();
-
-		// Iterate over the action data using proper Map iteration
-		for (const [actionHash, processedState] of updatedActions.actionData) {
-			// Get the action from the action state using the hash
-			const action = actionState.getActionByHash(actionHash);
-			if (action) {
-				// Get inputs for this action from the input map
-				const inputs = inputMap.getInputs(action);
-				this.clashDetector.registerAction(action, inputs);
-			}
-		}
-
-		// Detect and resolve clashes
-		const clashes = this.clashDetector.detectClashes();
-		const strategy = ClashStrategy.PrioritizeLargest; // Use default strategy
-		const triggeredActions = this.clashDetector.resolveClashes(clashes, strategy);
-
-		// Apply only the triggered actions
-		for (const [actionHash, processedState] of updatedActions.actionData) {
-			const action = actionState.getActionByHash(actionHash);
-			if (action) {
-				if (triggeredActions.has(actionHash)) {
-					// Update the action state with the processed data
+			// Apply actions directly without clashes (simplified)
+			for (const [actionHash, processedState] of updatedActions.actionData) {
+				const action = actionStateInstance.getActionByHash(actionHash);
+				if (action) {
 					if (processedState.justPressed) {
-						actionState.press(action, processedState.value);
+						actionStateInstance.press(action, processedState.value);
 					} else if (processedState.justReleased) {
-						actionState.release(action);
+						actionStateInstance.release(action);
 					} else if (processedState.pressed) {
-						// Continue holding the action
-						actionState.press(action, processedState.value);
+						actionStateInstance.setAxisValue(action, processedState.value);
 					}
 
-					// Set axis values if present
-					if (processedState.axisPair !== undefined) {
-						actionState.setAxisPair(action, processedState.axisPair);
+					if (processedState.axisPair) {
+						actionStateInstance.setAxisPair(action, processedState.axisPair);
 					}
-				} else {
-					// Release the action if it was not triggered
-					actionState.release(action);
 				}
 			}
 		}
 	}
+
 
 	/**
 	 * Ticks all action states to advance to the next frame
@@ -145,6 +104,67 @@ export class InputManagerSystem<A extends Actionlike> {
 			const actionStateInstance = this.instanceManager.getActionState(entityId);
 			if (actionStateInstance) {
 				actionStateInstance.tick(deltaTime);
+			}
+		}
+	}
+
+	/**
+	 * Ticks all action states with fixed timestep for consistent physics simulation
+	 * @param fixedDeltaTime - Fixed delta time in seconds
+	 */
+	tickAllFixed(fixedDeltaTime: number): void {
+		// Query for entities with input components
+		for (const [entityId] of this.world.query(InputEnabled)) {
+			// Get the actual instance from the manager
+			const actionStateInstance = this.instanceManager.getActionState(entityId);
+			if (actionStateInstance) {
+				actionStateInstance.tickFixed(fixedDeltaTime);
+			}
+		}
+	}
+
+	/**
+	 * Updates all input-enabled entities during fixed update schedule
+	 * @param fixedDeltaTime - Fixed delta time in seconds
+	 */
+	updateFixed(fixedDeltaTime: number): void {
+		// Process input for all entities similar to regular update but with fixed timing
+		for (const [entityId, inputMapData, actionStateData, inputEnabled] of this.world.query(
+			InputMapComponent,
+			ActionStateComponent,
+			InputEnabled,
+		)) {
+			// Get the actual instances from the manager
+			const inputMapInstance = this.instanceManager.getInputMap(entityId);
+			const actionStateInstance = this.instanceManager.getActionState(entityId);
+
+			if (inputMapInstance && actionStateInstance) {
+				// Process input with the central store
+				const processedActions = inputMapInstance.processActions(this.centralStore);
+
+				// Convert ProcessedActionState to ActionData
+				// Apply processed actions directly to action state
+				for (const [actionHash, processedState] of processedActions.actionData) {
+					const action = actionStateInstance.getActionByHash(actionHash);
+					if (action) {
+						if (processedState.justPressed) {
+							actionStateInstance.press(action, processedState.value);
+						} else if (processedState.justReleased) {
+							actionStateInstance.release(action);
+						} else if (processedState.pressed) {
+							actionStateInstance.setAxisValue(action, processedState.value);
+						}
+
+						if (processedState.axisPair) {
+							actionStateInstance.setAxisPair(action, processedState.axisPair);
+						}
+					}
+				}
+
+				// Store processed state for network sync
+				if (this.config.networkSync?.enabled) {
+					this.previousProcessedStates.set(entityId, processedActions.actionData);
+				}
 			}
 		}
 	}
