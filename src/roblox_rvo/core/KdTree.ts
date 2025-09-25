@@ -102,6 +102,11 @@ export default class KdTree {
         let obstacleI1 = obstacles[i];
         let obstacleI2 = obstacleI1.next;
 
+        // Skip if obstacleI2 is undefined
+        if (!obstacleI2) {
+          continue;
+        }
+
         for (let j = 0; j < obstacles.size(); j++) {
           if (i ===j) {
             continue;
@@ -109,6 +114,11 @@ export default class KdTree {
 
           let obstacleJ1 = obstacles[j];
           let obstacleJ2 = obstacleJ1.next;
+
+          // Skip if obstacleJ2 is undefined
+          if (!obstacleJ2) {
+            continue;
+          }
 
           let j1LeftOfI = RVOMath.leftOf(obstacleI1.point, obstacleI2.point, obstacleJ1.point);
           let j2LeftOfI = RVOMath.leftOf(obstacleI1.point, obstacleI2.point, obstacleJ2.point);
@@ -153,6 +163,14 @@ export default class KdTree {
         let obstacleI1 = obstacles[i];
         let obstacleI2 = obstacleI1.next;
 
+        // Check if obstacleI2 exists before using it in the second loop
+        if (!obstacleI2) {
+          // If obstacleI2 is undefined, we can't process this obstacle
+          // Set node.obstacle to obstacleI1 and return with empty children
+          node.obstacle = obstacleI1;
+          return node;
+        }
+
         for (let j = 0; j < obstacles.size(); ++j) {
           if (i ===j) {
             continue;
@@ -160,6 +178,11 @@ export default class KdTree {
 
           let obstacleJ1 = obstacles[j];
           let obstacleJ2 = obstacleJ1.next;
+
+          // Skip if obstacleJ2 is undefined
+          if (!obstacleJ2) {
+            continue;
+          }
 
           let j1LeftOfI = RVOMath.leftOf(obstacleI1.point, obstacleI2.point, obstacleJ1.point);
           let j2LeftOfI = RVOMath.leftOf(obstacleI1.point, obstacleI2.point, obstacleJ2.point);
@@ -272,6 +295,11 @@ export default class KdTree {
       let obstacle1 = node.obstacle;
       let obstacle2 = obstacle1.next;
 
+      // Check if obstacle2 exists before using it
+      if (!obstacle2) {
+        return;
+      }
+
       let agentLeftOfLine = RVOMath.leftOf(obstacle1.point, obstacle2.point, agent.position);
 
       this._queryObstacleTreeRecursive(agent, rangeSq, (agentLeftOfLine >= 0 ? node.left : node.right));
@@ -303,6 +331,11 @@ export default class KdTree {
     } else {
       let obstacle1 = node.obstacle;
       let obstacle2 = obstacle1.next;
+
+      // Check if obstacle2 exists before using it
+      if (!obstacle2) {
+        return true;
+      }
 
       let q1LeftOfI = RVOMath.leftOf(obstacle1.point, obstacle2.point, q1);
       let q2LeftOfI = RVOMath.leftOf(obstacle1.point, obstacle2.point, q2);
