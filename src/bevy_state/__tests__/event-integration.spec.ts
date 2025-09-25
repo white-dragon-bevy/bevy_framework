@@ -7,7 +7,7 @@ import { EventManager } from "../../bevy_ecs/events";
 import { StateTransitionEvent, StateTransitionManager, getStateTransitionReader, lastTransition } from "../transitions";
 import { EnumStates } from "../states";
 import { NextState, State } from "../resources";
-import { ResourceManager } from "../../bevy_ecs/resource";
+import { ResourceManager, ResourceConstructor } from "../../bevy_ecs/resource";
 
 // 定义测试状态
 class TestState extends EnumStates {
@@ -50,8 +50,8 @@ export = () => {
 			// 创建事件读取器
 			const eventReader = getStateTransitionReader<TestState>(eventManager);
 
-			// 设置初始状态转换
-			const nextStateKey = "NextState<TestState>" as never;
+			// 设置初始状态转换 - 使用 NextState 类作为键
+			const nextStateKey = NextState<TestState> as ResourceConstructor<NextState<TestState>>;
 			resourceManager.insertResource(nextStateKey, NextState.withPending(TestState.Loading));
 
 			// 处理转换
@@ -69,9 +69,9 @@ export = () => {
 		});
 
 		it("should track last transition event", () => {
-			// 设置初始状态转换
-			const nextStateKey = "NextState<TestState>" as never;
-			const stateKey = "State<TestState>" as never;
+			// 设置初始状态转换 - 使用类作为键
+			const nextStateKey = NextState<TestState> as ResourceConstructor<NextState<TestState>>;
+			const stateKey = State<TestState> as ResourceConstructor<State<TestState>>;
 
 			// 先设置一个当前状态
 			resourceManager.insertResource(stateKey, State.create(TestState.Loading));
@@ -109,9 +109,9 @@ export = () => {
 		it("should handle identity transitions correctly", () => {
 			const eventReader = getStateTransitionReader<TestState>(eventManager);
 
-			// 设置初始状态
-			const nextStateKey = "NextState<TestState>" as never;
-			const stateKey = "State<TestState>" as never;
+			// 设置初始状态 - 使用类作为键
+			const nextStateKey = NextState<TestState> as ResourceConstructor<NextState<TestState>>;
+			const stateKey = State<TestState> as ResourceConstructor<State<TestState>>;
 
 			resourceManager.insertResource(stateKey, State.create(TestState.Loading));
 

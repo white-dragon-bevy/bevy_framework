@@ -3,7 +3,7 @@
  */
 
 import { World } from "@rbxts/matter";
-import { ResourceManager } from "../../bevy_ecs/resource";
+import { ResourceManager, ResourceConstructor } from "../../bevy_ecs/resource";
 import { State } from "../resources";
 import { EnumStates } from "../states";
 import {
@@ -21,6 +21,7 @@ export = () => {
 		let resourceManager: ResourceManager;
 		let menuState: EnumStates;
 		let gameState: EnumStates;
+		const stateKey = "State<EnumStates>" as ResourceConstructor<State<EnumStates>>;
 
 		beforeEach(() => {
 			world = new World();
@@ -31,14 +32,14 @@ export = () => {
 
 		describe("inState", () => {
 			it("should return true when in target state", () => {
-				resourceManager.insertResource(State<EnumStates>, State.create(menuState));
+				resourceManager.insertResource(stateKey, State.create(menuState));
 				const condition = inState(EnumStates as any, menuState);
 
 				expect(condition(world, resourceManager)).to.equal(true);
 			});
 
 			it("should return false when not in target state", () => {
-				resourceManager.insertResource(State<EnumStates>, State.create(gameState));
+				resourceManager.insertResource(stateKey, State.create(gameState));
 				const condition = inState(EnumStates as any, menuState);
 
 				expect(condition(world, resourceManager)).to.equal(false);
@@ -52,7 +53,7 @@ export = () => {
 
 		describe("stateExists", () => {
 			it("should return true when state exists", () => {
-				resourceManager.insertResource(State<EnumStates>, State.create(menuState));
+				resourceManager.insertResource(stateKey, State.create(menuState));
 				const condition = stateExists(EnumStates as any);
 
 				expect(condition(world, resourceManager)).to.equal(true);
@@ -72,7 +73,7 @@ export = () => {
 				expect(condition(world, resourceManager)).to.equal(false);
 
 				// Add state
-				resourceManager.insertResource(State<EnumStates>, State.create(menuState));
+				resourceManager.insertResource(stateKey, State.create(menuState));
 
 				// Second call - state added
 				expect(condition(world, resourceManager)).to.equal(true);
@@ -82,7 +83,7 @@ export = () => {
 			});
 
 			it("should detect state changes", () => {
-				resourceManager.insertResource(State<EnumStates>, State.create(menuState));
+				resourceManager.insertResource(stateKey, State.create(menuState));
 				const condition = stateChanged(EnumStates as any);
 
 				// Initial check
@@ -92,7 +93,7 @@ export = () => {
 				expect(condition(world, resourceManager)).to.equal(false);
 
 				// Change state
-				const stateResource = resourceManager.getResource(State<EnumStates>)!;
+				const stateResource = resourceManager.getResource(stateKey)!;
 				stateResource._set(gameState);
 
 				// Detect change
@@ -102,7 +103,7 @@ export = () => {
 
 		describe("Condition Combinators", () => {
 			it("should combine conditions with AND logic", () => {
-				resourceManager.insertResource(State<EnumStates>, State.create(menuState));
+				resourceManager.insertResource(stateKey, State.create(menuState));
 
 				const condition1 = stateExists(EnumStates as any);
 				const condition2 = inState(EnumStates as any, menuState);
@@ -111,7 +112,7 @@ export = () => {
 				expect(combined(world, resourceManager)).to.equal(true);
 
 				// Change to different state
-				const stateResource = resourceManager.getResource(State<EnumStates>)!;
+				const stateResource = resourceManager.getResource(stateKey)!;
 				stateResource._set(gameState);
 
 				expect(combined(world, resourceManager)).to.equal(false);
@@ -126,11 +127,11 @@ export = () => {
 				expect(combined(world, resourceManager)).to.equal(false);
 
 				// Add menu state
-				resourceManager.insertResource(State<EnumStates>, State.create(menuState));
+				resourceManager.insertResource(stateKey, State.create(menuState));
 				expect(combined(world, resourceManager)).to.equal(true);
 
 				// Change to game state
-				const stateResource = resourceManager.getResource(State<EnumStates>)!;
+				const stateResource = resourceManager.getResource(stateKey)!;
 				stateResource._set(gameState);
 				expect(combined(world, resourceManager)).to.equal(true);
 			});
@@ -141,7 +142,7 @@ export = () => {
 
 				expect(negated(world, resourceManager)).to.equal(true);
 
-				resourceManager.insertResource(State<EnumStates>, State.create(menuState));
+				resourceManager.insertResource(stateKey, State.create(menuState));
 				expect(negated(world, resourceManager)).to.equal(false);
 			});
 		});

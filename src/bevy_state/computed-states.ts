@@ -64,8 +64,10 @@ export class SingleStateSet<S extends States> implements StateSet<S> {
 	 * @returns 当前状态或 undefined
 	 */
 	public getStates(resourceManager: ResourceManager): S | undefined {
-		const stateKey = generateResourceKey("State", this.stateType);
-		const stateResource = resourceManager.getResource(stateKey as ResourceConstructor<State<S>>);
+		// 使用统一的资源键生成方式
+		const stateTypeName = (this.stateType as unknown as { name?: string }).name ?? tostring(this.stateType);
+		const stateKey = `State<${stateTypeName}>` as ResourceConstructor<State<S>>;
+		const stateResource = resourceManager.getResource(stateKey);
 		return stateResource?.get();
 	}
 }
@@ -109,8 +111,10 @@ export class TupleStateSet<T extends ReadonlyArray<States>> implements StateSet<
 	public getStates(resourceManager: ResourceManager): T | undefined {
 		const states: Array<States> = [];
 		for (const stateType of this.stateTypes) {
-			const stateKey = generateResourceKey("State", stateType);
-			const stateResource = resourceManager.getResource(stateKey as ResourceConstructor<State<States>>);
+			// 使用统一的资源键生成方式
+			const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
+			const stateKey = `State<${stateTypeName}>` as ResourceConstructor<State<States>>;
+			const stateResource = resourceManager.getResource(stateKey);
 			const state = stateResource?.get();
 			if (!state) {
 				return undefined; // 如果任一状态不存在，返回 undefined
@@ -253,8 +257,8 @@ export class ComputedStateManager<TSource = unknown, TComputed extends ComputedS
 		// 执行计算
 		const newComputedState = computedInstance.compute(sourceValues);
 
-		// 构建计算状态资源键
-		const computedTypeName = (this.computedType as unknown as { name?: string }).name || "UnknownComputed";
+		// 使用统一的资源键生成方式
+		const computedTypeName = (this.computedType as unknown as { name?: string }).name ?? tostring(this.computedType);
 		const computedStateKey = `State<${computedTypeName}>` as ResourceConstructor<State<TComputed>>;
 
 		// 获取或创建计算状态资源
