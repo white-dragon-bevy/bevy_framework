@@ -96,11 +96,11 @@ export function createCircleObstacle(center: Vector2, radius: number, segments: 
 /**
  * 创建线段障碍物
  * @param start - 起点
- * @param end - 终点
+ * @param endPoint - 终点
  * @returns RVOObstacle 组件数据
  */
-export function createLineObstacle(start: Vector2, end: Vector2): RVOObstacleData {
-	return createRVOObstacle([start, end], { isConvex: true });
+export function createLineObstacle(start: Vector2, endPoint: Vector2): RVOObstacleData {
+	return createRVOObstacle([start, endPoint], { isConvex: true });
 }
 
 /**
@@ -119,11 +119,11 @@ function checkConvexity(vertices: Array<Vector2>): boolean {
 
 	for (let index = 0; index < vertexCount; index++) {
 		const current = vertices[index];
-		const next = vertices[(index + 1) % vertexCount];
-		const nextNext = vertices[(index + 2) % vertexCount];
+		const nextVertex = vertices[(index + 1) % vertexCount];
+		const nextNextVertex = vertices[(index + 2) % vertexCount];
 
-		const v1 = next.sub(current);
-		const v2 = nextNext.sub(next);
+		const v1 = nextVertex.sub(current);
+		const v2 = nextNextVertex.sub(nextVertex);
 
 		// 计算叉积
 		const crossProduct = v1.X * v2.Y - v1.Y * v2.X;

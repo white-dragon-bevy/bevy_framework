@@ -134,7 +134,7 @@ export function updateTransformFromRVO(world: BevyWorld, context: Context): void
 			}
 		} else {
 			// 更新当前速度
-			matterWorld.insert(
+			world.insert(
 				entity,
 				RVOAgent({
 					...agent,
