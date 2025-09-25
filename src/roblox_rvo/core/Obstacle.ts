@@ -1,6 +1,5 @@
 
 
-
 export default class Obstacle {
   point: Vector2 = Vector2.zero;
   unitDir: Vector2 = Vector2.zero;

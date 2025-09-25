@@ -16,13 +16,19 @@ export default class RVOMath {
     const aux1 = c.sub(a);
     const aux2 = b.sub(a);
 
+    // Handle degenerate case where a == b (zero-length segment)
+    const segmentLengthSq = RVOMath.absSq(aux2);
+    if (segmentLengthSq === 0) {
+      return RVOMath.absSq(aux1); // Distance to point a (same as point b)
+    }
+
     // r = ((c - a) * (b - a)) / absSq(b - a)
-    const r = aux1.Dot(aux2) / RVOMath.absSq(aux2);
+    const r = aux1.Dot(aux2) / segmentLengthSq;
 
     if (r < 0) {
       return RVOMath.absSq(aux1); // absSq(c - a)
     } else if (r > 1) {
-      return RVOMath.absSq(aux2);// absSq(c - b)
+      return RVOMath.absSq(c.sub(b));// absSq(c - b)
     } else {
       return RVOMath.absSq(c.sub(a.add(aux2.mul(r))));// absSq(c - (a + r * (b - a)))
     }
