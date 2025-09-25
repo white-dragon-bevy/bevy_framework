@@ -118,6 +118,7 @@ export class RVOPlugin implements Plugin {
 	 * @param app - 应用实例
 	 */
 	private registerEvents(app: App): void {
+
 		// TODO: 事件系统尚未完全实现
 		// 注册碰撞避免事件
 		// app.addEvent<CollisionAvoidanceEvent>();
@@ -140,7 +141,7 @@ export class RVOPlugin implements Plugin {
 	 */
 	private addSystems(app: App): void {
 		// Startup: 初始化系统
-		app.editSchedule(BuiltinSchedules.Startup, (schedule) => {
+		app.editSchedule(BuiltinSchedules.STARTUP, (schedule) => {
 			schedule.addSystem({
 				system: initRVOSystem,
 				name: "initRVOSystem",
@@ -148,7 +149,7 @@ export class RVOPlugin implements Plugin {
 		});
 
 		// PreUpdate: 同步 Transform 到 RVO
-		app.editSchedule(BuiltinSchedules.PreUpdate, (schedule) => {
+		app.editSchedule(BuiltinSchedules.PRE_UPDATE, (schedule) => {
 			schedule.addSystem({
 				system: syncTransformToRVO,
 				name: "syncTransformToRVO",
@@ -156,7 +157,7 @@ export class RVOPlugin implements Plugin {
 		});
 
 		// Update: 执行 RVO 模拟
-		app.editSchedule(BuiltinSchedules.Update, (schedule) => {
+		app.editSchedule(BuiltinSchedules.UPDATE, (schedule) => {
 			schedule.addSystem({
 				system: simulateRVO,
 				name: "simulateRVO",
@@ -164,7 +165,7 @@ export class RVOPlugin implements Plugin {
 		});
 
 		// PostUpdate: 更新 Transform
-		app.editSchedule(BuiltinSchedules.PostUpdate, (schedule) => {
+		app.editSchedule(BuiltinSchedules.POST_UPDATE, (schedule) => {
 			schedule.addSystem({
 				system: updateTransformFromRVO,
 				name: "updateTransformFromRVO",
