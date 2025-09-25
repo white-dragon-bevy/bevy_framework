@@ -209,7 +209,7 @@ export class LogDiagnosticsPlugin implements Plugin {
 	 * @param context - 系统上下文
 	 */
 	static logDiagnosticsSystem(world: World, context: Context): void {
-		const resources = context.get("resources");
+		const resources = context.resources;
 		const state = resources.getResource(LogDiagnosticsState);
 		const diagnostics = resources.getResource(DiagnosticsStore);
 
@@ -229,7 +229,7 @@ export class LogDiagnosticsPlugin implements Plugin {
 	 * @param context - 系统上下文
 	 */
 	static logDiagnosticsDebugSystem(world: World, context: Context): void {
-		const resources = context.get("resources");
+		const resources = context.resources;
 		const state = resources.getResource(LogDiagnosticsState);
 		const diagnostics = resources.getResource(DiagnosticsStore);
 

@@ -22,7 +22,6 @@ import {
 	EntityCountDiagnosticsPlugin,
 	registerDiagnostic,
 } from "../index";
-import { EcsResourcePlugin } from "../../bevy_ecs/resource-plugin";
 
 export = () => {
 	describe("DiagnosticsPlugin", () => {
@@ -50,7 +49,6 @@ export = () => {
 
 		it("should increment frame count", () => {
 			const app = App.create();
-			app.addPlugin(new EcsResourcePlugin());
 			app.finish();
 
 			const frameCount = new FrameCount();
@@ -67,7 +65,6 @@ export = () => {
 
 		it("should wrap around at max value", () => {
 			const app = App.create();
-			app.addPlugin(new EcsResourcePlugin());
 			app.finish();
 
 			const frameCount = new FrameCount(2 ** 32 - 1);

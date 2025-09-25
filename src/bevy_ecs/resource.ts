@@ -47,6 +47,15 @@ export class ResourceManager {
 		return this.resources.get(resourceId) as T | undefined;
 	}
 
+	public getOrInsertDefaultResource<T extends Resource>(resourceType: new () => T): T {
+		let resource = this.getResource(resourceType);
+		if (!resource) {
+			resource = new resourceType();
+			this.insertResource(resourceType, resource);
+		}
+		return resource;
+	}
+
 	/**
 	 * 插入或更新资源
 	 * @param resourceType 资源类型构造函数

@@ -140,15 +140,6 @@ export class CommandBuffer {
 	}
 
 	/**
-	 * 添加命令的别名方法 (为了向后兼容)
-	 * @deprecated 使用 queue() 代替
-	 * @param command - 要添加的命令
-	 */
-	public add<T extends Command | CustomCommand>(command: T): void {
-		this.queue(command);
-	}
-
-	/**
 	 * 生成新实体并添加组件
 	 * @param components 要添加的组件数组
 	 * @returns 临时实体ID，在flush时会被替换为真实ID

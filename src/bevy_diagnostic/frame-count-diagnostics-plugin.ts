@@ -75,7 +75,7 @@ export class FrameCountPlugin implements Plugin {
  * @param context - 系统上下文
  */
 export function updateFrameCount(world: World, context: Context): void {
-	const resources = context.get("resources");
+	const resources = context.resources;
 	if (!resources) {
 		return;
 	}

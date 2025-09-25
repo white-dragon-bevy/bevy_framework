@@ -1,5 +1,5 @@
-const exampleFolder: string = "render";
-const exampleName: string = "moving-entities";
+const exampleFolder: string = "app";
+const exampleName: string = "empty_defaults";
 
 export function bootstrap() {
 	// 先运行测试

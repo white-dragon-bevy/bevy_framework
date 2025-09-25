@@ -30,10 +30,11 @@ export class App {
 	constructor() {
 		this.subApps = new SubApps();
 		this.runner = (app: App) => this.runOnce(app);
-		this.context = new AppContext();
 
 		// 设置主SubApp的App引用
 		this.subApps.main().setAppReference(this);
+
+		this.context = this.subApps.main().getContext()
 
 		// 初始化主应用
 		this.initializeMainApp();

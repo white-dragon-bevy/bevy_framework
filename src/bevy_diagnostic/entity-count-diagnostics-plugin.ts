@@ -81,7 +81,7 @@ export class EntityCountDiagnosticsPlugin implements Plugin {
 	 * @param context - 系统上下文
 	 */
 	static diagnosticSystem(world: World, context: Context): void {
-		const resources = context.get("resources");
+		const resources = context.resources;
 		const diagnosticsStore = resources.getResource(DiagnosticsStore);
 		if (!diagnosticsStore) return;
 

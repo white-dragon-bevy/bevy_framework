@@ -59,7 +59,7 @@ export class Schedule {
 		this.context = context;
 		// 从上下文获取资源管理器和命令缓冲器（如果扩展存在）
 		if (context.has("resources")) {
-			const resourceExt = context.get("resources");
+			const resourceExt = context.resources;
 			// Store reference for backward compatibility
 			this.resourceManager = resourceExt as any;
 		}

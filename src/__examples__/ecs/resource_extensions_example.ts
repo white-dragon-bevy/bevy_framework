@@ -6,7 +6,6 @@
 import { App, BasePlugin, BuiltinSchedules } from "../../bevy_app";
 import { Context } from "../../bevy_ecs";
 import { Resource } from "../../bevy_ecs/resource";
-import { EcsResourcePlugin } from "../../bevy_ecs/resource-plugin";
 import { World } from "@rbxts/matter";
 
 // ============= 定义资源类型 =============
@@ -83,13 +82,12 @@ class NetworkConfig implements Resource {
  * 游戏更新系统
  */
 function gameUpdateSystem(world: World, context: Context): void {
-	const resources = context.get("resources");
-	const operations = context.get("resources.operations");
+	const resources = context.resources;
 	// Get deltaTime from time extension
 	const deltaTime = context.has("time") ? context.get("time").getDeltaSeconds() : 0.016;
 
 	// 更新游戏状态
-	operations.withResourceMut(GameState, (state: GameState) => {
+	resources.withResourceMut(GameState, (state: GameState) => {
 		if (state.isPlaying) {
 			state.elapsedTime += deltaTime;
 
@@ -124,7 +122,7 @@ function resourceMonitoringSystem(world: World, context: Context): void {
 	const deltaTime = context.has("time") ? context.get("time").getDeltaSeconds() : 0.016;
 
 	// 每5秒输出一次统计
-	const gameState = context.get("resources").getResource(GameState);
+	const gameState = context.resources.getResource(GameState);
 	if (
 		gameState &&
 		math.floor(gameState.elapsedTime) % 5 === 0 &&
@@ -156,7 +154,7 @@ function resourceQuerySystem(world: World, context: Context): void {
 	const deltaTime = context.has("time") ? context.get("time").getDeltaSeconds() : 0.016;
 
 	// 每8秒执行一次查询演示
-	const gameState = context.get("resources").getResource(GameState);
+	const gameState = context.resources.getResource(GameState);
 	if (
 		gameState &&
 		math.floor(gameState.elapsedTime) % 8 === 0 &&
@@ -197,11 +195,9 @@ print("\n=== ECS Resource Extensions Example ===\n");
 
 // 创建应用并添加资源插件
 const app = App.create();
-app.addPlugin(new EcsResourcePlugin());
 
 // 初始化资源
-const resources = app.context.get("resources");
-const operations = app.context.get("resources.operations");
+const resources = app.context.resources;
 
 // 插入初始资源
 resources.insertResource(GameConfig, new GameConfig(1.5, "medium", true, 8));
@@ -210,7 +206,7 @@ resources.insertResource(PlayerData, new PlayerData());
 resources.insertResource(NetworkConfig, new NetworkConfig("game.server.com", 3000, 5, false));
 
 // 使用便捷操作
-const playerData = operations.getOrInsertDefaultResource(PlayerData);
+const playerData = resources.getOrInsertDefaultResource(PlayerData);
 playerData.addPlayer("player1", "Alice");
 playerData.addPlayer("player2", "Bob");
 print(`Total players: ${playerData.getPlayerCount()}`);
@@ -220,7 +216,6 @@ print("\n--- Batch Operations ---");
 const batchResources = new Map<any, Resource>();
 batchResources.set("TempResource1" as any, { temp: true } as any);
 batchResources.set("TempResource2" as any, { temp: true } as any);
-operations.insertResourceBatch(batchResources);
 print(`Resources after batch insert: ${resources.getResourceCount()}`);
 
 // 启用监控
@@ -239,13 +234,13 @@ app.addSystems(BuiltinSchedules.POST_UPDATE, resourceQuerySystem);
 print("\n--- Resource Operations Demo ---");
 
 // 使用withResource读取配置
-operations.withResource(GameConfig, (config: GameConfig) => {
+resources.withResource(GameConfig, (config: GameConfig) => {
 	print(`Game Config: Speed=${config.gameSpeed}, Difficulty=${config.difficulty}`);
 	return config;
 });
 
 // 修改游戏状态
-operations.withResourceMut(GameState, (state: GameState) => {
+resources.withResourceMut(GameState, (state: GameState) => {
 	state.isPlaying = true;
 	print("Game started!");
 	return state;
@@ -281,8 +276,6 @@ print(`Metadata entries: ${snapshot.metadata.size()}`);
 
 // 清理
 print("\n--- Cleanup ---");
-operations.removeResourceBatch(["TempResource1" as any, "TempResource2" as any]);
-print(`Resources after cleanup: ${resources.getResourceCount()}`);
 
 // 禁用监控
 monitoring.disableResourceMonitoring();

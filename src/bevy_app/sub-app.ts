@@ -17,7 +17,6 @@ import type { SystemFunction, SystemConfig } from "../bevy_ecs/schedule/types";
 import { intoSystemConfigs } from "../bevy_ecs/schedule/system-configs";
 import type { IntoSystemConfigs } from "../bevy_ecs/schedule";
 import { AppContext } from "./context";
-import { EcsResourcePlugin } from "../bevy_ecs/resource-plugin";
 
 // 前向声明 App 类型
 interface AppInterface {
@@ -51,25 +50,19 @@ export class SubApp {
 
 	constructor() {
 		this._world = createWorldContainer();
-		this.resourceManager = new ResourceManager();
-		this.commandBuffer = new CommandBuffer();
-		// Initialize context as AppContext
-		this.context = new AppContext();
 
-		// Register resource extensions
-		const resourcePlugin = new EcsResourcePlugin();
-		const tempApp = {
-			main: () => this,
-			context: this.context,
-			registerExtension: (key: any, ext: any, meta?: any) => {
-				this.context.registerExtension(key, ext, meta);
-			}
-		} as any;
-		resourcePlugin.build(tempApp);
+		// Initialize context 
+		this.context = new AppContext(this._world.getWorld());
+
+		this.resourceManager = this.context.resources;
+		this.commandBuffer = this.context.commands;
+		this.eventManager = this.context.events;
+
 
 		this.schedules = new Schedules(this._world.getWorld(), this.context);
-		this.eventManager = new EventManager(this._world.getWorld());
 		this.scheduleOrder = new MainScheduleOrder();
+
+
 	}
 
 	/**
