@@ -7,7 +7,7 @@ import { World } from "@rbxts/matter";
 import { App } from "../bevy_app/app";
 import { Plugin } from "../bevy_app/plugin";
 import { BuiltinSchedules } from "../bevy_app/main-schedule";
-import { ResourceManager } from "../bevy_ecs/resource";
+import { ResourceManager, ResourceConstructor } from "../bevy_ecs/resource";
 import { States } from "./states";
 import { State, NextState, StateConstructor, DefaultStateFn } from "./resources";
 import { StateTransition, StateTransitionManager } from "./transitions";
@@ -56,13 +56,20 @@ export class StatesPlugin<S extends States> implements Plugin {
 	 * @param app - 应用实例
 	 */
 	public build(app: App): void {
+		const stateTypeName = (this.config.stateType as unknown as { name?: string }).name || tostring(this.config.stateType);
 		const world = app.getWorld();
-		// 创建资源管理器
-		this.resourceManager = new ResourceManager();
-
-		// 将资源管理器存储到world的一个自定义属性中
 		const worldWithRM = world as unknown as Record<string, unknown>;
-		worldWithRM["stateResourceManager"] = this.resourceManager;
+
+		// Get or create the shared resource manager
+		let existingResourceManager = worldWithRM["stateResourceManager"] as ResourceManager | undefined;
+		if (!existingResourceManager) {
+			// First StatePlugin creates the ResourceManager
+			existingResourceManager = new ResourceManager();
+			worldWithRM["stateResourceManager"] = existingResourceManager;
+		}
+		this.resourceManager = existingResourceManager;
+		// 存储 App 引用以便执行调度
+		worldWithRM["appReference"] = app;
 
 		// 初始化状态资源
 		if (this.config.initOnStartup !== false) {
@@ -71,14 +78,24 @@ export class StatesPlugin<S extends States> implements Plugin {
 				error(`defaultState is not a function, got ${typeOf(this.config.defaultState)}`);
 			}
 			const defaultState = this.config.defaultState();
-			this.resourceManager.insertResource(State<S>, State.create(defaultState));
-			this.resourceManager.insertResource(NextState<S>, NextState.unchanged<S>());
+			// Use unique resource key based on state type
+			const nextStateResourceKey = `NextState<${stateTypeName}>` as ResourceConstructor<NextState<S>>;
+			// 初始状态设置为 pending，让转换管理器处理
+			this.resourceManager.insertResource(nextStateResourceKey, NextState.withPending(defaultState));
 		}
 
 		// 添加状态转换系统
 		app.addSystems(StateTransition as unknown as string, (worldParam: World) => {
 			if (this.resourceManager) {
-				this.processStateTransitions(worldParam, this.resourceManager);
+				this.processStateTransitions(worldParam, this.resourceManager, app);
+			}
+		});
+
+		// 在 STARTUP 中处理初始状态
+		app.addSystems(BuiltinSchedules.STARTUP, (worldParam: World) => {
+			// 处理初始状态的 OnEnter
+			if (this.resourceManager) {
+				this.processStateTransitions(worldParam, this.resourceManager, app);
 			}
 		});
 
@@ -86,7 +103,7 @@ export class StatesPlugin<S extends States> implements Plugin {
 		app.addSystems(BuiltinSchedules.PRE_UPDATE, (worldParam: World) => {
 			// 触发状态转换调度 - 这里需要手动调用转换系统
 			if (this.resourceManager) {
-				this.processStateTransitions(worldParam, this.resourceManager);
+				this.processStateTransitions(worldParam, this.resourceManager, app);
 			}
 		});
 	}
@@ -95,9 +112,10 @@ export class StatesPlugin<S extends States> implements Plugin {
 	 * 处理状态转换
 	 * @param world - 游戏世界
 	 * @param resourceManager - 资源管理器
+	 * @param app - App 实例
 	 */
-	private processStateTransitions(world: World, resourceManager: ResourceManager): void {
-		this.transitionManager.processTransition(world, resourceManager);
+	private processStateTransitions(world: World, resourceManager: ResourceManager, app: App): void {
+		this.transitionManager.processTransition(world, resourceManager, app);
 	}
 
 	/**
@@ -155,8 +173,8 @@ export class ComputedStatesPlugin<
 			worldWithRM["stateResourceManager"] = this.resourceManager;
 		}
 
-		// 添加计算状态更新系统
-		app.addSystems(StateTransition as unknown as string, (worldParam: World) => {
+		// 添加计算状态更新系统 - 在 PRE_UPDATE 中运行，紧跟在状态转换之后
+		app.addSystems(BuiltinSchedules.PRE_UPDATE, (worldParam: World) => {
 			if (this.resourceManager) {
 				this.manager.updateComputedState(worldParam, this.resourceManager);
 			}

@@ -87,6 +87,19 @@ export class Schedule {
 	}
 
 	/**
+	 * 获取已编译的系统列表
+	 * @returns 系统函数数组
+	 */
+	public getCompiledSystems(): SystemFunction[] {
+		const systems: SystemFunction[] = [];
+		for (const [, systemStruct] of this.systems) {
+			// InternalSystemStruct extends SystemConfig, 所以直接访问 system 属性
+			systems.push(systemStruct.system);
+		}
+		return systems;
+	}
+
+	/**
 	 * 添加系统到调度器
 	 * @param config - 系统配置
 	 * @returns 系统标识符

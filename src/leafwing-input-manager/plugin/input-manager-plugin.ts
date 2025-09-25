@@ -9,10 +9,10 @@ import { getKeyboardInput, getMouseInput, getMouseMotion, getMouseWheel } from "
 import { Plugin } from "../../bevy_app/plugin";
 import { App } from "../../bevy_app";
 import { MainScheduleLabel } from "../../bevy_app";
-import { AppContext } from "../../bevy_app/context";
-import { InputManagerExtension } from "./extensions";
+import { registerInputManagerExtension } from "./context-helpers";
 import { InputMapComponent, ActionStateComponent } from "./components";
 import { Resource } from "../../bevy_ecs";
+import { InputInstanceManager } from "./input-instance-manager";
 
 /**
  * Configuration for the InputManagerPlugin
@@ -21,7 +21,7 @@ export interface InputManagerPluginConfig<A extends Actionlike> {
 	/**
 	 * The action type to use
 	 */
-	actionType: new () => A;
+	actionType: (new (...args: any[]) => A) & { name: string };
 
 	/**
 	 * Default input map to use
@@ -79,6 +79,9 @@ export class InputManagerPluginResource<A extends Actionlike> implements Resourc
  * - Action state updates based on input mappings
  * - System scheduling for input processing
  */
+// Debug counter for limiting log output
+let debugCounter = 0;
+
 export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 	private config: InputManagerPluginConfig<A>;
 	private world?: World;
@@ -96,88 +99,136 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 	 * @param app - The Bevy App instance
 	 */
 	build(app: App): void {
-		// Only run on client
-		if (RunService.IsServer()) {
-			print("[InputManagerPlugin] Skipping initialization on server");
-			return;
-		}
+		print(`[InputManagerPlugin] build() called for ${this.config.actionType.name}`);
 
 		// Initialize internal state
 		this.world = app.getWorld() as unknown as World;
-		this.centralStore = new CentralInputStore();
 		this.instanceManager = new InputInstanceManager<A>();
-		this.inputSystem = new InputManagerSystem(this.world, this.centralStore, this.config, this.instanceManager);
+
+		print(`[InputManagerPlugin] Created InputInstanceManager: ${this.instanceManager !== undefined}`);
 
 		// Store the plugin instance as a resource for access by systems
 		app.insertResource(InputManagerPluginResource<A>, new InputManagerPluginResource(this));
 
-		// Register extension to AppContext
+		// Register extension to AppContext using dynamic key
+		// This needs to be available on both client and server
 		const context = app.getContext();
-		const pluginInstance = this;
-		const extension: InputManagerExtension<A> = {
-			getPlugin(): InputManagerPlugin<A> {
-				return pluginInstance;
-			},
-		};
-		context.registerExtension("input-manager", extension as InputManagerExtension, {
-			description: "Leafwing Input Manager Plugin",
-			version: "0.1.0",
-		});
+		registerInputManagerExtension(context, this.config.actionType, this);
+		print(`[InputManagerPlugin] Registered extension with key: input-manager:${this.config.actionType.name}`);
 
-		print("[InputManagerPlugin] Initialized successfully");
+		const isServer = RunService.IsServer();
+		const isClient = RunService.IsClient();
 
-		// Register systems with the App scheduler
-		// PreUpdate: tick and update action states
-		app.addSystems(MainScheduleLabel.PRE_UPDATE, (world: World) => {
-			this.tickActionState(world);
-		});
+		if (isServer) {
+			// Server mode: only register tick system
+			// Matches Rust implementation which only adds tick_action_state on server
+			print(`[InputManagerPlugin] Initializing on SERVER for ${this.config.actionType.name}`);
 
-		app.addSystems(MainScheduleLabel.PRE_UPDATE, (world: World) => {
-			this.updateActionState(world);
-		});
+			// PreUpdate: tick action states
+			app.addSystems(MainScheduleLabel.PRE_UPDATE, (world: World) => {
+				this.tickActionState(world);
+			});
+		} else if (isClient) {
+			// Client mode: full input processing
+			print(`[InputManagerPlugin] Initializing on CLIENT for ${this.config.actionType.name}`);
 
-		// PostUpdate: cleanup and finalization
-		app.addSystems(MainScheduleLabel.POST_UPDATE, (world: World) => {
-			this.releaseOnInputMapRemoved(world);
-		});
+			// Initialize client-only components
+			this.centralStore = new CentralInputStore();
+			this.inputSystem = new InputManagerSystem(this.world, this.centralStore, this.config, this.instanceManager);
 
-		if (this.config.networkSync?.enabled) {
-			this.setupNetworkSync();
+			// Register systems with the App scheduler
+			// PreUpdate: tick and update action states
+			app.addSystems(MainScheduleLabel.PRE_UPDATE, (world: World) => {
+				debugCounter++;
+				this.tickActionState(world);
+			});
+
+			app.addSystems(MainScheduleLabel.PRE_UPDATE, (world: World) => {
+				this.updateActionState(world);
+			});
+
+			// PostUpdate: cleanup and finalization
+			app.addSystems(MainScheduleLabel.POST_UPDATE, (world: World) => {
+				this.releaseOnInputMapRemoved(world);
+			});
+
+			if (this.config.networkSync?.enabled) {
+				this.setupNetworkSync();
+			}
 		}
+
+		print(`[InputManagerPlugin] Initialized successfully for ${this.config.actionType.name} on ${isServer ? "SERVER" : "CLIENT"}`)
 	}
 
 	/**
 	 * Ticks the action state - clears just_pressed and just_released
 	 * Corresponds to Rust's tick_action_state system
+	 * This runs on both client and server
 	 */
 	private tickActionState(world: World): void {
-		if (!this.inputSystem) return;
-		this.inputSystem.tickAll(1 / 60);
+		// On server, we only need to tick the instance manager's action states
+		// On client, we tick through the input system
+		if (RunService.IsServer()) {
+			// Server mode: directly tick action states in instance manager
+			if (this.instanceManager) {
+				// Tick all registered action states
+				for (const [entity] of world.query(ActionStateComponent)) {
+					const actionState = this.instanceManager.getActionState(entity);
+					if (actionState) {
+						actionState.tick(1 / 60);
+					}
+				}
+			}
+		} else if (this.inputSystem) {
+			// Client mode: use input system to tick
+			this.inputSystem.tickAll(1 / 60);
+		}
 	}
 
 	/**
 	 * Updates the action state based on current inputs
 	 * Corresponds to Rust's update_action_state system
+	 * This only runs on client (server doesn't process inputs)
 	 */
 	private updateActionState(world: World): void {
-		if (!this.inputSystem || !this.instanceManager) return;
+		// Server doesn't process inputs, only client does
+		if (RunService.IsServer()) {
+			return;
+		}
+
+		if (!this.inputSystem || !this.instanceManager) {
+			if (debugCounter % 60 === 0) {
+				print(`[InputManagerPlugin] updateActionState skipped:`);
+				print(`  - inputSystem: ${this.inputSystem !== undefined}`);
+				print(`  - instanceManager: ${this.instanceManager !== undefined}`);
+				print(`  - world: ${this.world !== undefined}`);
+				print(`  - centralStore: ${this.centralStore !== undefined}`);
+			}
+			return;
+		}
 
 		// Sync input state from bevy_input resources
 		this.syncFromBevyInput();
 
 		// Update action states for all entities with input components
+		let entityCount = 0;
 		for (const [entity, inputMap, actionState] of world.query(InputMapComponent, ActionStateComponent)) {
+			entityCount++;
 			// Register the actual instances with the manager if not already registered
 			if (!this.instanceManager.getInputMap(entity)) {
 				this.instanceManager.registerInputMap(entity, inputMap as unknown as InputMap<A>);
+				print(`[InputManagerPlugin] Registered InputMap for entity ${entity}`);
 			}
 			if (!this.instanceManager.getActionState(entity)) {
 				this.instanceManager.registerActionState(entity, actionState as unknown as ActionState<A>);
+				print(`[InputManagerPlugin] Registered ActionState for entity ${entity}`);
 			}
 		}
 
 		// Update the input system
-		this.inputSystem.update(1 / 60);
+		if (entityCount > 0) {
+			this.inputSystem.update(1 / 60);
+		}
 	}
 
 	/**
@@ -241,18 +292,18 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 
 	/**
 	 * Gets the plugin name
-	 * @returns The plugin name
+	 * @returns The plugin name with action type
 	 */
 	name(): string {
-		return "InputManagerPlugin";
+		return `InputManagerPlugin<${this.config.actionType.name}>`;
 	}
 
 	/**
 	 * Checks if the plugin is unique
-	 * @returns Always true - only one input manager should exist per action type
+	 * @returns false - allows multiple InputManagerPlugin with different Action types
 	 */
 	isUnique(): boolean {
-		return true;
+		return false;
 	}
 
 	/**
@@ -278,9 +329,18 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 	 * @internal
 	 */
 	getInstanceManager(): InputInstanceManager<A> | undefined {
+		if (debugCounter % 60 === 0) {
+			print(`[InputManagerPlugin.getInstanceManager] Called`);
+			print(`  - this exists: ${this !== undefined}`);
+			print(`  - config exists: ${this.config !== undefined}`);
+			if (this.config) {
+				print(`  - actionType.name: ${this.config.actionType.name}`);
+			}
+			print(`  - instanceManager exists: ${this.instanceManager !== undefined}`);
+			print(`  - world exists: ${this.world !== undefined}`);
+			print(`  - centralStore exists: ${this.centralStore !== undefined}`);
+			print(`  - inputSystem exists: ${this.inputSystem !== undefined}`);
+		}
 		return this.instanceManager;
 	}
 }
-
-// Import InputInstanceManager at the end to avoid circular dependency
-import { InputInstanceManager } from "./input-instance-manager";

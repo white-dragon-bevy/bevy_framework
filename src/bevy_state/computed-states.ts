@@ -4,7 +4,7 @@
  */
 
 import { World } from "@rbxts/matter";
-import { ResourceManager } from "../bevy_ecs/resource";
+import { ResourceManager, ResourceConstructor } from "../bevy_ecs/resource";
 import { States } from "./states";
 import { State, StateConstructor } from "./resources";
 
@@ -89,21 +89,30 @@ export class ComputedStateManager<TSource extends States, TComputed extends Comp
 	 * @param resourceManager - 资源管理器
 	 */
 	public updateComputedState(world: World, resourceManager: ResourceManager): void {
+		// 构建源状态资源键
+		const sourceTypeWithName = this.sourceType as unknown as { name?: string };
+		const sourceTypeName = sourceTypeWithName.name || "UnknownSource";
+		const sourceStateKey = `State<${sourceTypeName}>` as ResourceConstructor<State<TSource>>;
+
 		// 获取源状态
-		const sourceState = resourceManager.getResource(State<TSource>);
+		const sourceState = resourceManager.getResource(sourceStateKey);
 		const sourceValue = sourceState?.get();
 
 		// 创建计算状态实例来执行计算
 		const computedInstance = new this.computedType();
 		const newComputedState = computedInstance.compute(sourceValue);
 
+		// 构建计算状态资源键
+		const computedTypeName = (this.computedType as unknown as { name?: string }).name || "UnknownComputed";
+		const computedStateKey = `State<${computedTypeName}>` as ResourceConstructor<State<TComputed>>;
+
 		// 获取或创建计算状态资源
-		const computedStateResource = resourceManager.getResource(State<TComputed>);
+		const computedStateResource = resourceManager.getResource(computedStateKey);
 
 		if (newComputedState === undefined) {
 			// 如果计算结果为 undefined，移除计算状态资源
 			if (computedStateResource) {
-				resourceManager.removeResource(State<TComputed>);
+				resourceManager.removeResource(computedStateKey);
 			}
 		} else {
 			// 更新或创建计算状态资源
@@ -111,7 +120,7 @@ export class ComputedStateManager<TSource extends States, TComputed extends Comp
 				computedStateResource._set(newComputedState as TComputed);
 			} else {
 				resourceManager.insertResource(
-					State<TComputed>,
+					computedStateKey,
 					State.create(newComputedState as TComputed),
 				);
 			}

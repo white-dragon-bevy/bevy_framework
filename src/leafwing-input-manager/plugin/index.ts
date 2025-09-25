@@ -11,3 +11,15 @@ export {
 	InputManagerBundle,
 	createInputComponents,
 } from "./components";
+
+// Export context helper functions
+export {
+	getInputManagerExtensionKey,
+	getInputManagerExtension,
+	getInputManagerPlugin,
+	getInputInstanceManager,
+	registerInputManagerExtension,
+	hasInputManager,
+	listInputManagers,
+	debugInputManagers,
+} from "./context-helpers";

@@ -7,6 +7,9 @@
 import { App } from "../../bevy_app";
 import { MainScheduleLabel } from "../../bevy_app";
 import { DefaultPlugins } from "../../bevy_internal";
+import { RobloxRunnerPlugin } from "../../bevy_app";
+import { listInputManagers } from "../../leafwing-input-manager/plugin/context-helpers";
+import { RunService } from "@rbxts/services";
 import {
 	InputMap,
 	ActionState,
@@ -24,8 +27,8 @@ import {
 } from "../../leafwing-input-manager";
 import { getKeyboardInput, getMouseInput } from "../../bevy_input";
 import { component, type World } from "@rbxts/matter";
+import { getInputInstanceManager } from "../../leafwing-input-manager/plugin/context-helpers";
 import { Context } from "../../bevy_ecs";
-import { InputManagerExtension } from "../../leafwing-input-manager/plugin/extensions";
 
 /**
  * 玩家动作枚举
@@ -34,6 +37,9 @@ import { InputManagerExtension } from "../../leafwing-input-manager/plugin/exten
 class PlayerAction extends ActionlikeEnum {
 	static readonly Jump = new PlayerAction("Jump");
 	static readonly Shoot = new PlayerAction("Shoot");
+
+	// 添加类名属性供 InputManager 使用
+	static readonly name = "PlayerAction";
 
 	constructor(name: string) {
 		super(name, InputControlKind.Button);
@@ -49,9 +55,20 @@ const Player = component<{ name: string }>("Player");
  * 在启动时生成玩家实体
  * @param world - Matter World实例
  */
-function spawnPlayer(world: World): void {
+function spawnPlayer(world: World, context:Context): void {
+	const isServer = RunService.IsServer();
+	const isClient = RunService.IsClient();
+
+	// 服务端不生成本地玩家
+	if (isServer) {
+		return;
+	}
+
+	print(`[spawnPlayer] Starting on CLIENT...`);
+
 	// 检查是否已存在玩家
 	for (const [_entity, _player] of world.query(Player)) {
+		print("[spawnPlayer] Player already exists, skipping");
 		return; // 玩家已存在
 	}
 
@@ -74,19 +91,30 @@ function spawnPlayer(world: World): void {
 		LocalPlayer({ playerId: 1 }),
 	);
 
-	// 通过 Context 获取 InputManager 扩展并注册实例
-	if (globalApp) {
-		const context = globalApp.getContext();
-		const inputManagerExt = context.tryGet("input-manager") as InputManagerExtension<PlayerAction> | undefined;
-		if (inputManagerExt) {
-			const plugin = inputManagerExt.getPlugin() as unknown as InputManagerPlugin<PlayerAction>;
-			const instanceManager = plugin.getInstanceManager();
-			if (instanceManager) {
-				instanceManager.registerInputMap(entity, inputMap);
-				instanceManager.registerActionState(entity, actionState);
-			}
+	// 通过 Context 获取 InputManager 并注册实例
+	// InputManager 现在在服务端和客户端都可用
+		print("[spawnPlayer] Got context");
+
+		// 调试：列出所有已注册的扩展
+		const allExtensions = context.listExtensions();
+		print("[spawnPlayer] All registered extensions:");
+		for (const ext of allExtensions) {
+			print(`  - ${ext}`);
 		}
-	}
+
+		const instanceManager = getInputInstanceManager(context, PlayerAction);
+		if (instanceManager) {
+			print("[spawnPlayer] Got InputInstanceManager successfully");
+			instanceManager.registerInputMap(entity, inputMap);
+			print("[spawnPlayer] Registered InputMap");
+			instanceManager.registerActionState(entity, actionState);
+			print("[spawnPlayer] Registered ActionState");
+			print("[spawnPlayer] All input instances registered successfully");
+		} else {
+			print("[spawnPlayer] ERROR: Could not get InputInstanceManager for PlayerAction");
+			print(`[spawnPlayer] Looking for key: input-manager:${PlayerAction.name}`);
+		}
+	
 
 	print("========================================");
 	print("Leafwing Input Manager Example");
@@ -102,65 +130,94 @@ function spawnPlayer(world: World): void {
 let globalApp: App | undefined;
 
 /**
+ * 调试计数器
+ */
+let debugCounter = 0;
+
+/**
  * 处理玩家动作
  * 响应玩家的输入动作
  * @param world - Matter World实例
- * @param context - App 上下文
  */
-function handlePlayerActions(world: World, context: Context): void {
-	// 从 Context 获取 InputManager 扩展
-	const inputManagerExt = context.tryGet("input-manager") as InputManagerExtension<PlayerAction> | undefined;
-	if (!inputManagerExt) {
+function handlePlayerActions(world: World,context:Context): void {
+	const isServer = RunService.IsServer();
+	const isClient = RunService.IsClient();
+
+	// 服务端不处理本地输入（除非通过网络同步）
+	if (isServer) {
 		return;
 	}
 
-	const plugin = inputManagerExt.getPlugin() as unknown as InputManagerPlugin<PlayerAction>;
-	const instanceManager = plugin.getInstanceManager();
+	// 从 globalApp 获取 context
+	if (!globalApp) {
+		print("[handlePlayerActions] ERROR: globalApp is undefined!");
+		return;
+	}
+
+	debugCounter++
+
+	// 每60帧（约1秒）输出一次调试信息
+	if (debugCounter % 60 === 0) {
+		print(`[handlePlayerActions] ======== Debug Info (${isServer ? "SERVER" : "CLIENT"}) ========`);
+
+		// 列出所有 InputManager
+		const inputManagers = listInputManagers(context);
+		print(`[handlePlayerActions] Registered InputManagers: ${inputManagers.join(", ") || "NONE"}`);
+	}
+
+	// 使用 helper 函数获取 InputInstanceManager
+	const instanceManager = getInputInstanceManager(context, PlayerAction);
 	if (!instanceManager) {
+		if (debugCounter % 60 === 0) {
+			print("[handlePlayerActions] ERROR: Could not get InputInstanceManager");
+			print(`[handlePlayerActions] Looking for key: input-manager:${PlayerAction.name}`);
+		}
 		return;
 	}
 
+	let foundPlayers = 0;
 	for (const [entity, player] of world.query(Player)) {
+		foundPlayers++;
+
+		if (debugCounter % 60 === 0) {
+			print(`[handlePlayerActions] Processing player: ${player.name} (entity: ${entity})`);
+		}
+
 		// 从 InstanceManager 获取实际的 ActionState 实例
 		const state = instanceManager.getActionState(entity) as ActionState<PlayerAction> | undefined;
 		if (!state) {
+			if (debugCounter % 60 === 0) {
+				print(`[handlePlayerActions] ERROR: No ActionState for entity ${entity}`);
+			}
 			continue;
 		}
 
-		// // 每隔一段时间输出一次调试信息
-		// debugCounter++;
-		// if (debugCounter % 120 === 0) { // 每2秒输出一次
-		// 	print("[DEBUG] Checking input for player:", player.name);
+		if (debugCounter % 60 === 0) {
+			print(`[handlePlayerActions] Got ActionState for player ${player.name}`);
+		}
 
-		// 	// 检查原始输入状态
-		// 	const keyboardInput = getKeyboardInput(world);
-		// 	const mouseInput = getMouseInput(world);
-		// 	if (keyboardInput) {
-		// 		print("[DEBUG] Space is pressed:", keyboardInput.isPressed(Enum.KeyCode.Space));
-		// 		print("[DEBUG] Space just pressed:", keyboardInput.justPressed(Enum.KeyCode.Space));
-		// 	}
-		// 	if (mouseInput) {
-		// 		print("[DEBUG] Mouse left is pressed:", mouseInput.isPressed(Enum.UserInputType.MouseButton1));
-		// 		print("[DEBUG] Mouse left just pressed:", mouseInput.justPressed(Enum.UserInputType.MouseButton1));
-		// 	}
-		// }
 
 		// 使用包装函数安全地调用 ActionState 方法
+		// 注意：在服务端，输入状态不会更新（除非通过网络同步）
 		// 处理跳跃
 		if (isJustPressed(state, PlayerAction.Jump)) {
-			print(`${player.name} jumped!`);
+			print(`[${isServer ? "SERVER" : "CLIENT"}] ${player.name} jumped!`);
 		}
 		if (isJustReleased(state, PlayerAction.Jump)) {
-			print(`${player.name} stopped jumping`);
+			print(`[${isServer ? "SERVER" : "CLIENT"}] ${player.name} stopped jumping`);
 		}
 
 		// 处理射击
 		if (isJustPressed(state, PlayerAction.Shoot)) {
-			print(`${player.name} started shooting!`);
+			print(`[${isServer ? "SERVER" : "CLIENT"}] ${player.name} started shooting!`);
 		}
 		if (isJustReleased(state, PlayerAction.Shoot)) {
-			print(`${player.name} stopped shooting`);
+			print(`[${isServer ? "SERVER" : "CLIENT"}] ${player.name} stopped shooting`);
 		}
+	}
+
+	if (debugCounter % 60 === 0 && foundPlayers === 0) {
+		print("[handlePlayerActions] WARNING: No players found in query!");
 	}
 }
 
@@ -172,13 +229,13 @@ export function main(): App {
 	const app = App.create();
 	globalApp = app; // 保存 App 实例以供系统使用
 
-	// 添加默认插件组
+	// 添加默认插件组（包含 RobloxRunnerPlugin）
 	app.addPlugins(...DefaultPlugins.create().build().getPlugins());
 
 	// 添加 InputManagerPlugin - 像 Rust 版本一样简洁
 	app.addPlugin(
 		new InputManagerPlugin<PlayerAction>({
-			actionType: PlayerAction as unknown as new () => PlayerAction,
+			actionType: PlayerAction,
 		}),
 	);
 
@@ -189,5 +246,6 @@ export function main(): App {
 	return app;
 }
 
-// 运行应用
-main().run();
+// 创建并运行应用
+const app = main();
+app.run();

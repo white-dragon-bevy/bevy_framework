@@ -178,6 +178,19 @@ export function extendAppWithState(app: App): AppWithState {
 
 		const schedule = OnEnter(state);
 		extendedApp.addSystems(schedule, ...systems);
+
+		// 将系统存储到 world 中以便直接执行
+		const world = extendedApp.getWorld();
+		const worldWithSystems = world as unknown as Record<string, unknown>;
+		const systemsKey = `systems_${schedule}`;
+		if (!worldWithSystems[systemsKey]) {
+			worldWithSystems[systemsKey] = [];
+		}
+		const systemsList = worldWithSystems[systemsKey] as IntoSystemConfigs[];
+		for (const sys of systems) {
+			systemsList.push(sys);
+		}
+
 		return extendedApp;
 	};
 
@@ -208,6 +221,19 @@ export function extendAppWithState(app: App): AppWithState {
 
 		const schedule = OnExit(state);
 		extendedApp.addSystems(schedule, ...systems);
+
+		// 将系统存储到 world 中以便直接执行
+		const world = extendedApp.getWorld();
+		const worldWithSystems = world as unknown as Record<string, unknown>;
+		const systemsKey = `systems_${schedule}`;
+		if (!worldWithSystems[systemsKey]) {
+			worldWithSystems[systemsKey] = [];
+		}
+		const systemsList = worldWithSystems[systemsKey] as IntoSystemConfigs[];
+		for (const sys of systems) {
+			systemsList.push(sys);
+		}
+
 		return extendedApp;
 	};
 

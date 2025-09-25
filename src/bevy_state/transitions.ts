@@ -6,7 +6,7 @@
 import { World } from "@rbxts/matter";
 import type { ScheduleLabel } from "../bevy_ecs/schedule/types";
 import { Event, EventWriter } from "../bevy_ecs/events";
-import { ResourceManager } from "../bevy_ecs/resource";
+import { ResourceManager, ResourceConstructor } from "../bevy_ecs/resource";
 import { States } from "./states";
 import { State, NextState, StateConstructor } from "./resources";
 
@@ -123,11 +123,17 @@ export class StateTransitionManager<S extends States> {
 	 * 处理状态转换
 	 * @param world - 游戏世界
 	 * @param resourceManager - 资源管理器
+	 * @param app - App 实例（可选）
 	 * @returns 是否发生了转换
 	 */
-	public processTransition(world: World, resourceManager: ResourceManager): boolean {
+	public processTransition(world: World, resourceManager: ResourceManager, app?: unknown): boolean {
+		// Use unique resource keys based on state type
+		const stateTypeName = (this.stateType as unknown as { name?: string }).name || tostring(this.stateType);
+		const nextStateResourceKey = `NextState<${stateTypeName}>` as ResourceConstructor<NextState<S>>;
+		const stateResourceKey = `State<${stateTypeName}>` as ResourceConstructor<State<S>>;
+
 		// 获取 NextState 资源
-		const nextStateResource = resourceManager.getResource(NextState<S>);
+		const nextStateResource = resourceManager.getResource(nextStateResourceKey);
 		if (!nextStateResource || !nextStateResource.hasPending()) {
 			return false;
 		}
@@ -139,19 +145,29 @@ export class StateTransitionManager<S extends States> {
 		}
 
 		// 获取当前状态资源
-		let currentStateResource = resourceManager.getResource(State<S>);
+		let currentStateResource = resourceManager.getResource(stateResourceKey);
 
 		// 准备转换事件
 		const exitedState = currentStateResource?.get();
 		const event = new StateTransitionEvent(exitedState, newState);
 
+		// 执行 OnExit 调度（如果有上一个状态）
+		if (exitedState && app) {
+			this.runOnExitSchedule(world, exitedState, app);
+		}
+
 		// 如果没有当前状态资源，创建它
 		if (!currentStateResource) {
 			currentStateResource = State.create(newState);
-			resourceManager.insertResource(State<S>, currentStateResource);
+			resourceManager.insertResource(stateResourceKey, currentStateResource);
 		} else {
 			// 更新当前状态
 			currentStateResource._set(newState);
+		}
+
+		// 执行 OnEnter 调度
+		if (app) {
+			this.runOnEnterSchedule(world, newState, app);
 		}
 
 		// 发送转换事件
@@ -191,6 +207,55 @@ export class StateTransitionManager<S extends States> {
 	 */
 	public removeEventWriter(id: string): void {
 		this.eventWriters.delete(id);
+	}
+
+	/**
+	 * 执行 OnEnter 调度
+	 * @param world - 游戏世界
+	 * @param state - 进入的状态
+	 * @param app - App 实例
+	 */
+	private runOnEnterSchedule(world: World, state: S, app: unknown): void {
+		const scheduleLabel = OnEnter(state);
+		this.runSystemsInSchedule(world, scheduleLabel, app);
+	}
+
+	/**
+	 * 执行 OnExit 调度
+	 * @param world - 渨戏世界
+	 * @param state - 退出的状态
+	 * @param app - App 实例
+	 */
+	private runOnExitSchedule(world: World, state: S, app: unknown): void {
+		const scheduleLabel = OnExit(state);
+		this.runSystemsInSchedule(world, scheduleLabel, app);
+	}
+
+	/**
+	 * 运行指定调度中的系统
+	 * @param world - 游戏世界
+	 * @param scheduleLabel - 调度标签
+	 * @param app - App 实例
+	 */
+	private runSystemsInSchedule(world: World, scheduleLabel: ScheduleLabel, app: unknown): void {
+		// 更简单的方法：直接从 world 获取调度系统
+		try {
+			// 从 world 获取存储的 OnEnter/OnExit 系统
+			const worldWithSystems = world as unknown as Record<string, unknown>;
+			const systemsKey = `systems_${scheduleLabel}`;
+			const systems = worldWithSystems[systemsKey] as unknown[] | undefined;
+
+			if (systems && typeIs(systems, "table")) {
+				for (const system of systems) {
+					if (typeIs(system, "function")) {
+						// 执行系统函数
+						(system as (world: World) => void)(world);
+					}
+				}
+			}
+		} catch (err) {
+			warn(`Failed to run schedule ${scheduleLabel}: ${err}`);
+		}
 	}
 }
 
