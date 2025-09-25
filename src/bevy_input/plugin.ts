@@ -137,8 +137,6 @@ export class InputPlugin implements Plugin {
 				mouse.press(input.UserInputType);
 				// 发送鼠标按钮按下事件
 				mouseButtonWriter.send(new MouseButtonInput(input.UserInputType, ButtonState.Pressed));
-				// 发送鼠标按钮按下事件
-				mouseButtonWriter.send(new MouseButtonInput(input.UserInputType, ButtonState.Pressed));
 			}
 		});
 
@@ -153,8 +151,6 @@ export class InputPlugin implements Plugin {
 				input.UserInputType === Enum.UserInputType.MouseButton3
 			) {
 				mouse.release(input.UserInputType);
-				// 发送鼠标按钮释放事件
-				mouseButtonWriter.send(new MouseButtonInput(input.UserInputType, ButtonState.Released));
 				// 发送鼠标按钮释放事件
 				mouseButtonWriter.send(new MouseButtonInput(input.UserInputType, ButtonState.Released));
 			}
@@ -174,21 +170,12 @@ export class InputPlugin implements Plugin {
 					// 发送鼠标移动事件
 					mouseMotionWriter.send(new MouseMotion(delta.X, delta.Y));
 				}
-				// 只有当有实际移动时才累积
-				if (delta.X !== 0 || delta.Y !== 0) {
-					mouseMotion.accumulate(delta.X, delta.Y);
-					// 发送鼠标移动事件
-					mouseMotionWriter.send(new MouseMotion(delta.X, delta.Y));
-				}
 
 				// 更新鼠标位置
 				const position = input.Position;
 				const newPos = new Vector2(position.X, position.Y);
 				const oldPos = mousePosition.getPosition();
 				mousePosition.update(newPos);
-
-				// 发送光标移动事件
-				cursorMovedWriter.send(new CursorMoved(newPos, newPos.sub(oldPos)));
 
 				// 发送光标移动事件
 				cursorMovedWriter.send(new CursorMoved(newPos, newPos.sub(oldPos)));
