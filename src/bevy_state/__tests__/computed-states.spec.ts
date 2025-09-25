@@ -117,36 +117,32 @@ export = () => {
 		});
 
 		it("should manage computed state updates", () => {
-			// Add static name property to EnumStates for the test
-			(EnumStates as any).name = "EnumStates";
-			(TestComputedState as any).name = "TestComputedState";
-
 			const manager = new ComputedStateManager(
 				TestComputedState as any,
 			);
 
-			// Use string-based resource keys
-			const sourceStateKey = "State<EnumStates>" as ResourceConstructor<State<EnumStates>>;
-			const computedStateKey = "State<TestComputedState>" as ResourceConstructor<State<TestComputedState>>;
+			// Use State class as key (same for all State resources)
+			const stateKey = State<EnumStates> as ResourceConstructor<State<EnumStates>>;
+			const computedKey = State<TestComputedState> as ResourceConstructor<State<TestComputedState>>;
 
 			// Initially no source state
 			manager.updateComputedState(world, resourceManager);
-			expect(resourceManager.hasResource(computedStateKey)).to.equal(false);
+			expect(resourceManager.hasResource(computedKey)).to.equal(false);
 
-			// Add source state with string key
-			resourceManager.insertResource(sourceStateKey, State.create(menuState));
+			// Add source state
+			resourceManager.insertResource(stateKey, State.create(menuState));
 			manager.updateComputedState(world, resourceManager);
 
-			const computedResource = resourceManager.getResource(computedStateKey);
+			const computedResource = resourceManager.getResource(computedKey);
 			expect(computedResource).to.be.ok();
 			expect(computedResource?.get().getStateId()).to.equal("in_menu");
 
 			// Change source state
-			const sourceResource = resourceManager.getResource(sourceStateKey)!;
+			const sourceResource = resourceManager.getResource(stateKey)!;
 			sourceResource._set(gameState);
 			manager.updateComputedState(world, resourceManager);
 
-			const updatedResource = resourceManager.getResource(computedStateKey);
+			const updatedResource = resourceManager.getResource(computedKey);
 			expect(updatedResource?.get().getStateId()).to.equal("in_game");
 		});
 	});

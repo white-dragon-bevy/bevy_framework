@@ -4,9 +4,10 @@
  */
 
 import { World } from "@rbxts/matter";
-import { ResourceManager } from "../bevy_ecs/resource";
+import { ResourceManager, ResourceConstructor } from "../bevy_ecs/resource";
 import { States } from "./states";
 import { State, StateConstructor } from "./resources";
+
 
 /**
  * 运行条件函数类型
@@ -24,7 +25,10 @@ export function inState<S extends States>(
 	targetState: S,
 ): RunCondition {
 	return (world: World, resourceManager: ResourceManager): boolean => {
-		const stateResource = resourceManager.getResource(State<S>);
+		// 使用统一的资源键生成方式
+		const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
+		const stateKey = `State<${stateTypeName}>` as ResourceConstructor<State<S>>;
+		const stateResource = resourceManager.getResource(stateKey);
 		if (!stateResource) {
 			return false;
 		}
@@ -39,7 +43,10 @@ export function inState<S extends States>(
  */
 export function stateExists<S extends States>(stateType: StateConstructor<S>): RunCondition {
 	return (world: World, resourceManager: ResourceManager): boolean => {
-		return resourceManager.hasResource(State<S>);
+		// 使用统一的资源键生成方式
+		const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
+		const stateKey = `State<${stateTypeName}>` as ResourceConstructor<State<S>>;
+		return resourceManager.hasResource(stateKey);
 	};
 }
 
@@ -50,16 +57,31 @@ export function stateExists<S extends States>(stateType: StateConstructor<S>): R
  */
 export function stateChanged<S extends States>(stateType: StateConstructor<S>): RunCondition {
 	let lastState: S | undefined;
+	let hasInitialized = false;
 
 	return (world: World, resourceManager: ResourceManager): boolean => {
-		const stateResource = resourceManager.getResource(State<S>);
+		// 使用统一的资源键生成方式
+		const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
+		const stateKey = `State<${stateTypeName}>` as ResourceConstructor<State<S>>;
+		const stateResource = resourceManager.getResource(stateKey);
+
 		if (!stateResource) {
+			// 状态不存在时，如果之前存在过则认为发生了变化
 			const changed = lastState !== undefined;
 			lastState = undefined;
 			return changed;
 		}
 
 		const currentState = stateResource.get();
+
+		// 初次初始化时认为发生了变化
+		if (!hasInitialized) {
+			hasInitialized = true;
+			lastState = currentState.clone() as S;
+			return true;
+		}
+
+		// 检查状态是否改变
 		const changed = lastState === undefined || !lastState.equals(currentState);
 		lastState = currentState.clone() as S;
 		return changed;
@@ -79,7 +101,10 @@ export function exitingState<S extends States>(
 	let wasInState = false;
 
 	return (world: World, resourceManager: ResourceManager): boolean => {
-		const stateResource = resourceManager.getResource(State<S>);
+		// 使用统一的资源键生成方式
+		const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
+		const stateKey = `State<${stateTypeName}>` as ResourceConstructor<State<S>>;
+		const stateResource = resourceManager.getResource(stateKey);
 		const isInState = stateResource ? stateResource.is(exitingState) : false;
 
 		const exiting = wasInState && !isInState;
@@ -101,7 +126,10 @@ export function enteringState<S extends States>(
 	let wasInState = false;
 
 	return (world: World, resourceManager: ResourceManager): boolean => {
-		const stateResource = resourceManager.getResource(State<S>);
+		// 使用统一的资源键生成方式
+		const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
+		const stateKey = `State<${stateTypeName}>` as ResourceConstructor<State<S>>;
+		const stateResource = resourceManager.getResource(stateKey);
 		const isInState = stateResource ? stateResource.is(enteringState) : false;
 
 		const entering = !wasInState && isInState;
