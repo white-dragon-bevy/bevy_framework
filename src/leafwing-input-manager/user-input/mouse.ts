@@ -1,7 +1,8 @@
 import { UserInputService } from "@rbxts/services";
 import { World } from "@rbxts/matter";
 import { InputControlKind } from "../core/input-control-kind";
-import { BasicInputs, UserInput } from "./traits/user-input";
+import { UserInput } from "./traits/user-input";
+import { BasicInputs } from "../clashing-inputs/basic-inputs";
 import { Buttonlike, ButtonValue } from "./traits/buttonlike";
 import { Axislike } from "./traits/axislike";
 import { DualAxislike } from "./traits/dual-axislike";

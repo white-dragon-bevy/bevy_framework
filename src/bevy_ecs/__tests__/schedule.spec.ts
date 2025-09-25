@@ -90,7 +90,7 @@ export = () => {
 				const compiledSystems = schedule.compile();
 				expect(compiledSystems.size()).to.equal(2);
 
-				let world = new World()
+				world = new BevyWorld();
 
 				// 执行系统模拟
 				for (const loopSystem of compiledSystems) {
@@ -186,7 +186,7 @@ export = () => {
 
 				const compiledSystems = schedule.compile();
 
-				let world = new World()
+				world = new BevyWorld();
 				// 执行系统
 				for (const loopSystem of compiledSystems) {
 					loopSystem.system(world, new AppContext(world));
@@ -282,7 +282,7 @@ export = () => {
 				});
 
 				const compiledSystems = schedule.compile();
-				let world = new World()
+				world = new BevyWorld();
 
 				// 捕获错误
 				for (const loopSystem of compiledSystems) {

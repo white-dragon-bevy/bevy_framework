@@ -46,7 +46,7 @@ export class RenderPlugin implements Plugin {
 		};
 
 		// 在 PostUpdate 阶段运行，确保在 Transform 系统之后
-		app.editSchedule(BuiltinSchedules.PostUpdate, (schedule) => {
+		app.editSchedule(BuiltinSchedules.POST_UPDATE, (schedule) => {
 			schedule.addSystem({
 				system: renderUpdateSystem,
 				name: "RenderUpdateSystem",
@@ -64,7 +64,7 @@ export class RenderPlugin implements Plugin {
 		};
 
 		// 在 Startup 阶段运行一次
-		app.editSchedule(BuiltinSchedules.Startup, (schedule) => {
+		app.editSchedule(BuiltinSchedules.STARTUP, (schedule) => {
 			schedule.addSystem({
 				system: renderStartupSystem,
 				name: "RenderStartupSystem",

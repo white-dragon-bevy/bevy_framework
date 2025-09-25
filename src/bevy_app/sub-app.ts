@@ -182,6 +182,8 @@ export class SubApp {
 			this.commandBuffer.flush(this._world.getWorld());
 			// 清理事件
 			this.eventManager.cleanup();
+			// 清除内部跟踪器 - 对应 Rust: world.clear_trackers()
+			this._world.getWorld().clearTrackers();
 			return;
 		}
 
@@ -241,6 +243,9 @@ export class SubApp {
 
 		// 清理事件
 		this.eventManager.cleanup();
+
+		// 清除内部跟踪器 - 对应 Rust: world.clear_trackers()
+		this._world.getWorld().clearTrackers();
 	}
 
 	/**

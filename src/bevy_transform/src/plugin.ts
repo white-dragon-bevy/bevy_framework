@@ -44,7 +44,7 @@ export class TransformPlugin implements Plugin {
 		};
 
 		// 在 PostStartup 阶段运行，确保第一次更新是正确的
-		app.editSchedule(BuiltinSchedules.PostStartup, (schedule) => {
+		app.editSchedule(BuiltinSchedules.POST_STARTUP, (schedule) => {
 			schedule.addSystem({
 				system: transformStartupSystem,
 				name: "TransformStartupSystem"
@@ -52,7 +52,7 @@ export class TransformPlugin implements Plugin {
 		});
 
 		// 在 PostUpdate 阶段运行，处理每帧的变换更新
-		app.editSchedule(BuiltinSchedules.PostUpdate, (schedule) => {
+		app.editSchedule(BuiltinSchedules.POST_UPDATE, (schedule) => {
 			schedule.addSystem({
 				system: transformUpdateSystem,
 				name: "TransformUpdateSystem"

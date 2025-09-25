@@ -141,18 +141,31 @@ export class App {
 
 	/**
 	 * 默认运行器实现
+	 * 对应 Rust 的 run_once 函数
 	 */
 	private runOnce(_app: App): AppExit {
 		// 等待所有插件准备完成
+		// 对应 Rust: while app.plugins_state() == PluginsState::Adding
 		while (this.getPluginState() === PluginState.Adding) {
-			// 可以在这里添加异步任务处理逻辑
+			// 在 Roblox 中使用 task.wait() 处理异步
+			// 对应 Rust: bevy_tasks::tick_global_task_pools_on_main_thread()
 			task.wait();
 		}
 
+		// 完成插件设置
+		// 对应 Rust: app.finish()
 		this.finish();
+
+		// 清理插件
+		// 对应 Rust: app.cleanup()
 		this.cleanup();
+
+		// 执行一次更新（这会运行 Main 调度，包含启动和常规调度）
+		// 对应 Rust: app.update()
 		this.update();
 
+		// 返回退出状态
+		// 对应 Rust: app.should_exit().unwrap_or(AppExit::Success)
 		return this.shouldExit() ?? AppExit.success();
 	}
 

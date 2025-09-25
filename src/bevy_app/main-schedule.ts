@@ -313,41 +313,7 @@ export const BuiltinSchedules = {
 	FIXED_POST_UPDATE: "FixedPostUpdate" as ScheduleLabel,
 	FIXED_LAST: "FixedLast" as ScheduleLabel,
 
-	// 向后兼容的 PascalCase 别名（已弃用，请使用 UPPERCASE_WITH_UNDERSCORES）
-	/** @deprecated 请使用 FIRST */
-	First: MainScheduleLabel.FIRST,
-	/** @deprecated 请使用 PRE_STARTUP */
-	PreStartup: MainScheduleLabel.PRE_STARTUP,
-	/** @deprecated 请使用 STARTUP */
-	Startup: MainScheduleLabel.STARTUP,
-	/** @deprecated 请使用 POST_STARTUP */
-	PostStartup: MainScheduleLabel.POST_STARTUP,
-	/** @deprecated 请使用 PRE_UPDATE */
-	PreUpdate: MainScheduleLabel.PRE_UPDATE,
-	/** @deprecated 请使用 UPDATE */
-	Update: MainScheduleLabel.UPDATE,
-	/** @deprecated 请使用 POST_UPDATE */
-	PostUpdate: MainScheduleLabel.POST_UPDATE,
-	/** @deprecated 请使用 LAST */
-	Last: MainScheduleLabel.LAST,
-	/** @deprecated 请使用 MAIN */
-	Main: MainScheduleLabel.MAIN,
 
-	// 向后兼容的固定更新别名（已弃用且未完全实现）
-	/** @deprecated 请使用 RUN_FIXED_MAIN_LOOP */
-	RunFixedMainLoop: "RunFixedMainLoop" as ScheduleLabel,
-	/** @deprecated 请使用 FIXED_MAIN */
-	FixedMain: "FixedMain" as ScheduleLabel,
-	/** @deprecated 请使用 FIXED_FIRST */
-	FixedFirst: "FixedFirst" as ScheduleLabel,
-	/** @deprecated 请使用 FIXED_PRE_UPDATE */
-	FixedPreUpdate: "FixedPreUpdate" as ScheduleLabel,
-	/** @deprecated 请使用 FIXED_UPDATE */
-	FixedUpdate: "FixedUpdate" as ScheduleLabel,
-	/** @deprecated 请使用 FIXED_POST_UPDATE */
-	FixedPostUpdate: "FixedPostUpdate" as ScheduleLabel,
-	/** @deprecated 请使用 FIXED_LAST */
-	FixedLast: "FixedLast" as ScheduleLabel,
 } as const;
 
 /**

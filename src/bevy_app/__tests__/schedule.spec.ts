@@ -393,13 +393,7 @@ export = (): void => {
 				expect(BuiltinSchedules.LAST).to.equal(MainScheduleLabel.LAST);
 			});
 
-			it("应该支持已弃用的 PascalCase 别名", () => {
-				expect(BuiltinSchedules.First).to.equal(MainScheduleLabel.FIRST);
-				expect(BuiltinSchedules.PreUpdate).to.equal(MainScheduleLabel.PRE_UPDATE);
-				expect(BuiltinSchedules.Update).to.equal(MainScheduleLabel.UPDATE);
-				expect(BuiltinSchedules.PostUpdate).to.equal(MainScheduleLabel.POST_UPDATE);
-				expect(BuiltinSchedules.Last).to.equal(MainScheduleLabel.LAST);
-			});
+		
 
 			it("应该定义固定更新调度（尚未实现）", () => {
 				expect(BuiltinSchedules.RUN_FIXED_MAIN_LOOP).to.equal("RunFixedMainLoop");

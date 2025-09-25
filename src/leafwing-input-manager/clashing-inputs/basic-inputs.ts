@@ -1,8 +1,4 @@
 import { UserInput } from "../user-input/traits/user-input";
-import { InputChord } from "../user-input/chord";
-import { KeyCode, ModifierKey } from "../user-input/keyboard";
-import { MouseButton } from "../user-input/mouse";
-import { GamepadButton } from "../user-input/gamepad";
 import { CentralInputStore } from "../user-input/central-input-store";
 
 /**
@@ -256,16 +252,18 @@ export class BasicInputs {
 	 * @returns The InputType classification
 	 */
 	private determineInputType(input: UserInput): InputType {
-		if (input instanceof InputChord) {
+		// Check if it's a chord by looking for chord-specific pattern in hash
+		const hash = input.hash();
+		if (hash.sub(1, 6) === "Chord:") {
 			return InputType.Chord;
 		}
 
-		// Simple inputs: KeyCode, MouseButton, GamepadButton, ModifierKey
+		// Check if it's a simple input by looking at hash patterns
 		if (
-			input instanceof KeyCode ||
-			input instanceof MouseButton ||
-			input instanceof GamepadButton ||
-			input instanceof ModifierKey
+			hash.sub(1, 9) === "keyboard_" ||
+			hash.sub(1, 6) === "mouse_" ||
+			hash.sub(1, 8) === "gamepad_" ||
+			hash.sub(1, 12) === "ModifierKey:"
 		) {
 			return InputType.Simple;
 		}
@@ -280,8 +278,24 @@ export class BasicInputs {
 	 * @returns The size of the input
 	 */
 	private calculateInputSize(input: UserInput): number {
-		if (input instanceof InputChord) {
-			return input.size();
+		// Check if it's a chord by looking at the hash
+		const hash = input.hash();
+		if (hash.sub(1, 6) === "Chord:") {
+			// Parse the chord hash to count components
+			// Format: Chord:[hash1,hash2,...]:requireAllModifiers
+			const startPos = hash.find("[", 1)[0];
+			const endPos = hash.find("]", 1)[0];
+			if (startPos && endPos && startPos < endPos) {
+				const componentsPart = hash.sub(startPos + 1, endPos - 1);
+				// Count commas to determine number of components
+				let commaCount = 0;
+				for (let index = 1; index <= componentsPart.size(); index++) {
+					if (componentsPart.sub(index, index) === ",") {
+						commaCount++;
+					}
+				}
+				return commaCount + 1; // Number of components is commas + 1
+			}
 		}
 
 		// Simple inputs have size 1
@@ -431,20 +445,24 @@ export class BasicInputs {
 
 		const chordMetadata = chordInput.metadata.get(chordHash);
 
-		if (!chordMetadata?.input || !(chordMetadata.input instanceof InputChord)) {
+		if (!chordMetadata?.input) {
 			return false;
 		}
 
-		const chord = chordMetadata.input;
-
-		// Only clash if:
-		// 1. Chord has more than 1 component (multi-key chord)
-		// 2. Chord contains the simple input as one of its components
-		if (chord.size() <= 1) {
+		// Check if it's actually a chord by checking the hash pattern
+		if (chordHash.sub(1, 6) !== "Chord:") {
 			return false;
 		}
 
-		// Get the simple input metadata to get the actual input object
+		// Get the chord size from metadata (we calculate this in calculateInputSize)
+		const chordSize = chordMetadata.size;
+
+		// Only clash if chord has more than 1 component (multi-key chord)
+		if (chordSize <= 1) {
+			return false;
+		}
+
+		// Get the simple input hash
 		let simpleInputHash: string | undefined;
 		simpleInput.inputs.forEach((hash) => {
 			if (simpleInputHash === undefined) {
@@ -456,13 +474,18 @@ export class BasicInputs {
 			return false;
 		}
 
-		const simpleMetadata = simpleInput.metadata.get(simpleInputHash);
-		if (!simpleMetadata?.input) {
-			return false;
+		// Check if the chord contains the simple input by examining the chord hash
+		// The chord hash format is: Chord:[hash1,hash2,...]:requireAllModifiers
+		const startPos = chordHash.find("[", 1)[0];
+		const endPos = chordHash.find("]", 1)[0];
+		if (startPos && endPos && startPos < endPos) {
+			const componentsPart = chordHash.sub(startPos + 1, endPos - 1);
+			// Check if the simple input hash is in the components
+			const searchPattern = simpleInputHash;
+			return componentsPart.find(searchPattern, 1)[0] !== undefined;
 		}
 
-		// Check if the chord contains the simple input directly
-		return chord.containsInput(simpleMetadata.input);
+		return false;
 	}
 
 	/**
@@ -522,13 +545,41 @@ export class BasicInputs {
 			return undefined;
 		}
 
-		const chordMetadata = chordInput.metadata.get(chordHash);
-
-		if (!chordMetadata?.input || !(chordMetadata.input instanceof InputChord)) {
+		// Check if it's actually a chord by checking the hash pattern
+		if (chordHash.sub(1, 6) !== "Chord:") {
 			return undefined;
 		}
 
-		return chordMetadata.input.decompose();
+		// Parse the chord hash to get component hashes
+		// The chord hash format is: Chord:[hash1,hash2,...]:requireAllModifiers
+		const startPos = chordHash.find("[", 1)[0];
+		const endPos = chordHash.find("]", 1)[0];
+		if (startPos && endPos && startPos < endPos) {
+			const componentsPart = chordHash.sub(startPos + 1, endPos - 1);
+			const componentSet = new Set<string>();
+
+			// Split by comma manually
+			let currentComponent = "";
+			for (let index = 1; index <= componentsPart.size(); index++) {
+				const char = componentsPart.sub(index, index);
+				if (char === ",") {
+					if (currentComponent.size() > 0) {
+						componentSet.add(currentComponent);
+						currentComponent = "";
+					}
+				} else {
+					currentComponent = currentComponent + char;
+				}
+			}
+			// Add the last component
+			if (currentComponent.size() > 0) {
+				componentSet.add(currentComponent);
+			}
+
+			return new BasicInputs(componentSet);
+		}
+
+		return undefined;
 	}
 
 	/**

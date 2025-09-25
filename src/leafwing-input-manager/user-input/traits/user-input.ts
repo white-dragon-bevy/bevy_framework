@@ -1,7 +1,6 @@
 import { InputControlKind } from "../../core/input-control-kind";
 import { World } from "@rbxts/matter";
 import type { BasicInputs } from "../../clashing-inputs/basic-inputs";
-export { BasicInputs } from "../../clashing-inputs/basic-inputs";
 
 /**
  * A trait for defining the behavior expected from different user input sources
