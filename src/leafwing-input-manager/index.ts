@@ -6,6 +6,9 @@
 // Core exports
 export * from "./core";
 
+// Axislike types and utilities
+export * from "./axislike";
+
 // User input traits
 export * from "./user-input/traits/user-input";
 export * from "./user-input/traits/buttonlike";

@@ -1,8 +1,6 @@
-const exampleFolder: string = "state";
-const exampleName: string = "computed_states";
-
-const exampleFolder: string = "render";
-const exampleName: string = "moving-entities";
+// Choose which example to run
+const exampleFolder: string = "app"; // Change to "state" for the other example
+const exampleName: string = "empty_defaults"; // Change to "computed_states" for the other example
 
 export function bootstrap() {
 	// 先运行测试

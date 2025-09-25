@@ -13,6 +13,7 @@ import { registerInputManagerExtension } from "./context-helpers";
 import { InputMapComponent, ActionStateComponent } from "./components";
 import { Resource } from "../../bevy_ecs";
 import { InputInstanceManager } from "./input-instance-manager";
+import { BuiltinSchedules } from "../../bevy_app/main-schedule";
 
 /**
  * Configuration for the InputManagerPlugin
@@ -136,6 +137,9 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 			this.centralStore = new CentralInputStore();
 			this.inputSystem = new InputManagerSystem(this.world, this.centralStore, this.config, this.instanceManager);
 
+			// Initialize gamepad input listeners
+			this.centralStore.initializeGamepadListeners();
+
 			// Register systems with the App scheduler
 			// PreUpdate: tick and update action states
 			app.addSystems(MainScheduleLabel.PRE_UPDATE, (world: World) => {
@@ -150,6 +154,27 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 			// PostUpdate: cleanup and finalization
 			app.addSystems(MainScheduleLabel.POST_UPDATE, (world: World) => {
 				this.releaseOnInputMapRemoved(world);
+			});
+
+			// Fixed Update support: comprehensive fixed timestep input handling
+			// 1. Swap to fixed update state before the fixed main loop
+			app.addSystems(BuiltinSchedules.RUN_FIXED_MAIN_LOOP, (world: World) => {
+				this.swapToFixedUpdate(world);
+			});
+
+			// 2. Tick action states during fixed update with fixed timestep
+			app.addSystems(BuiltinSchedules.FIXED_PRE_UPDATE, (world: World) => {
+				this.tickActionStateFixed(world);
+			});
+
+			// 3. Update action states during fixed update (maintain input responsiveness)
+			app.addSystems(BuiltinSchedules.FIXED_UPDATE, (world: World) => {
+				this.updateActionStateFixed(world);
+			});
+
+			// 4. Swap back to regular update state after fixed update
+			app.addSystems(MainScheduleLabel.PRE_UPDATE, (world: World) => {
+				this.swapToUpdate(world);
 			});
 
 			if (this.config.networkSync?.enabled) {
@@ -182,6 +207,69 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 		} else if (this.inputSystem) {
 			// Client mode: use input system to tick
 			this.inputSystem.tickAll(1 / 60);
+		}
+	}
+
+	/**
+	 * Ticks action states during fixed update with fixed timestep
+	 * This ensures consistent timing for physics-based input processing
+	 * @param world - The Matter World instance
+	 */
+	private tickActionStateFixed(world: World): void {
+		const fixedDeltaTime = 1 / 50; // 50Hz fixed timestep (20ms)
+
+		if (RunService.IsServer()) {
+			// Server mode: directly tick action states with fixed timestep
+			if (this.instanceManager) {
+				for (const [entity] of world.query(ActionStateComponent)) {
+					const actionState = this.instanceManager.getActionState(entity);
+					if (actionState) {
+						actionState.tickFixed(fixedDeltaTime);
+					}
+				}
+			}
+		} else if (this.inputSystem) {
+			// Client mode: use input system to tick with fixed timestep
+			this.inputSystem.tickAllFixed(fixedDeltaTime);
+		}
+	}
+
+	/**
+	 * Updates action states during fixed update schedule
+	 * Maintains input responsiveness during fixed timestep physics
+	 * @param world - The Matter World instance
+	 */
+	private updateActionStateFixed(world: World): void {
+		// Only run on client (server doesn't process inputs directly)
+		if (RunService.IsServer()) {
+			return;
+		}
+
+		if (!this.inputSystem || !this.instanceManager) {
+			return;
+		}
+
+		// Sync input state from bevy_input resources (same as regular update)
+		this.syncFromBevyInput();
+
+		// Update action states for all entities during fixed update
+		let entityCount = 0;
+		for (const [entity, inputMap, actionState] of world.query(InputMapComponent, ActionStateComponent)) {
+			entityCount++;
+
+			// Ensure instances are registered
+			if (!this.instanceManager.getInputMap(entity)) {
+				this.instanceManager.registerInputMap(entity, inputMap as unknown as InputMap<A>);
+			}
+			if (!this.instanceManager.getActionState(entity)) {
+				this.instanceManager.registerActionState(entity, actionState as unknown as ActionState<A>);
+			}
+		}
+
+		// Update with fixed timestep
+		if (entityCount > 0) {
+			const fixedDeltaTime = 1 / 50; // 50Hz fixed timestep
+			this.inputSystem.updateFixed(fixedDeltaTime);
 		}
 	}
 
@@ -317,6 +405,11 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 		}
 		this.connections.clear();
 
+		// Clean up gamepad listeners
+		if (this.centralStore) {
+			this.centralStore.cleanupGamepadListeners();
+		}
+
 		// Clear internal state
 		this.world = undefined;
 		this.centralStore = undefined;
@@ -342,5 +435,43 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 			print(`  - inputSystem exists: ${this.inputSystem !== undefined}`);
 		}
 		return this.instanceManager;
+	}
+
+	/**
+	 * Swaps all action states to their FixedUpdate variants
+	 * This system runs before the fixed update loop
+	 * @param world - The Matter World instance
+	 */
+	private swapToFixedUpdate(world: World): void {
+		if (!this.instanceManager) {
+			return;
+		}
+
+		// Swap state for all entities with ActionState components
+		for (const [entity] of world.query(ActionStateComponent)) {
+			const actionState = this.instanceManager.getActionState(entity);
+			if (actionState) {
+				actionState.swapToFixedUpdateState();
+			}
+		}
+	}
+
+	/**
+	 * Swaps all action states back to their Update variants
+	 * This system runs before the regular update loop
+	 * @param world - The Matter World instance
+	 */
+	private swapToUpdate(world: World): void {
+		if (!this.instanceManager) {
+			return;
+		}
+
+		// Swap state back for all entities with ActionState components
+		for (const [entity] of world.query(ActionStateComponent)) {
+			const actionState = this.instanceManager.getActionState(entity);
+			if (actionState) {
+				actionState.swapToUpdateState();
+			}
+		}
 	}
 }

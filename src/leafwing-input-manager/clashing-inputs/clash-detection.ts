@@ -2,6 +2,7 @@ import { Actionlike } from "../core/actionlike";
 import { BasicInputs } from "./basic-inputs";
 import { ClashStrategy } from "./clash-strategy";
 import { UserInput } from "../user-input/traits/user-input";
+import { CentralInputStore } from "../user-input/central-input-store";
 
 /**
  * Represents a potential clash between actions
@@ -43,9 +44,10 @@ export class ClashDetector<A extends Actionlike> {
 
 	/**
 	 * Detects all clashes between registered actions
+	 * @param inputStore - Optional input store for advanced clash detection
 	 * @returns An array of detected clashes
 	 */
-	detectClashes(): InputClash<A>[] {
+	detectClashes(inputStore?: CentralInputStore): InputClash<A>[] {
 		const clashes: InputClash<A>[] = [];
 		const actionHashes: string[] = [];
 
@@ -61,7 +63,8 @@ export class ClashDetector<A extends Actionlike> {
 				const inputs1 = this.actionInputs.get(hash1)!;
 				const inputs2 = this.actionInputs.get(hash2)!;
 
-				if (inputs1.overlaps(inputs2)) {
+				// Use the new advanced clash detection
+				if (inputs1.clashesWith(inputs2, inputStore)) {
 					clashes.push({
 						actions: [hash1, hash2] as unknown as A[],
 						sharedInputs: inputs1.intersection(inputs2),
@@ -77,9 +80,10 @@ export class ClashDetector<A extends Actionlike> {
 	 * Resolves clashes according to the given strategy
 	 * @param clashes - The clashes to resolve
 	 * @param strategy - The strategy to use
+	 * @param inputStore - Optional input store for real-time input checking
 	 * @returns The actions that should be triggered
 	 */
-	resolveClashes(clashes: InputClash<A>[], strategy: ClashStrategy): Set<string> {
+	resolveClashes(clashes: InputClash<A>[], strategy: ClashStrategy, inputStore?: CentralInputStore): Set<string> {
 		const triggeredActions = new Set<string>();
 
 		// If no clashes, all actions can trigger
@@ -100,7 +104,8 @@ export class ClashDetector<A extends Actionlike> {
 				clashedActions.add(actionHash);
 				const inputs = this.actionInputs.get(actionHash);
 				if (inputs) {
-					actionSizes.set(actionHash, inputs.size());
+					// Use the new getTotalSize() method for more accurate sizing
+					actionSizes.set(actionHash, inputs.getTotalSize());
 				}
 			}
 		}
@@ -113,9 +118,17 @@ export class ClashDetector<A extends Actionlike> {
 					let largestAction: string | undefined;
 					let largestSize = 0;
 
+					// If inputStore is available, also check if inputs are actually pressed
 					for (const action of clash.actions) {
 						const actionHash = (action as unknown as string);
+						const inputs = this.actionInputs.get(actionHash);
 						const size = actionSizes.get(actionHash) ?? 0;
+
+						// Only consider this action if its inputs are actually active (if we have inputStore)
+						if (inputStore && inputs && !inputs.areAllInputsActive(inputStore)) {
+							continue;
+						}
+
 						if (size > largestSize) {
 							largestSize = size;
 							largestAction = actionHash;
@@ -180,9 +193,10 @@ export class ClashDetector<A extends Actionlike> {
 	 * Checks if two specific actions clash
 	 * @param action1 - First action
 	 * @param action2 - Second action
+	 * @param inputStore - Optional input store for advanced clash detection
 	 * @returns True if the actions clash
 	 */
-	doActionsClash(action1: A, action2: A): boolean {
+	doActionsClash(action1: A, action2: A, inputStore?: CentralInputStore): boolean {
 		const inputs1 = this.actionInputs.get(action1.hash());
 		const inputs2 = this.actionInputs.get(action2.hash());
 
@@ -190,15 +204,16 @@ export class ClashDetector<A extends Actionlike> {
 			return false;
 		}
 
-		return inputs1.overlaps(inputs2);
+		return inputs1.clashesWith(inputs2, inputStore);
 	}
 
 	/**
 	 * Gets all actions that clash with a specific action
 	 * @param action - The action to check
+	 * @param inputStore - Optional input store for advanced clash detection
 	 * @returns Array of clashing action hashes
 	 */
-	getClashingActions(action: A): string[] {
+	getClashingActions(action: A, inputStore?: CentralInputStore): string[] {
 		const clashingActions: string[] = [];
 		const targetInputs = this.actionInputs.get(action.hash());
 
@@ -207,7 +222,7 @@ export class ClashDetector<A extends Actionlike> {
 		}
 
 		this.actionInputs.forEach((inputs, actionHash) => {
-			if (actionHash !== action.hash() && inputs.overlaps(targetInputs)) {
+			if (actionHash !== action.hash() && inputs.clashesWith(targetInputs, inputStore)) {
 				clashingActions.push(actionHash);
 			}
 		});
