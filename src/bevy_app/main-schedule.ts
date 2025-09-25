@@ -303,8 +303,7 @@ export const BuiltinSchedules = {
 	LAST: MainScheduleLabel.LAST,
 	MAIN: MainScheduleLabel.MAIN,
 
-	// 固定更新相关调度（当前未完全实现）
-	// TODO: 完整实现固定时间步调度系统
+	// 固定更新相关调度
 	RUN_FIXED_MAIN_LOOP: "RunFixedMainLoop" as ScheduleLabel,
 	FIXED_MAIN: "FixedMain" as ScheduleLabel,
 	FIXED_FIRST: "FixedFirst" as ScheduleLabel,
@@ -317,6 +316,64 @@ export const BuiltinSchedules = {
 } as const;
 
 /**
+ * 固定调度序列管理类
+ * 对应 Rust bevy_app::main_schedule::FixedMainScheduleOrder
+ */
+export class FixedMainScheduleOrder {
+	/** 固定调度标签（按固定时间步运行） */
+	public labels: Array<ScheduleLabel> = [
+		BuiltinSchedules.FIXED_FIRST,
+		BuiltinSchedules.FIXED_PRE_UPDATE,
+		BuiltinSchedules.FIXED_UPDATE,
+		BuiltinSchedules.FIXED_POST_UPDATE,
+		BuiltinSchedules.FIXED_LAST,
+	];
+
+	/**
+	 * 获取固定调度执行顺序
+	 */
+	getOrder(): Array<ScheduleLabel> {
+		return [...this.labels];
+	}
+
+	/**
+	 * 在指定调度前插入新调度
+	 * 对应 Rust FixedMainScheduleOrder::insert_before
+	 */
+	insertBefore(target: ScheduleLabel, newSchedule: ScheduleLabel): void {
+		const index = this.labels.indexOf(target);
+		if (index !== -1) {
+			const newOrder: Array<ScheduleLabel> = [];
+			for (let i = 0; i < this.labels.size(); i++) {
+				if (i === index) {
+					newOrder.push(newSchedule);
+				}
+				newOrder.push(this.labels[i]);
+			}
+			this.labels = newOrder;
+		}
+	}
+
+	/**
+	 * 在指定调度后插入新调度
+	 * 对应 Rust FixedMainScheduleOrder::insert_after
+	 */
+	insertAfter(target: ScheduleLabel, newSchedule: ScheduleLabel): void {
+		const index = this.labels.indexOf(target);
+		if (index !== -1) {
+			const newOrder: Array<ScheduleLabel> = [];
+			for (let i = 0; i < this.labels.size(); i++) {
+				newOrder.push(this.labels[i]);
+				if (i === index) {
+					newOrder.push(newSchedule);
+				}
+			}
+			this.labels = newOrder;
+		}
+	}
+}
+
+/**
  * 主调度序列管理类
  * 对应 Rust bevy_app::main_schedule::MainScheduleOrder
  */
@@ -325,6 +382,7 @@ export class MainScheduleOrder {
 	public labels: Array<ScheduleLabel> = [
 		BuiltinSchedules.FIRST,
 		BuiltinSchedules.PRE_UPDATE,
+		BuiltinSchedules.RUN_FIXED_MAIN_LOOP,
 		BuiltinSchedules.UPDATE,
 		BuiltinSchedules.POST_UPDATE,
 		BuiltinSchedules.LAST,
@@ -448,7 +506,26 @@ export function runMainSchedule(
 	}
 }
 
+/**
+ * 运行固定调度序列
+ * 对应 Rust bevy_app::main_schedule::FixedMain::run_fixed_main
+ * @param world - Matter World 实例
+ * @param scheduleOrder - 固定调度顺序管理器
+ * @param runner - 调度执行函数
+ */
+export function runFixedMainSchedule(
+	world: import("@rbxts/matter").World,
+	scheduleOrder: FixedMainScheduleOrder,
+	runner: (label: ScheduleLabel) => void,
+): void {
+	// 运行固定调度序列
+	for (const scheduleLabel of scheduleOrder.labels) {
+		runner(scheduleLabel);
+	}
+}
+
 // 导出常用的调度标签，方便使用
 export const Update = BuiltinSchedules.UPDATE;
 export const PostUpdate = BuiltinSchedules.POST_UPDATE;
 export const Last = BuiltinSchedules.LAST;
+export const FixedUpdate = BuiltinSchedules.FIXED_UPDATE;

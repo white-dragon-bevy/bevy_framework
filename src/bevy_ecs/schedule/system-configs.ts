@@ -110,53 +110,143 @@ export class SystemConfigs {
 	 * 转换为内部系统配置数组
 	 */
 	toSystemConfigs(): SystemConfig[] {
-		const result: SystemConfig[] = [];
-		const configs = this.flattenConfigs();
+		return this.processConfigs().configs;
+	}
 
-		// 如果是链式执行，添加顺序依赖
-		if (this.metadata.chained && configs.size() > 1) {
-			for (let i = 0; i < configs.size(); i++) {
-				let config = configs[i];
-
-				// 除了第一个系统，都依赖于前一个系统
-				if (i > 0) {
-					const newAfter = [...(config.after || []), configs[i - 1].system];
-					config = { ...config, after: newAfter };
-				}
-
-				// 除了最后一个系统，都在下一个系统之前
-				if (i < configs.size() - 1) {
-					const newBefore = [...(config.before || []), configs[i + 1].system];
-					config = { ...config, before: newBefore };
-				}
-
-				// 对于链式系统，将外部依赖应用到第一个系统
-				// 这确保整个链条都满足外部约束
-				if (i === 0) {
-					// 对第一个系统应用所有 after 约束
-					if (this.metadata.after.size() > 0) {
-						config = { ...config, after: [...(config.after || []), ...this.metadata.after] };
-					}
-				}
-
-				// 对最后一个系统应用 before 约束
-				if (i === configs.size() - 1 && this.metadata.before.size() > 0) {
-					config = { ...config, before: [...(config.before || []), ...this.metadata.before] };
-				}
-
-				// 应用其他元数据（运行条件、系统集等）到所有系统，但跳过顺序依赖因为已经手动处理
-				config = this.applyMetadata(config, true);
-
-				result.push(config);
-			}
-		} else {
-			// 非链式执行，直接应用元数据
-			for (const config of configs) {
-				result.push(this.applyMetadata(config));
-			}
+	/**
+	 * 处理配置并返回处理结果
+	 * 对应 Rust process_configs 的逻辑
+	 */
+	private processConfigs(): { configs: SystemConfig[]; densely_chained: boolean } {
+		// 处理单个系统函数
+		if (this.configs.size() === 1 && typeIs(this.configs[0], "function")) {
+			const systemFn = this.configs[0] as SystemFunction;
+			const config = this.applyMetadata({ system: systemFn });
+			return { configs: [config], densely_chained: true };
 		}
 
-		return result;
+		// 处理嵌套的 SystemConfigs
+		const isChained = this.metadata.chained;
+		let densely_chained = isChained || this.configs.size() === 1;
+		const allConfigs: SystemConfig[] = [];
+
+		let previousResult: { configs: SystemConfig[]; densely_chained: boolean } | undefined;
+
+		for (let i = 0; i < this.configs.size(); i++) {
+			const item = this.configs[i];
+			let currentResult: { configs: SystemConfig[]; densely_chained: boolean };
+
+			if (typeIs(item, "function")) {
+				// 简单系统函数
+				const config = { system: item as SystemFunction };
+				currentResult = { configs: [config], densely_chained: true };
+			} else if (item instanceof SystemConfigs) {
+				// 嵌套的 SystemConfigs - 递归处理
+				currentResult = item.processConfigs();
+			} else {
+				// SystemConfigs 数组
+				const subConfigs: SystemConfig[] = [];
+				for (const subItem of item as SystemConfigs[]) {
+					const subResult = subItem.processConfigs();
+					for (const config of subResult.configs) {
+						subConfigs.push(config);
+					}
+				}
+				currentResult = { configs: subConfigs, densely_chained: false };
+			}
+
+			densely_chained = densely_chained && currentResult.densely_chained;
+
+			// 如果是链式的，需要在前后结果之间建立依赖关系
+			if (isChained && previousResult) {
+				// 获取要链接的节点
+				// 如果前一个结果是密集链接的，只需要最后一个节点
+				const previousNodes = previousResult.densely_chained
+					? [previousResult.configs[previousResult.configs.size() - 1]]
+					: previousResult.configs;
+
+				// 如果当前结果是密集链接的，只需要第一个节点
+				const currentNodes = currentResult.densely_chained
+					? [currentResult.configs[0]]
+					: currentResult.configs;
+
+				// 在节点之间添加依赖
+				for (let prevIdx = 0; prevIdx < previousNodes.size(); prevIdx++) {
+					const prevNode = previousNodes[prevIdx];
+					for (let currIdx = 0; currIdx < currentNodes.size(); currIdx++) {
+						const currNode = currentNodes[currIdx];
+						// 将当前节点设置为在前一个节点之后
+						const updatedConfig = {
+							...currNode,
+							after: [...(currNode.after || []), prevNode.system],
+						};
+						// 更新配置
+						if (currentResult.densely_chained && currIdx === 0) {
+							currentResult.configs[0] = updatedConfig;
+						} else {
+							currentResult.configs[currIdx] = updatedConfig;
+						}
+					}
+				}
+			}
+
+			// 对第一个配置应用外部的 after 依赖
+			if (i === 0 && this.metadata.after.size() > 0) {
+				if (currentResult.densely_chained) {
+					// 只需要应用到第一个
+					const firstConfig = currentResult.configs[0];
+					currentResult.configs[0] = {
+						...firstConfig,
+						after: [...(firstConfig.after || []), ...this.metadata.after],
+					};
+				} else {
+					// 应用到所有
+					for (let idx = 0; idx < currentResult.configs.size(); idx++) {
+						const config = currentResult.configs[idx];
+						currentResult.configs[idx] = {
+							...config,
+							after: [...(config.after || []), ...this.metadata.after],
+						};
+					}
+				}
+			}
+
+			// 对最后一个配置应用外部的 before 依赖
+			if (i === this.configs.size() - 1 && this.metadata.before.size() > 0) {
+				if (currentResult.densely_chained) {
+					// 只需要应用到最后一个
+					const lastIdx = currentResult.configs.size() - 1;
+					const lastConfig = currentResult.configs[lastIdx];
+					currentResult.configs[lastIdx] = {
+						...lastConfig,
+						before: [...(lastConfig.before || []), ...this.metadata.before],
+					};
+				} else {
+					// 应用到所有
+					for (let idx = 0; idx < currentResult.configs.size(); idx++) {
+						const config = currentResult.configs[idx];
+						currentResult.configs[idx] = {
+							...config,
+							before: [...(config.before || []), ...this.metadata.before],
+						};
+					}
+				}
+			}
+
+			// 应用其他元数据到当前结果的所有配置
+			for (let idx = 0; idx < currentResult.configs.size(); idx++) {
+				const config = currentResult.configs[idx];
+				// 应用运行条件、系统集等（但不再应用 before/after，因为已经处理过了）
+				currentResult.configs[idx] = this.applyMetadataToConfig(config);
+			}
+
+			for (const config of currentResult.configs) {
+				allConfigs.push(config);
+			}
+			previousResult = currentResult;
+		}
+
+		return { configs: allConfigs, densely_chained };
 	}
 
 	/**
@@ -188,7 +278,7 @@ export class SystemConfigs {
 	}
 
 	/**
-	 * 应用元数据到系统配置
+	 * 应用元数据到系统配置（用于非链式处理）
 	 */
 	private applyMetadata(config: SystemConfig, skipOrdering = false): SystemConfig {
 		const result = { ...config };
@@ -219,6 +309,42 @@ export class SystemConfigs {
 
 		if (!skipOrdering && this.metadata.after.size() > 0) {
 			result.after = [...(result.after || []), ...this.metadata.after];
+		}
+
+		return result;
+	}
+
+	/**
+	 * 应用元数据到系统配置（仅应用非顺序相关的元数据）
+	 * 用于链式处理中，因为顺序依赖已经在 processConfigs 中处理
+	 */
+	private applyMetadataToConfig(config: SystemConfig): SystemConfig {
+		let result = { ...config };
+
+		// 应用运行条件
+		if (this.metadata.runConditions.size() > 0) {
+			const existingCondition = config.runCondition;
+			// 组合多个运行条件（AND 逻辑）
+			result = {
+				...result,
+				runCondition: (world) => {
+					for (const condition of this.metadata.runConditions) {
+						if (!condition(world)) {
+							return false;
+						}
+					}
+					return existingCondition ? existingCondition(world) : true;
+				},
+			};
+		}
+
+		// 应用系统集
+		if (this.metadata.inSets.size() > 0 && !result.inSet) {
+			// 系统可以属于多个系统集
+			result = {
+				...result,
+				inSet: this.metadata.inSets[0], // 暂时只支持一个
+			};
 		}
 
 		return result;

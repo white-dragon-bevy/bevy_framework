@@ -3,6 +3,8 @@
  * 对应 Rust bevy_app 的核心类型
  */
 
+import { Event } from "../bevy_ecs/events";
+
 /**
  * App标签接口 - 用于标识不同的App实例
  * 对应 Rust 的 AppLabel trait
@@ -28,10 +30,15 @@ export enum AppExitCode {
 	Error = 1,
 }
 
-export class AppExit implements Message {
+export class AppExit implements Message, Event {
 	readonly __brand = "Message" as const;
+	readonly timestamp?: number;
+	readonly code: number;
 
-	constructor(public readonly code: AppExitCode = AppExitCode.Success) {}
+	constructor(code: AppExitCode | number = AppExitCode.Success) {
+		this.code = code;
+		this.timestamp = os.clock();
+	}
 
 	static success(): AppExit {
 		return new AppExit(AppExitCode.Success);
@@ -41,11 +48,11 @@ export class AppExit implements Message {
 		return new AppExit(code);
 	}
 
-	isSuccess(): boolean {
+	public isSuccess(this: AppExit): boolean {
 		return this.code === AppExitCode.Success;
 	}
 
-	isError(): boolean {
+	public isError(this: AppExit): boolean {
 		return this.code !== AppExitCode.Success;
 	}
 }

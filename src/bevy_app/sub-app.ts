@@ -9,7 +9,7 @@ import { WorldContainer, createWorldContainer, World, Context } from "../bevy_ec
 import { ResourceManager, ResourceConstructor, Resource } from "../bevy_ecs/resource";
 import { CommandBuffer } from "../bevy_ecs/command-buffer";
 import { EventManager } from "../bevy_ecs/events";
-import { MainScheduleOrder, runMainSchedule } from "./main-schedule";
+import { MainScheduleOrder, FixedMainScheduleOrder, runMainSchedule, runFixedMainSchedule, BuiltinSchedules } from "./main-schedule";
 import { App } from "./app";
 import { Schedule } from "../bevy_ecs/schedule/schedule";
 import { Schedules } from "../bevy_ecs/schedule/schedules";
@@ -43,6 +43,7 @@ export class SubApp {
 	private errorHandler?: ErrorHandler;
 	private appReference?: AppInterface; // 保存App引用用于插件回调
 	private scheduleOrder: MainScheduleOrder;
+	private fixedScheduleOrder: FixedMainScheduleOrder;
 	private context: Context;
 	private loopConnections?: { [scheduleLabel: string]: RBXScriptConnection };
 	private isLoopRunning = false;
@@ -61,8 +62,46 @@ export class SubApp {
 
 		this.schedules = new Schedules(this._world.getWorld(), this.context);
 		this.scheduleOrder = new MainScheduleOrder();
+		this.fixedScheduleOrder = new FixedMainScheduleOrder();
 
+		// 创建所有固定调度
+		this.createBuiltinSchedules();
+	}
 
+	/**
+	 * 创建内置调度
+	 * 对应 Rust MainSchedulePlugin::build
+	 */
+	private createBuiltinSchedules(): void {
+		// 创建主调度（getSchedule 会自动创建不存在的调度）
+		this.schedules.getSchedule(BuiltinSchedules.MAIN);
+
+		// 创建启动调度
+		this.schedules.getSchedule(BuiltinSchedules.PRE_STARTUP);
+		this.schedules.getSchedule(BuiltinSchedules.STARTUP);
+		this.schedules.getSchedule(BuiltinSchedules.POST_STARTUP);
+
+		// 创建常规调度
+		this.schedules.getSchedule(BuiltinSchedules.FIRST);
+		this.schedules.getSchedule(BuiltinSchedules.PRE_UPDATE);
+		this.schedules.getSchedule(BuiltinSchedules.UPDATE);
+		this.schedules.getSchedule(BuiltinSchedules.POST_UPDATE);
+		this.schedules.getSchedule(BuiltinSchedules.LAST);
+
+		// 创建固定调度
+		// RunFixedMainLoop 使用单线程执行器（对应 Rust 的 ExecutorKind::SingleThreaded）
+		// 注意：在 TypeScript 中我们没有单线程/多线程的区别
+		this.schedules.getSchedule(BuiltinSchedules.RUN_FIXED_MAIN_LOOP);
+
+		// FixedMain 也使用单线程执行器
+		this.schedules.getSchedule(BuiltinSchedules.FIXED_MAIN);
+
+		// 创建固定更新子调度
+		this.schedules.getSchedule(BuiltinSchedules.FIXED_FIRST);
+		this.schedules.getSchedule(BuiltinSchedules.FIXED_PRE_UPDATE);
+		this.schedules.getSchedule(BuiltinSchedules.FIXED_UPDATE);
+		this.schedules.getSchedule(BuiltinSchedules.FIXED_POST_UPDATE);
+		this.schedules.getSchedule(BuiltinSchedules.FIXED_LAST);
 	}
 
 	/**
@@ -261,6 +300,56 @@ export class SubApp {
 			// 添加到调度
 			for (const config of configs) {
 				this.schedules.addSystemToSchedule(schedule, config);
+			}
+		}
+	}
+
+	/**
+	 * 运行指定的调度
+	 * 对应 Rust App::try_run_schedule
+	 * @param label - 调度标签
+	 */
+	runSchedule(label: ScheduleLabel): void {
+		// 特殊处理 FixedMain 调度
+		if (label === BuiltinSchedules.FIXED_MAIN) {
+			// 运行固定调度序列
+			runFixedMainSchedule(this._world.getWorld(), this.fixedScheduleOrder, (scheduleLabel) => {
+				this.executeSchedule(scheduleLabel);
+			});
+		} else {
+			// 运行单个调度
+			this.executeSchedule(label);
+		}
+
+		// 执行命令缓冲
+		this.commandBuffer.flush(this._world.getWorld());
+
+		// 清理事件
+		this.eventManager.cleanup();
+
+		// 清除内部跟踪器
+		this._world.getWorld().clearTrackers();
+	}
+
+	/**
+	 * 执行单个调度
+	 * @param label - 调度标签
+	 */
+	private executeSchedule(label: ScheduleLabel): void {
+		const schedule = this.schedules.getSchedule(label);
+		if (schedule) {
+			const compiledSystems = schedule.compile();
+			for (const systemStruct of compiledSystems) {
+				try {
+					systemStruct.system(this._world.getWorld(), this.context);
+				} catch (err) {
+					// 如果有错误处理器，调用它；否则抛出错误
+					if (this.errorHandler) {
+						this.errorHandler(err);
+					} else {
+						throw err;
+					}
+				}
 			}
 		}
 	}

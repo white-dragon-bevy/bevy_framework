@@ -236,27 +236,27 @@ describe("System Configs API", () => {
 		});
 
 		// TODO: Fix nested chain with dependencies
-		// it("应该支持嵌套配置", () => {
-		// 	const systemA = createSystem("A");
-		// 	const systemB = createSystem("B");
-		// 	const systemC = createSystem("C");
-		// 	const systemD = createSystem("D");
+		it("应该支持嵌套配置", () => {
+			const systemA = createSystem("A");
+			const systemB = createSystem("B");
+			const systemC = createSystem("C");
+			const systemD = createSystem("D");
 
-		// 	app.addSystems(
-		// 		BuiltinSchedules.UPDATE,
-		// 		chain(systemA, systemB),
-		// 		chain(systemC, systemD).after(systemB),
-		// 	);
+			app.addSystems(
+				BuiltinSchedules.UPDATE,
+				chain(systemA, systemB),
+				chain(systemC, systemD).after(systemB),
+			);
 
-		// 	app.update();
-		// 	app.update();
+			app.update();
+			app.update();
 
-		// 	const indexB = executionOrder.indexOf("B");
-		// 	const indexC = executionOrder.indexOf("C");
+			const indexB = executionOrder.indexOf("B");
+			const indexC = executionOrder.indexOf("C");
 
-		// 	expect(indexC > indexB).to.equal(true);
-		// 	expect(executionOrder.indexOf("D") > executionOrder.indexOf("C")).to.equal(true);
-		// });
+			expect(indexC > indexB).to.equal(true);
+			expect(executionOrder.indexOf("D") > executionOrder.indexOf("C")).to.equal(true);
+		});
 	});
 });
 };

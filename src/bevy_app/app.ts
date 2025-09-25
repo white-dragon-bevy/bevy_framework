@@ -3,7 +3,7 @@
  * 对应 Rust bevy_app 的 App struct
  */
 
-import { AppExit, AppLabel, ErrorHandler, Message, ScheduleLabel } from "./types";
+import { AppExit, AppExitCode, AppLabel, ErrorHandler, Message, ScheduleLabel } from "./types";
 import { Resource, ResourceConstructor } from "../bevy_ecs/resource";
 import { BuiltinSchedules } from "./main-schedule";
 import { DuplicatePluginError, isPluginGroup, Plugin, PluginGroup, PluginState } from "./plugin";
@@ -16,6 +16,7 @@ import type { Diagnostic, DiagnosticsStore } from "../bevy_diagnostic/diagnostic
 import { AppContext } from "./context";
 import { RunService } from "@rbxts/services";
 import { isMatchRobloxContext, RobloxContext } from "../utils/roblox-utils";
+import { EventReader, EventWriter } from "../bevy_ecs/events";
 
 /**
  * Bevy App主类
@@ -26,6 +27,7 @@ export class App {
 	private runner: (app: App) => AppExit;
 	private defaultErrorHandler?: ErrorHandler;
 	readonly context: AppContext;
+	private appExitEventReader?: EventReader<AppExit>;
 
 	constructor() {
 		this.subApps = new SubApps();
@@ -64,6 +66,9 @@ export class App {
 	private initializeMainApp(): void {
 		const mainApp = this.subApps.main();
 		mainApp.setUpdateSchedule(BuiltinSchedules.MAIN);
+
+		// 创建 AppExit 事件读取器
+		this.appExitEventReader = this.context.events.createReader(AppExit as never);
 
 		// 添加基础调度
 		this.initializeDefaultSchedules();
@@ -461,8 +466,8 @@ export class App {
 	 * @param label - 调度标签
 	 */
 	runSchedule(label: ScheduleLabel): void {
-		// 目前不实现，因为这需要复杂的 Loop 集成
-		// OnEnter/OnExit 系统将直接在 transitions.ts 中执行
+		// 委托给主 SubApp
+		this.subApps.main().runSchedule(label);
 	}
 
 	/**
@@ -470,9 +475,45 @@ export class App {
 	 * 对应 Rust App::should_exit
 	 */
 	shouldExit(): AppExit | undefined {
-		// 这里需要实现消息系统来检查AppExit消息
-		// 暂时返回undefined表示不退出
-		return undefined;
+		if (!this.appExitEventReader) {
+			return undefined;
+		}
+
+		// 读取所有 AppExit 事件
+		const events = this.appExitEventReader.read();
+
+		if (events.size() === 0) {
+			return undefined;
+		}
+
+		// 优先返回错误退出码（如果有）
+		for (const event of events) {
+			// 直接检查 code 而不是调用方法，避免方法丢失问题
+			if (event.code !== AppExitCode.Success) {
+				return event;
+			}
+		}
+
+		// 否则返回第一个退出事件
+		return events[0];
+	}
+
+	/**
+	 * 发送退出事件
+	 * 对应 Rust App::exit
+	 */
+	exit(): void {
+		const writer = this.context.events.createWriter(AppExit as never);
+		writer.send(AppExit.success());
+	}
+
+	/**
+	 * 发送带错误码的退出事件
+	 * 对应 Rust App::exit_with_code
+	 */
+	exitWithCode(code: number): void {
+		const writer = this.context.events.createWriter(AppExit as never);
+		writer.send(AppExit.error(code));
 	}
 
 	/**

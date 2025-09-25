@@ -5,7 +5,7 @@
 
 import { BasePlugin } from "../bevy_app/plugin";
 import { App } from "../bevy_app/app";
-import { MainScheduleLabel as BuiltinSchedules } from "../bevy_app/main-schedule";
+import { BuiltinSchedules } from "../bevy_app/main-schedule";
 import { World } from "@rbxts/matter";
 import { Duration } from "./duration";
 import { Time, Real, Virtual, Fixed, Empty } from "./time";
@@ -259,8 +259,9 @@ export class TimePlugin extends BasePlugin {
 
 		// 添加固定主调度运行系统到 RunFixedMainLoop
 		// 对应 lib.rs:90-93
-		// RunFixedMainLoop schedule is not implemented yet
-		// TODO: Implement RunFixedMainLoop schedule when fixed timestep is needed
+		app.addSystems(BuiltinSchedules.RUN_FIXED_MAIN_LOOP, (world: World, context: Context) => {
+			runFixedMainLoop(world, context, app);
+		});
 
 		// TODO: 消息系统配置（lib.rs:95-99）
 		// 在 Roblox 中可能需要不同的实现方式
@@ -400,10 +401,11 @@ export function advanceTime(app: App, seconds: number): void {
 }
 
 /**
- * 运行固定主调度
+ * 运行固定主循环系统
  * 对应 Rust run_fixed_main_schedule (fixed.rs:239-252)
+ * 这个系统在 RunFixedMainLoop 调度中运行
  */
-function runFixedMainSchedule(world: World, context: Context, app: App): void {
+function runFixedMainLoop(world: World, context: Context, app: App): void {
 	// 获取虚拟时间和固定时间
 	const virtualTimeResource = app.getResource(VirtualTimeResource);
 	const fixedTimeResource = app.getResource(FixedTimeResource);
@@ -428,12 +430,8 @@ function runFixedMainSchedule(world: World, context: Context, app: App): void {
 		// 设置通用时间为固定时间
 		app.insertResource(GenericTimeResource, new GenericTimeResource(fixedTime.asGeneric()));
 
-		// 运行 FixedUpdate 调度
-		const schedule = app.main().getSchedule(BuiltinSchedules.UPDATE);
-		if (schedule) {
-			// TODO: Implement FixedUpdate schedule execution
-			// This needs proper implementation of FixedUpdate schedule
-		}
+		// 运行 FixedMain 调度（包含所有固定调度）
+		app.runSchedule(BuiltinSchedules.FIXED_MAIN);
 
 		iterations++;
 	}
