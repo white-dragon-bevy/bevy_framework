@@ -141,11 +141,11 @@ export class SubStateManager<TParent extends States, TSub extends SubStates<TPar
 		const NextSubStateResource = getNextStateResource(this.subType);
 
 		// 获取父状态
-		const parentState = resourceManager.getResource(ParentStateResource as any) as State<TParent> | undefined;
+		const parentState = resourceManager.getResource<ParentStateResource as any>() as State<TParent> | undefined;
 		const parentValue = parentState?.get();
 
 		// 获取当前子状态
-		const subStateResource = resourceManager.getResource(SubStateResource as any) as State<TSub> | undefined;
+		const subStateResource = resourceManager.getResource<SubStateResource as any>() as State<TSub> | undefined;
 
 		// 创建临时子状态实例来检查配置
 		const tempSub = this.defaultSubState();
@@ -156,7 +156,7 @@ export class SubStateManager<TParent extends States, TSub extends SubStates<TPar
 			if (subStateResource) {
 				resourceManager.removeResource(SubStateResource as any);
 				// 同时清除 NextState
-				const nextSubState = resourceManager.getResource(NextSubStateResource as any) as NextState<TSub> | undefined;
+				const nextSubState = resourceManager.getResource<NextSubStateResource as any>() as NextState<TSub> | undefined;
 				if (nextSubState) {
 					nextSubState.reset();
 				}
@@ -186,13 +186,13 @@ export class SubStateManager<TParent extends States, TSub extends SubStates<TPar
 		const NextSubStateResource = getNextStateResource(this.subType);
 
 		// 获取子状态资源
-		const subStateResource = resourceManager.getResource(SubStateResource as any) as State<TSub> | undefined;
+		const subStateResource = resourceManager.getResource<SubStateResource as any>() as State<TSub> | undefined;
 		if (!subStateResource) {
 			return false;
 		}
 
 		// 获取 NextState 资源
-		const nextSubStateResource = resourceManager.getResource(NextSubStateResource as any) as NextState<TSub> | undefined;
+		const nextSubStateResource = resourceManager.getResource<NextSubStateResource as any>() as NextState<TSub> | undefined;
 		if (!nextSubStateResource || !nextSubStateResource.hasPending()) {
 			return false;
 		}

@@ -125,7 +125,7 @@ export class LifecyclePlugin implements Plugin {
     ready(app: App): boolean {
         print("2. Ready: 检查依赖");
         // 检查所需资源是否存在
-        const resource = app.getResource(RequiredResource);
+        const resource = app.getResource<RequiredResource>();
         this.initialized = resource !== undefined;
         return this.initialized;
     }
@@ -133,14 +133,14 @@ export class LifecyclePlugin implements Plugin {
     finish(app: App): void {
         print("3. Finish: 完成设置");
         // 最终配置，例如启动网络连接
-        const network = app.getResource(NetworkService);
+        const network = app.getResource<NetworkService>();
         network?.connect();
     }
 
     cleanup(app: App): void {
         print("4. Cleanup: 清理资源");
         // 断开连接，释放资源
-        const network = app.getResource(NetworkService);
+        const network = app.getResource<NetworkService>();
         network?.disconnect();
     }
 
@@ -483,7 +483,7 @@ export class InputPlugin implements Plugin {
     }
 
     private updateInput(world: World, context: Context): void {
-        const input = context.getResource(InputState);
+        const input = context.resources.getResource<InputState>();
         if (!input) return;
 
         // 更新鼠标位置

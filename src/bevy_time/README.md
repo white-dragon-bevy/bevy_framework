@@ -22,7 +22,7 @@ const app = new App();
 app.addPlugins(new TimePlugin());
 
 // 访问虚拟时间资源
-const virtualTime = app.getResource(VirtualTimeResource);
+const virtualTime = app.getResource<VirtualTimeResource>();
 if (virtualTime) {
     // 暂停游戏时间
     virtualTime.value.getContext().paused = true;
@@ -233,7 +233,7 @@ app.addPlugins(new TimePlugin());
 
 // 在系统中使用时间
 function mySystem(world: World, context: Context, app: App) {
-    const timeResource = app.getResource(VirtualTimeResource);
+    const timeResource = app.getResource<VirtualTimeResource>();
     if (timeResource) {
         const time = timeResource.value;
         const delta = time.getDeltaSecs();
@@ -250,14 +250,14 @@ app.addSystems(BuiltinSchedules.UPDATE, mySystem);
 
 ```typescript
 function pauseGame(app: App) {
-    const virtualTime = app.getResource(VirtualTimeResource);
+    const virtualTime = app.getResource<VirtualTimeResource>();
     if (virtualTime) {
         virtualTime.value.getContext().paused = true;
     }
 }
 
 function setGameSpeed(app: App, speed: number) {
-    const virtualTime = app.getResource(VirtualTimeResource);
+    const virtualTime = app.getResource<VirtualTimeResource>();
     if (virtualTime) {
         virtualTime.value.getContext().relativeSpeed = speed;
     }
@@ -270,7 +270,7 @@ function setGameSpeed(app: App, speed: number) {
 import { FixedTimeResource } from "./time-resources";
 
 function setupPhysics(app: App) {
-    const fixedTime = app.getResource(FixedTimeResource);
+    const fixedTime = app.getResource<FixedTimeResource>();
     if (fixedTime) {
         // 设置60 Hz的物理更新频率
         fixedTime.value.setTimestepHz(60);
@@ -279,7 +279,7 @@ function setupPhysics(app: App) {
 
 // 物理系统应该使用固定时间
 function physicsSystem(world: World, context: Context, app: App) {
-    const fixedTime = app.getResource(FixedTimeResource);
+    const fixedTime = app.getResource<FixedTimeResource>();
     if (fixedTime) {
         const timestep = fixedTime.value.getTimestep().asSecsF32();
         // 使用固定的时间步进行物理计算
@@ -303,7 +303,7 @@ describe("Time-based system", () => {
         advanceTime(app, 1.0);
         app.update();
 
-        const time = app.getResource(VirtualTimeResource);
+        const time = app.getResource<VirtualTimeResource>();
         expect(time?.value.getElapsedSecs()).toBe(1.0);
     });
 });

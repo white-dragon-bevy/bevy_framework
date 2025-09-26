@@ -4,7 +4,7 @@
  */
 
 import { World } from "@rbxts/matter";
-import { ResourceManager, ResourceConstructor } from "../bevy_ecs/resource";
+import { ResourceManager, ResourceConstructor } from "../../src/bevy_ecs/resource";
 import { States, BaseStates } from "./states";
 import { State, StateConstructor } from "./resources";
 
@@ -67,7 +67,7 @@ export class SingleStateSet<S extends States> implements StateSet<S> {
 		// 使用统一的资源键生成方式
 		const stateTypeName = (this.stateType as unknown as { name?: string }).name ?? tostring(this.stateType);
 		const stateKey = `State<${stateTypeName}>` as ResourceConstructor<State<S>>;
-		const stateResource = resourceManager.getResource(stateKey);
+		const stateResource = resourceManager.getResource<stateKey>();
 		return stateResource?.get();
 	}
 }
@@ -114,7 +114,7 @@ export class TupleStateSet<T extends ReadonlyArray<States>> implements StateSet<
 			// 使用统一的资源键生成方式
 			const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
 			const stateKey = `State<${stateTypeName}>` as ResourceConstructor<State<States>>;
-			const stateResource = resourceManager.getResource(stateKey);
+			const stateResource = resourceManager.getResource<stateKey>();
 			const state = stateResource?.get();
 			if (!state) {
 				return undefined; // 如果任一状态不存在，返回 undefined
@@ -262,7 +262,7 @@ export class ComputedStateManager<TSource = unknown, TComputed extends ComputedS
 		const computedStateKey = `State<${computedTypeName}>` as ResourceConstructor<State<TComputed>>;
 
 		// 获取或创建计算状态资源
-		const computedStateResource = resourceManager.getResource(computedStateKey);
+		const computedStateResource = resourceManager.getResource<computedStateKey>();
 
 		if (newComputedState === undefined) {
 			// 如果计算结果为 undefined，移除计算状态资源

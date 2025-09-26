@@ -487,10 +487,10 @@ export interface RegisterDiagnostic {
  * @returns App实例（链式调用）
  */
 export function registerDiagnostic(app: App, diagnostic: Diagnostic): App {
-	let diagnosticsStore = app.getResource(DiagnosticsStore);
+	let diagnosticsStore = app.getResource<DiagnosticsStore>();
 	if (!diagnosticsStore) {
 		diagnosticsStore = new DiagnosticsStore();
-		app.main().getResourceManager().insertResource(DiagnosticsStore, diagnosticsStore);
+		app.main().getResourceManager().insertResource(diagnosticsStore);
 	}
 	diagnosticsStore.add(diagnostic);
 	return app;

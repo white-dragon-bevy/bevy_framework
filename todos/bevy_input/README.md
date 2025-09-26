@@ -86,7 +86,7 @@ import { InputPlugin, KeyCode, ButtonInput } from "@rbxts/bevy-input";
 const app = new App()
     .addPlugin(new InputPlugin())
     .addSystem((world) => {
-        const keyboard = world.getResource(ButtonInput<KeyCode>);
+        const keyboard = world.getResource<ButtonInput<KeyCode>>();
         if (!keyboard) return;
 
         // 检查空格键是否刚刚被按下
@@ -113,7 +113,7 @@ const app = new App()
 import { MouseButton, MouseMotion, AccumulatedMouseMotion } from "@rbxts/bevy-input";
 
 app.addSystem((world) => {
-    const mouse = world.getResource(ButtonInput<MouseButton>);
+    const mouse = world.getResource<ButtonInput<MouseButton>>();
     if (!mouse) return;
 
     // 检查鼠标左键
@@ -129,7 +129,7 @@ app.addSystem((world) => {
 
 // 处理鼠标移动
 app.addSystem((world) => {
-    const motion = world.getResource(AccumulatedMouseMotion);
+    const motion = world.getResource<AccumulatedMouseMotion>();
     if (!motion || motion.delta.Magnitude === 0) return;
 
     print(`Mouse moved: ${motion.delta.X}, ${motion.delta.Y}`);
@@ -143,7 +143,7 @@ import { GamepadButton, GamepadAxis, Axis } from "@rbxts/bevy-input";
 
 app.addSystem((world) => {
     // 获取玩家 1 的游戏手柄按钮
-    const gamepads = world.getResource(Map<number, ButtonInput<GamepadButton>>);
+    const gamepads = world.getResource<Map<number, ButtonInput<GamepadButton>>>();
     if (!gamepads) return;
 
     const gamepad1 = gamepads.get(1);
@@ -155,7 +155,7 @@ app.addSystem((world) => {
     }
 
     // 检查左摇杆
-    const axes = world.getResource(Map<number, Axis<GamepadAxis>>);
+    const axes = world.getResource<Map<number, Axis<GamepadAxis>>>();
     if (!axes) return;
 
     const gamepad1Axes = axes.get(1);
@@ -176,7 +176,7 @@ app.addSystem((world) => {
 import { Touches, TouchPhase } from "@rbxts/bevy-input";
 
 app.addSystem((world) => {
-    const touches = world.getResource(Touches);
+    const touches = world.getResource<Touches>();
     if (!touches) return;
 
     // 遍历所有触摸点

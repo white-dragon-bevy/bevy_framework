@@ -81,7 +81,7 @@ export class DiagnosticsPlugin extends BasePlugin {
 		const renderer = new DiagnosticsRenderer(store);
 
 		// 插入资源
-		app.main().getResourceManager().insertResource(DiagnosticsStore as any, store);
+		app.main().getResourceManager().insertResource( store);
 
 		// 注册扩展到 context
 		this.registerExtensions(app, {

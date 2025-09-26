@@ -27,7 +27,7 @@ export = () => {
 				app.addPlugin(new RVOPlugin());
 
 				const world = app.getWorld();
-				const simulatorResource = app.getResource(RVOSimulatorResource)!;
+				const simulatorResource = app.getResource<RVOSimulatorResource>()!;
 
 				// Create entity with Transform and RVOAgent
 				const entity = world.spawn();
@@ -59,7 +59,7 @@ export = () => {
 				app.addPlugin(new RVOPlugin());
 
 				const world = app.getWorld();
-				const simulatorResource = app.getResource(RVOSimulatorResource)!;
+				const simulatorResource = app.getResource<RVOSimulatorResource>()!;
 
 				// Create agent
 				const entity = world.spawn();
@@ -84,7 +84,7 @@ export = () => {
 				app.addPlugin(new RVOPlugin());
 
 				const world = app.getWorld();
-				const simulatorResource = app.getResource(RVOSimulatorResource)!;
+				const simulatorResource = app.getResource<RVOSimulatorResource>()!;
 
 				// Create obstacle
 				const entity = world.spawn();
@@ -108,7 +108,7 @@ export = () => {
 				app.addPlugin(new RVOPlugin());
 
 				const world = app.getWorld();
-				const simulatorResource = app.getResource(RVOSimulatorResource)!;
+				const simulatorResource = app.getResource<RVOSimulatorResource>()!;
 
 				// Create disabled agent
 				const entity = world.spawn();
@@ -140,7 +140,7 @@ export = () => {
 				app.addPlugin(new TransformPlugin());
 				app.addPlugin(new RVOPlugin());
 
-				const simulatorResource = app.getResource(RVOSimulatorResource)!;
+				const simulatorResource = app.getResource<RVOSimulatorResource>()!;
 
 				// Create agent
 				const world = app.getWorld();
@@ -170,7 +170,7 @@ export = () => {
 				app.addPlugin(new TransformPlugin());
 				app.addPlugin(new RVOPlugin());
 
-				const simulatorResource = app.getResource(RVOSimulatorResource)!;
+				const simulatorResource = app.getResource<RVOSimulatorResource>()!;
 
 				app.update();
 
@@ -192,7 +192,7 @@ export = () => {
 				app.addPlugin(new RVOPlugin());
 
 				const world = app.getWorld();
-				const simulatorResource = app.getResource(RVOSimulatorResource)!;
+				const simulatorResource = app.getResource<RVOSimulatorResource>()!;
 
 				// Create agent
 				const entity = world.spawn();

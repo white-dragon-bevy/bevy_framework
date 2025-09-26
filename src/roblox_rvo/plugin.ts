@@ -104,11 +104,11 @@ export class RVOPlugin implements Plugin {
 	private registerResources(app: App): void {
 		// 注册配置资源
 		const rvoConfig = new RVOConfig(this.config);
-		app.insertResource(RVOConfig, rvoConfig);
+		app.insertResource(rvoConfig);
 
 		// 注册模拟器资源
 		const simulatorResource = new RVOSimulatorResource();
-		app.insertResource(RVOSimulatorResource, simulatorResource);
+		app.insertResource(simulatorResource);
 
 		print(`[RVOPlugin] Resources registered - maxAgents: ${rvoConfig.maxAgents}, timeStep: ${rvoConfig.timeStep}`);
 	}

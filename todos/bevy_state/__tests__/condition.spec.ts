@@ -3,7 +3,7 @@
  */
 
 import { World } from "@rbxts/matter";
-import { ResourceManager, ResourceConstructor } from "../../bevy_ecs/resource";
+import { ResourceManager, ResourceConstructor } from "../../../src/bevy_ecs/resource";
 import { State } from "../resources";
 import { EnumStates } from "../states";
 import {
@@ -93,7 +93,7 @@ export = () => {
 				expect(condition(world, resourceManager)).to.equal(false);
 
 				// Change state
-				const stateResource = resourceManager.getResource(stateKey)!;
+				const stateResource = resourceManager.getResource<stateKey>()!;
 				stateResource._set(gameState);
 
 				// Detect change
@@ -112,7 +112,7 @@ export = () => {
 				expect(combined(world, resourceManager)).to.equal(true);
 
 				// Change to different state
-				const stateResource = resourceManager.getResource(stateKey)!;
+				const stateResource = resourceManager.getResource<stateKey>()!;
 				stateResource._set(gameState);
 
 				expect(combined(world, resourceManager)).to.equal(false);
@@ -131,7 +131,7 @@ export = () => {
 				expect(combined(world, resourceManager)).to.equal(true);
 
 				// Change to game state
-				const stateResource = resourceManager.getResource(stateKey)!;
+				const stateResource = resourceManager.getResource<stateKey>()!;
 				stateResource._set(gameState);
 				expect(combined(world, resourceManager)).to.equal(true);
 			});

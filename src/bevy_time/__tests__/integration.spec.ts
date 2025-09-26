@@ -39,10 +39,10 @@ export = () => {
 				const app = App.create().addPlugin(new TimePlugin());
 
 				// 验证资源是否被正确初始化
-				const realTime = app.getResource(RealTimeResource);
-				const virtualTime = app.getResource(VirtualTimeResource);
-				const fixedTime = app.getResource(FixedTimeResource);
-				const genericTime = app.getResource(GenericTimeResource);
+				const realTime = app.getResource<RealTimeResource>();
+				const virtualTime = app.getResource<VirtualTimeResource>();
+				const fixedTime = app.getResource<FixedTimeResource>();
+				const genericTime = app.getResource<GenericTimeResource>();
 
 				expect(realTime).never.to.equal(undefined);
 				expect(virtualTime).never.to.equal(undefined);
@@ -61,7 +61,7 @@ export = () => {
 				// 第一次更新（第一帧增量为0）
 				app.update();
 
-				const timeResource1 = app.getResource(GenericTimeResource);
+				const timeResource1 = app.getResource<GenericTimeResource>();
 				expect(timeResource1).never.to.equal(undefined);
 				const time1 = timeResource1?.value;
 				expect(time1?.getDelta().equals(Duration.ZERO)).to.equal(true);
@@ -72,7 +72,7 @@ export = () => {
 				// 第二次更新
 				app.update();
 
-				const timeResource2 = app.getResource(GenericTimeResource);
+				const timeResource2 = app.getResource<GenericTimeResource>();
 				const time2 = timeResource2?.value;
 				expect(time2?.getDelta().greaterThan(Duration.ZERO)).to.equal(true);
 				expect(time2?.getElapsed().greaterThan(Duration.ZERO)).to.equal(true);
@@ -87,21 +87,21 @@ export = () => {
 				advanceTime(app, 0.05);
 				app.update();
 
-				const virtualTimeResource1 = app.getResource(VirtualTimeResource);
+				const virtualTimeResource1 = app.getResource<VirtualTimeResource>();
 				const virtualTime1 = virtualTimeResource1?.value;
 				const elapsed1 = virtualTime1?.getElapsed();
 
 				// 暂停虚拟时间
 				if (virtualTime1) {
 					(virtualTime1.getContext() as Virtual).paused = true;
-					app.insertResource(VirtualTimeResource, new VirtualTimeResource(virtualTime1));
+					app.insertResource(new VirtualTimeResource(virtualTime1));
 				}
 
 				// 继续更新
 				advanceTime(app, 0.05);
 				app.update();
 
-				const virtualTimeResource2 = app.getResource(VirtualTimeResource);
+				const virtualTimeResource2 = app.getResource<VirtualTimeResource>();
 				const virtualTime2 = virtualTimeResource2?.value;
 				const elapsed2 = virtualTime2?.getElapsed();
 
@@ -116,19 +116,19 @@ export = () => {
 
 				// 设置 2x 速度
 				app.update();
-				const virtualTimeResource = app.getResource(VirtualTimeResource);
+				const virtualTimeResource = app.getResource<VirtualTimeResource>();
 				const virtualTime = virtualTimeResource?.value;
 				if (virtualTime) {
 					(virtualTime.getContext() as Virtual).relativeSpeed = 2.0;
-					app.insertResource(VirtualTimeResource, new VirtualTimeResource(virtualTime));
+					app.insertResource(new VirtualTimeResource(virtualTime));
 				}
 
 				// 更新
 				advanceTime(app, 0.1);
 				app.update();
 
-				const realTimeResource = app.getResource(RealTimeResource);
-				const virtualTimeResourceAfter = app.getResource(VirtualTimeResource);
+				const realTimeResource = app.getResource<RealTimeResource>();
+				const virtualTimeResourceAfter = app.getResource<VirtualTimeResource>();
 				const realTime = realTimeResource?.value;
 				const virtualTimeAfter = virtualTimeResourceAfter?.value;
 
@@ -150,7 +150,7 @@ export = () => {
 				const app = App.create().addPlugin(new TimePlugin());
 
 				// 获取固定时间
-				const fixedTimeResource = app.getResource(FixedTimeResource);
+				const fixedTimeResource = app.getResource<FixedTimeResource>();
 				expect(fixedTimeResource).never.to.equal(undefined);
 				const fixedTime = fixedTimeResource?.value;
 
@@ -168,7 +168,7 @@ export = () => {
 
 				// 第二次更新 - 累积 50ms，不够一个时间步
 				app.update();
-				const fixed1Resource = app.getResource(FixedTimeResource);
+				const fixed1Resource = app.getResource<FixedTimeResource>();
 				const fixed1 = fixed1Resource?.value;
 				if (fixed1) {
 					expect(fixed1.getElapsed().equals(Duration.ZERO)).to.equal(true);
@@ -178,7 +178,7 @@ export = () => {
 				// 第三次更新 - 再累积时间
 				advanceTime(app, 0.06); // 60ms
 				app.update();
-				const fixed2Resource = app.getResource(FixedTimeResource);
+				const fixed2Resource = app.getResource<FixedTimeResource>();
 				const fixed2 = fixed2Resource?.value;
 
 				// 现在应该有 110ms，足够一个时间步（100ms）
@@ -195,7 +195,7 @@ export = () => {
 				const app = App.create().addPlugin(new TimePlugin());
 
 				// 设置小的时间步长
-				const fixedTimeResource = app.getResource(FixedTimeResource);
+				const fixedTimeResource = app.getResource<FixedTimeResource>();
 				const fixedTime = fixedTimeResource?.value;
 				if (fixedTime) {
 					fixedTime.setTimestepSeconds(0.01); // 10ms
@@ -208,7 +208,7 @@ export = () => {
 
 				// 更新应该触发多次固定更新
 				app.update();
-				const fixedAfterResource = app.getResource(FixedTimeResource);
+				const fixedAfterResource = app.getResource<FixedTimeResource>();
 				const fixedAfter = fixedAfterResource?.value;
 
 				// 应该执行了 3 次固定更新（30ms），剩余 5ms
@@ -237,7 +237,7 @@ export = () => {
 					});
 
 				// 设置固定时间步
-				const fixedTimeResource = app.getResource(FixedTimeResource);
+				const fixedTimeResource = app.getResource<FixedTimeResource>();
 				const fixedTime = fixedTimeResource?.value;
 				if (fixedTime) {
 					fixedTime.setTimestepSeconds(0.02); // 20ms
@@ -266,12 +266,12 @@ export = () => {
 				// TODO: Implement FixedUpdate schedule when fixed timestep is needed
 
 				// 设置固定时间步
-				const fixedTimeResource = app.getResource(FixedTimeResource);
+				const fixedTimeResource = app.getResource<FixedTimeResource>();
 				const fixedTime = fixedTimeResource?.value;
 				const timestep = 0.025; // 25ms
 				if (fixedTime) {
 					fixedTime.setTimestepSeconds(timestep);
-					app.insertResource(FixedTimeResource, new FixedTimeResource(fixedTime));
+					app.insertResource(new FixedTimeResource(fixedTime));
 				}
 
 				// 累积足够的时间触发多次固定更新
@@ -290,14 +290,14 @@ export = () => {
 			it("应该正确处理时间包装", () => {
 				const app = App.create().addPlugin(new TimePlugin());
 
-				const timeResource = app.getResource(GenericTimeResource);
+				const timeResource = app.getResource<GenericTimeResource>();
 				const time = timeResource?.value;
 				expect(time).never.to.equal(undefined);
 
 				// 设置较小的包装周期
 				if (time) {
 					time.setWrapPeriod(Duration.fromSecs(1.0)); // 1 秒
-					app.insertResource(GenericTimeResource, new GenericTimeResource(time));
+					app.insertResource(new GenericTimeResource(time));
 				}
 
 				// 推进时间超过包装周期
@@ -306,7 +306,7 @@ export = () => {
 					app.update();
 				}
 
-				const timeAfterResource = app.getResource(GenericTimeResource);
+				const timeAfterResource = app.getResource<GenericTimeResource>();
 				const timeAfter = timeAfterResource?.value;
 				if (timeAfter) {
 					const elapsed = timeAfter.getElapsed();

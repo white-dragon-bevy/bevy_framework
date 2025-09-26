@@ -145,7 +145,7 @@ class AudioPlugin implements Plugin {
 	 * - 易于测试
 	 */
 	static loadAudioAssetsSystem(world: World, context: Context): void {
-		const assets = context.resources.getResource(AudioAssets);
+		const assets = context.resources.getResource<AudioAssets>();
 		if (!assets) return;
 
 		// 加载音频资源
@@ -157,8 +157,8 @@ class AudioPlugin implements Plugin {
 	}
 
 	static audioPlaybackSystem(world: World, context: Context): void {
-		const config = context.resources.getResource(AudioConfig);
-		const assets = context.resources.getResource(AudioAssets);
+		const config = context.resources.getResource<AudioConfig>();
+		const assets = context.resources.getResource<AudioAssets>();
 		const eventReader = context.events.createReader(PlaySoundEvent);
 
 		if (!config || !assets) return;
@@ -176,7 +176,7 @@ class AudioPlugin implements Plugin {
 	}
 
 	static volumeControlSystem(world: World, context: Context): void {
-		const config = context.resources.getResource(AudioConfig);
+		const config = context.resources.getResource<AudioConfig>();
 		if (!config) return;
 
 		// 可以在这里响应输入或其他事件来调整音量
@@ -205,7 +205,7 @@ export class AudioAPI {
 	 */
 	static setMasterVolume(app: App, volume: number): void {
 		const context = app.getContext();
-		const config = context.getResource(AudioConfig);
+		const config = context.resources.getResource<AudioConfig>();
 		if (config) {
 			config.masterVolume = math.clamp(volume, 0, 1);
 		}
@@ -216,7 +216,7 @@ export class AudioAPI {
 	 */
 	static toggleMute(app: App): void {
 		const context = app.getContext();
-		const config = context.getResource(AudioConfig);
+		const config = context.resources.getResource<AudioConfig>();
 		if (config) {
 			config.muted = !config.muted;
 		}
@@ -254,7 +254,7 @@ function bevyUsage(app: App): void {
 	const context = app.getContext();
 
 	// 直接访问资源
-	const config = context.getResource(AudioConfig);
+	const config = context.resources.getResource<AudioConfig>();
 	if (config) {
 		config.soundVolume = 0.7;
 	}
@@ -337,7 +337,7 @@ class UIAudioPlugin implements Plugin {
 
 	static playUISound(world: World, context: Context): void {
 		// 读取输入状态
-		const input = context.resources.getResource(InputState);
+		const input = context.resources.getResource<InputState>();
 		if (!input) return;
 
 		// 如果点击了按钮，播放音效

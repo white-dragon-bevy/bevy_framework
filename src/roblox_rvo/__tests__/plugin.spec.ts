@@ -41,12 +41,12 @@ export = () => {
 			});
 			app.addPlugin(plugin);
 
-			const config = app.getResource(RVOConfig);
+			const config = app.getResource<RVOConfig>();
 			expect(config).to.be.ok();
 			expect(config!.maxAgents).to.equal(100);
 			expect(config!.timeStep).to.equal(0.1);
 
-			const simulatorResource = app.getResource(RVOSimulatorResource);
+			const simulatorResource = app.getResource<RVOSimulatorResource>();
 			expect(simulatorResource).to.be.ok();
 		});
 
@@ -87,7 +87,7 @@ export = () => {
 			app.update();
 
 			// Check if agent was registered
-			const simulatorResource = app.getResource(RVOSimulatorResource);
+			const simulatorResource = app.getResource<RVOSimulatorResource>();
 			expect(simulatorResource).to.be.ok();
 			expect(simulatorResource!.stats.agentCount).to.equal(1);
 
@@ -120,7 +120,7 @@ export = () => {
 
 			app.update();
 
-			const simulatorResource = app.getResource(RVOSimulatorResource);
+			const simulatorResource = app.getResource<RVOSimulatorResource>();
 			expect(simulatorResource!.stats.agentCount).to.equal(5);
 		});
 
@@ -140,7 +140,7 @@ export = () => {
 
 			app.update();
 
-			const simulatorResource = app.getResource(RVOSimulatorResource);
+			const simulatorResource = app.getResource<RVOSimulatorResource>();
 			expect(simulatorResource!.stats.obstacleCount).to.equal(1);
 		});
 
@@ -148,7 +148,7 @@ export = () => {
 			const performancePlugin = RVOPlugin.performance();
 			app.addPlugin(performancePlugin);
 
-			const config = app.getResource(RVOConfig);
+			const config = app.getResource<RVOConfig>();
 			expect(config!.maxNeighbors).to.equal(5);
 			expect(config!.neighborDist).to.equal(10);
 		});
@@ -171,7 +171,7 @@ export = () => {
 			app.addPlugin(new RVOPlugin());
 			app.update();
 
-			const simulatorResource = app.getResource(RVOSimulatorResource);
+			const simulatorResource = app.getResource<RVOSimulatorResource>();
 			expect(simulatorResource!.initialized).to.equal(true);
 
 			app.cleanup();

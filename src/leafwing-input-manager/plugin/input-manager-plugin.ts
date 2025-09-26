@@ -109,7 +109,7 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 		print(`[InputManagerPlugin] Created InputInstanceManager: ${this.instanceManager !== undefined}`);
 
 		// Store the plugin instance as a resource for access by systems
-		app.insertResource(InputManagerPluginResource<A>, new InputManagerPluginResource(this));
+		app.insertResource<InputManagerPluginResource<A>>(new InputManagerPluginResource(this));
 
 		// Register extension to AppContext using dynamic key
 		// This needs to be available on both client and server

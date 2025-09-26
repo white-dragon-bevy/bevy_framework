@@ -28,7 +28,8 @@
 		"plugins":[
 			{
 				"transform":"rbxts-transformer-wd-globals"
-			}
+			},
+			{ "transform": "rbxts-transformer-flamework" }
 		]
 	},
 	"exclude": [

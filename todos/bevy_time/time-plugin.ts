@@ -117,7 +117,7 @@ export class TimePlugin implements Plugin {
  */
 function timeSystem(world: World, context: Context, app: App): void {
 	// 获取时间更新策略
-	const strategyResource = app.getResource(TimeUpdateStrategyResource);
+	const strategyResource = app.getResource<TimeUpdateStrategyResource>();
 	if (!strategyResource) return;
 	const strategy = strategyResource as TimeUpdateStrategyResource;
 
@@ -153,7 +153,7 @@ function timeSystem(world: World, context: Context, app: App): void {
 	}
 
 	// 更新 Real 时间
-	const realTimeResource = app.getResource(RealTimeResource);
+	const realTimeResource = app.getResource<RealTimeResource>();
 	if (realTimeResource) {
 		const realTime = realTimeResource.value;
 		realTime.advanceBy(delta);
@@ -161,7 +161,7 @@ function timeSystem(world: World, context: Context, app: App): void {
 	}
 
 	// 更新 Virtual 时间（基于 Real 时间）
-	const virtualTimeResource = app.getResource(VirtualTimeResource);
+	const virtualTimeResource = app.getResource<VirtualTimeResource>();
 	if (virtualTimeResource && realTimeResource) {
 		const virtualTime = virtualTimeResource.value;
 		const realTime = realTimeResource.value;
@@ -186,7 +186,7 @@ function timeSystem(world: World, context: Context, app: App): void {
 		app.insertResource(GenericTimeResource, new GenericTimeResource(virtualTime.asGeneric()));
 
 		// 更新 Fixed 时间（累积 Virtual 时间的增量）
-		const fixedTimeResource = app.getResource(FixedTimeResource);
+		const fixedTimeResource = app.getResource<FixedTimeResource>();
 		if (fixedTimeResource) {
 			const fixedTime = fixedTimeResource.value;
 			// 累积虚拟时间的增量到固定时间
@@ -213,7 +213,7 @@ function timeSystem(world: World, context: Context, app: App): void {
  * @param seconds - 要推进的秒数
  */
 export function advanceTime(app: App, seconds: number): void {
-	const strategyResource = app.getResource(TimeUpdateStrategyResource);
+	const strategyResource = app.getResource<TimeUpdateStrategyResource>();
 	if (strategyResource) {
 		strategyResource.mockDelta = seconds;
 	}
@@ -225,8 +225,8 @@ export function advanceTime(app: App, seconds: number): void {
  */
 function runFixedMainSchedule(world: World, context: Context, app: App): void {
 	// 获取虚拟时间和固定时间
-	const virtualTimeResource = app.getResource(VirtualTimeResource);
-	const fixedTimeResource = app.getResource(FixedTimeResource);
+	const virtualTimeResource = app.getResource<VirtualTimeResource>();
+	const fixedTimeResource = app.getResource<FixedTimeResource>();
 
 	if (!virtualTimeResource || !fixedTimeResource) {
 		return;

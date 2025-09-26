@@ -163,7 +163,7 @@ export class StateTransitionManager<S extends States> {
 		const stateResourceKey = this.generateResourceKey("State", this.stateType) as ResourceConstructor<State<S>>;
 
 		// 获取 NextState 资源
-		const nextStateResource = resourceManager.getResource(nextStateResourceKey);
+		const nextStateResource = resourceManager.getResource<nextStateResourceKey>();
 		if (!nextStateResource || !nextStateResource.hasPending()) {
 			return false;
 		}
@@ -175,7 +175,7 @@ export class StateTransitionManager<S extends States> {
 		}
 
 		// 获取当前状态资源
-		let currentStateResource = resourceManager.getResource(stateResourceKey);
+		let currentStateResource = resourceManager.getResource<stateResourceKey>();
 		const exitedState = currentStateResource?.get();
 
 		// 检查是否为身份转换（相同状态转换）
@@ -222,7 +222,7 @@ export class StateTransitionManager<S extends States> {
 		}
 
 		// 3. 更新状态资源
-		let currentStateResource = resourceManager.getResource(stateResourceKey);
+		let currentStateResource = resourceManager.getResource<stateResourceKey>();
 		if (!currentStateResource) {
 			currentStateResource = State.create(newState);
 			resourceManager.insertResource(stateResourceKey, currentStateResource);

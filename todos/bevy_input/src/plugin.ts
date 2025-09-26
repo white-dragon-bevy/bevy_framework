@@ -79,7 +79,7 @@ export class InputPlugin implements Plugin {
 		const extensions = WorldExtensions.get(world);
 
 		// 确保事件管理器存在
-		let eventManager = extensions.getResource(EventManager);
+		let eventManager = extensions.getResource<EventManager>();
 		if (!eventManager) {
 			eventManager = new EventManager(world);
 			extensions.insertResource(EventManager, eventManager);

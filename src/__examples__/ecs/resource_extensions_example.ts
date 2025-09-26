@@ -87,7 +87,7 @@ function gameUpdateSystem(world: World, context: Context): void {
 	const deltaTime = context.has("time") ? context.get("time").getDeltaSeconds() : 0.016;
 
 	// 更新游戏状态
-	resources.withResourceMut(GameState, (state: GameState) => {
+	resources.withResourceMut( (state: GameState) => {
 		if (state.isPlaying) {
 			state.elapsedTime += deltaTime;
 
@@ -122,7 +122,7 @@ function resourceMonitoringSystem(world: World, context: Context): void {
 	const deltaTime = context.has("time") ? context.get("time").getDeltaSeconds() : 0.016;
 
 	// 每5秒输出一次统计
-	const gameState = context.resources.getResource(GameState);
+	const gameState = context.resources.getResource<GameState>();
 	if (
 		gameState &&
 		math.floor(gameState.elapsedTime) % 5 === 0 &&
@@ -154,7 +154,7 @@ function resourceQuerySystem(world: World, context: Context): void {
 	const deltaTime = context.has("time") ? context.get("time").getDeltaSeconds() : 0.016;
 
 	// 每8秒执行一次查询演示
-	const gameState = context.resources.getResource(GameState);
+	const gameState = context.resources.getResource<GameState>();
 	if (
 		gameState &&
 		math.floor(gameState.elapsedTime) % 8 === 0 &&
@@ -168,13 +168,13 @@ function resourceQuerySystem(world: World, context: Context): void {
 		for (const item of recentlyUpdated) {
 			const meta = item.metadata;
 			const timeSince = os.clock() - meta.updated;
-			print(`  ${meta.name}: Updated ${string.format("%.2f", timeSince)}s ago`);
+			print(`  ${meta.typeDescriptor.text}: Updated ${string.format("%.2f", timeSince)}s ago`);
 		}
 
 		// 查找特定条件的资源
 		const hasLargeResources = query.hasResourceWhere((resource, meta) => {
 			// 检查是否有"大型"资源（这里用名称长度模拟）
-			return meta.name.size() > 15;
+			return meta.typeDescriptor.text.size() > 15;
 		});
 		print(`Has large resources: ${hasLargeResources}`);
 
@@ -200,10 +200,10 @@ const app = App.create();
 const resources = app.context.resources;
 
 // 插入初始资源
-resources.insertResource(GameConfig, new GameConfig(1.5, "medium", true, 8));
-resources.insertResource(GameState, new GameState());
-resources.insertResource(PlayerData, new PlayerData());
-resources.insertResource(NetworkConfig, new NetworkConfig("game.server.com", 3000, 5, false));
+resources.insertResource( new GameConfig(1.5, "medium", true, 8));
+resources.insertResource( new GameState());
+resources.insertResource( new PlayerData());
+resources.insertResource( new NetworkConfig("game.server.com", 3000, 5, false));
 
 // 使用便捷操作
 const playerData = resources.getOrInsertDefaultResource(PlayerData);
@@ -234,13 +234,13 @@ app.addSystems(BuiltinSchedules.POST_UPDATE, resourceQuerySystem);
 print("\n--- Resource Operations Demo ---");
 
 // 使用withResource读取配置
-resources.withResource(GameConfig, (config: GameConfig) => {
+resources.withResource( (config: GameConfig) => {
 	print(`Game Config: Speed=${config.gameSpeed}, Difficulty=${config.difficulty}`);
 	return config;
 });
 
 // 修改游戏状态
-resources.withResourceMut(GameState, (state: GameState) => {
+resources.withResourceMut( (state: GameState) => {
 	state.isPlaying = true;
 	print("Game started!");
 	return state;
@@ -289,7 +289,7 @@ for (const [typeName, count] of finalStats.typeCount) {
 	print(`  ${typeName}: ${count}`);
 }
 
-const gameState = resources.getResource(GameState);
+const gameState = resources.getResource<GameState>();
 if (gameState) {
 	print(`\nFinal game state:`);
 	print(`  Score: ${gameState.score}`);

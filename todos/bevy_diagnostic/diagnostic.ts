@@ -450,7 +450,7 @@ export interface RegisterDiagnostic {
  * @returns App实例（链式调用）
  */
 export function registerDiagnostic(app: any, diagnostic: Diagnostic): any {
-	let diagnosticsStore = app.getResource(DiagnosticsStore);
+	let diagnosticsStore = app.getResource<DiagnosticsStore>();
 	if (!diagnosticsStore) {
 		diagnosticsStore = new DiagnosticsStore();
 		app.insertResource(diagnosticsStore);

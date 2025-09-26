@@ -74,7 +74,7 @@ app.insertResource(State, State.new(GameState.MENU));
 
 // 在系统中查询当前状态
 function gameSystem(world: World, resourceManager: ResourceManager) {
-    const stateResource = resourceManager.getResource(State<typeof GameState.MENU>);
+    const stateResource = resourceManager.getResource<State<typeof GameState.MENU>>();
     if (stateResource && stateResource.is(GameState.PLAYING)) {
         // 游戏进行中的逻辑
     }
@@ -89,7 +89,7 @@ import { NextState } from "bevy_state";
 
 // 请求状态转换
 function pauseGame(resourceManager: ResourceManager) {
-    const nextState = resourceManager.getResource(NextState);
+    const nextState = resourceManager.getResource<NextState>();
     if (nextState) {
         nextState.set(GameState.PAUSED);
     }
@@ -392,7 +392,7 @@ app.addPlugin(new StatesPlugin({
 function menuSystem(world: World, resourceManager: ResourceManager) {
     // 检测开始游戏按钮
     if (/* start button pressed */) {
-        const nextState = resourceManager.getResource(NextState);
+        const nextState = resourceManager.getResource<NextState>();
         nextState?.set(GameState.LOADING);
     }
 }
@@ -401,7 +401,7 @@ function menuSystem(world: World, resourceManager: ResourceManager) {
 function loadingSystem(world: World, resourceManager: ResourceManager) {
     // 加载资源...
     if (/* loading complete */) {
-        const nextState = resourceManager.getResource(NextState);
+        const nextState = resourceManager.getResource<NextState>();
         nextState?.set(GameState.PLAYING);
     }
 }
@@ -410,7 +410,7 @@ function loadingSystem(world: World, resourceManager: ResourceManager) {
 function gameSystem(world: World, resourceManager: ResourceManager) {
     // 游戏逻辑...
     if (/* pause pressed */) {
-        const nextState = resourceManager.getResource(NextState);
+        const nextState = resourceManager.getResource<NextState>();
         nextState?.set(GameState.PAUSED);
     }
 }
@@ -493,7 +493,7 @@ app.addPlugin(new SubStatesPlugin(
 
 // 使用子状态
 function battleSystem(world: World, resourceManager: ResourceManager) {
-    const battleState = resourceManager.getResource(State<typeof BattlePhase.states.PLANNING>);
+    const battleState = resourceManager.getResource<State<typeof BattlePhase.states.PLANNING>>();
     if (battleState?.is(BattlePhase.states.EXECUTING)) {
         // 执行战斗动作
     }

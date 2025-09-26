@@ -172,7 +172,7 @@ export = () => {
 
 			app.update();
 
-			const simulatorResource = app.getResource(RVOSimulatorResource);
+			const simulatorResource = app.getResource<RVOSimulatorResource>();
 			expect(simulatorResource!.stats.agentCount).to.equal(1);
 
 			// Remove RVOAgent component
@@ -201,7 +201,7 @@ export = () => {
 
 			app.update();
 
-			const simulatorResource = app.getResource(RVOSimulatorResource);
+			const simulatorResource = app.getResource<RVOSimulatorResource>();
 			// Disabled agent should not be added to simulator
 			expect(simulatorResource!.stats.agentCount).to.equal(0);
 		});

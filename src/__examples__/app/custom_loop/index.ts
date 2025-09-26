@@ -18,7 +18,6 @@ import type { BevyWorld } from "../../../bevy_ecs";
 /**
  * Input 资源 - 存储当前输入字符串
  */
-@Resource
 class Input implements Resource {
 	constructor(public value: string = "") {}
 }
@@ -86,7 +85,7 @@ function myRunner(app: App): AppExit {
 		}
 
 		// 更新 Input 资源 - 直接插入新的资源实例
-		app.insertResource(Input, new Input(line));
+		app.insertResource(new Input(line));
 
 		// 更新应用程序
 		app.update();
@@ -109,7 +108,7 @@ function myRunner(app: App): AppExit {
 function printSystem(world: BevyWorld, context: AppContext): void {
 	// 通过上下文访问资源扩展
 	const resources = context.resources;
-	const inputResource = resources.getResource(Input);
+	const inputResource = resources.getResource<Input>();
 
 	if (inputResource) {
 		print(`You typed: ${inputResource.value}`);
@@ -124,7 +123,7 @@ function printSystem(world: BevyWorld, context: AppContext): void {
 function exitSystem(world: BevyWorld, context: AppContext): void {
 	// 通过上下文访问资源扩展
 	const resources = context.resources;
-	const inputResource = resources.getResource(Input);
+	const inputResource = resources.getResource<Input>();
 
 	if (inputResource && inputResource.value === "exit") {
 		// 由于我们还没有完整的消息系统集成，
@@ -143,7 +142,7 @@ function exitSystem(world: BevyWorld, context: AppContext): void {
 export function runExample(): AppExit {
 	// 创建应用并配置
 	const app = App.create()
-		.insertResource(Input, new Input(""))
+		.insertResource(new Input(""))
 		.setRunner(myRunner)
 		.addClientSystems(BuiltinSchedules.UPDATE, printSystem, exitSystem);
 
@@ -175,7 +174,7 @@ export function createRobloxInputRunner(): (app: App) => AppExit {
 			if (input === undefined) break;
 
 			// 更新 Input 资源 - 直接插入新的资源实例
-			app.insertResource(Input, new Input(input));
+			app.insertResource(new Input(input));
 
 			app.update();
 

@@ -102,7 +102,7 @@ export class LogDiagnosticsPlugin implements Plugin {
 		// 直接使用资源管理器插入资源，确保使用类构造函数作为标识
 		app.main()
 			.getResourceManager()
-			.insertResource(LogDiagnosticsState as any, state);
+			.insertResource(state);
 
 		if (this.debug) {
 			app.addSystems(PostUpdate, (world, context) =>
@@ -210,8 +210,8 @@ export class LogDiagnosticsPlugin implements Plugin {
 	 */
 	static logDiagnosticsSystem(world: World, context: Context): void {
 		const resources = context.resources;
-		const state = resources.getResource(LogDiagnosticsState);
-		const diagnostics = resources.getResource(DiagnosticsStore);
+		const state = resources.getResource<LogDiagnosticsState>();
+		const diagnostics = resources.getResource<DiagnosticsStore>();
 
 		if (!state || !diagnostics) return;
 
@@ -230,8 +230,8 @@ export class LogDiagnosticsPlugin implements Plugin {
 	 */
 	static logDiagnosticsDebugSystem(world: World, context: Context): void {
 		const resources = context.resources;
-		const state = resources.getResource(LogDiagnosticsState);
-		const diagnostics = resources.getResource(DiagnosticsStore);
+		const state = resources.getResource<LogDiagnosticsState>();
+		const diagnostics = resources.getResource<DiagnosticsStore>();
 
 		if (!state || !diagnostics) return;
 

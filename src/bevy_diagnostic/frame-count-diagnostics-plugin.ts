@@ -47,7 +47,7 @@ export class FrameCountPlugin implements Plugin {
 		const frameCount = new FrameCount();
 		app.main()
 			.getResourceManager()
-			.insertResource(FrameCount as any, frameCount);
+			.insertResource(frameCount);
 		app.addSystems(Last, updateFrameCount);
 	}
 
@@ -79,7 +79,7 @@ export function updateFrameCount(world: World, context: Context): void {
 	if (!resources) {
 		return;
 	}
-	const frameCount = resources.getResource(FrameCount);
+	const frameCount = resources.getResource<FrameCount>();
 	if (frameCount) {
 		// 使用位运算确保32位无符号整数的回绕行为
 		const MAX_U32 = 0xffffffff;

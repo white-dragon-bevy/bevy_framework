@@ -117,13 +117,13 @@ export class TimePlugin extends BasePlugin {
 		const fixedTime = new TimeFixed();
 		const genericTime = new Time<Empty>({});
 
-		app.insertResource(RealTimeResource, new RealTimeResource(realTime));
-		app.insertResource(VirtualTimeResource, new VirtualTimeResource(virtualTime));
-		app.insertResource(FixedTimeResource, new FixedTimeResource(fixedTime));
-		app.insertResource(GenericTimeResource, new GenericTimeResource(genericTime));
+		app.insertResource(new RealTimeResource(realTime));
+		app.insertResource(new VirtualTimeResource(virtualTime));
+		app.insertResource(new FixedTimeResource(fixedTime));
+		app.insertResource(new GenericTimeResource(genericTime));
 
 		// 初始化时间更新策略
-		app.insertResource(TimeUpdateStrategyResource, new TimeUpdateStrategyResource());
+		app.insertResource(new TimeUpdateStrategyResource());
 
 		// 创建时间统计管理器
 		const statsManager = new TimeStatsManager();
@@ -139,23 +139,23 @@ export class TimePlugin extends BasePlugin {
 			time: {
 				extension: {
 					getTime() {
-						const resource = app.getResource(GenericTimeResource);
+						const resource = app.getResource<GenericTimeResource>();
 						return resource ? resource.value : genericTime;
 					},
 					getElapsedSeconds() {
-						const resource = app.getResource(GenericTimeResource);
+						const resource = app.getResource<GenericTimeResource>();
 						return resource ? resource.value.getElapsedSecs() : 0;
 					},
 					getDeltaSeconds() {
-						const resource = app.getResource(GenericTimeResource);
+						const resource = app.getResource<GenericTimeResource>();
 						return resource ? resource.value.getDeltaSecs() : 0;
 					},
 					getElapsedMillis() {
-						const resource = app.getResource(GenericTimeResource);
+						const resource = app.getResource<GenericTimeResource>();
 						return resource ? resource.value.getElapsedSecs() * 1000 : 0;
 					},
 					getDeltaMillis() {
-						const resource = app.getResource(GenericTimeResource);
+						const resource = app.getResource<GenericTimeResource>();
 						return resource ? resource.value.getDeltaSecs() * 1000 : 0;
 					},
 				} satisfies TimeExtension,
@@ -167,25 +167,25 @@ export class TimePlugin extends BasePlugin {
 			"time.control": {
 				extension: {
 					pause() {
-						const resource = app.getResource(VirtualTimeResource);
+						const resource = app.getResource<VirtualTimeResource>();
 						if (resource) {
 							const vTime = resource.value;
 							(vTime.getContext() as Virtual).paused = true;
 						}
 					},
 					resume() {
-						const resource = app.getResource(VirtualTimeResource);
+						const resource = app.getResource<VirtualTimeResource>();
 						if (resource) {
 							const vTime = resource.value;
 							(vTime.getContext() as Virtual).paused = false;
 						}
 					},
 					isPaused() {
-						const resource = app.getResource(VirtualTimeResource);
+						const resource = app.getResource<VirtualTimeResource>();
 						return resource ? (resource.value.getContext() as Virtual).paused : false;
 					},
 					setTimeScale(scale: number) {
-						const resource = app.getResource(VirtualTimeResource);
+						const resource = app.getResource<VirtualTimeResource>();
 						if (resource) {
 							const vTime = resource.value;
 							(vTime.getContext() as Virtual).relativeSpeed = scale;
@@ -193,19 +193,19 @@ export class TimePlugin extends BasePlugin {
 						}
 					},
 					getTimeScale() {
-						const resource = app.getResource(VirtualTimeResource);
+						const resource = app.getResource<VirtualTimeResource>();
 						return resource ? (resource.value.getContext() as Virtual).relativeSpeed : 1.0;
 					},
 					advanceTime(seconds: number) {
-						const strategyResource = app.getResource(TimeUpdateStrategyResource);
+						const strategyResource = app.getResource<TimeUpdateStrategyResource>();
 						if (strategyResource) {
 							strategyResource.mockDelta = seconds;
 						}
 					},
 					reset() {
-						const realResource = app.getResource(RealTimeResource);
-						const virtualResource = app.getResource(VirtualTimeResource);
-						const fixedResource = app.getResource(FixedTimeResource);
+						const realResource = app.getResource<RealTimeResource>();
+						const virtualResource = app.getResource<VirtualTimeResource>();
+						const fixedResource = app.getResource<FixedTimeResource>();
 
 						if (realResource) {
 							realResource.value = new Time<Real>({ __brand: "Real" } as Real);
@@ -295,7 +295,7 @@ export class TimePlugin extends BasePlugin {
  */
 function timeSystem(world: World, context: Context, app: App, statsManager: TimeStatsManager): void {
 	// 获取时间更新策略
-	const strategyResource = app.getResource(TimeUpdateStrategyResource);
+	const strategyResource = app.getResource<TimeUpdateStrategyResource>();
 	if (!strategyResource) return;
 	const strategy = strategyResource as TimeUpdateStrategyResource;
 
@@ -334,15 +334,15 @@ function timeSystem(world: World, context: Context, app: App, statsManager: Time
 	statsManager.addFrameTime(delta.asSecsF64() * 1000);
 
 	// 更新 Real 时间
-	const realTimeResource = app.getResource(RealTimeResource);
+	const realTimeResource = app.getResource<RealTimeResource>();
 	if (realTimeResource) {
 		const realTime = realTimeResource.value;
 		realTime.advanceBy(delta);
-		app.insertResource(RealTimeResource, new RealTimeResource(realTime));
+		app.insertResource(new RealTimeResource(realTime));
 	}
 
 	// 更新 Virtual 时间（基于 Real 时间）
-	const virtualTimeResource = app.getResource(VirtualTimeResource);
+	const virtualTimeResource = app.getResource<VirtualTimeResource>();
 	if (virtualTimeResource && realTimeResource) {
 		const virtualTime = virtualTimeResource.value;
 		const realTime = realTimeResource.value;
@@ -361,13 +361,13 @@ function timeSystem(world: World, context: Context, app: App, statsManager: Time
 			// 暂停时使用零增量
 			virtualTime.advanceBy(Duration.ZERO);
 		}
-		app.insertResource(VirtualTimeResource, new VirtualTimeResource(virtualTime));
+		app.insertResource(new VirtualTimeResource(virtualTime));
 
 		// 更新通用 Time（默认使用 Virtual）
-		app.insertResource(GenericTimeResource, new GenericTimeResource(virtualTime.asGeneric()));
+		app.insertResource(new GenericTimeResource(virtualTime.asGeneric()));
 
 		// 更新 Fixed 时间（累积 Virtual 时间的增量）
-		const fixedTimeResource = app.getResource(FixedTimeResource);
+		const fixedTimeResource = app.getResource<FixedTimeResource>();
 		if (fixedTimeResource) {
 			const fixedTime = fixedTimeResource.value;
 			// 累积虚拟时间的增量到固定时间
@@ -383,7 +383,7 @@ function timeSystem(world: World, context: Context, app: App, statsManager: Time
 				iterations++;
 			}
 
-			app.insertResource(FixedTimeResource, new FixedTimeResource(fixedTime));
+			app.insertResource(new FixedTimeResource(fixedTime));
 		}
 	}
 }
@@ -394,7 +394,7 @@ function timeSystem(world: World, context: Context, app: App, statsManager: Time
  * @param seconds - 要推进的秒数
  */
 export function advanceTime(app: App, seconds: number): void {
-	const strategyResource = app.getResource(TimeUpdateStrategyResource);
+	const strategyResource = app.getResource<TimeUpdateStrategyResource>();
 	if (strategyResource) {
 		strategyResource.mockDelta = seconds;
 	}
@@ -407,8 +407,8 @@ export function advanceTime(app: App, seconds: number): void {
  */
 function runFixedMainLoop(world: World, context: Context, app: App): void {
 	// 获取虚拟时间和固定时间
-	const virtualTimeResource = app.getResource(VirtualTimeResource);
-	const fixedTimeResource = app.getResource(FixedTimeResource);
+	const virtualTimeResource = app.getResource<VirtualTimeResource>();
+	const fixedTimeResource = app.getResource<FixedTimeResource>();
 
 	if (!virtualTimeResource || !fixedTimeResource) {
 		return;
@@ -428,7 +428,7 @@ function runFixedMainLoop(world: World, context: Context, app: App): void {
 
 	while (fixedTime.expend() && iterations < maxIterations) {
 		// 设置通用时间为固定时间
-		app.insertResource(GenericTimeResource, new GenericTimeResource(fixedTime.asGeneric()));
+		app.insertResource( new GenericTimeResource(fixedTime.asGeneric()));
 
 		// 运行 FixedMain 调度（包含所有固定调度）
 		app.runSchedule(BuiltinSchedules.FIXED_MAIN);
@@ -437,8 +437,8 @@ function runFixedMainLoop(world: World, context: Context, app: App): void {
 	}
 
 	// 恢复通用时间为虚拟时间
-	app.insertResource(GenericTimeResource, new GenericTimeResource(virtualTime.asGeneric()));
+	app.insertResource( new GenericTimeResource(virtualTime.asGeneric()));
 
 	// 保存更新后的固定时间
-	app.insertResource(FixedTimeResource, new FixedTimeResource(fixedTime));
+	app.insertResource( new FixedTimeResource(fixedTime));
 }

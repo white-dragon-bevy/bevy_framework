@@ -21,7 +21,7 @@ import { Touches } from "./touch";
 export function inputJustPressed(keyCode: KeyCode): (world: World) => boolean {
 	return (world: World) => {
 		const extensions = WorldExtensions.get(world);
-		const input = extensions.getResource(ButtonInput<KeyCode>);
+		const input = extensions.getResource<ButtonInput<KeyCode>>();
 		return input ? input.justPressed(keyCode) : false;
 	};
 }
@@ -35,7 +35,7 @@ export function inputJustPressed(keyCode: KeyCode): (world: World) => boolean {
 export function inputPressed(keyCode: KeyCode): (world: World) => boolean {
 	return (world: World) => {
 		const extensions = WorldExtensions.get(world);
-		const input = extensions.getResource(ButtonInput<KeyCode>);
+		const input = extensions.getResource<ButtonInput<KeyCode>>();
 		return input ? input.isPressed(keyCode) : false;
 	};
 }
@@ -49,7 +49,7 @@ export function inputPressed(keyCode: KeyCode): (world: World) => boolean {
 export function inputJustReleased(keyCode: KeyCode): (world: World) => boolean {
 	return (world: World) => {
 		const extensions = WorldExtensions.get(world);
-		const input = extensions.getResource(ButtonInput<KeyCode>);
+		const input = extensions.getResource<ButtonInput<KeyCode>>();
 		return input ? input.justReleased(keyCode) : false;
 	};
 }
@@ -63,7 +63,7 @@ export function inputJustReleased(keyCode: KeyCode): (world: World) => boolean {
 export function keyJustPressed(key: Key): (world: World) => boolean {
 	return (world: World) => {
 		const extensions = WorldExtensions.get(world);
-		const input = extensions.getResource(ButtonInput<Key>);
+		const input = extensions.getResource<ButtonInput<Key>>();
 		return input ? input.justPressed(key) : false;
 	};
 }
@@ -77,7 +77,7 @@ export function keyJustPressed(key: Key): (world: World) => boolean {
 export function mouseButtonJustPressed(button: MouseButton): (world: World) => boolean {
 	return (world: World) => {
 		const extensions = WorldExtensions.get(world);
-		const input = extensions.getResource(ButtonInput<MouseButton>);
+		const input = extensions.getResource<ButtonInput<MouseButton>>();
 		return input ? input.justPressed(button) : false;
 	};
 }
@@ -91,7 +91,7 @@ export function mouseButtonJustPressed(button: MouseButton): (world: World) => b
 export function mouseButtonPressed(button: MouseButton): (world: World) => boolean {
 	return (world: World) => {
 		const extensions = WorldExtensions.get(world);
-		const input = extensions.getResource(ButtonInput<MouseButton>);
+		const input = extensions.getResource<ButtonInput<MouseButton>>();
 		return input ? input.isPressed(button) : false;
 	};
 }
@@ -105,7 +105,7 @@ export function mouseButtonPressed(button: MouseButton): (world: World) => boole
 export function mouseButtonJustReleased(button: MouseButton): (world: World) => boolean {
 	return (world: World) => {
 		const extensions = WorldExtensions.get(world);
-		const input = extensions.getResource(ButtonInput<MouseButton>);
+		const input = extensions.getResource<ButtonInput<MouseButton>>();
 		return input ? input.justReleased(button) : false;
 	};
 }
@@ -119,7 +119,7 @@ export function mouseButtonJustReleased(button: MouseButton): (world: World) => 
 export function anyInputJustPressed(keyCodes: readonly KeyCode[]): (world: World) => boolean {
 	return (world: World) => {
 		const extensions = WorldExtensions.get(world);
-		const input = extensions.getResource(ButtonInput<KeyCode>);
+		const input = extensions.getResource<ButtonInput<KeyCode>>();
 		return input ? input.anyJustPressed(keyCodes) : false;
 	};
 }
@@ -133,7 +133,7 @@ export function anyInputJustPressed(keyCodes: readonly KeyCode[]): (world: World
 export function anyInputPressed(keyCodes: readonly KeyCode[]): (world: World) => boolean {
 	return (world: World) => {
 		const extensions = WorldExtensions.get(world);
-		const input = extensions.getResource(ButtonInput<KeyCode>);
+		const input = extensions.getResource<ButtonInput<KeyCode>>();
 		return input ? input.anyPressed(keyCodes) : false;
 	};
 }
@@ -147,7 +147,7 @@ export function anyInputPressed(keyCodes: readonly KeyCode[]): (world: World) =>
 export function allInputPressed(keyCodes: readonly KeyCode[]): (world: World) => boolean {
 	return (world: World) => {
 		const extensions = WorldExtensions.get(world);
-		const input = extensions.getResource(ButtonInput<KeyCode>);
+		const input = extensions.getResource<ButtonInput<KeyCode>>();
 		return input ? input.allPressed(keyCodes) : false;
 	};
 }
@@ -160,7 +160,7 @@ export function allInputPressed(keyCodes: readonly KeyCode[]): (world: World) =>
 export function anyTouchJustStarted(): (world: World) => boolean {
 	return (world: World) => {
 		const extensions = WorldExtensions.get(world);
-		const touches = extensions.getResource(Touches);
+		const touches = extensions.getResource<Touches>();
 		return touches ? touches.anyJustPressed() : false;
 	};
 }
@@ -178,7 +178,7 @@ export function gamepadButtonJustPressed(
 ): (world: World) => boolean {
 	return (world: World) => {
 		const extensions = WorldExtensions.get(world);
-		const gamepads = extensions.getResource(Map<number, ButtonInput<GamepadButton>>);
+		const gamepads = extensions.getResource<Map<number, ButtonInput<GamepadButton>>>();
 		if (!gamepads) return false;
 		const input = gamepads.get(gamepadId);
 		return input ? input.justPressed(button) : false;
@@ -198,7 +198,7 @@ export function gamepadButtonPressed(
 ): (world: World) => boolean {
 	return (world: World) => {
 		const extensions = WorldExtensions.get(world);
-		const gamepads = extensions.getResource(Map<number, ButtonInput<GamepadButton>>);
+		const gamepads = extensions.getResource<Map<number, ButtonInput<GamepadButton>>>();
 		if (!gamepads) return false;
 		const input = gamepads.get(gamepadId);
 		return input ? input.isPressed(button) : false;

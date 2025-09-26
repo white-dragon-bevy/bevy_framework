@@ -34,7 +34,7 @@ export = () => {
 
 				// 获取当前状态
 				const stateResourceKey = "State<AppState>" as ResourceConstructor<State<AppState>>;
-				const stateResource = resourceManager.getResource(stateResourceKey);
+				const stateResource = resourceManager.getResource<stateResourceKey>();
 				expect(stateResource).to.be.ok();
 
 				if (stateResource) {
@@ -101,7 +101,7 @@ export = () => {
 			// 触发状态转换
 			if (resourceManager) {
 				const nextStateResourceKey = "NextState<AppState>" as ResourceConstructor<NextState<AppState>>;
-				const nextStateResource = resourceManager.getResource(nextStateResourceKey);
+				const nextStateResource = resourceManager.getResource<nextStateResourceKey>();
 				if (nextStateResource) {
 					nextStateResource.set(AppState.InGame(false, false));
 				}
@@ -153,7 +153,7 @@ export = () => {
 			// 转换到 InGame
 			if (resourceManager) {
 				const nextStateResourceKey = "NextState<AppState>" as ResourceConstructor<NextState<AppState>>;
-				const nextStateResource = resourceManager.getResource(nextStateResourceKey);
+				const nextStateResource = resourceManager.getResource<nextStateResourceKey>();
 				if (nextStateResource) {
 					nextStateResource.set(AppState.InGame(false, false));
 					app.update();

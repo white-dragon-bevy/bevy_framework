@@ -248,7 +248,7 @@ const resourceManager = new ResourceManager();
 resourceManager.insertResource(GameConfig, new GameConfig());
 
 // 获取资源
-const config = resourceManager.getResource(GameConfig);
+const config = resourceManager.getResource<GameConfig>();
 if (config) {
     print(`Max players: ${config.maxPlayers}`);
 }

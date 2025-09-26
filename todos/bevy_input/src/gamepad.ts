@@ -268,7 +268,7 @@ function robloxKeyCodeToGamepadButton(keyCode: Enum.KeyCode): GamepadButton | un
  */
 export function gamepadConnectionSystem(world: World): void {
 	const extensions = WorldExtensions.get(world);
-	const eventManager = extensions.getResource(EventManager);
+	const eventManager = extensions.getResource<EventManager>();
 
 	if (!eventManager) {
 		return;
@@ -298,28 +298,28 @@ export function gamepadConnectionSystem(world: World): void {
  */
 export function gamepadEventProcessingSystem(world: World): void {
 	const extensions = WorldExtensions.get(world);
-	const eventManager = extensions.getResource(EventManager);
+	const eventManager = extensions.getResource<EventManager>();
 
 	if (!eventManager) {
 		return;
 	}
 
 	// 获取或创建游戏手柄设置
-	let settings = extensions.getResource(GamepadSettings);
+	let settings = extensions.getResource<GamepadSettings>();
 	if (!settings) {
 		settings = new GamepadSettings();
 		extensions.insertResource(GamepadSettings, settings);
 	}
 
 	// 获取或创建游戏手柄按钮输入
-	let buttonInputs = extensions.getResource(Map<Gamepad, ButtonInput<GamepadButton>>);
+	let buttonInputs = extensions.getResource<Map<Gamepad, ButtonInput<GamepadButton>>>();
 	if (!buttonInputs) {
 		buttonInputs = new Map<Gamepad, ButtonInput<GamepadButton>>();
 		extensions.insertResource(Map<Gamepad, ButtonInput<GamepadButton>>, buttonInputs);
 	}
 
 	// 获取或创建游戏手柄轴
-	let axes = extensions.getResource(Map<Gamepad, Axis<GamepadAxis>>);
+	let axes = extensions.getResource<Map<Gamepad, Axis<GamepadAxis>>>();
 	if (!axes) {
 		axes = new Map<Gamepad, Axis<GamepadAxis>>();
 		extensions.insertResource(Map<Gamepad, Axis<GamepadAxis>>, axes);
@@ -403,7 +403,7 @@ export function gamepadEventProcessingSystem(world: World): void {
  */
 export function setupRobloxGamepadInput(world: World): void {
 	const extensions = WorldExtensions.get(world);
-	const eventManager = extensions.getResource(EventManager);
+	const eventManager = extensions.getResource<EventManager>();
 
 	if (!eventManager) {
 		warn("EventManager not found, cannot setup gamepad input");

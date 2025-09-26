@@ -686,7 +686,7 @@ npm run protocol:watch
 // Replicon 插件
 export class RepliconPlugin extends Plugin {
 	build(app: App): void {
-		const protocolManager = app.getResource(ProtocolManager);
+		const protocolManager = app.getResource<ProtocolManager>();
 
 		// 使用命名空间.事件名 格式
 		protocolManager.on("Replicon.EntitySpawn", (data, sender) => {
@@ -710,7 +710,7 @@ export class RepliconPlugin extends Plugin {
 // Combat 插件
 export class CombatPlugin extends Plugin {
 	build(app: App): void {
-		const protocolManager = app.getResource(ProtocolManager);
+		const protocolManager = app.getResource<ProtocolManager>();
 
 		// 使用 Combat 命名空间的协议
 		protocolManager.on("Combat.DamageDealt", (data) => {

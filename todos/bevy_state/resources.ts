@@ -3,7 +3,7 @@
  * 对应 Rust bevy_state/src/state/resources.rs
  */
 
-import { Resource } from "../bevy_ecs/resource";
+import { Resource } from "../../src/bevy_ecs/resource";
 import { States } from "./states";
 
 /**

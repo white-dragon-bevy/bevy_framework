@@ -514,8 +514,8 @@ import { App } from "./bevy_app";
 class RepliconTickManager {
     constructor(private app: App) {
         // 利用现有的 bevy_time 系统
-        const time = app.getResource(Time);
-        const fixedTime = app.getResource(FixedTime);
+        const time = app.getResource<Time>();
+        const fixedTime = app.getResource<FixedTime>();
 
         // Tick 已由 bevy_time 管理
         this.currentTick = () => fixedTime.overstepCount();

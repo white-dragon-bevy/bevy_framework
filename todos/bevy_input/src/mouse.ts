@@ -165,14 +165,14 @@ function robloxInputTypeToMouseButton(inputType: Enum.UserInputType): MouseButto
  */
 export function mouseButtonInputSystem(world: World): void {
 	const extensions = WorldExtensions.get(world);
-	const eventManager = extensions.getResource(EventManager);
+	const eventManager = extensions.getResource<EventManager>();
 
 	if (!eventManager) {
 		return;
 	}
 
 	// 获取或创建鼠标按钮输入资源
-	let mouseButtonInput = extensions.getResource(ButtonInput<MouseButton>);
+	let mouseButtonInput = extensions.getResource<ButtonInput<MouseButton>>();
 	if (!mouseButtonInput) {
 		mouseButtonInput = new ButtonInput<MouseButton>();
 		extensions.insertResource(ButtonInput<MouseButton>, mouseButtonInput);
@@ -205,14 +205,14 @@ export function mouseButtonInputSystem(world: World): void {
  */
 export function accumulateMouseMotionSystem(world: World): void {
 	const extensions = WorldExtensions.get(world);
-	const eventManager = extensions.getResource(EventManager);
+	const eventManager = extensions.getResource<EventManager>();
 
 	if (!eventManager) {
 		return;
 	}
 
 	// 获取或创建累积鼠标移动资源
-	let accumulatedMotion = extensions.getResource(AccumulatedMouseMotion);
+	let accumulatedMotion = extensions.getResource<AccumulatedMouseMotion>();
 	if (!accumulatedMotion) {
 		accumulatedMotion = new AccumulatedMouseMotion();
 		extensions.insertResource(AccumulatedMouseMotion, accumulatedMotion);
@@ -241,14 +241,14 @@ export function accumulateMouseMotionSystem(world: World): void {
  */
 export function accumulateMouseScrollSystem(world: World): void {
 	const extensions = WorldExtensions.get(world);
-	const eventManager = extensions.getResource(EventManager);
+	const eventManager = extensions.getResource<EventManager>();
 
 	if (!eventManager) {
 		return;
 	}
 
 	// 获取或创建累积鼠标滚动资源
-	let accumulatedScroll = extensions.getResource(AccumulatedMouseScroll);
+	let accumulatedScroll = extensions.getResource<AccumulatedMouseScroll>();
 	if (!accumulatedScroll) {
 		accumulatedScroll = new AccumulatedMouseScroll();
 		extensions.insertResource(AccumulatedMouseScroll, accumulatedScroll);
@@ -277,7 +277,7 @@ export function accumulateMouseScrollSystem(world: World): void {
  */
 export function setupRobloxMouseInput(world: World): void {
 	const extensions = WorldExtensions.get(world);
-	const eventManager = extensions.getResource(EventManager);
+	const eventManager = extensions.getResource<EventManager>();
 
 	if (!eventManager) {
 		warn("EventManager not found, cannot setup mouse input");

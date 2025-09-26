@@ -47,7 +47,7 @@ app.insertResource(new GameTime());
 
 // 使用资源的系统
 function updateTime(world: World, context: Context): void {
-    const time = context.getResource(GameTime);
+    const time = context.resources.getResource<GameTime>();
     if (time) {
         time.elapsed += time.deltaTime;
         print(`Game time: ${time.elapsed}`);
@@ -112,8 +112,8 @@ class CounterConfig implements Resource {
 
 // 系统定义
 function incrementCounter(world: World, context: Context): void {
-    const counter = context.getResource(Counter);
-    const config = context.getResource(CounterConfig);
+    const counter = context.resources.getResource<Counter>();
+    const config = context.resources.getResource<CounterConfig>();
 
     if (counter && config) {
         counter.value = math.min(
@@ -124,7 +124,7 @@ function incrementCounter(world: World, context: Context): void {
 }
 
 function printCounter(world: World, context: Context): void {
-    const counter = context.getResource(Counter);
+    const counter = context.resources.getResource<Counter>();
     if (counter) {
         print(`Counter: ${counter.value}`);
     }
@@ -223,7 +223,7 @@ const state = app.getPluginState();
 print(`Plugin state: ${state}`);
 
 // 获取资源
-const resource = app.getResource(MyResource);
+const resource = app.getResource<MyResource>();
 if (resource) {
     print(`Resource value: ${resource.value}`);
 }

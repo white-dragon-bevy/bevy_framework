@@ -14,7 +14,7 @@ import Simulator from "./core/Simulator";
  * @returns 模拟器实例
  */
 export function getRVOSimulator(context: Context): Simulator | undefined {
-	const resource = context.getResource(RVOSimulatorResource);
+	const resource = context.resources.getResource<RVOSimulatorResource>();
 	return resource?.simulator;
 }
 
@@ -24,7 +24,7 @@ export function getRVOSimulator(context: Context): Simulator | undefined {
  * @returns RVO 配置
  */
 export function getRVOConfig(context: Context): RVOConfig | undefined {
-	return context.getResource(RVOConfig);
+	return context.resources.getResource<RVOConfig>();
 }
 
 /**
@@ -34,7 +34,7 @@ export function getRVOConfig(context: Context): RVOConfig | undefined {
  * @returns 实体 ID
  */
 export function getAgentEntity(context: Context, agentId: number): number | undefined {
-	const resource = context.getResource(RVOSimulatorResource);
+	const resource = context.resources.getResource<RVOSimulatorResource>();
 	return resource?.getAgentEntity(agentId);
 }
 
@@ -45,7 +45,7 @@ export function getAgentEntity(context: Context, agentId: number): number | unde
  * @returns Agent ID
  */
 export function getEntityAgent(context: Context, entity: number): number | undefined {
-	const resource = context.getResource(RVOSimulatorResource);
+	const resource = context.resources.getResource<RVOSimulatorResource>();
 	return resource?.getEntityAgent(entity);
 }
 
@@ -56,7 +56,7 @@ export function getEntityAgent(context: Context, entity: number): number | undef
  * @returns 实体 ID
  */
 export function getObstacleEntity(context: Context, obstacleId: number): number | undefined {
-	const resource = context.getResource(RVOSimulatorResource);
+	const resource = context.resources.getResource<RVOSimulatorResource>();
 	return resource?.getObstacleEntity(obstacleId);
 }
 
@@ -67,7 +67,7 @@ export function getObstacleEntity(context: Context, obstacleId: number): number 
  * @returns 障碍物 ID
  */
 export function getEntityObstacle(context: Context, entity: number): number | undefined {
-	const resource = context.getResource(RVOSimulatorResource);
+	const resource = context.resources.getResource<RVOSimulatorResource>();
 	return resource?.getEntityObstacle(entity);
 }
 
@@ -84,7 +84,7 @@ export function getRVOStats(context: Context): {
 	totalSimulationTime: number;
 	simulationCount: number;
 } | undefined {
-	const resource = context.getResource(RVOSimulatorResource);
+	const resource = context.resources.getResource<RVOSimulatorResource>();
 	if (!resource) {
 		return undefined;
 	}
@@ -101,7 +101,7 @@ export function getRVOStats(context: Context): {
  * @returns 是否已初始化
  */
 export function isRVOInitialized(context: Context): boolean {
-	const resource = context.getResource(RVOSimulatorResource);
+	const resource = context.resources.getResource<RVOSimulatorResource>();
 	return resource?.initialized ?? false;
 }
 
@@ -110,7 +110,7 @@ export function isRVOInitialized(context: Context): boolean {
  * @param context - 系统上下文
  */
 export function resetRVO(context: Context): void {
-	const resource = context.getResource(RVOSimulatorResource);
+	const resource = context.resources.getResource<RVOSimulatorResource>();
 	resource?.reset();
 }
 
@@ -120,7 +120,7 @@ export function resetRVO(context: Context): void {
  * @param enabled - 是否启用调试
  */
 export function setRVODebugMode(context: Context, enabled: boolean): void {
-	const config = context.getResource(RVOConfig);
+	const config = context.resources.getResource<RVOConfig>();
 	if (config) {
 		config.debugDraw = enabled;
 	}
@@ -132,7 +132,7 @@ export function setRVODebugMode(context: Context, enabled: boolean): void {
  * @param enabled - 是否启用自动模拟
  */
 export function setRVOAutoSimulate(context: Context, enabled: boolean): void {
-	const config = context.getResource(RVOConfig);
+	const config = context.resources.getResource<RVOConfig>();
 	if (config) {
 		config.autoSimulate = enabled;
 	}
@@ -144,7 +144,7 @@ export function setRVOAutoSimulate(context: Context, enabled: boolean): void {
  * @returns 是否成功执行
  */
 export function stepRVOSimulation(context: Context): boolean {
-	const resource = context.getResource(RVOSimulatorResource);
+	const resource = context.resources.getResource<RVOSimulatorResource>();
 	if (!resource || !resource.initialized) {
 		return false;
 	}

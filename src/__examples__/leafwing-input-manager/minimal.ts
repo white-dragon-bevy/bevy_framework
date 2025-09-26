@@ -114,7 +114,7 @@ function getInputManagerResource(): InputManagerPluginResource<SimpleAction> | u
 	if (!globalApp) {
 		return undefined;
 	}
-	return globalApp.getResource(InputManagerPluginResource<SimpleAction>);
+	return globalApp.getResource<InputManagerPluginResource<SimpleAction>>();
 }
 
 /**

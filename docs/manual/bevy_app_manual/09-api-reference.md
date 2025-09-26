@@ -45,7 +45,7 @@
 | `insertResource(resource)` | 插入资源 | `this` |
 | `insertResource(type, resource)` | 使用类型插入资源 | `this` |
 | `initResource(factory)` | 使用工厂初始化资源 | `this` |
-| `getResource(type)` | 获取资源 | `T \| undefined` |
+| `getResource<type>()` | 获取资源 | `T \| undefined` |
 
 ### 调度管理
 
@@ -125,7 +125,7 @@
 |-----|------|--------|
 | `addSystems(schedule, ...systems)` | 添加系统 | `void` |
 | `insertResource(resource)` | 插入资源 | `void` |
-| `getResource(type)` | 获取资源 | `T \| undefined` |
+| `getResource<type>()` | 获取资源 | `T \| undefined` |
 | `removeResource(type)` | 移除资源 | `T \| undefined` |
 
 ### 调度管理
@@ -145,7 +145,7 @@
 
 | 方法 | 描述 | 返回值 |
 |-----|------|--------|
-| `getResource(type)` | 获取资源 | `T \| undefined` |
+| `getResource<type>()` | 获取资源 | `T \| undefined` |
 | `insertResource(type, resource)` | 插入资源 | `void` |
 
 ### 事件管理

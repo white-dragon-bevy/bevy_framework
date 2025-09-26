@@ -60,7 +60,7 @@ class Input implements Resource {
 ```typescript
 function printSystem(world: BevyWorld, context: AppContext): void {
     const resources = context.resources;
-    const inputResource = resources.getResource(Input);
+    const inputResource = resources.getResource<Input>();
 
     if (inputResource) {
         print(`You typed: ${inputResource.value}`);

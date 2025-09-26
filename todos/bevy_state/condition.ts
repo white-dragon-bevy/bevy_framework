@@ -4,7 +4,7 @@
  */
 
 import { World } from "@rbxts/matter";
-import { ResourceManager, ResourceConstructor } from "../bevy_ecs/resource";
+import { ResourceManager, ResourceConstructor } from "../../src/bevy_ecs/resource";
 import { States } from "./states";
 import { State, StateConstructor } from "./resources";
 
@@ -28,7 +28,7 @@ export function inState<S extends States>(
 		// 使用统一的资源键生成方式
 		const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
 		const stateKey = `State<${stateTypeName}>` as ResourceConstructor<State<S>>;
-		const stateResource = resourceManager.getResource(stateKey);
+		const stateResource = resourceManager.getResource<stateKey>();
 		if (!stateResource) {
 			return false;
 		}
@@ -63,7 +63,7 @@ export function stateChanged<S extends States>(stateType: StateConstructor<S>): 
 		// 使用统一的资源键生成方式
 		const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
 		const stateKey = `State<${stateTypeName}>` as ResourceConstructor<State<S>>;
-		const stateResource = resourceManager.getResource(stateKey);
+		const stateResource = resourceManager.getResource<stateKey>();
 
 		if (!stateResource) {
 			// 状态不存在时，如果之前存在过则认为发生了变化
@@ -104,7 +104,7 @@ export function exitingState<S extends States>(
 		// 使用统一的资源键生成方式
 		const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
 		const stateKey = `State<${stateTypeName}>` as ResourceConstructor<State<S>>;
-		const stateResource = resourceManager.getResource(stateKey);
+		const stateResource = resourceManager.getResource<stateKey>();
 		const isInState = stateResource ? stateResource.is(exitingState) : false;
 
 		const exiting = wasInState && !isInState;
@@ -129,7 +129,7 @@ export function enteringState<S extends States>(
 		// 使用统一的资源键生成方式
 		const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
 		const stateKey = `State<${stateTypeName}>` as ResourceConstructor<State<S>>;
-		const stateResource = resourceManager.getResource(stateKey);
+		const stateResource = resourceManager.getResource<stateKey>();
 		const isInState = stateResource ? stateResource.is(enteringState) : false;
 
 		const entering = !wasInState && isInState;

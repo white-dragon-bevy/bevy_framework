@@ -246,7 +246,7 @@ app.addSystem(ScheduleLabel.Update, memoryMonitorSystem);
 
 ```typescript
 // 获取日志状态资源
-const logState = app.getResource(LogDiagnosticsState);
+const logState = app.getResource<LogDiagnosticsState>();
 
 if (logState) {
     // 修改日志间隔

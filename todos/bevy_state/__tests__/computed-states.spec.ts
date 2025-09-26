@@ -3,7 +3,7 @@
  */
 
 import { World } from "@rbxts/matter";
-import { ResourceManager, ResourceConstructor } from "../../bevy_ecs/resource";
+import { ResourceManager, ResourceConstructor } from "../../../src/bevy_ecs/resource";
 import { State } from "../resources";
 import { EnumStates } from "../states";
 import { BaseComputedStates, ComputedStateManager, MappedComputedState, SingleStateSet } from "../computed-states";
@@ -133,16 +133,16 @@ export = () => {
 			resourceManager.insertResource(stateKey, State.create(menuState));
 			manager.updateComputedState(world, resourceManager);
 
-			const computedResource = resourceManager.getResource(computedKey);
+			const computedResource = resourceManager.getResource<computedKey>();
 			expect(computedResource).to.be.ok();
 			expect(computedResource?.get().getStateId()).to.equal("in_menu");
 
 			// Change source state
-			const sourceResource = resourceManager.getResource(stateKey)!;
+			const sourceResource = resourceManager.getResource<stateKey>()!;
 			sourceResource._set(gameState);
 			manager.updateComputedState(world, resourceManager);
 
-			const updatedResource = resourceManager.getResource(computedKey);
+			const updatedResource = resourceManager.getResource<computedKey>();
 			expect(updatedResource?.get().getStateId()).to.equal("in_game");
 		});
 	});

@@ -105,7 +105,7 @@ export = () => {
 			manager.updateSubState(world, resourceManager);
 
 			// Sub state should exist
-			const subStateResource = resourceManager.getResource(SubStateResource as any) as State<TestSubState> | undefined;
+			const subStateResource = resourceManager.getResource<SubStateResource as any>() as State<TestSubState> | undefined;
 			expect(subStateResource).to.be.ok();
 			expect(subStateResource?.get().getStateId()).to.equal("default_sub");
 		});
@@ -120,7 +120,7 @@ export = () => {
 			expect(resourceManager.hasResource(SubStateResource as any)).to.equal(true);
 
 			// Change parent to game state (not allowed)
-			const parentResource = resourceManager.getResource(ParentStateResource as any) as State<EnumStates> | undefined;
+			const parentResource = resourceManager.getResource<ParentStateResource as any>() as State<EnumStates> | undefined;
 			parentResource!._set(ParentStates.GAME);
 
 			// Update sub state
@@ -137,7 +137,7 @@ export = () => {
 			manager.updateSubState(world, resourceManager);
 
 			// Queue a sub state transition
-			const nextSubState = resourceManager.getResource(NextSubStateResource as any) as NextState<TestSubState> | undefined;
+			const nextSubState = resourceManager.getResource<NextSubStateResource as any>() as NextState<TestSubState> | undefined;
 			nextSubState!.set(new TestSubState("new_sub", config));
 
 			// Process transition
@@ -145,7 +145,7 @@ export = () => {
 			expect(transitioned).to.equal(true);
 
 			// Check new state
-			const subStateResource = resourceManager.getResource(SubStateResource as any) as State<TestSubState> | undefined;
+			const subStateResource = resourceManager.getResource<SubStateResource as any>() as State<TestSubState> | undefined;
 			expect(subStateResource?.get().getStateId()).to.equal("new_sub");
 		});
 
@@ -155,7 +155,7 @@ export = () => {
 			resourceManager.insertResource(ParentStateResource as any, new ParentStateClass(ParentStates.GAME));
 
 			// Queue a sub state transition
-			const nextSubState = resourceManager.getResource(NextSubStateResource as any) as NextState<TestSubState> | undefined;
+			const nextSubState = resourceManager.getResource<NextSubStateResource as any>() as NextState<TestSubState> | undefined;
 			nextSubState!.set(new TestSubState("new_sub", config));
 
 			// Process transition

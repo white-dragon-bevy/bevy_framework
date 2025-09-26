@@ -82,7 +82,7 @@ export class EntityCountDiagnosticsPlugin implements Plugin {
 	 */
 	static diagnosticSystem(world: World, context: Context): void {
 		const resources = context.resources;
-		const diagnosticsStore = resources.getResource(DiagnosticsStore);
+		const diagnosticsStore = resources.getResource<DiagnosticsStore>();
 		if (!diagnosticsStore) return;
 
 		const diagnostics = new Diagnostics(diagnosticsStore);

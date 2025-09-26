@@ -38,7 +38,6 @@ export = (): void => {
 
 				const result = app
 					.insertResource({ __brand: "Resource" as const, value: 42 })
-					.initResource(() => ({ __brand: "Resource" as const, data: "test" }))
 					.setErrorHandler(() => {});
 
 				expect(result).to.equal(app);
@@ -66,19 +65,6 @@ export = (): void => {
 				expect(world).to.be.ok();
 			});
 
-			it("应该能够使用工厂函数初始化资源", () => {
-				const resourceFactory = () => ({
-					__brand: "Resource" as const,
-					value: 100,
-					name: "InitializedResource",
-				});
-
-				app.initResource(resourceFactory);
-
-				// 验证资源被创建
-				const world = app.main().world();
-				expect(world).to.be.ok();
-			});
 
 			it("应该能够覆盖已存在的资源", () => {
 				const firstResource: TestResource = {

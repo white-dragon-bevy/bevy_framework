@@ -162,7 +162,7 @@ app.addSystems(BuiltinSchedules.UPDATE, runCustomSchedule);
 
 ```typescript
 function isGameRunning(world: World, context: Context): boolean {
-    const state = context.getResource(GameState);
+    const state = context.resources.getResource<GameState>();
     return state?.isRunning ?? false;
 }
 
@@ -181,7 +181,7 @@ function isServer(): boolean {
 }
 
 function hasPlayers(world: World, context: Context): boolean {
-    const players = context.getResource(PlayerList);
+    const players = context.resources.getResource<PlayerList>();
     return (players?.count ?? 0) > 0;
 }
 
@@ -422,12 +422,12 @@ class GameSchedulePlugin implements Plugin {
     }
 
     private isRunning(world: World, context: Context): boolean {
-        const state = context.getResource(GameState);
+        const state = context.resources.getResource<GameState>();
         return state?.isRunning ?? false;
     }
 
     private isPaused(world: World, context: Context): boolean {
-        const state = context.getResource(GameState);
+        const state = context.resources.getResource<GameState>();
         return state?.isPaused ?? false;
     }
 

@@ -1,3 +1,4 @@
+import { Modding } from "@flamework/core";
 /**
  * Bevy App核心实现
  * 对应 Rust bevy_app 的 App struct
@@ -22,15 +23,18 @@ import { EventReader, EventWriter } from "../bevy_ecs/events";
  * Bevy App主类
  * 对应 Rust 的 App struct
  */
-export class App {
+export class App<T extends AppContext = AppContext> {
 	private subApps: SubApps;
 	private runner: (app: App) => AppExit;
 	private defaultErrorHandler?: ErrorHandler;
 	readonly context: AppContext;
 	private appExitEventReader?: EventReader<AppExit>;
 
-	constructor() {
-		this.subApps = new SubApps();
+	/**
+	 * @param context - 应用上下文, 如果未提供, 则使用默认上下文
+	 */
+	constructor(context?:T) {
+		this.subApps = new SubApps(context);
 		this.runner = (app: App) => this.runOnce(app);
 
 		// 设置主SubApp的App引用
@@ -323,36 +327,28 @@ export class App {
 		return this;
 	}
 
-	/**
+
+	/** 
 	 * 插入资源
-	 * 对应 Rust App::insert_resource
-	 */
-	insertResource<T extends Resource>(resource: T): this;
-	insertResource<T extends Resource>(resourceType: ResourceConstructor<T>, resource: T): this;
-	insertResource<T extends Resource>(resourceOrType: T | ResourceConstructor<T>, resource?: T): this {
-		if (resource !== undefined) {
-			this.subApps.main().insertResource(resourceOrType as ResourceConstructor<T>, resource);
-		} else {
-			this.subApps.main().insertResource(resourceOrType as T);
-		}
-		return this;
+	 * 
+	 * @metadata macro 
+	 * */
+	public insertResource<T>(resource:defined, id?: Modding.Generic<T, "id">, text?: Modding.Generic<T,"text">) {
+		this.subApps.main().insertResource(resource, id, text);
+		return this
 	}
 
-	/**
-	 * 初始化资源
-	 * 对应 Rust App::init_resource
-	 */
-	initResource<T extends Resource>(resourceFactory: () => T): this {
-		this.subApps.main().initResource(resourceFactory);
-		return this;
-	}
 
-	/**
+
+	
+
+	/** 
 	 * 获取资源
-	 * 对应 Rust App::world().resource
-	 */
-	getResource<T extends Resource>(resourceType: ResourceConstructor<T>): T | undefined {
-		return this.subApps.main().getResource(resourceType);
+	 * 
+	 * @metadata macro 
+	 * */
+	public getResource<T extends defined>( id?: Modding.Generic<T, "id">, text?: Modding.Generic<T,"text">): T | undefined {
+		return this.subApps.main().getResource<T>(id, text);
 	}
 
 	/**

@@ -15,7 +15,7 @@ import { RVOSimulatorResource } from "../resources/rvo-simulator";
  */
 export function initRVOSystem(world: BevyWorld, context: Context): void {
 	// 获取配置资源
-	const config = context.getResource(RVOConfig);
+	const config = context.resources.getResource<RVOConfig>();
 	if (!config) {
 		warn("[initRVOSystem] RVOConfig resource not found");
 		return;
@@ -27,7 +27,7 @@ export function initRVOSystem(world: BevyWorld, context: Context): void {
 	}
 
 	// 获取模拟器资源
-	const simulatorResource = context.getResource(RVOSimulatorResource);
+	const simulatorResource = context.resources.getResource<RVOSimulatorResource>();
 	if (!simulatorResource) {
 		warn("[initRVOSystem] RVOSimulatorResource not found");
 		return;

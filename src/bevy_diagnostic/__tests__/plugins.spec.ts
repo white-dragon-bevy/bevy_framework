@@ -30,7 +30,7 @@ export = () => {
 			app.addPlugin(new DiagnosticsPlugin());
 			app.finish(); // 完成插件构建
 
-			const diagnosticsStore = app.getResource(DiagnosticsStore);
+			const diagnosticsStore = app.getResource<DiagnosticsStore>();
 			expect(diagnosticsStore).to.be.ok();
 			expect(diagnosticsStore).to.be.a("table");
 		});
@@ -42,7 +42,7 @@ export = () => {
 			app.addPlugin(new FrameCountPlugin());
 			app.finish(); // 完成插件构建
 
-			const frameCount = app.getResource(FrameCount);
+			const frameCount = app.getResource<FrameCount>();
 			expect(frameCount).to.be.ok();
 			expect(frameCount?.value).to.equal(0);
 		});
@@ -52,7 +52,7 @@ export = () => {
 			app.finish();
 
 			const frameCount = new FrameCount();
-			app.insertResource(FrameCount, frameCount);
+			app.insertResource( frameCount);
 			const world = app.main().world().getWorld();
 			const context = app.context;
 
@@ -68,7 +68,7 @@ export = () => {
 			app.finish();
 
 			const frameCount = new FrameCount(2 ** 32 - 1);
-			app.insertResource(FrameCount, frameCount);
+			app.insertResource( frameCount);
 			const world = app.main().world().getWorld();
 			const context = app.context;
 
@@ -84,7 +84,7 @@ export = () => {
 			app.addPlugin(new FrameTimeDiagnosticsPlugin());
 			app.finish(); // 完成插件构建
 
-			const diagnosticsStore = app.getResource(DiagnosticsStore);
+			const diagnosticsStore = app.getResource<DiagnosticsStore>();
 			expect(diagnosticsStore).to.be.ok();
 
 			const fpsDiagnostic = diagnosticsStore?.get(FrameTimeDiagnosticsPlugin.FPS);
@@ -104,7 +104,7 @@ export = () => {
 			app.addPlugin(new FrameTimeDiagnosticsPlugin(60));
 			app.finish(); // 完成插件构建
 
-			const diagnosticsStore = app.getResource(DiagnosticsStore);
+			const diagnosticsStore = app.getResource<DiagnosticsStore>();
 			const fpsDiagnostic = diagnosticsStore?.get(FrameTimeDiagnosticsPlugin.FPS);
 
 			expect(fpsDiagnostic?.getMaxHistoryLength()).to.equal(60);
@@ -117,7 +117,7 @@ export = () => {
 			app.addPlugin(new LogDiagnosticsPlugin());
 			app.finish(); // 完成插件构建
 
-			const state = app.getResource(LogDiagnosticsState);
+			const state = app.getResource<LogDiagnosticsState>();
 			expect(state).to.be.ok();
 		});
 
@@ -168,7 +168,7 @@ export = () => {
 			app.addPlugin(new EntityCountDiagnosticsPlugin());
 			app.finish(); // 完成插件构建
 
-			const diagnosticsStore = app.getResource(DiagnosticsStore);
+			const diagnosticsStore = app.getResource<DiagnosticsStore>();
 			const entityCountDiagnostic = diagnosticsStore?.get(EntityCountDiagnosticsPlugin.ENTITY_COUNT);
 
 			expect(entityCountDiagnostic).to.be.ok();
@@ -180,7 +180,7 @@ export = () => {
 			app.addPlugin(new EntityCountDiagnosticsPlugin(50));
 			app.finish(); // 完成插件构建
 
-			const diagnosticsStore = app.getResource(DiagnosticsStore);
+			const diagnosticsStore = app.getResource<DiagnosticsStore>();
 			const entityCountDiagnostic = diagnosticsStore?.get(EntityCountDiagnosticsPlugin.ENTITY_COUNT);
 
 			expect(entityCountDiagnostic?.getMaxHistoryLength()).to.equal(50);
@@ -197,7 +197,7 @@ export = () => {
 
 			registerDiagnostic(app, diagnostic);
 
-			const diagnosticsStore = app.getResource(DiagnosticsStore);
+			const diagnosticsStore = app.getResource<DiagnosticsStore>();
 			const retrieved = diagnosticsStore?.get(path);
 
 			expect(retrieved).to.be.ok();
@@ -214,7 +214,7 @@ export = () => {
 
 			registerDiagnostic(app, diagnostic);
 
-			const diagnosticsStore = app.getResource(DiagnosticsStore);
+			const diagnosticsStore = app.getResource<DiagnosticsStore>();
 			expect(diagnosticsStore).to.be.ok();
 
 			const retrieved = diagnosticsStore?.get(path);

@@ -15,7 +15,7 @@ import { RVOSimulatorResource } from "../resources/rvo-simulator";
  */
 export function simulateRVO(world: BevyWorld, context: Context): void {
 	// 获取配置资源
-	const config = context.getResource(RVOConfig);
+	const config = context.resources.getResource<RVOConfig>();
 	if (!config) {
 		return;
 	}
@@ -26,7 +26,7 @@ export function simulateRVO(world: BevyWorld, context: Context): void {
 	}
 
 	// 获取模拟器资源
-	const simulatorResource = context.getResource(RVOSimulatorResource);
+	const simulatorResource = context.resources.getResource<RVOSimulatorResource>();
 	if (!simulatorResource || !simulatorResource.initialized) {
 		return;
 	}
@@ -70,7 +70,7 @@ function debugPrintStats(simulatorResource: RVOSimulatorResource): void {
  * @returns 是否成功执行模拟
  */
 export function stepSimulation(context: Context): boolean {
-	const simulatorResource = context.getResource(RVOSimulatorResource);
+	const simulatorResource = context.resources.getResource<RVOSimulatorResource>();
 	if (!simulatorResource || !simulatorResource.initialized) {
 		return false;
 	}
@@ -89,12 +89,12 @@ export function stepSimulation(context: Context): boolean {
  * @param timeStep - 新的时间步长
  */
 export function setSimulationTimeStep(context: Context, timeStep: number): void {
-	const config = context.getResource(RVOConfig);
+	const config = context.resources.getResource<RVOConfig>();
 	if (config) {
 		config.timeStep = timeStep;
 	}
 
-	const simulatorResource = context.getResource(RVOSimulatorResource);
+	const simulatorResource = context.resources.getResource<RVOSimulatorResource>();
 	if (simulatorResource && simulatorResource.initialized) {
 		simulatorResource.simulator.setTimeStep(timeStep);
 	}
@@ -110,7 +110,7 @@ export function getSimulationStats(context: Context): {
 	obstacleCount: number;
 	averageSimulationTime: number;
 } | undefined {
-	const simulatorResource = context.getResource(RVOSimulatorResource);
+	const simulatorResource = context.resources.getResource<RVOSimulatorResource>();
 	if (!simulatorResource) {
 		return undefined;
 	}

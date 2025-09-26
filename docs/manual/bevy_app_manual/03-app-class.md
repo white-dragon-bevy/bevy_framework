@@ -191,7 +191,7 @@ app.initResource(() => {
 ### 获取资源
 
 ```typescript
-const config = app.getResource(GameConfig);
+const config = app.getResource<GameConfig>();
 if (config) {
     print(`Max players: ${config.maxPlayers}`);
 }
@@ -359,14 +359,14 @@ class GameState implements Resource {
 
 // 定义系统
 function updateGame(world: World, context: Context): void {
-    const state = context.getResource(GameState);
+    const state = context.resources.getResource<GameState>();
     if (state) {
         state.score += 1;
     }
 }
 
 function renderGame(world: World, context: Context): void {
-    const state = context.getResource(GameState);
+    const state = context.resources.getResource<GameState>();
     if (state) {
         print(`Score: ${state.score}, Level: ${state.level}`);
     }

@@ -113,8 +113,8 @@ export class FrameTimeDiagnosticsPlugin implements Plugin {
 	 */
 	static diagnosticSystem(world: World, context: Context): void {
 		const resources = context.resources;
-		const diagnosticsStore = resources.getResource(DiagnosticsStore);
-		const frameCount = resources.getResource(FrameCount);
+		const diagnosticsStore = resources.getResource<DiagnosticsStore>();
+		const frameCount = resources.getResource<FrameCount>();
 
 		if (!diagnosticsStore) return;
 

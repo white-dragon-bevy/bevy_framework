@@ -27,7 +27,7 @@ export = () => {
 			const app = App.create();
 			app.addPlugin(new DiagnosticsPlugin());
 
-			const diagnosticsStore = app.getResource(DiagnosticsStore);
+			const diagnosticsStore = app.getResource<DiagnosticsStore>();
 			expect(diagnosticsStore).to.be.ok();
 			expect(diagnosticsStore).to.be.a("table");
 		});
@@ -38,7 +38,7 @@ export = () => {
 			const app = App.create();
 			app.addPlugin(new FrameCountPlugin());
 
-			const frameCount = app.getResource(FrameCount);
+			const frameCount = app.getResource<FrameCount>();
 			expect(frameCount).to.be.ok();
 			expect(frameCount?.value).to.equal(0);
 		});
@@ -73,7 +73,7 @@ export = () => {
 			app.addPlugin(new DiagnosticsPlugin());
 			app.addPlugin(new FrameTimeDiagnosticsPlugin());
 
-			const diagnosticsStore = app.getResource(DiagnosticsStore);
+			const diagnosticsStore = app.getResource<DiagnosticsStore>();
 			expect(diagnosticsStore).to.be.ok();
 
 			const fpsDiagnostic = diagnosticsStore?.get(FrameTimeDiagnosticsPlugin.FPS);
@@ -92,7 +92,7 @@ export = () => {
 			app.addPlugin(new DiagnosticsPlugin());
 			app.addPlugin(new FrameTimeDiagnosticsPlugin(60));
 
-			const diagnosticsStore = app.getResource(DiagnosticsStore);
+			const diagnosticsStore = app.getResource<DiagnosticsStore>();
 			const fpsDiagnostic = diagnosticsStore?.get(FrameTimeDiagnosticsPlugin.FPS);
 
 			expect(fpsDiagnostic?.getMaxHistoryLength()).to.equal(60);
@@ -104,7 +104,7 @@ export = () => {
 			const app = App.create();
 			app.addPlugin(new LogDiagnosticsPlugin());
 
-			const state = app.getResource(LogDiagnosticsState);
+			const state = app.getResource<LogDiagnosticsState>();
 			expect(state).to.be.ok();
 		});
 
@@ -154,7 +154,7 @@ export = () => {
 			app.addPlugin(new DiagnosticsPlugin());
 			app.addPlugin(new EntityCountDiagnosticsPlugin());
 
-			const diagnosticsStore = app.getResource(DiagnosticsStore);
+			const diagnosticsStore = app.getResource<DiagnosticsStore>();
 			const entityCountDiagnostic = diagnosticsStore?.get(EntityCountDiagnosticsPlugin.ENTITY_COUNT);
 
 			expect(entityCountDiagnostic).to.be.ok();
@@ -165,7 +165,7 @@ export = () => {
 			app.addPlugin(new DiagnosticsPlugin());
 			app.addPlugin(new EntityCountDiagnosticsPlugin(50));
 
-			const diagnosticsStore = app.getResource(DiagnosticsStore);
+			const diagnosticsStore = app.getResource<DiagnosticsStore>();
 			const entityCountDiagnostic = diagnosticsStore?.get(EntityCountDiagnosticsPlugin.ENTITY_COUNT);
 
 			expect(entityCountDiagnostic?.getMaxHistoryLength()).to.equal(50);
@@ -180,7 +180,7 @@ export = () => {
 
 			app.registerDiagnostic(diagnostic);
 
-			const diagnosticsStore = app.getResource(DiagnosticsStore);
+			const diagnosticsStore = app.getResource<DiagnosticsStore>();
 			const retrieved = diagnosticsStore?.get(path);
 
 			expect(retrieved).to.be.ok();
@@ -196,7 +196,7 @@ export = () => {
 
 			app.registerDiagnostic(diagnostic);
 
-			const diagnosticsStore = app.getResource(DiagnosticsStore);
+			const diagnosticsStore = app.getResource<DiagnosticsStore>();
 			expect(diagnosticsStore).to.be.ok();
 
 			const retrieved = diagnosticsStore?.get(path);

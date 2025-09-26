@@ -146,7 +146,7 @@ Context 提供了访问核心功能的统一接口：
 ```typescript
 function mySystem(world: World, context: Context): void {
     // 访问资源
-    const config = context.getResource(GameConfig);
+    const config = context.resources.getResource<GameConfig>();
 
     // 发送事件
     context.sendEvent(PlayerJoined, { playerId: 123 });

@@ -398,20 +398,20 @@ function getLogicalKey(keyCode: KeyCode): Key {
  */
 export function keyboardInputSystem(world: World): void {
 	const extensions = WorldExtensions.get(world);
-	const eventManager = extensions.getResource(EventManager);
+	const eventManager = extensions.getResource<EventManager>();
 
 	if (!eventManager) {
 		return;
 	}
 
 	// 获取或创建键盘输入资源
-	let keycodeInput = extensions.getResource(ButtonInput<KeyCode>);
+	let keycodeInput = extensions.getResource<ButtonInput<KeyCode>>();
 	if (!keycodeInput) {
 		keycodeInput = new ButtonInput<KeyCode>();
 		extensions.insertResource(ButtonInput<KeyCode>, keycodeInput);
 	}
 
-	let keyInput = extensions.getResource(ButtonInput<Key>);
+	let keyInput = extensions.getResource<ButtonInput<Key>>();
 	if (!keyInput) {
 		keyInput = new ButtonInput<Key>();
 		extensions.insertResource(ButtonInput<Key>, keyInput);
@@ -458,7 +458,7 @@ export function keyboardInputSystem(world: World): void {
  */
 export function setupRobloxKeyboardInput(world: World): void {
 	const extensions = WorldExtensions.get(world);
-	const eventManager = extensions.getResource(EventManager);
+	const eventManager = extensions.getResource<EventManager>();
 
 	if (!eventManager) {
 		warn("EventManager not found, cannot setup keyboard input");

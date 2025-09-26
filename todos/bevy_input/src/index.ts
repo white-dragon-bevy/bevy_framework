@@ -15,7 +15,7 @@
  * const app = new App()
  *   .addPlugin(new InputPlugin())
  *   .addSystem((world) => {
- *     const keyboard = world.getResource(ButtonInput<KeyCode>);
+ *     const keyboard = world.getResource<ButtonInput<KeyCode>>();
  *     if (keyboard?.justPressed(KeyCode.Space)) {
  *       print("Space key pressed!");
  *     }

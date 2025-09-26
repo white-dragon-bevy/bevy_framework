@@ -283,14 +283,14 @@ export class Touches {
  */
 export function touchScreenInputSystem(world: World): void {
 	const extensions = WorldExtensions.get(world);
-	const eventManager = extensions.getResource(EventManager);
+	const eventManager = extensions.getResource<EventManager>();
 
 	if (!eventManager) {
 		return;
 	}
 
 	// 获取或创建触摸资源
-	let touches = extensions.getResource(Touches);
+	let touches = extensions.getResource<Touches>();
 	if (!touches) {
 		touches = new Touches();
 		extensions.insertResource(Touches, touches);
@@ -319,7 +319,7 @@ export function touchScreenInputSystem(world: World): void {
  */
 export function setupRobloxTouchInput(world: World): void {
 	const extensions = WorldExtensions.get(world);
-	const eventManager = extensions.getResource(EventManager);
+	const eventManager = extensions.getResource<EventManager>();
 
 	if (!eventManager) {
 		warn("EventManager not found, cannot setup touch input");

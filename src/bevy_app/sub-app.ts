@@ -17,6 +17,7 @@ import type { SystemFunction, SystemConfig } from "../bevy_ecs/schedule/types";
 import { intoSystemConfigs } from "../bevy_ecs/schedule/system-configs";
 import type { IntoSystemConfigs } from "../bevy_ecs/schedule";
 import { AppContext } from "./context";
+import { Modding } from "@flamework/core";
 
 // 前向声明 App 类型
 interface AppInterface {
@@ -49,11 +50,11 @@ export class SubApp {
 	private isLoopRunning = false;
 	private hasRunStartup = false; // 跟踪启动调度是否已经运行
 
-	constructor() {
+	constructor(context?:Context) {
 		this._world = createWorldContainer();
 
 		// Initialize context 
-		this.context = new AppContext(this._world.getWorld());
+		this.context = context ?? new AppContext(this._world.getWorld());
 
 		this.resourceManager = this.context.resources;
 		this.commandBuffer = this.context.commands;
@@ -362,63 +363,31 @@ export class SubApp {
 		// 这里需要根据Matter的API来实现
 	}
 
-	/**
+	/** 
 	 * 插入资源
-	 */
-	insertResource<T extends Resource>(resource: T): void;
-	insertResource<T extends Resource>(resourceType: ResourceConstructor<T>, resource: T): void;
-	insertResource<T extends Resource>(resourceOrType: T | ResourceConstructor<T>, resource?: T): void {
-		if (resource !== undefined) {
-			// 两个参数的重载：insertResource(Type, instance)
-			this.resourceManager.insertResource(resourceOrType as ResourceConstructor<T>, resource);
-		} else {
-			// 单个参数的重载：insertResource(instance)
-			// 使用对象的构造函数作为类型
-			const instance = resourceOrType as T;
-			const ResourceType = (instance as unknown as { constructor: ResourceConstructor<T> }).constructor;
-
-			if (ResourceType) {
-				// 如果有构造函数，使用它作为资源类型
-				this.resourceManager.insertResource(ResourceType, instance);
-			} else {
-				// 如果没有构造函数（例如对象字面量），生成一个唯一的标识符
-				const uniqueId = `Resource_${tostring(instance)}`;
-				this.resourceManager.insertResource(uniqueId as ResourceConstructor<T>, instance);
-			}
-		}
+	 * 
+	 * @metadata macro 
+	 * */
+	public insertResource<T>(resource:defined, id?: Modding.Generic<T, "id">, text?: Modding.Generic<T,"text">) {
+		this.resourceManager.insertResource(resource, id, text);
 	}
 
-	/**
-	 * 初始化资源
-	 */
-	initResource<T extends Resource>(resourceFactory: () => T): void {
-		const resource = resourceFactory();
-		// 获取资源的构造函数作为类型标识
-		const ResourceType = (resource as unknown as { constructor: ResourceConstructor<T> }).constructor;
 
-		if (ResourceType) {
-			// 使用构造函数作为资源类型进行注册
-			this.resourceManager.insertResource(ResourceType, resource);
-		} else {
-			// 如果没有构造函数（例如对象字面量），生成一个唯一的标识符
-			const uniqueId = `Resource_${tostring(resource)}` as ResourceConstructor<T>;
-			this.resourceManager.insertResource(uniqueId, resource);
-		}
-	}
 
-	/**
+	/** 
 	 * 获取资源
-	 */
-	getResource<T extends Resource>(resourceType: ResourceConstructor<T>): T | undefined {
-		// 直接从资源管理器获取资源
-		return this.resourceManager.getResource(resourceType);
+	 * 
+	 * @metadata macro 
+	 * */
+	public getResource<T extends defined>( id?: Modding.Generic<T, "id">, text?: Modding.Generic<T,"text">): T | undefined {
+		return this.resourceManager.getResource<T>(id, text);
 	}
 
 	/**
 	 * 移除资源
 	 */
 	removeResource<T extends Resource>(resourceType: ResourceConstructor<T>): T | undefined {
-		return this.resourceManager.removeResource(resourceType);
+		return this.resourceManager.removeResource<T>();
 	}
 
 	/**
@@ -637,8 +606,8 @@ export class SubApps {
 	private _main: SubApp;
 	private subApps = new Map<string, SubApp>();
 
-	constructor() {
-		this._main = new SubApp();
+	constructor(context?:AppContext) {
+		this._main = new SubApp(context);
 	}
 
 	/**

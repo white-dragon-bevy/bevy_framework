@@ -206,7 +206,7 @@ export = (): void => {
 				const readerPlugin = createPlugin((app) => {
 					app.addSystems(BuiltinSchedules.UPDATE, () => {
 						// 这里简化测试，实际需要资源访问API
-						// const resource = app.world().getResource(CounterResource);
+						// const resource = app.world().getResource<CounterResource>();
 						// resourceValue = resource?.count ?? 0;
 						resourceValue = 10; // 模拟读取
 					});
