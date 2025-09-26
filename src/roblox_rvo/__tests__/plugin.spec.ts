@@ -5,8 +5,8 @@
 /// <reference types="@rbxts/testez/globals" />
 
 import { App } from "../../bevy_app/app";
-import { Transform, createTransform } from "../../bevy_transform/src/components/transform";
-import { TransformPlugin } from "../../bevy_transform/src/plugin";
+import { Transform, createTransform } from "../../bevy_transform/components/transform";
+import { TransformPlugin } from "../../bevy_transform/plugin";
 import { RVOPlugin } from "../plugin";
 import { RVOAgent, createRVOAgent } from "../components/rvo-agent";
 import { RVOObstacle, createRectangleObstacle } from "../components/rvo-obstacle";

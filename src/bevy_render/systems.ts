@@ -5,7 +5,7 @@
 
 import { World, AnyEntity } from "@rbxts/matter";
 import { Workspace, ReplicatedStorage, RunService } from "@rbxts/services";
-import { GlobalTransform } from "../bevy_transform/src";
+import { GlobalTransform } from "../bevy_transform";
 import { RobloxInstance, Visibility, ViewVisibility, VisibilityState } from "./components";
 import { Parent } from "../bevy_ecs/hierarchy";
 import { BevyWorld } from "../bevy_ecs/bevy-world";

@@ -26,6 +26,7 @@ export class AppContext extends ContextBase {
 		this.resources = new ResourceManager();
 		this.commands = new CommandBuffer();
 		this.events = new EventManager(this.world);
+
 	}
 
 	/**

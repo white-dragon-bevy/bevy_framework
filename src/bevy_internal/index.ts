@@ -12,7 +12,7 @@ export * as ecs from "../bevy_ecs";
 export * as input from "../bevy_input";
 export * as log from "../bevy_log";
 export * as time from "../bevy_time";
-export * as transform from "../bevy_transform/src";
+export * as transform from "../bevy_transform";
 
 // 导出插件组
 export { DefaultPlugins, MinimalPlugins } from "./default-plugins";

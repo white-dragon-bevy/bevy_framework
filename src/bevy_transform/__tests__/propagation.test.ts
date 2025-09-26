@@ -5,7 +5,7 @@
 /// <reference types="@rbxts/testez/globals" />
 
 import { World } from "@rbxts/matter";
-import { Transform, GlobalTransform, createTransform, createGlobalTransform } from "../src/components";
+import { Transform, GlobalTransform, createTransform, createGlobalTransform } from "../components";
 import {
 	Parent,
 	Children,
@@ -13,7 +13,7 @@ import {
 	propagateParentTransforms,
 	syncSimpleTransforms,
 	ensureGlobalTransforms,
-} from "../src/systems";
+} from "../systems";
 
 export = () => {
 	describe("Transform Propagation Systems", () => {

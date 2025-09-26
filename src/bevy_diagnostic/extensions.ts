@@ -17,10 +17,16 @@ export interface DiagnosticConfig {
 }
 
 /**
- * 核心诊断扩展接口
- * 提供基本的诊断注册和访问功能
+ * 统一的诊断扩展接口
+ * 整合所有诊断相关功能
  */
-export interface DiagnosticsExtension {
+export interface DiagnosticExtension {
+	/**
+	 * 核心诊断存储对象
+	 */
+	store: DiagnosticsStore;
+
+	// 诊断管理功能
 	/**
 	 * 注册新的诊断项
 	 * @param config - 诊断项配置
@@ -45,18 +51,6 @@ export interface DiagnosticsExtension {
 	 * @param value - 新的值
 	 */
 	updateDiagnostic(id: string, value: number): void;
-}
-
-/**
- * 诊断存储扩展接口
- * 提供对底层存储的直接访问
- */
-export interface DiagnosticsStoreExtension {
-	/**
-	 * 获取诊断存储实例
-	 * @returns 诊断存储
-	 */
-	getStore(): DiagnosticsStore;
 
 	/**
 	 * 获取所有诊断项
@@ -69,13 +63,8 @@ export interface DiagnosticsStoreExtension {
 	 * @returns 诊断项数量
 	 */
 	getDiagnosticsCount(): number;
-}
 
-/**
- * 诊断渲染扩展接口
- * 提供诊断信息的渲染和显示功能
- */
-export interface DiagnosticsRendererExtension {
+	// 渲染功能
 	/**
 	 * 渲染诊断信息到控制台
 	 */
@@ -104,8 +93,6 @@ export interface DiagnosticsRendererExtension {
  */
 declare module "../bevy_app/extensions" {
 	interface PluginExtensions {
-		diagnostics: DiagnosticsExtension;
-		diagnostics_store: DiagnosticsStoreExtension;
-		diagnostics_renderer: DiagnosticsRendererExtension;
+		diagnostic: DiagnosticExtension;
 	}
 }

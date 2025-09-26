@@ -6,7 +6,7 @@
 import { BevyWorld } from "../../bevy_ecs/bevy-world";
 import { Context } from "../../bevy_ecs/types";
 import { EventWriter } from "../../bevy_ecs/events";
-import { Transform } from "../../bevy_transform/src/components/transform";
+import { Transform } from "../../bevy_transform/components/transform";
 import { RVOAgent, hasReachedGoal } from "../components/rvo-agent";
 import { RVOSimulatorResource } from "../resources/rvo-simulator";
 import Agent from "../core/Agent";

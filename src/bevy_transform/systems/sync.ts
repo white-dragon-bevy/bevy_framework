@@ -5,7 +5,7 @@
 
 import { World, AnyEntity } from "@rbxts/matter";
 import { Transform, GlobalTransform, computeGlobalTransform } from "../components";
-import { Parent } from "../../../bevy_ecs/hierarchy";
+import { Parent } from "../../bevy_ecs/hierarchy";
 
 /**
  * 同步简单变换

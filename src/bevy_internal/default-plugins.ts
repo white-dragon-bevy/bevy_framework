@@ -13,7 +13,7 @@ import { DebuggerPlugin } from "../bevy_ecs_debugger";
 import { InputPlugin } from "../bevy_input/plugin";
 import { LogPlugin } from "../bevy_log/lib";
 import { TimePlugin } from "../bevy_time/time-plugin";
-import { TransformPlugin } from "../bevy_transform/src/plugin";
+import { TransformPlugin } from "../bevy_transform/plugin";
 
 /**
  * DefaultPlugins - 默认插件组
