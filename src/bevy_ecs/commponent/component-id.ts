@@ -19,16 +19,20 @@ export type ComponentId = number
  * @param descriptor - 组件或者资源的类型描述
  * @returns 组件或者资源的ComponentId
  */
-export function getComponentId<T>(descriptor:TypeDescriptor):ComponentId{
-    let componentIdMap = scriptComponentIdMap.get(descriptor.id)
-    if(!componentIdMap){
+export function getComponentIdByDescriptor<T>(descriptor:TypeDescriptor):ComponentId{
+    return getComponentId(descriptor.id, descriptor.text)
+}
+
+export function getComponentId(id:string, text:string):ComponentId{
+    let componentIdMap = scriptComponentIdMap.get(id)
+    if(componentIdMap===undefined){
         componentIdMap = new Map();
-        scriptComponentIdMap.set(descriptor.id, componentIdMap);
+        scriptComponentIdMap.set(id, componentIdMap);
     }
-    let componentId = componentIdMap.get(descriptor.text)
-    if(!componentId){
+    let componentId = componentIdMap.get(text)
+    if(componentId===undefined){
         componentId = componentIdCounter++
-        componentIdMap.set(descriptor.text, componentId)
+        componentIdMap.set(text, componentId)
     }
     return componentId
 }

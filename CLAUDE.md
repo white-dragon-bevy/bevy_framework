@@ -61,6 +61,7 @@ pnpm install
 ### 调度阶段
 
 内置调度按以下顺序执行：
+
 - First → PreStartup → Startup → PostStartup
 - PreUpdate → Update → PostUpdate → Last
 
@@ -82,6 +83,7 @@ pnpm install
 - 所有TypeScript代码必须兼容roblox-ts编译器限制
 - 使用Matter ECS的查询和组件系统
 - 客户端和服务端代码需要使用RobloxEnvironment区分
+- 如果函数的参数类型为 `Modding.*`, 则说明调用该函数的行将被 transform, 所有的这种类型的参数都不用主动提供.
 
 ## 单元测试
 
@@ -90,5 +92,5 @@ pnpm install
 - 使用 `npm test -- -p <robloxPath>`, 该命令将不再读取 testez-companion.toml, 直接测试提供的路径
   - 修改的地址为模块在 dataModel地址, 以 `/` 分割, 比如 `ReplicatedStorage/src/Core/BattleUtilities/Unit`
 - 根据测试堆栈, 从 `out/` 目录阅读错误代码 (lua), 再到 `src` 目录定位错误 (ts)
-  - 比如, 我们需要测试 `src/roblox_rvo`目录, 根据其转换后地址, 我们需要运行 `npm test -- -p  ReplicatedStorage/rbxts_include/node_modules/@white-dragon-bevy/bevy-framework/roblox_rvo`, 
+  - 比如, 我们需要测试 `src/roblox_rvo`目录, 根据其转换后地址, 我们需要运行 `npm test -- -p  ReplicatedStorage/rbxts_include/node_modules/@white-dragon-bevy/bevy-framework/roblox_rvo`,
   - `src/<name>` 对应地址 `ReplicatedStorage/.../bevy-framework/<name>`

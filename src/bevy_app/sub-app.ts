@@ -366,9 +366,11 @@ export class SubApp {
 	/** 
 	 * 插入资源
 	 * 
-	 * @metadata macro 
+	 * @metadata macro
+	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * 
 	 * */
-	public insertResource<T>(resource:defined, id?: Modding.Generic<T, "id">, text?: Modding.Generic<T,"text">) {
+	public insertResource<T>(resource:T, id?: Modding.Generic<T, "id">, text?: Modding.Generic<T,"text">) {
 		this.resourceManager.insertResource(resource, id, text);
 	}
 
@@ -377,7 +379,9 @@ export class SubApp {
 	/** 
 	 * 获取资源
 	 * 
-	 * @metadata macro 
+	 * @metadata macro
+	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * 
 	 * */
 	public getResource<T extends defined>( id?: Modding.Generic<T, "id">, text?: Modding.Generic<T,"text">): T | undefined {
 		return this.resourceManager.getResource<T>(id, text);

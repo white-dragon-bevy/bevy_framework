@@ -20,6 +20,8 @@ import {
 import { Context } from "../bevy_ecs";
 import type { TimeControlExtension, TimeExtension, TimeStatsExtension } from "./extensions";
 
+
+
 /**
  * 时间更新策略接口
  * 对应 Rust TimeUpdateStrategy
@@ -117,7 +119,8 @@ export class TimePlugin extends BasePlugin {
 		const fixedTime = new TimeFixed();
 		const genericTime = new Time<Empty>({});
 
-		app.insertResource(new RealTimeResource(realTime));
+		const tt=new RealTimeResource(realTime)
+		app.insertResource(tt);
 		app.insertResource(new VirtualTimeResource(virtualTime));
 		app.insertResource(new FixedTimeResource(fixedTime));
 		app.insertResource(new GenericTimeResource(genericTime));

@@ -8,6 +8,8 @@ import { Time, Real, Virtual, Fixed, Empty } from "./time";
 import { TimeFixed } from "./fixed";
 import { TimeUpdateStrategy } from "./time-plugin";
 
+
+
 /**
  * Real 时间资源包装器
  */
