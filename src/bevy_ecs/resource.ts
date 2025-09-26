@@ -268,6 +268,15 @@ export class ResourceManager {
 		return this.resources.has(componentId);
 	}
 
+	public hasResourceByDescriptor<T >(descriptor:TypeDescriptor): boolean {
+	
+		const componentId = getComponentIdByDescriptor(descriptor)
+		if(componentId===undefined){
+			return false
+		}
+		return this.resources.has(componentId);
+	}
+
 	/**
 	 * 获取所有已注册的资源类型
 	 * @returns 资源ID数组

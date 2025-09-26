@@ -7,6 +7,7 @@ import { World } from "@rbxts/matter";
 import { ResourceManager } from "../../src/bevy_ecs/resource";
 import { States } from "./states";
 import { State, StateConstructor } from "./resources";
+import { TypeDescriptor } from "../bevy_core";
 
 
 /**
@@ -21,20 +22,16 @@ export type RunCondition = (world: World, resourceManager: ResourceManager) => b
  * @returns 运行条件函数
  */
 export function inState<S extends States>(
-	stateType: StateConstructor<S>,
+	stateType: TypeDescriptor,
 	targetState: S,
 ): RunCondition {
-	error('not impl')
-	// return (world: World, resourceManager: ResourceManager): boolean => {
-	// 	// 使用统一的资源键生成方式
-	// 	const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
-	// 	const stateKey = `State<${stateTypeName}>` as ResourceConstructor<State<S>>;
-	// 	const stateResource = resourceManager.getResource<stateKey>();
-	// 	if (!stateResource) {
-	// 		return false;
-	// 	}
-	// 	return stateResource.is(targetState);
-	// };
+	return (world: World, resourceManager: ResourceManager): boolean => {
+		const stateResource = resourceManager.getResourceByTypeDescriptor<State<S>>(stateType);
+		if (!stateResource) {
+			return false;
+		}
+		return stateResource.is(targetState);
+	};
 }
 
 /**
@@ -42,14 +39,11 @@ export function inState<S extends States>(
  * @param stateType - 状态类型
  * @returns 运行条件函数
  */
-export function stateExists<S extends States>(stateType: StateConstructor<S>): RunCondition {
+export function stateExists<S extends States>(stateType: TypeDescriptor): RunCondition {
 	error('not impl')
-	// return (world: World, resourceManager: ResourceManager): boolean => {
-	// 	// 使用统一的资源键生成方式
-	// 	const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
-	// 	const stateKey = `State<${stateTypeName}>` as ResourceConstructor<State<S>>;
-	// 	return resourceManager.hasResource(stateKey);
-	// };
+	return (world: World, resourceManager: ResourceManager): boolean => {
+		return resourceManager.hasResourceByDescriptor(stateType);
+	};
 }
 
 /**
@@ -57,38 +51,36 @@ export function stateExists<S extends States>(stateType: StateConstructor<S>): R
  * @param stateType - 状态类型
  * @returns 运行条件函数
  */
-export function stateChanged<S extends States>(stateType: StateConstructor<S>): RunCondition {
-	error('not impl')
-	// let lastState: S | undefined;
-	// let hasInitialized = false;
+export function stateChanged<S extends States>(stateType: TypeDescriptor): RunCondition {
+	let lastState: S | undefined;
+	let hasInitialized = false;
 
-	// return (world: World, resourceManager: ResourceManager): boolean => {
-	// 	// 使用统一的资源键生成方式
-	// 	const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
-	// 	const stateKey = `State<${stateTypeName}>` as ResourceConstructor<State<S>>;
-	// 	const stateResource = resourceManager.getResource<stateKey>();
+	return (world: World, resourceManager: ResourceManager): boolean => {
+		// 使用统一的资源键生成方式
+		const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
+		const stateResource = resourceManager.getResourceByTypeDescriptor<State<S>>(stateType);
 
-	// 	if (!stateResource) {
-	// 		// 状态不存在时，如果之前存在过则认为发生了变化
-	// 		const changed = lastState !== undefined;
-	// 		lastState = undefined;
-	// 		return changed;
-	// 	}
+		if (!stateResource) {
+			// 状态不存在时，如果之前存在过则认为发生了变化
+			const changed = lastState !== undefined;
+			lastState = undefined;
+			return changed;
+		}
 
-	// 	const currentState = stateResource.get();
+		const currentState = stateResource.get();
 
-	// 	// 初次初始化时认为发生了变化
-	// 	if (!hasInitialized) {
-	// 		hasInitialized = true;
-	// 		lastState = currentState.clone() as S;
-	// 		return true;
-	// 	}
+		// 初次初始化时认为发生了变化
+		if (!hasInitialized) {
+			hasInitialized = true;
+			lastState = currentState.clone() as S;
+			return true;
+		}
 
-	// 	// 检查状态是否改变
-	// 	const changed = lastState === undefined || !lastState.equals(currentState);
-	// 	lastState = currentState.clone() as S;
-	// 	return changed;
-	// };
+		// 检查状态是否改变
+		const changed = lastState === undefined || !lastState.equals(currentState);
+		lastState = currentState.clone() as S;
+		return changed;
+	};
 }
 
 /**
@@ -98,23 +90,20 @@ export function stateChanged<S extends States>(stateType: StateConstructor<S>): 
  * @returns 运行条件函数
  */
 export function exitingState<S extends States>(
-	stateType: StateConstructor<S>,
+	stateType: TypeDescriptor,
 	exitingState: S,
 ): RunCondition {
-	error('not impl')
-	// let wasInState = false;
+	let wasInState = false;
 
-	// return (world: World, resourceManager: ResourceManager): boolean => {
-	// 	// 使用统一的资源键生成方式
-	// 	const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
-	// 	const stateKey = `State<${stateTypeName}>` as ResourceConstructor<State<S>>;
-	// 	const stateResource = resourceManager.getResource<stateKey>();
-	// 	const isInState = stateResource ? stateResource.is(exitingState) : false;
+	return (world: World, resourceManager: ResourceManager): boolean => {
+		// 使用统一的资源键生成方式
+		const stateResource = resourceManager.getResourceByTypeDescriptor<State<S>>(stateType);
+		const isInState = stateResource ? stateResource.is(exitingState) : false;
 
-	// 	const exiting = wasInState && !isInState;
-	// 	wasInState = isInState;
-	// 	return exiting;
-	// };
+		const exiting = wasInState && !isInState;
+		wasInState = isInState;
+		return exiting;
+	};
 }
 
 /**
@@ -124,23 +113,21 @@ export function exitingState<S extends States>(
  * @returns 运行条件函数
  */
 export function enteringState<S extends States>(
-	stateType: StateConstructor<S>,
+	stateType: TypeDescriptor,
 	enteringState: S,
 ): RunCondition {
-	error('not impl')
-	// let wasInState = false;
+	let wasInState = false;
 
-	// return (world: World, resourceManager: ResourceManager): boolean => {
-	// 	// 使用统一的资源键生成方式
-	// 	const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
-	// 	const stateKey = `State<${stateTypeName}>` as ResourceConstructor<State<S>>;
-	// 	const stateResource = resourceManager.getResource<stateKey>();
-	// 	const isInState = stateResource ? stateResource.is(enteringState) : false;
+	return (world: World, resourceManager: ResourceManager): boolean => {
+		// 使用统一的资源键生成方式
+		const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
+		const stateResource = resourceManager.getResourceByTypeDescriptor<State<S>>(stateType);
+		const isInState = stateResource ? stateResource.is(enteringState) : false;
 
-	// 	const entering = !wasInState && isInState;
-	// 	wasInState = isInState;
-	// 	return entering;
-	// };
+		const entering = !wasInState && isInState;
+		wasInState = isInState;
+		return entering;
+	};
 }
 
 /**
