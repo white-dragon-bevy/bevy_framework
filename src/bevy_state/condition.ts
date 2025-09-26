@@ -4,7 +4,7 @@
  */
 
 import { World } from "@rbxts/matter";
-import { ResourceManager, ResourceConstructor } from "../../src/bevy_ecs/resource";
+import { ResourceManager } from "../../src/bevy_ecs/resource";
 import { States } from "./states";
 import { State, StateConstructor } from "./resources";
 

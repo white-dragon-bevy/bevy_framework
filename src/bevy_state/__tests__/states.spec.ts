@@ -2,11 +2,24 @@
  * states.spec.ts - States 单元测试
  */
 
-import { EnumStates, createStates } from "../states";
+import { SubStatesPlugin } from "../plugin";
+import { State, StateConstructor } from "../resources";
+import { EnumStates, States, createStates } from "../states";
+import { SubStates } from "../sub-states";
 
 
 export = () => {
 	describe("EnumStates", () => {
+
+		let a = {} as unknown as StateConstructor<EnumStates>
+		let b = {} as unknown as StateConstructor<SubStates<EnumStates>>
+
+		class AStates extends EnumStates{
+			static Playing = new AStates("Playing")
+		}
+
+		let xx= State.create(AStates.Playing)
+
 		it("should create enum states correctly", () => {
 			const state = new EnumStates("menu");
 			expect(state.getStateId()).to.equal("menu");

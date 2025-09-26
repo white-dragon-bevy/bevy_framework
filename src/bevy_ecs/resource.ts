@@ -8,11 +8,6 @@ import { ComponentId, getComponentId, getComponentIdByDescriptor } from "./commp
 export type ResourceId = string;
 
 /**
- * 资源构造函数类型
- */
-export type ResourceConstructor<T = unknown> = (new (...args: never[]) => T) | string;
-
-/**
  * 资源基础接口
  */
 export interface Resource {}
@@ -57,6 +52,23 @@ export class ResourceManager {
 		const componentId = getComponentId(id,text)
 		return this.resources.get(componentId) as T
 	}
+
+	/**
+	 * 
+	 * 获取资源
+	 * 
+	 * @param resource 
+	 * @param typeDescriptor 
+	 */
+	public getResourceByTypeDescriptor<T extends defined>(typeDescriptor:TypeDescriptor ):T|undefined {
+		if(typeDescriptor===undefined){
+			return undefined
+		}
+
+		const componentId = getComponentIdByDescriptor(typeDescriptor)
+		return this.resources.get(componentId) as T
+	}
+
 
 	/** 
 	 * 获取资源，如果不存在则创建默认实例
@@ -150,12 +162,22 @@ export class ResourceManager {
 	 * @metadata macro
 	 * 
 	 * */
-	public insertResource<T>(resource:T, id?: Modding.Generic<T, "id">, text?: Modding.Generic<T,"text">) {
+	public insertResource<T extends object>(resource:T, id?: Modding.Generic<T, "id">, text?: Modding.Generic<T,"text">) {
 		if(id===undefined || text===undefined){
 			error(`insertResource: can't get type descriptor for ${id} ${text}`)
 		}
 		const descriptor = getTypeDescriptor(id,text)!
-		const componentId = getComponentId(id,text)
+		this.insertResourceByTypeDescriptor(resource,descriptor)
+		
+	}
+
+	/**
+	 * 
+	 * @param resource 
+	 * @param typeDescriptor 
+	 */
+	public insertResourceByTypeDescriptor(resource:object, typeDescriptor:TypeDescriptor ) {
+		const componentId = getComponentIdByDescriptor(typeDescriptor)
 
 		// 直接存储资源
 		this.resources.set(componentId, resource as object);
@@ -173,13 +195,12 @@ export class ResourceManager {
 			});
 		} else {
 			this.resourceMetadata.set(componentId, {
-				typeDescriptor: descriptor,
+				typeDescriptor,
 				created: now,
 				updated: now,
 			});
 		}
 	}
-
 
 
 	/**
@@ -205,6 +226,28 @@ export class ResourceManager {
 		this.resourceMetadata.delete(componentId);
 
 		return resource as T;
+	}
+
+	/**
+	 * 移除资源
+	 * 
+	 * @returns 被移除的资源实例，如果不存在则返回undefined
+	 */
+	public removeResourceByDescriptor(descriptor:TypeDescriptor): object|undefined {
+		if(descriptor===undefined ){
+			
+			return undefined
+		}
+		
+		const componentId = getComponentIdByDescriptor(descriptor)
+
+		const resource = this.resources.get(componentId);
+
+		// 清理资源和元数据
+		this.resources.delete(componentId);
+		this.resourceMetadata.delete(componentId);
+
+		return resource;
 	}
 
 	/**

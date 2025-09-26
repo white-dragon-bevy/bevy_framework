@@ -6,9 +6,10 @@
 import { World } from "@rbxts/matter";
 import type { ScheduleLabel } from "../bevy_ecs/schedule/types";
 import { Event, EventWriter, EventReader, EventManager, EventConstructor } from "../bevy_ecs/events";
-import { ResourceManager, ResourceConstructor } from "../bevy_ecs/resource";
+import { ResourceManager } from "../bevy_ecs/resource";
 import { States } from "./states";
-import { State, NextState, StateConstructor } from "./resources";
+import { State, NextState, StateConstructor, getNextStateTypeDescriptor } from "./resources";
+import { TypeDescriptor } from "../bevy_core";
 
 /**
  * 状态转换调度标签
@@ -119,7 +120,7 @@ export const TransitionSchedules = "TransitionSchedules";
  * 状态转换管理器
  */
 export class StateTransitionManager<S extends States> {
-	private stateType: StateConstructor<S>;
+	private typeDescriptor: TypeDescriptor;
 	private eventWriter?: EventWriter<StateTransitionEvent<S>>;
 	private lastTransitionEvent?: StateTransitionEvent<S>;
 	private eventManager?: EventManager;
@@ -129,8 +130,8 @@ export class StateTransitionManager<S extends States> {
 	 * @param stateType - 状态类型构造函数
 	 * @param eventManager - 事件管理器（可选）
 	 */
-	public constructor(stateType: StateConstructor<S>, eventManager?: EventManager) {
-		this.stateType = stateType;
+	public constructor(typeDescriptor:TypeDescriptor, eventManager?: EventManager) {
+		this.typeDescriptor = typeDescriptor;
 		this.eventManager = eventManager;
 		if (eventManager) {
 			this.eventWriter = eventManager.createWriter(StateTransitionEvent as EventConstructor<StateTransitionEvent<S>>);
@@ -156,14 +157,8 @@ export class StateTransitionManager<S extends States> {
 	 * @returns 是否发生了转换
 	 */
 	public processTransition(world: World, resourceManager: ResourceManager, app?: unknown): boolean {
-		// Use unified resource key generation
-		const nextStateResourceKey = this.generateResourceKey("NextState", this.stateType) as ResourceConstructor<
-			NextState<S>
-		>;
-		const stateResourceKey = this.generateResourceKey("State", this.stateType) as ResourceConstructor<State<S>>;
-
 		// 获取 NextState 资源
-		const nextStateResource = resourceManager.getResource<NextState<S>>();
+		const nextStateResource = resourceManager.getResourceByTypeDescriptor<NextState<S>>(getNextStateTypeDescriptor(this.typeDescriptor));
 		if (!nextStateResource || !nextStateResource.isPending()) {
 			return false;
 		}
@@ -175,7 +170,7 @@ export class StateTransitionManager<S extends States> {
 		}
 
 		// 获取当前状态资源
-		let currentStateResource = resourceManager.getResource<State<S>>();
+		let currentStateResource = resourceManager.getResourceByTypeDescriptor<State<S>>(this.typeDescriptor);
 		const exitedState = currentStateResource?.get();
 
 		// 检查是否为身份转换（相同状态转换）
@@ -207,7 +202,6 @@ export class StateTransitionManager<S extends States> {
 		newState: S,
 		app?: unknown,
 	): void {
-		const stateResourceKey = this.generateResourceKey("State", this.stateType) as ResourceConstructor<State<S>>;
 
 		// 正确的执行顺序：OnExit → OnTransition → 更新状态 → OnEnter → 事件
 
@@ -222,7 +216,7 @@ export class StateTransitionManager<S extends States> {
 		}
 
 		// 3. 更新状态资源
-		let currentStateResource = resourceManager.getResource<State<S>>();
+		let currentStateResource = resourceManager.getResourceByTypeDescriptor<State<S>>(this.typeDescriptor);
 		if (!currentStateResource) {
 			currentStateResource = State.create(newState);
 			resourceManager.insertResource(currentStateResource);

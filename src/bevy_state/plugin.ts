@@ -7,13 +7,15 @@ import { World } from "@rbxts/matter";
 import { App } from "../bevy_app/app";
 import { Plugin } from "../bevy_app/plugin";
 import { BuiltinSchedules } from "../bevy_app/main-schedule";
-import { ResourceManager, ResourceConstructor } from "../bevy_ecs/resource";
+import { ResourceManager, } from "../bevy_ecs/resource";
 import { EventManager } from "../bevy_ecs/events";
 import { EnumStates, States } from "./states";
 import { NextState, StateConstructor, DefaultStateFn } from "./resources";
 import { StateTransition, StateTransitionManager } from "./transitions";
 import { ComputedStates, ComputedStateManager } from "./computed-states";
 import { SubStates, SubStateManager } from "./sub-states";
+import { Modding } from "@flamework/core";
+import { getTypeDescriptor, TypeDescriptor } from "../bevy_core";
 
 /**
  * 状态转换系统集合
@@ -48,10 +50,6 @@ function generateResourceKey<T extends States>(prefix: string, stateType: StateC
  * 状态插件配置
  */
 export interface StatePluginConfig<S extends States> {
-	/**
-	 * 状态类型
-	 */
-	readonly stateType: StateConstructor<S>;
 
 	/**
 	 * 默认状态
@@ -70,18 +68,48 @@ export interface StatePluginConfig<S extends States> {
  */
 export class StatesPlugin<S extends States> implements Plugin {
 	private config: StatePluginConfig<S>;
-	private transitionManager: StateTransitionManager<S>;
+	private transitionManager: StateTransitionManager<S> = undefined as unknown as StateTransitionManager<S> ;
 	private resourceManager?: ResourceManager;
 	private eventManager?: EventManager;
 
 	/**
-	 * 构造函数
+	 * 私有构造函数 (公开调用 create())
 	 * @param config - 插件配置
 	 */
-	public constructor(config: StatePluginConfig<S>) {
+	private constructor(config: StatePluginConfig<S>) {
 		this.config = config;
-		// 初始化时暂不传入事件管理器，在 build 方法中设置
-		this.transitionManager = new StateTransitionManager(config.stateType);
+
+	}
+
+	/**
+	 * 类型描述, 在 create() 时候添加.
+	 */
+	private _typeDescriptor:TypeDescriptor = undefined as unknown as TypeDescriptor
+
+	/**
+	 * 获取类型描述
+	 * @returns TypeDescriptor
+	 */
+	public getTypeDescriptor():TypeDescriptor{
+		return this._typeDescriptor
+	}
+
+	/**
+	 * 创建新的状态资源
+	 * 
+	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro 
+	 * 
+	 * @param state - 初始状态
+	 * @returns State 资源实例
+	 */
+	public static create<S extends States>(config: StatePluginConfig<S>,id?:Modding.Generic<S, "id">, text?: Modding.Generic<S,"text">): StatesPlugin<S>  {
+		let typeDescriptor = getTypeDescriptor(id,text)
+		assert(typeDescriptor)
+		const result = new StatesPlugin(config);
+		result._typeDescriptor = typeDescriptor
+		result.transitionManager = new StateTransitionManager<S>(result._typeDescriptor);
+		return result;
 	}
 
 	/**
@@ -89,36 +117,14 @@ export class StatesPlugin<S extends States> implements Plugin {
 	 * @param app - 应用实例
 	 */
 	public build(app: App): void {
-		const world = app.getWorld();
-		const worldWithRM = world as unknown as Record<string, unknown>;
-
-		// Get or create the shared resource manager
-		let existingResourceManager = worldWithRM["stateResourceManager"] as ResourceManager | undefined;
-		if (!existingResourceManager) {
-			// First StatePlugin creates the ResourceManager
-			existingResourceManager = new ResourceManager();
-			worldWithRM["stateResourceManager"] = existingResourceManager;
-		}
+		const existingResourceManager = app.context.resources
 		this.resourceManager = existingResourceManager;
 
-		// Get or create the shared event manager
-		let existingEventManager = worldWithRM["stateEventManager"] as EventManager | undefined;
-		if (!existingEventManager) {
-			// First StatePlugin creates the EventManager
-			existingEventManager = new EventManager(world);
-			worldWithRM["stateEventManager"] = existingEventManager;
-		}
+		let existingEventManager = app.context.events;
 		this.eventManager = existingEventManager;
 
 		// 设置转换管理器的事件管理器
 		this.transitionManager.setEventManager(this.eventManager);
-
-		// 存储转换管理器到世界中以便 lastTransition 函数访问
-		const managerKey = `stateTransitionManager_${tostring(this.config.stateType)}`;
-		worldWithRM[managerKey] = this.transitionManager;
-
-		// 存储 App 引用以便执行调度
-		worldWithRM["appReference"] = app;
 
 		// 注册 StateTransition 调度到主调度顺序（在 PRE_UPDATE 之后，UPDATE 之前）
 		const mainSubApp = app.main();
@@ -131,12 +137,9 @@ export class StatesPlugin<S extends States> implements Plugin {
 				error(`defaultState is not a function, got ${typeOf(this.config.defaultState)}`);
 			}
 			const defaultState = this.config.defaultState();
-			// Use unified resource key generation
-			const nextStateResourceKey = generateResourceKey("NextState", this.config.stateType) as ResourceConstructor<
-				NextState<S>
-			>;
 			// 初始状态设置为 pending，让转换管理器处理
-			this.resourceManager.insertResource(NextState.withPending(defaultState));
+			const nextState = NextState.withPending(defaultState)
+			this.resourceManager.insertResourceByTypeDescriptor(nextState,nextState.getTypeDescriptor());
 		}
 
 		// 只在 StateTransition 调度中添加状态转换系统
@@ -177,8 +180,7 @@ export class StatesPlugin<S extends States> implements Plugin {
 	 * @returns 插件名称
 	 */
 	public name(): string {
-		const stateType = this.config.stateType as unknown as { name?: string };
-		return `StatesPlugin<${stateType.name ?? "State"}>`;
+		return this._typeDescriptor.text
 	}
 
 	/**
@@ -201,10 +203,11 @@ export class ComputedStatesPlugin<TSource extends States, TComputed extends Comp
 
 	/**
 	 * 构造函数
+	 * todo , 增加 create
 	 * @param sourceType - 源状态类型
 	 * @param computedType - 计算状态类型
 	 */
-	public constructor(sourceType: StateConstructor<TSource>, computedType: new () => TComputed) {
+	private constructor(sourceType: StateConstructor<TSource>, computedType: new () => TComputed) {
 		this.sourceType = sourceType;
 		this.computedType = computedType;
 		this.manager = new ComputedStateManager(computedType);
@@ -254,27 +257,68 @@ export class ComputedStatesPlugin<TSource extends States, TComputed extends Comp
  * 子状态插件
  */
 export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TParent>> implements Plugin {
-	private parentType: StateConstructor<TParent>;
-	private subType: StateConstructor<TSub>;
+	private parentType: TypeDescriptor;
+	private subType: TypeDescriptor;
 	private defaultSubState: () => TSub;
 	private manager: SubStateManager<TParent, TSub>;
 	private resourceManager?: ResourceManager;
 
 	/**
-	 * 构造函数
+	 * 私有构造函数 (公开调用 create())
+	 * 
 	 * @param parentType - 父状态类型
 	 * @param subType - 子状态类型
 	 * @param defaultSubState - 默认子状态
 	 */
 	public constructor(
-		parentType: StateConstructor<TParent>,
-		subType: StateConstructor<TSub>,
+		parentType: TypeDescriptor,
+		subType: TypeDescriptor,
 		defaultSubState: () => TSub,
+		
 	) {
 		this.parentType = parentType;
 		this.subType = subType;
 		this.defaultSubState = defaultSubState;
 		this.manager = new SubStateManager(parentType, subType, defaultSubState);
+	}
+
+
+	/**
+	 * 类型描述, 在 create() 时候添加.
+	 */
+	private _typeDescriptor:TypeDescriptor = undefined as unknown as TypeDescriptor
+
+	/**
+	 * 获取类型描述
+	 * @returns TypeDescriptor
+	 */
+	public getTypeDescriptor():TypeDescriptor{
+		return this._typeDescriptor
+	}
+
+	/**
+	 * 创建新的状态资源
+	 * 
+	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro 
+	 * 
+	 * @param state - 初始状态
+	 * @returns State 资源实例
+	 */
+	public static create<TParent extends States, TSub extends SubStates<TParent>>(
+		defaultSubState: () => TSub,
+		pid?:Modding.Generic<TParent, "id">,
+		ptext?: Modding.Generic<TParent,"text">,
+		sid?:Modding.Generic<TParent, "id">,
+		stext?: Modding.Generic<TParent,"text">,
+		
+	): SubStatesPlugin<TParent , TSub>  {
+			const parentType = getTypeDescriptor(pid,ptext)
+			const subType = getTypeDescriptor(sid,stext)
+			assert(parentType)
+			assert(subType)
+			const result = new SubStatesPlugin(parentType,subType,defaultSubState)
+			return result
 	}
 
 	/**
@@ -300,11 +344,7 @@ export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TPar
 
 		// 初始化 NextState 资源
 		if (this.resourceManager) {
-			// Use unified resource key generation
-			const nextStateResourceKey = generateResourceKey("NextState", this.subType) as ResourceConstructor<
-				NextState<TSub>
-			>;
-			this.resourceManager.insertResource(NextState.unchanged<TSub>());
+			this.resourceManager.insertResourceByTypeDescriptor(NextState.unchanged<TSub>(),this.subType);
 		}
 	}
 

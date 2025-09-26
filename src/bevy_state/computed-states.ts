@@ -4,7 +4,7 @@
  */
 
 import { World } from "@rbxts/matter";
-import { ResourceManager, ResourceConstructor } from "../../src/bevy_ecs/resource";
+import { ResourceManager } from "../../src/bevy_ecs/resource";
 import { States, BaseStates } from "./states";
 import { State, StateConstructor } from "./resources";
 
@@ -64,11 +64,12 @@ export class SingleStateSet<S extends States> implements StateSet<S> {
 	 * @returns 当前状态或 undefined
 	 */
 	public getStates(resourceManager: ResourceManager): S | undefined {
-		// 使用统一的资源键生成方式
-		const stateTypeName = (this.stateType as unknown as { name?: string }).name ?? tostring(this.stateType);
-		const stateKey = `State<${stateTypeName}>` as ResourceConstructor<State<S>>;
-		const stateResource = resourceManager.getResource<State<S>>();
-		return stateResource?.get();
+		error('not impl')
+		// // 使用统一的资源键生成方式
+		// const stateTypeName = (this.stateType as unknown as { name?: string }).name ?? tostring(this.stateType);
+		// const stateKey = `State<${stateTypeName}>` as ResourceConstructor<State<S>>;
+		// const stateResource = resourceManager.getResource<State<S>>();
+		// return stateResource?.get();
 	}
 }
 
@@ -260,7 +261,7 @@ export class ComputedStateManager<TSource = unknown, TComputed extends ComputedS
 
 		// 使用统一的资源键生成方式
 		const computedTypeName = (this.computedType as unknown as { name?: string }).name ?? tostring(this.computedType);
-		const computedStateKey = `State<${computedTypeName}>` as ResourceConstructor<State<TComputed>>;
+		// const computedStateKey = `State<${computedTypeName}>` as ResourceConstructor<State<TComputed>>;
 
 		// 获取或创建计算状态资源
 		const computedStateResource = resourceManager.getResource<State<TComputed>>();

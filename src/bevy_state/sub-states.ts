@@ -6,7 +6,9 @@
 import { World } from "@rbxts/matter";
 import { ResourceManager } from "../bevy_ecs/resource";
 import { States } from "./states";
-import { State, NextState, StateConstructor, getStateResource, getNextStateResource } from "./resources";
+import { State, NextState, StateConstructor, getStateResource } from "./resources";
+import { Modding } from "@flamework/core";
+import { TypeDescriptor } from "../bevy_core";
 
 /**
  * 子状态配置接口
@@ -109,19 +111,23 @@ export abstract class BaseSubStates<TParent extends States> implements SubStates
  * 子状态管理器
  */
 export class SubStateManager<TParent extends States, TSub extends SubStates<TParent>> {
-	private parentType: StateConstructor<TParent>;
-	private subType: StateConstructor<TSub>;
+	private parentType: TypeDescriptor;
+	private subType: TypeDescriptor;
 	private defaultSubState: () => TSub;
 
 	/**
 	 * 构造函数
+	 * 
+ 	 * @metadata macro 
+	 * 
+	 * 
 	 * @param parentType - 父状态类型
 	 * @param subType - 子状态类型
 	 * @param defaultSubState - 默认子状态函数
 	 */
 	public constructor(
-		parentType: StateConstructor<TParent>,
-		subType: StateConstructor<TSub>,
+		parentType: TypeDescriptor,
+		subType: TypeDescriptor,
 		defaultSubState: () => TSub,
 	) {
 		this.parentType = parentType;
@@ -135,42 +141,36 @@ export class SubStateManager<TParent extends States, TSub extends SubStates<TPar
 	 * @param resourceManager - 资源管理器
 	 */
 	public updateSubState(world: World, resourceManager: ResourceManager): void {
-		error("not impl")
 
-		// // 获取类型化的资源类
-		// const ParentStateResource = getStateResource(this.parentType);
-		// const SubStateResource = getStateResource(this.subType);
-		// const NextSubStateResource = getNextStateResource(this.subType);
 
-		// // 获取父状态
-		// const parentState = resourceManager.getResource<ParentStateResource as any>() as State<TParent> | undefined;
-		// const parentValue = parentState?.get();
+		// 获取父状态
+		const parentState = resourceManager.getResourceByTypeDescriptor<State<TParent>>(this.parentType);
+		const parentValue = parentState?.get();
 
-		// // 获取当前子状态
-		// const subStateResource = resourceManager.getResource<SubStateResource as any>() as State<TSub> | undefined;
+		// 获取当前子状态
+		const subStateResource = resourceManager.getResourceByTypeDescriptor<State<TSub>>(this.subType);
 
-		// // 创建临时子状态实例来检查配置
-		// const tempSub = this.defaultSubState();
-		// const shouldExist = tempSub.shouldExist(parentValue);
+		// 创建临时子状态实例来检查配置
+		const tempSub = this.defaultSubState();
+		const shouldExist = tempSub.shouldExist(parentValue);
 
-		// if (!shouldExist) {
-		// 	// 如果不应该存在，移除子状态
-		// 	if (subStateResource) {
-		// 		resourceManager.removeResource(SubStateResource as any);
-		// 		// 同时清除 NextState
-		// 		const nextSubState = resourceManager.getResource<NextSubStateResource as any>() as NextState<TSub> | undefined;
-		// 		if (nextSubState) {
-		// 			nextSubState.reset();
-		// 		}
-		// 	}
-		// } else {
-		// 	// 如果应该存在但还不存在，创建默认子状态
-		// 	if (!subStateResource) {
-		// 		const defaultState = this.defaultSubState();
-		// 		const SubStateClass = SubStateResource as unknown as new (state: TSub) => State<TSub>;
-		// 		resourceManager.insertResource(new SubStateClass(defaultState));
-		// 	}
-		// }
+		if (!shouldExist) {
+			// 如果不应该存在，移除子状态
+			if (subStateResource) {
+				resourceManager.removeResourceByDescriptor(this.subType);
+				// 同时清除 NextState
+				const nextSubState = resourceManager.getResourceByTypeDescriptor< NextState<TSub>>(this.subType);
+				if (nextSubState) {
+					nextSubState.reset();
+				}
+			}
+		} else {
+			// 如果应该存在但还不存在，创建默认子状态
+			if (!subStateResource) {
+				const defaultState = this.defaultSubState();
+				resourceManager.insertResource(defaultState);
+			}
+		}
 	}
 
 	/**
@@ -180,37 +180,32 @@ export class SubStateManager<TParent extends States, TSub extends SubStates<TPar
 	 * @returns 是否发生了转换
 	 */
 	public processSubStateTransition(world: World, resourceManager: ResourceManager): boolean {
-		error("not impl")
 
-		// // 首先确保子状态在正确的父状态下
-		// this.updateSubState(world, resourceManager);
+		// 首先确保子状态在正确的父状态下
+		this.updateSubState(world, resourceManager);
 
-		// // 获取类型化的资源类
-		// const SubStateResource = getStateResource(this.subType);
-		// const NextSubStateResource = getNextStateResource(this.subType);
+		// 获取子状态资源
+		const subStateResource = resourceManager.getResourceByTypeDescriptor<State<TSub>>(this.subType);
+		if (!subStateResource) {
+			return false;
+		}
 
-		// // 获取子状态资源
-		// const subStateResource = resourceManager.getResource<SubStateResource as any>() as State<TSub> | undefined;
-		// if (!subStateResource) {
-		// 	return false;
-		// }
+		// 获取 NextState 资源
+		const nextSubStateResource = resourceManager.getResourceByTypeDescriptor<NextState<TSub>> (this.subType) 
+		if (!nextSubStateResource || !nextSubStateResource.isPending()) {
+			return false;
+		}
 
-		// // 获取 NextState 资源
-		// const nextSubStateResource = resourceManager.getResource<NextSubStateResource as any>() as NextState<TSub> | undefined;
-		// if (!nextSubStateResource || !nextSubStateResource.isPending()) {
-		// 	return false;
-		// }
+		// 取出待处理状态
+		const newSubState = nextSubStateResource.take();
+		if (!newSubState) {
+			return false;
+		}
 
-		// // 取出待处理状态
-		// const newSubState = nextSubStateResource.take();
-		// if (!newSubState) {
-		// 	return false;
-		// }
+		// 更新子状态
+		subStateResource._set(newSubState);
 
-		// // 更新子状态
-		// subStateResource._set(newSubState);
-
-		// return true;
+		return true;
 	}
 }
 
