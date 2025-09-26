@@ -85,6 +85,9 @@ pnpm install
 - 客户端和服务端代码需要使用RobloxEnvironment区分
 - 如果函数的参数类型为 `Modding.*`, 则说明调用该函数的行将被 transform, 所有的这种类型的参数都不用主动提供.
 
+## 审计
+- 审计报告保存在 `.audit/` 目录
+
 ## 单元测试
 
 - 编码后主动编译 `npm run build`, 然后运行单元测试
