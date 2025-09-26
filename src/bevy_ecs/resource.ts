@@ -43,8 +43,8 @@ export class ResourceManager {
 	/** 
 	 * 获取资源
 	 * 
-	 * @metadata macro 
 	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro 
 	 * 
 	 * */
 	public getResource<T extends defined>( id?: Modding.Generic<T, "id">, text?: Modding.Generic<T,"text">): T | undefined {
@@ -61,8 +61,8 @@ export class ResourceManager {
 	/** 
 	 * 获取资源，如果不存在则创建默认实例
 	 * 
-	 * @metadata macro 
 	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro 
 	 * 
 	 * @param resourceType 资源类构造函数
 	 * @param id 可选的类型ID（用于宏）
@@ -93,8 +93,8 @@ export class ResourceManager {
 	/**
 	 * 使用资源执行操作
 	 * 
-	 * @metadata macro
 	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
 	 * 
 	 * @param callback 操作回调
 	 * @param id 可选的类型ID（用于宏）
@@ -118,8 +118,8 @@ export class ResourceManager {
 	/**
 	 * 使用可变资源执行操作，自动重新插入修改后的资源
 	 * 
-	 * @metadata macro
 	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
 	 * 
 	 * @param callback 操作回调
 	 * @param id 可选的类型ID（用于宏）
@@ -146,8 +146,8 @@ export class ResourceManager {
 	/** 
 	 * 插入资源
 	 * 
-	 * @metadata macro
 	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
 	 * 
 	 * */
 	public insertResource<T>(resource:T, id?: Modding.Generic<T, "id">, text?: Modding.Generic<T,"text">) {
@@ -185,8 +185,8 @@ export class ResourceManager {
 	/**
 	 * 移除资源
 	 * 
-	 * @metadata macro
 	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
 	 * 
 	 * @returns 被移除的资源实例，如果不存在则返回undefined
 	 */
@@ -239,8 +239,9 @@ export class ResourceManager {
 
 	/**
 	 * 获取资源元数据
-	 * @metadata macro
+	 * 
 	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
 	 * 
 	 * @metadata macro 
 	 * @param resourceType 资源类型

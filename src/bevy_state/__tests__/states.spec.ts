@@ -4,6 +4,7 @@
 
 import { EnumStates, createStates } from "../states";
 
+
 export = () => {
 	describe("EnumStates", () => {
 		it("should create enum states correctly", () => {

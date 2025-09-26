@@ -37,8 +37,9 @@ export class AppContext extends ContextBase {
 	 * @param id - 资源ID
 	 * @param text - 资源描述
 	 * @returns 返回自身以支持链式调用
-	 * @metadata macro
+	 * 
 	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
 	 */
 	public insertResource<T>(resource: T, id?: Modding.Generic<T, "id">, text?: Modding.Generic<T, "text">): this {
 		this.resources.insertResource(resource, id, text);
@@ -53,8 +54,9 @@ export class AppContext extends ContextBase {
 	 * @param id - 资源ID
 	 * @param text - 资源描述
 	 * @returns 资源实例或undefined
-	 * @metadata macro
+	 * 
 	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
 	 */
 	public getResource<T extends defined>(id?: Modding.Generic<T, "id">, text?: Modding.Generic<T, "text">): T | undefined {
 		return this.resources.getResource<T>(id, text);

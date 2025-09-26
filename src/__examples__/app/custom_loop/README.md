@@ -44,11 +44,9 @@ function myRunner(app: App): AppExit {
 
 ### 资源系统
 
-使用 `@Resource` 装饰器定义资源类：
 
 ```typescript
-@Resource
-class Input implements Resource {
+class Input  {
     constructor(public value: string = "") {}
 }
 ```

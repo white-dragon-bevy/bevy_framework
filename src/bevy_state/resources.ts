@@ -17,8 +17,7 @@ export interface FreelyMutableState extends States {}
  * 对应 Rust State<S>
  */
 
-export class State<S extends States> implements Resource {
-	public readonly __brand = "Resource" as const;
+export class State<S extends States> {
 	// 添加类型名称属性以支持唯一资源ID
 	public static readonly typeName?: string;
 
@@ -219,14 +218,6 @@ export class NextState<S extends States> implements Resource {
 		return this.pendingState;
 	}
 
-	/**
-	 * 兼容性方法：检查是否有待处理状态（已弃用）
-	 * @deprecated 使用 isPending() 方法替代
-	 * @returns 是否有待处理状态
-	 */
-	public hasPending(): boolean {
-		return this.variant === NextStateVariant.Pending;
-	}
 
 }
 
