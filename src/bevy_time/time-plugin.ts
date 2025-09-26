@@ -167,7 +167,7 @@ export class TimePlugin extends BasePlugin {
 					version: "0.1.0",
 				},
 			},
-			"time.control": {
+			time_control: {
 				extension: {
 					pause() {
 						const resource = app.getResource<VirtualTimeResource>();
@@ -232,7 +232,7 @@ export class TimePlugin extends BasePlugin {
 					dependencies: ["time"],
 				},
 			},
-			"time.stats": {
+			time_stats: {
 				extension: {
 					getAverageFPS() {
 						return statsManager.getAverageFPS();

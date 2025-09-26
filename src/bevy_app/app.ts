@@ -340,10 +340,6 @@ export class App<T extends AppContext = AppContext> {
 		return this
 	}
 
-
-
-	
-
 	/** 
 	 * 获取资源
 	 * 

@@ -105,7 +105,7 @@ export interface DiagnosticsRendererExtension {
 declare module "../bevy_app/extensions" {
 	interface PluginExtensions {
 		diagnostics: DiagnosticsExtension;
-		"diagnostics.store": DiagnosticsStoreExtension;
-		"diagnostics.renderer": DiagnosticsRendererExtension;
+		diagnostics_store: DiagnosticsStoreExtension;
+		diagnostics_renderer: DiagnosticsRendererExtension;
 	}
 }

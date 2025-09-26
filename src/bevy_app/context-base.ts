@@ -22,6 +22,7 @@ interface ExtensionEntry {
 /**
  * App 上下文类
  * 提供插件扩展的注册、访问和管理功能
+ * 通过继承 PluginExtensions 实现类型安全的属性访问
  */
 export class ContextBase {
 	private readonly extensions = new Map<keyof PluginExtensions, ExtensionEntry>();
@@ -45,6 +46,10 @@ export class ContextBase {
 			extension,
 			metadata,
 		});
+
+		// 动态添加属性到实例上，实现直接属性访问
+		const obj = this as unknown as Record<string, unknown>;
+		obj[key as string] = extension;
 	}
 
 	/**
@@ -182,6 +187,11 @@ export class ContextBase {
 	 * 主要用于测试
 	 */
 	clear(): void {
+		// 清除动态添加的属性
+		for (const [key] of this.extensions) {
+			const obj = this as unknown as Record<string, unknown>;
+			delete obj[key as string];
+		}
 		this.extensions.clear();
 	}
 
@@ -212,3 +222,9 @@ export class ContextBase {
 		print("=============================");
 	}
 }
+
+/**
+ * 类型安全的 ContextBase 接口
+ * 合并基础类和插件扩展
+ */
+export interface ContextBase extends PluginExtensions {}

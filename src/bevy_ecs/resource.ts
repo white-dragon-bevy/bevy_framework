@@ -286,5 +286,11 @@ export class ResourceManager {
 		return this.resources.size();
 	}
 
-
+	/**
+	 * 清空所有资源
+	 */
+	public clearResources(): void {
+		this.resources.clear();
+		this.resourceMetadata.clear();
+	}
 }

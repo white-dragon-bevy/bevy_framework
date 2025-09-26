@@ -133,7 +133,7 @@ export interface TimeStatsExtension {
 declare module "../bevy_app/extensions" {
 	interface PluginExtensions {
 		time: TimeExtension;
-		"time.control": TimeControlExtension;
-		"time.stats": TimeStatsExtension;
+		time_control: TimeControlExtension;
+		time_stats: TimeStatsExtension;
 	}
 }

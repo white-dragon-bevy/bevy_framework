@@ -59,10 +59,10 @@ interface GameSaveExtension {
 declare module "../../../bevy_app/extensions" {
 	interface PluginExtensions {
 		storage: StorageExtension;
-		"storage.persistence": StoragePersistenceExtension;
-		"storage.analytics": StorageAnalyticsExtension;
+		storage_persistence: StoragePersistenceExtension;
+		storage_analytics: StorageAnalyticsExtension;
 		game: GameManagerExtension;
-		"gameExt.save": GameSaveExtension;
+		gameExt_save: GameSaveExtension;
 	}
 }
 
@@ -119,7 +119,7 @@ class StoragePlugin extends BasePlugin {
 		// 注册持久化扩展
 		this.registerExtension(
 			app,
-			"storage.persistence",
+			"storage_persistence",
 			{
 				save() {
 					print(`[Storage] Saving ${storage.size()} items...`);
@@ -145,7 +145,7 @@ class StoragePlugin extends BasePlugin {
 		// 注册分析扩展
 		this.registerExtension(
 			app,
-			"storage.analytics",
+			"storage_analytics",
 			{
 				getMostAccessed() {
 					let maxKey: string | undefined;
@@ -237,7 +237,7 @@ class GamePlugin extends BasePlugin {
 		// 注册游戏存档扩展
 		this.registerExtension(
 			app,
-			"gameExt.save",
+			"gameExt_save",
 			{
 				saveGame() {
 					// 使用存储扩展保存游戏状态
@@ -247,7 +247,7 @@ class GamePlugin extends BasePlugin {
 						storage.set("saveTime", os.clock());
 
 						// 如果有持久化扩展，触发保存
-						const persistence = app.context.tryGet("storage.persistence");
+						const persistence = app.context.tryGet("storage_persistence");
 						if (persistence) {
 							persistence.save();
 						}
@@ -320,7 +320,7 @@ function gamePlaySystem(world: World, context: Context): void {
 		gameExt.nextLevel();
 
 		// 升级时自动存档
-		const gameSave = context.tryGet("gameExt.save");
+		const gameSave = context.tryGet("gameExt_save");
 		if (gameSave) {
 			gameSave.saveGame();
 		}
@@ -332,11 +332,11 @@ function gamePlaySystem(world: World, context: Context): void {
  */
 function analyticsSystem(world: World, context: Context): void {
 	// 检查是否有分析扩展
-	if (!context.has("storage.analytics")) {
+	if (!context.has("storage_analytics")) {
 		return;
 	}
 
-	const analytics = context.get("storage.analytics");
+	const analytics = context.get("storage_analytics");
 	const totalAccesses = analytics.getTotalAccesses();
 
 	// 每20次访问输出一次统计
@@ -418,7 +418,7 @@ demonstrateNamespaces(app);
 print("=== Starting Game ===");
 
 // 检查是否有存档
-const gameSave = app.context.get("gameExt.save");
+const gameSave = app.context.get("gameExt_save");
 if (gameSave.hasSaveFile()) {
 	print("Found existing save file!");
 	gameSave.loadGame();

@@ -40,8 +40,6 @@ export class Schedule {
 		lastExecutionTime: 0,
 	};
 	private context?: Context;
-	private resourceManager?: import("../resource").ResourceManager;
-	private commandBuffer?: import("../command-buffer").CommandBuffer;
 
 	/**
 	 * 创建新的调度器
@@ -57,26 +55,8 @@ export class Schedule {
 	 */
 	public setContext(context: Context): void {
 		this.context = context;
-		// 从上下文获取资源管理器和命令缓冲器（如果扩展存在）
-		if (context.has("resources")) {
-			const resourceExt = context.resources;
-			// Store reference for backward compatibility
-			this.resourceManager = resourceExt as any;
-		}
 	}
 
-	/**
-	 * 设置依赖项 - 由 Schedules 调用（废弃，使用 setContext）
-	 * @param resourceManager - 资源管理器实例
-	 * @param commandBuffer - 命令缓冲器实例
-	 */
-	public setDependencies(
-		resourceManager: import("../resource").ResourceManager,
-		commandBuffer: import("../command-buffer").CommandBuffer,
-	): void {
-		this.resourceManager = resourceManager;
-		this.commandBuffer = commandBuffer;
-	}
 
 	/**
 	 * 获取调度器标识符

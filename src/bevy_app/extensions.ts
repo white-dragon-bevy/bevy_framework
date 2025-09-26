@@ -13,19 +13,19 @@
  * declare module "../bevy_app/extensions" {
  *     interface PluginExtensions {
  *         'diagnostics': DiagnosticsExtension;
- *         'diagnostics.store': DiagnosticsStoreExtension;
+ *         'diagnostics_store': DiagnosticsStoreExtension;
  *     }
  * }
  * ```
  */
 export interface PluginExtensions {
 	// 插件通过模块扩展来添加自己的接口
-	// 使用点号命名空间组织相关扩展
+	// 使用下划线命名空间组织相关扩展
 	// 例如:
 	// 'diagnostics': DiagnosticsExtension
-	// 'diagnostics.store': DiagnosticsStoreExtension
+	// 'diagnostics_store': DiagnosticsStoreExtension
 	// 'time': TimeExtension
-	// 'time.control': TimeControlExtension
+	// 'time_control': TimeControlExtension
 }
 
 /**

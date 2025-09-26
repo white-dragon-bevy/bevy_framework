@@ -81,7 +81,7 @@ export class DiagnosticsPlugin extends BasePlugin {
 		const renderer = new DiagnosticsRenderer(store);
 
 		// 插入资源
-		app.main().getResourceManager().insertResource( store);
+		app.insertResource( store);
 
 		// 注册扩展到 context
 		this.registerExtensions(app, {
@@ -120,7 +120,7 @@ export class DiagnosticsPlugin extends BasePlugin {
 					version: "0.1.0",
 				},
 			},
-			"diagnostics.store": {
+			diagnostics_store: {
 				extension: {
 					getStore() {
 						return store;
@@ -137,7 +137,7 @@ export class DiagnosticsPlugin extends BasePlugin {
 					dependencies: ["diagnostics"],
 				},
 			},
-			"diagnostics.renderer": {
+			diagnostics_renderer: {
 				extension: {
 					renderToConsole() {
 						renderer.renderToConsole();
@@ -154,7 +154,7 @@ export class DiagnosticsPlugin extends BasePlugin {
 				} satisfies DiagnosticsRendererExtension,
 				metadata: {
 					description: "Rendering utilities for diagnostic output",
-					dependencies: ["diagnostics", "diagnostics.store"],
+					dependencies: ["diagnostics", "diagnostics_store"],
 				},
 			},
 		});
