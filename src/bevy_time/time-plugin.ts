@@ -18,7 +18,7 @@ import {
 	TimeUpdateStrategyResource,
 } from "./time-resources";
 import { Context } from "../bevy_ecs";
-import type { TimeControlExtension, TimeExtension, TimeStatsExtension } from "./extensions";
+import type { TimeExtension } from "./extensions";
 
 
 
@@ -137,38 +137,43 @@ export class TimePlugin extends BasePlugin {
 			timeSystem(world, context, app, statsManager);
 		});
 
-		// 注册扩展到 context
+		// 注册统一的时间扩展
 		this.registerExtensions(app, {
 			time: {
 				extension: {
+					// 获取当前时间对象
+					getCurrent() {
+						const resource = app.getResource<GenericTimeResource>();
+						return resource ? resource.value : genericTime;
+					},
+
+					// 基本时间查询功能
 					getTime() {
 						const resource = app.getResource<GenericTimeResource>();
 						return resource ? resource.value : genericTime;
 					},
+
 					getElapsedSeconds() {
 						const resource = app.getResource<GenericTimeResource>();
 						return resource ? resource.value.getElapsedSecs() : 0;
 					},
+
 					getDeltaSeconds() {
 						const resource = app.getResource<GenericTimeResource>();
 						return resource ? resource.value.getDeltaSecs() : 0;
 					},
+
 					getElapsedMillis() {
 						const resource = app.getResource<GenericTimeResource>();
 						return resource ? resource.value.getElapsedSecs() * 1000 : 0;
 					},
+
 					getDeltaMillis() {
 						const resource = app.getResource<GenericTimeResource>();
 						return resource ? resource.value.getDeltaSecs() * 1000 : 0;
 					},
-				} satisfies TimeExtension,
-				metadata: {
-					description: "Core time API for accessing elapsed and delta time",
-					version: "0.1.0",
-				},
-			},
-			time_control: {
-				extension: {
+
+					// 时间控制功能
 					pause() {
 						const resource = app.getResource<VirtualTimeResource>();
 						if (resource) {
@@ -176,6 +181,7 @@ export class TimePlugin extends BasePlugin {
 							(vTime.getContext() as Virtual).paused = true;
 						}
 					},
+
 					resume() {
 						const resource = app.getResource<VirtualTimeResource>();
 						if (resource) {
@@ -183,10 +189,12 @@ export class TimePlugin extends BasePlugin {
 							(vTime.getContext() as Virtual).paused = false;
 						}
 					},
+
 					isPaused() {
 						const resource = app.getResource<VirtualTimeResource>();
 						return resource ? (resource.value.getContext() as Virtual).paused : false;
 					},
+
 					setTimeScale(scale: number) {
 						const resource = app.getResource<VirtualTimeResource>();
 						if (resource) {
@@ -195,16 +203,19 @@ export class TimePlugin extends BasePlugin {
 							(vTime.getContext() as Virtual).effectiveSpeed = scale;
 						}
 					},
+
 					getTimeScale() {
 						const resource = app.getResource<VirtualTimeResource>();
 						return resource ? (resource.value.getContext() as Virtual).relativeSpeed : 1.0;
 					},
+
 					advanceTime(seconds: number) {
 						const strategyResource = app.getResource<TimeUpdateStrategyResource>();
 						if (strategyResource) {
 							strategyResource.mockDelta = seconds;
 						}
 					},
+
 					reset() {
 						const realResource = app.getResource<RealTimeResource>();
 						const virtualResource = app.getResource<VirtualTimeResource>();
@@ -225,37 +236,39 @@ export class TimePlugin extends BasePlugin {
 						if (fixedResource) {
 							fixedResource.value = new TimeFixed();
 						}
+
+						// 重置统计
+						statsManager.reset();
 					},
-				} satisfies TimeControlExtension,
-				metadata: {
-					description: "Time control API for pausing, scaling and manipulating time",
-					dependencies: ["time"],
-				},
-			},
-			time_stats: {
-				extension: {
+
+					// 统计功能
 					getAverageFPS() {
 						return statsManager.getAverageFPS();
 					},
+
 					getInstantFPS() {
 						return statsManager.getInstantFPS();
 					},
+
 					getMinFrameTime() {
 						return statsManager.getMinFrameTime();
 					},
+
 					getMaxFrameTime() {
 						return statsManager.getMaxFrameTime();
 					},
+
 					getAverageFrameTime() {
 						return statsManager.getAverageFrameTime();
 					},
+
 					resetStats() {
 						statsManager.reset();
 					},
-				} satisfies TimeStatsExtension,
+				} satisfies TimeExtension,
 				metadata: {
-					description: "Time statistics API for FPS and frame time metrics",
-					dependencies: ["time"],
+					description: "Unified time system for elapsed time, delta time, control and statistics",
+					version: "0.1.0",
 				},
 			},
 		});

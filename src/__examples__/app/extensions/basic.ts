@@ -7,7 +7,9 @@ import { App, AppContext, BasePlugin, BuiltinSchedules } from "../../../bevy_app
 import { World } from "@rbxts/matter";
 import { Context } from "../../../bevy_ecs";
 
-// 定义扩展接口
+/**
+ * 计数器扩展接口
+ */
 interface CounterExtension {
 	increment(): void;
 	decrement(): void;
@@ -18,7 +20,7 @@ interface CounterExtension {
 // 声明到全局注册表
 declare module "../../../bevy_app/extensions" {
 	interface PluginExtensions {
-		counter: CounterExtension;
+		example_extensions_counter: CounterExtension;
 	}
 }
 
@@ -34,7 +36,7 @@ class CounterPlugin extends BasePlugin {
 		// 注册扩展
 		this.registerExtension(
 			app,
-			"counter",
+			"example_extensions_counter",
 			{
 				increment() {
 					counter++;
@@ -71,7 +73,7 @@ class CounterPlugin extends BasePlugin {
  */
 function counterSystem(world: World, context: Context): void {
 	// 获取计数器扩展
-	const counter = context.get("counter");
+	const counter = context.get("example_extensions_counter");
 
 	// 使用扩展功能
 	counter.increment();
@@ -88,13 +90,13 @@ function counterSystem(world: World, context: Context): void {
  */
 function safeAccessSystem(world: World, context: Context): void {
 	// 检查扩展是否存在
-	if (context.has("counter")) {
-		const counter = context.get("counter");
+	if (context.has("example_extensions_counter")) {
+		const counter = context.get("example_extensions_counter");
 		print(`Current counter value: ${counter.getValue()}`);
 	}
 
 	// 使用 tryGet 安全访问
-	const maybeCounter = app.context.tryGet("counter");
+	const maybeCounter = app.context.tryGet("example_extensions_counter");
 	if (maybeCounter !== undefined) {
 		// 扩展存在，可以安全使用
 		maybeCounter.decrement();

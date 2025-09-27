@@ -61,7 +61,7 @@ declare module "../../../bevy_app/extensions" {
 		storage: StorageExtension;
 		storage_persistence: StoragePersistenceExtension;
 		storage_analytics: StorageAnalyticsExtension;
-		game: GameManagerExtension;
+		example_extensions_game: GameManagerExtension;
 		gameExt_save: GameSaveExtension;
 	}
 }
@@ -200,7 +200,7 @@ class GamePlugin extends BasePlugin {
 		// 注册游戏管理扩展
 		this.registerExtension(
 			app,
-			"game",
+			"example_extensions_game",
 			{
 				getState() {
 					return { ...gameState }; // 返回副本
@@ -288,7 +288,7 @@ class GamePlugin extends BasePlugin {
 			} satisfies GameSaveExtension,
 			{
 				description: "Game save/load functionality",
-				dependencies: ["game", "storage"], // 依赖游戏和存储扩展
+				dependencies: ["example_extensions_game", "storage"], // 依赖游戏和存储扩展
 			},
 		);
 
@@ -304,7 +304,7 @@ class GamePlugin extends BasePlugin {
  * 游戏逻辑系统
  */
 function gamePlaySystem(world: World, context: Context): void {
-	const gameExt = context.get("game");
+	const gameExt = context.get("example_extensions_game");
 
 	// 如果游戏暂停则跳过
 	if (gameExt.getState().isPaused) {
@@ -374,7 +374,7 @@ function demonstrateNamespaces(app: App): void {
 		);
 	}
 
-	if (app.context.hasNamespace("game")) {
+	if (app.context.hasNamespace("example_extensions_game")) {
 		print("Game namespace found!");
 	}
 
@@ -432,14 +432,14 @@ for (let cycle = 1; cycle <= 5; cycle++) {
 
 	// 在第3个循环暂停游戏
 	if (cycle === 3) {
-		const gameExt = app.context.get("game");
+		const gameExt = app.context.get("example_extensions_game");
 		gameExt.pause();
 		print("Game paused for demonstration");
 	}
 
 	// 在第4个循环恢复游戏
 	if (cycle === 4) {
-		const gameExt = app.context.get("game");
+		const gameExt = app.context.get("example_extensions_game");
 		gameExt.resume();
 		print("Game resumed");
 	}
@@ -450,7 +450,7 @@ for (let cycle = 1; cycle <= 5; cycle++) {
 
 // 最终状态
 print("\n=== Final Game State ===");
-const gameExt = app.context.get("game");
+const gameExt = app.context.get("example_extensions_game");
 const finalState = gameExt.getState();
 print(`Score: ${finalState.score}`);
 print(`Level: ${finalState.level}`);
