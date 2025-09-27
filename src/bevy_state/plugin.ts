@@ -105,7 +105,7 @@ export class StatesPlugin<S extends States> implements Plugin {
 	 */
 	public static create<S extends States>(config: StatePluginConfig<S>,id?:Modding.Generic<S, "id">, text?: Modding.Generic<S,"text">): StatesPlugin<S>  {
 		let typeDescriptor = getTypeDescriptor(id,text)
-		assert(typeDescriptor)
+		assert(typeDescriptor, "Failed to get TypeDescriptor for StatesPlugin: type descriptor is required for plugin initialization")
 		const result = new StatesPlugin(config);
 		result._typeDescriptor = typeDescriptor
 		result.transitionManager = new StateTransitionManager<S>(result._typeDescriptor);
@@ -218,13 +218,8 @@ export class ComputedStatesPlugin<TSource extends States, TComputed extends Comp
 	 * @param app - 应用实例
 	 */
 	public build(app: App): void {
-		const world = app.getWorld();
-		// 尝试获取已存在的资源管理器，或创建新的
-		const worldWithRM = world as unknown as Record<string, unknown>;
-		this.resourceManager = (worldWithRM["stateResourceManager"] as ResourceManager) ?? new ResourceManager();
-		if (worldWithRM["stateResourceManager"] === undefined) {
-			worldWithRM["stateResourceManager"] = this.resourceManager;
-		}
+		// 使用 App 上下文中的资源管理器，确保所有插件共享同一实例
+		this.resourceManager = app.context.resources;
 
 		// 添加计算状态更新系统 - 在 StateTransition 调度中运行，紧跟在状态转换之后
 		app.addSystems(StateTransition as unknown as string, (worldParam: World) => {
@@ -315,8 +310,8 @@ export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TPar
 	): SubStatesPlugin<TParent , TSub>  {
 			const parentType = getTypeDescriptor(pid,ptext)
 			const subType = getTypeDescriptor(sid,stext)
-			assert(parentType)
-			assert(subType)
+			assert(parentType, "Failed to get TypeDescriptor for parent state: parent type descriptor is required for SubStatesPlugin")
+			assert(subType, "Failed to get TypeDescriptor for sub state: sub type descriptor is required for SubStatesPlugin")
 			const result = new SubStatesPlugin(parentType,subType,defaultSubState)
 			return result
 	}
@@ -326,13 +321,8 @@ export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TPar
 	 * @param app - 应用实例
 	 */
 	public build(app: App): void {
-		const world = app.getWorld();
-		// 尝试获取已存在的资源管理器，或创建新的
-		const worldWithRM = world as unknown as Record<string, unknown>;
-		this.resourceManager = (worldWithRM["stateResourceManager"] as ResourceManager) ?? new ResourceManager();
-		if (worldWithRM["stateResourceManager"] === undefined) {
-			worldWithRM["stateResourceManager"] = this.resourceManager;
-		}
+		// 使用 App 上下文中的资源管理器，确保所有插件共享同一实例
+		this.resourceManager = app.context.resources;
 
 		// 添加子状态管理系统
 		app.addSystems(StateTransition as unknown as string, (worldParam: World) => {

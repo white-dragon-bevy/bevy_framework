@@ -40,7 +40,6 @@ export function inState<S extends States>(
  * @returns 运行条件函数
  */
 export function stateExists<S extends States>(stateType: TypeDescriptor): RunCondition {
-	error('not impl')
 	return (world: World, resourceManager: ResourceManager): boolean => {
 		return resourceManager.hasResourceByDescriptor(stateType);
 	};
@@ -48,6 +47,10 @@ export function stateExists<S extends States>(stateType: TypeDescriptor): RunCon
 
 /**
  * 检查状态是否发生了变化
+ *
+ * **注意**: 此函数使用闭包来保持状态历史，应该在应用初始化时创建一次并复用，
+ * 而不是每帧重新创建。重复创建会导致内存增长和状态检测失效。
+ *
  * @param stateType - 状态类型
  * @returns 运行条件函数
  */
@@ -56,8 +59,6 @@ export function stateChanged<S extends States>(stateType: TypeDescriptor): RunCo
 	let hasInitialized = false;
 
 	return (world: World, resourceManager: ResourceManager): boolean => {
-		// 使用统一的资源键生成方式
-		const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
 		const stateResource = resourceManager.getResourceByTypeDescriptor<State<S>>(stateType);
 
 		if (!stateResource) {
@@ -85,6 +86,9 @@ export function stateChanged<S extends States>(stateType: TypeDescriptor): RunCo
 
 /**
  * 检查是否正在从特定状态退出
+ *
+ * **注意**: 此函数使用闭包来跟踪状态，应该在应用初始化时创建一次并复用。
+ *
  * @param stateType - 状态类型
  * @param exitingState - 正在退出的状态
  * @returns 运行条件函数
@@ -108,6 +112,9 @@ export function exitingState<S extends States>(
 
 /**
  * 检查是否正在进入特定状态
+ *
+ * **注意**: 此函数使用闭包来跟踪状态，应该在应用初始化时创建一次并复用。
+ *
  * @param stateType - 状态类型
  * @param enteringState - 正在进入的状态
  * @returns 运行条件函数
@@ -119,8 +126,6 @@ export function enteringState<S extends States>(
 	let wasInState = false;
 
 	return (world: World, resourceManager: ResourceManager): boolean => {
-		// 使用统一的资源键生成方式
-		const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
 		const stateResource = resourceManager.getResourceByTypeDescriptor<State<S>>(stateType);
 		const isInState = stateResource ? stateResource.is(enteringState) : false;
 

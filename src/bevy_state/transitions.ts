@@ -10,6 +10,7 @@ import { ResourceManager } from "../bevy_ecs/resource";
 import { States } from "./states";
 import { State, NextState, StateConstructor, getNextStateTypeDescriptor } from "./resources";
 import { TypeDescriptor } from "../bevy_core";
+import { cleanupOnStateExit, cleanupOnStateEnter } from "./state-scoped";
 
 /**
  * 状态转换调度标签
@@ -139,17 +140,6 @@ export class StateTransitionManager<S extends States> {
 	}
 
 	/**
-	 * 生成统一的资源键名
-	 * @param prefix - 资源前缀
-	 * @param stateType - 状态类型
-	 * @returns 资源键名
-	 */
-	private generateResourceKey(prefix: string, stateType: StateConstructor<S>): string {
-		const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
-		return `${prefix}<${stateTypeName}>`;
-	}
-
-	/**
 	 * 处理状态转换
 	 * @param world - 游戏世界
 	 * @param resourceManager - 资源管理器
@@ -210,6 +200,11 @@ export class StateTransitionManager<S extends States> {
 			this.runOnExitSchedule(world, exitedState, app);
 		}
 
+		// 1.5. 清理标记为在状态退出时清理的实体
+		if (exitedState) {
+			cleanupOnStateExit(world, exitedState);
+		}
+
 		// 2. 执行 OnTransition 调度（如果有上一个状态且有 app）
 		if (exitedState && app) {
 			this.runOnTransitionSchedule(world, exitedState, newState, app);
@@ -228,6 +223,9 @@ export class StateTransitionManager<S extends States> {
 		if (app) {
 			this.runOnEnterSchedule(world, newState, app);
 		}
+
+		// 4.5. 清理标记为在状态进入时清理的实体
+		cleanupOnStateEnter(world, newState);
 
 		// 5. 最后发送转换事件
 		const event = new StateTransitionEvent(exitedState, newState);
@@ -322,7 +320,8 @@ export class StateTransitionManager<S extends States> {
 				}
 			}
 		} catch (err) {
-			warn(`Failed to run schedule ${scheduleLabel}: ${err}`);
+			// 不要静默吞噬错误，应该重新抛出以便调试
+			error(`Failed to run schedule ${scheduleLabel}: ${err}`);
 		}
 	}
 }
@@ -354,7 +353,9 @@ export function lastTransition<S extends States>(
 		const managerKey = `stateTransitionManager_${tostring(stateType)}`;
 		const manager = worldWithManagers[managerKey] as StateTransitionManager<S> | undefined;
 		return manager?.getLastTransition();
-	} catch {
+	} catch (err) {
+		// 记录错误但返回 undefined，因为这不是致命错误
+		warn(`Failed to get last transition for state type: ${err}`);
 		return undefined;
 	}
 }

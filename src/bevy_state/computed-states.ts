@@ -64,12 +64,15 @@ export class SingleStateSet<S extends States> implements StateSet<S> {
 	 * @returns 当前状态或 undefined
 	 */
 	public getStates(resourceManager: ResourceManager): S | undefined {
-		error('not impl')
-		// // 使用统一的资源键生成方式
-		// const stateTypeName = (this.stateType as unknown as { name?: string }).name ?? tostring(this.stateType);
-		// const stateKey = `State<${stateTypeName}>` as ResourceConstructor<State<S>>;
-		// const stateResource = resourceManager.getResource<State<S>>();
-		// return stateResource?.get();
+		// TODO: 需要实现从 stateType 生成正确的 TypeDescriptor
+		// 当前依赖 Modding 宏系统，需要在宏转换后才能正确实现
+		// 临时保留 error 以避免运行时错误
+		error('SingleStateSet.getStates not implemented - requires Modding macro support');
+
+		// 未来实现思路：
+		// 1. 从 stateType 构造函数获取或生成 TypeDescriptor
+		// 2. 使用 resourceManager.getResourceByTypeDescriptor() 获取 State 资源
+		// 3. 返回 state.get() 的结果
 	}
 }
 
@@ -110,14 +113,16 @@ export class TupleStateSet<T extends ReadonlyArray<States>> implements StateSet<
 	 * @returns 状态元组或 undefined（如果任一状态不存在）
 	 */
 	public getStates(resourceManager: ResourceManager): T | undefined {
-		error("no impl")
-		// const states: Array<States> = [];
-		// for (const stateType of this.stateTypes) {
-		// 	// 使用统一的资源键生成方式
-		// 	const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
-		// 	const stateKey = `State<${stateTypeName}>` as ResourceConstructor<State<States>>;
-		// 	const stateResource = resourceManager.getResource<State<S>>();
-		// 	const state = stateResource?.get();
+		// TODO: 需要实现从 stateTypes 生成正确的 TypeDescriptor 数组
+		// 当前依赖 Modding 宏系统，需要在宏转换后才能正确实现
+		// 临时保留 error 以避免运行时错误
+		error("TupleStateSet.getStates not implemented - requires Modding macro support");
+
+		// 未来实现思路：
+		// 1. 遍历 stateTypes 数组
+		// 2. 对每个 stateType 生成对应的 TypeDescriptor
+		// 3. 使用 resourceManager.getResourceByTypeDescriptor() 获取各个 State 资源
+		// 4. 收集所有状态并返回为元组
 		// 	if (!state) {
 		// 		return undefined; // 如果任一状态不存在，返回 undefined
 		// 	}

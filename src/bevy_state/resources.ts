@@ -55,7 +55,7 @@ export class State<S extends States> {
 	 */
 	public static create<S extends States>(state: S,id?:Modding.Generic<S, "id">, text?: Modding.Generic<S,"text">): State<S> {
 		let typeDescriptor = getTypeDescriptor(id,text)
-		assert(typeDescriptor)
+		assert(typeDescriptor, "Failed to get TypeDescriptor for State: type descriptor is required for state creation")
 		const result = new State(state);
 		result._typeDescriptor = typeDescriptor
 		return result;
@@ -91,20 +91,24 @@ export class State<S extends States> {
 	 * @returns 状态资源副本
 	 */
 	public clone(): State<S> {
-		return new State(this.current.clone() as S);
+		const cloned = new State(this.current.clone() as S);
+		cloned._typeDescriptor = this._typeDescriptor;
+		return cloned;
 	}
 }
 
 
 
 /**
- * 获取或创建特定类型的State资源类
+ * @deprecated 此函数已弃用，请直接使用 State.create() 方法
  * @param stateType - 状态类型
  * @returns 特定类型的State资源类
  */
 export function getStateResource<S extends States>(stateType: StateConstructor<S> ): new (state: S) => State<S> {
-	error("notimpl")
-	// return StateResourceWrapper.getForType(stateType);
+	// 此函数已弃用，保留仅为向后兼容
+	// 直接使用 State.create() 替代
+	warn("getStateResource is deprecated, use State.create() instead");
+	return State as any;
 }
 
 /**
@@ -119,8 +123,8 @@ export enum NextStateVariant {
 
 /**
  * 创建 NextState 资源的类型描述符
- * @param typeDescriptor 
- * @returns 
+ * @param typeDescriptor - 状态的类型描述符
+ * @returns 新的 NextState 类型描述符
  */
 export function getNextStateTypeDescriptor(typeDescriptor:TypeDescriptor){
 	const clone = table.clone(typeDescriptor)
@@ -167,7 +171,7 @@ export class NextState<S extends States> {
 	 */
 	public static create<S extends States>(id?:Modding.Generic<S, "id">, text?: Modding.Generic<S,"text">): NextState<S> {
 		let typeDescriptor = getTypeDescriptor(id,text)
-		assert(typeDescriptor)
+		assert(typeDescriptor, "Failed to get TypeDescriptor for NextState: type descriptor is required for next state creation")
 		const result = new NextState<S>();
 		result._typeDescriptor = getNextStateTypeDescriptor(typeDescriptor)
 		return result;
