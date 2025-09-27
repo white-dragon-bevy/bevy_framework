@@ -469,8 +469,8 @@ export = (): void => {
 			expect(app.context.resources).to.be.ok();
 		});
 
-		it("应该支持事件系统", () => {
-			expect(app.context.events).to.be.ok();
+		it("应该支持消息系统", () => {
+			expect(app.context.messages).to.be.ok();
 		});
 
 		it("资源管理器应该在多次构建调用中保持一致", () => {

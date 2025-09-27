@@ -7,7 +7,7 @@ import { World } from "@rbxts/matter";
 import { ContextBase } from "./context-base";
 import { CommandBuffer } from "../bevy_ecs/command-buffer";
 import { Resource, ResourceManager } from "../bevy_ecs/resource";
-import { Event, EventConstructor, EventManager } from "../bevy_ecs";
+import { MessageRegistry } from "../bevy_ecs/message";
 import { Modding } from "@flamework/core";
 
 /**
@@ -17,15 +17,16 @@ import { Modding } from "@flamework/core";
 export class AppContext extends ContextBase {
 	resources: ResourceManager;
 	commands: CommandBuffer;
-	events: EventManager;
+	messages: MessageRegistry;
 	private world: World;
+
 
 	constructor(world: World) {
 		super();
 		this.world = world;
 		this.resources = new ResourceManager();
 		this.commands = new CommandBuffer();
-		this.events = new EventManager(this.world);
+		this.messages = new MessageRegistry(this.world);
 	}
 
 	/**

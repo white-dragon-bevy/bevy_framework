@@ -5,7 +5,7 @@
 
 import { World } from "@rbxts/matter";
 import type { ScheduleLabel } from "../bevy_ecs/schedule/types";
-import { Event, EventWriter, EventReader, EventManager, EventConstructor } from "../bevy_ecs/events";
+import { Message as Event, MessageWriter as EventWriter, MessageReader as EventReader, MessageRegistry as EventManager, MessageConstructor as EventConstructor } from "../bevy_ecs/message";
 import { ResourceManager } from "../bevy_ecs/resource";
 import { States } from "./states";
 import { State, NextState, StateConstructor, getNextStateTypeDescriptor } from "./resources";

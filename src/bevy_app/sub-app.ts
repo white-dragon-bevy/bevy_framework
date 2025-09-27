@@ -8,7 +8,7 @@ import { Plugin, PluginState } from "./plugin";
 import { WorldContainer, createWorldContainer, World, Context } from "../bevy_ecs";
 import { ResourceManager, Resource } from "../bevy_ecs/resource";
 import { CommandBuffer } from "../bevy_ecs/command-buffer";
-import { EventManager } from "../bevy_ecs/events";
+import { MessageRegistry } from "../bevy_ecs/message";
 import { MainScheduleOrder, FixedMainScheduleOrder, runMainSchedule, runFixedMainSchedule, BuiltinSchedules } from "./main-schedule";
 import { App } from "./app";
 import { Schedule } from "../bevy_ecs/schedule/schedule";
@@ -34,7 +34,7 @@ export class SubApp {
 	private schedules: Schedules;
 	private resourceManager: ResourceManager;
 	private commandBuffer: CommandBuffer;
-	private eventManager: EventManager;
+	private messageRegistry: MessageRegistry;
 	private pluginRegistry: Plugin[] = [];
 	private pluginNames = new Set<string>();
 	private pluginBuildDepth = 0;
@@ -58,7 +58,7 @@ export class SubApp {
 
 		this.resourceManager = this.context.resources;
 		this.commandBuffer = this.context.commands;
-		this.eventManager = this.context.events;
+		this.messageRegistry = this.context.messages;
 
 
 		this.schedules = new Schedules(this._world.getWorld(), this.context);
@@ -127,10 +127,17 @@ export class SubApp {
 	}
 
 	/**
-	 * 获取事件管理器
+	 * 获取消息注册表
 	 */
-	getEventManager(): EventManager {
-		return this.eventManager;
+	getMessageRegistry(): MessageRegistry {
+		return this.messageRegistry;
+	}
+
+	/**
+	 * 获取事件管理器（兼容性方法）
+	 */
+	getEventManager(): MessageRegistry {
+		return this.messageRegistry;
 	}
 
 	/**
@@ -206,7 +213,7 @@ export class SubApp {
 		this.commandBuffer.flush(this._world.getWorld());
 
 		// 清理事件
-		this.eventManager.cleanup();
+		this.messageRegistry.cleanup();
 	}
 
 	/**
@@ -221,7 +228,7 @@ export class SubApp {
 			// 执行命令缓冲
 			this.commandBuffer.flush(this._world.getWorld());
 			// 清理事件
-			this.eventManager.cleanup();
+			this.messageRegistry.cleanup();
 			// 清除内部跟踪器 - 对应 Rust: world.clear_trackers()
 			this._world.getWorld().clearTrackers();
 			return;
@@ -282,7 +289,7 @@ export class SubApp {
 		this.commandBuffer.flush(this._world.getWorld());
 
 		// 清理事件
-		this.eventManager.cleanup();
+		this.messageRegistry.cleanup();
 
 		// 清除内部跟踪器 - 对应 Rust: world.clear_trackers()
 		this._world.getWorld().clearTrackers();
@@ -326,7 +333,7 @@ export class SubApp {
 		this.commandBuffer.flush(this._world.getWorld());
 
 		// 清理事件
-		this.eventManager.cleanup();
+		this.messageRegistry.cleanup();
 
 		// 清除内部跟踪器
 		this._world.getWorld().clearTrackers();

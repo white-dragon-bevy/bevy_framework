@@ -15,7 +15,7 @@ import {
 } from "../transitions";
 import { State, NextState, StateConstructor } from "../resources";
 import { ResourceManager } from "../../bevy_ecs/resource";
-import { EventManager } from "../../bevy_ecs/events";
+import { MessageRegistry as EventManager } from "../../bevy_ecs/message";
 import { getTypeDescriptor } from "../../bevy_core";
 
 /**

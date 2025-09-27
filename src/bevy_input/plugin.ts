@@ -15,7 +15,7 @@ import { AccumulatedMouseMotion, AccumulatedMouseWheel, MouseButton, MousePositi
 import * as ResourceStorage from "./resource-storage";
 import { RobloxContext, isMatchRobloxContext } from "../utils/roblox-utils";
 import { RunService } from "@rbxts/services";
-import { EventWriter } from "../bevy_ecs/events";
+import { MessageWriter as EventWriter } from "../bevy_ecs/message";
 import { ButtonState, CursorMoved, MouseButtonInput, MouseMotion, MouseWheel } from "./mouse-events";
 
 /**

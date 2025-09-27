@@ -16,7 +16,7 @@ import type { Diagnostic, DiagnosticsStore } from "../bevy_diagnostic/diagnostic
 import { AppContext } from "./context";
 import { RunService } from "@rbxts/services";
 import { isMatchRobloxContext, RobloxContext } from "../utils/roblox-utils";
-import { EventReader, EventWriter } from "../bevy_ecs/events";
+import { MessageReader, MessageWriter } from "../bevy_ecs/message";
 
 /**
  * Bevy App主类
@@ -27,7 +27,7 @@ export class App<T extends AppContext = AppContext> {
 	private runner: (app: App) => AppExit;
 	private defaultErrorHandler?: ErrorHandler;
 	readonly context: AppContext;
-	private appExitEventReader?: EventReader<AppExit>;
+	private appExitEventReader?: MessageReader<AppExit>;
 
 	/**
 	 * @param context - 应用上下文, 如果未提供, 则使用默认上下文
@@ -70,8 +70,8 @@ export class App<T extends AppContext = AppContext> {
 		const mainApp = this.subApps.main();
 		mainApp.setUpdateSchedule(BuiltinSchedules.MAIN);
 
-		// 创建 AppExit 事件读取器
-		this.appExitEventReader = this.context.events.createReader(AppExit as never);
+		// 创建 AppExit 消息读取器
+		this.appExitEventReader = this.context.messages.createReader(AppExit);
 
 		// 添加基础调度
 		this.initializeDefaultSchedules();
@@ -498,7 +498,7 @@ export class App<T extends AppContext = AppContext> {
 	 * 对应 Rust App::exit
 	 */
 	exit(): void {
-		const writer = this.context.events.createWriter(AppExit as never);
+		const writer = this.context.messages.createWriter(AppExit as never);
 		writer.send(AppExit.success());
 	}
 
@@ -507,7 +507,7 @@ export class App<T extends AppContext = AppContext> {
 	 * 对应 Rust App::exit_with_code
 	 */
 	exitWithCode(code: number): void {
-		const writer = this.context.events.createWriter(AppExit as never);
+		const writer = this.context.messages.createWriter(AppExit as never);
 		writer.send(AppExit.error(code));
 	}
 

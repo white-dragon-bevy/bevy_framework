@@ -8,7 +8,7 @@ import { App } from "../bevy_app/app";
 import { Plugin } from "../bevy_app/plugin";
 import { BuiltinSchedules } from "../bevy_app/main-schedule";
 import { ResourceManager, } from "../bevy_ecs/resource";
-import { EventManager } from "../bevy_ecs/events";
+import { MessageRegistry as EventManager } from "../bevy_ecs/message";
 import { EnumStates, States } from "./states";
 import { NextState, StateConstructor, DefaultStateFn } from "./resources";
 import { StateTransition, StateTransitionManager } from "./transitions";
@@ -120,7 +120,7 @@ export class StatesPlugin<S extends States> implements Plugin {
 		const existingResourceManager = app.context.resources
 		this.resourceManager = existingResourceManager;
 
-		let existingEventManager = app.context.events;
+		let existingEventManager = app.context.messages;
 		this.eventManager = existingEventManager;
 
 		// 设置转换管理器的事件管理器

@@ -3,7 +3,7 @@
  * 对应 Rust Bevy 的鼠标事件
  */
 
-import type { Event } from "../bevy_ecs/events";
+import type { Message } from "../bevy_ecs/message";
 import { MouseButton } from "./mouse";
 
 /**
@@ -18,11 +18,11 @@ export enum ButtonState {
 }
 
 /**
- * 鼠标按钮输入事件
+ * 鼠标按钮输入消息
  * 对应 Rust Bevy 的 MouseButtonInput
  * 当鼠标按钮被按下或释放时触发
  */
-export class MouseButtonInput implements Event {
+export class MouseButtonInput implements Message {
 	/** 事件时间戳 */
 	readonly timestamp?: number;
 
@@ -38,11 +38,11 @@ export class MouseButtonInput implements Event {
 }
 
 /**
- * 鼠标移动事件
+ * 鼠标移动消息
  * 对应 Rust Bevy 的 MouseMotion
  * 报告鼠标的物理移动（原始、未过滤的移动）
  */
-export class MouseMotion implements Event {
+export class MouseMotion implements Message {
 	/** 事件时间戳 */
 	readonly timestamp?: number;
 
@@ -70,11 +70,11 @@ export enum MouseScrollUnit {
 }
 
 /**
- * 鼠标滚轮事件
+ * 鼠标滚轮消息
  * 对应 Rust Bevy 的 MouseWheel
  * 当鼠标滚轮滚动时触发
  */
-export class MouseWheel implements Event {
+export class MouseWheel implements Message {
 	/** 事件时间戳 */
 	readonly timestamp?: number;
 
@@ -93,15 +93,15 @@ export class MouseWheel implements Event {
 }
 
 /**
- * 光标移动事件
+ * 光标移动消息
  * 对应 Rust Bevy 的 CursorMoved（通常在 bevy_window 中）
  * 报告光标在窗口中的位置
  *
- * 注意：在 Roblox 中，这个事件与 MouseMotion 的区别是：
+ * 注意：在 Roblox 中，这个消息与 MouseMotion 的区别是：
  * - CursorMoved 提供绝对位置
  * - MouseMotion 提供相对移动增量
  */
-export class CursorMoved implements Event {
+export class CursorMoved implements Message {
 	/** 事件时间戳 */
 	readonly timestamp?: number;
 

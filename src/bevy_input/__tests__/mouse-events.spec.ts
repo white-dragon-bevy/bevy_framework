@@ -1,8 +1,8 @@
 /**
- * 鼠标事件系统测试
+ * 鼠标消息系统测试
  */
 
-import { EventManager } from "../../bevy_ecs/events";
+import { MessageRegistry } from "../../bevy_ecs/message";
 import { BevyWorld } from "../../bevy_ecs/bevy-world";
 import {
 	ButtonState,
@@ -15,21 +15,21 @@ import {
 
 export = () => {
 	let world: BevyWorld;
-	let eventManager: EventManager;
+	let messageRegistry: MessageRegistry;
 
 	beforeEach(() => {
 		world = new BevyWorld();
-		eventManager = new EventManager(world);
+		messageRegistry = new MessageRegistry(world);
 	});
 
 	afterEach(() => {
-		eventManager.cleanup();
+		messageRegistry.cleanup();
 	});
 
 	describe("MouseButtonInput", () => {
-		it("应该能够发送和接收鼠标按钮事件", () => {
-			const writer = eventManager.createWriter(MouseButtonInput);
-			const reader = eventManager.createReader(MouseButtonInput);
+		it("应该能够发送和接收鼠标按钮消息", () => {
+			const writer = messageRegistry.createWriter(MouseButtonInput);
+			const reader = messageRegistry.createReader(MouseButtonInput);
 
 			// 发送按下事件
 			const pressEvent = new MouseButtonInput(Enum.UserInputType.MouseButton1, ButtonState.Pressed);
@@ -55,9 +55,9 @@ export = () => {
 	});
 
 	describe("MouseMotion", () => {
-		it("应该能够发送和接收鼠标移动事件", () => {
-			const writer = eventManager.createWriter(MouseMotion);
-			const reader = eventManager.createReader(MouseMotion);
+		it("应该能够发送和接收鼠标移动消息", () => {
+			const writer = messageRegistry.createWriter(MouseMotion);
+			const reader = messageRegistry.createReader(MouseMotion);
 
 			// 发送移动事件
 			const motionEvent = new MouseMotion(10.5, -20.3);
@@ -78,9 +78,9 @@ export = () => {
 	});
 
 	describe("MouseWheel", () => {
-		it("应该能够发送和接收鼠标滚轮事件", () => {
-			const writer = eventManager.createWriter(MouseWheel);
-			const reader = eventManager.createReader(MouseWheel);
+		it("应该能够发送和接收鼠标滚轮消息", () => {
+			const writer = messageRegistry.createWriter(MouseWheel);
+			const reader = messageRegistry.createReader(MouseWheel);
 
 			// 发送滚轮事件
 			const wheelEvent = new MouseWheel(0, 3, MouseScrollUnit.Line);
@@ -112,9 +112,9 @@ export = () => {
 	});
 
 	describe("CursorMoved", () => {
-		it("应该能够发送和接收光标移动事件", () => {
-			const writer = eventManager.createWriter(CursorMoved);
-			const reader = eventManager.createReader(CursorMoved);
+		it("应该能够发送和接收光标移动消息", () => {
+			const writer = messageRegistry.createWriter(CursorMoved);
+			const reader = messageRegistry.createReader(CursorMoved);
 
 			// 发送光标移动事件
 			const position = new Vector2(100, 200);
@@ -148,10 +148,10 @@ export = () => {
 	});
 
 	describe("多个读取器", () => {
-		it("应该支持多个读取器独立读取事件", () => {
-			const writer = eventManager.createWriter(MouseMotion);
-			const reader1 = eventManager.createReader(MouseMotion);
-			const reader2 = eventManager.createReader(MouseMotion);
+		it("应该支持多个读取器独立读取消息", () => {
+			const writer = messageRegistry.createWriter(MouseMotion);
+			const reader1 = messageRegistry.createReader(MouseMotion);
+			const reader2 = messageRegistry.createReader(MouseMotion);
 
 			// 发送第一个事件
 			writer.send(new MouseMotion(1, 1));
