@@ -32,7 +32,7 @@ export {
 
 export {
 	StateTransition,
-	StateTransitionEvent,
+	StateTransitionMessage as StateTransitionEvent,
 	OnEnter,
 	OnExit,
 	OnTransition,

@@ -6,7 +6,7 @@
 import { Modding } from "@flamework/core";
 import { Resource } from "../../src/bevy_ecs/resource";
 import { States } from "./states";
-import { getTypeDescriptor, TypeDescriptor } from "../bevy_core";
+import { getGenericTypeDescriptor, getTypeDescriptor, TypeDescriptor } from "../bevy_core";
 
 /**
  * 标记可以自由变更的状态
@@ -33,15 +33,7 @@ export class State<S extends States> {
 	/**
 	 * 类型描述, 在 create() 时候添加.
 	 */
-	private _typeDescriptor:TypeDescriptor = undefined as unknown as TypeDescriptor
-
-	/**
-	 * 获取类型描述
-	 * @returns TypeDescriptor
-	 */
-	public getTypeDescriptor():TypeDescriptor{
-		return this._typeDescriptor
-	}
+	public typeDescriptor:TypeDescriptor = undefined as unknown as TypeDescriptor
 
 
 	/**
@@ -54,10 +46,10 @@ export class State<S extends States> {
 	 * @returns State 资源实例
 	 */
 	public static create<S extends States>(state: S,id?:Modding.Generic<S, "id">, text?: Modding.Generic<S,"text">): State<S> {
-		let typeDescriptor = getTypeDescriptor(id,text)
-		assert(typeDescriptor)
+		const typeDescriptor = getTypeDescriptor(id,text)
+		assert(typeDescriptor, "Failed to get TypeDescriptor for State: type descriptor is required for state creation")
 		const result = new State(state);
-		result._typeDescriptor = typeDescriptor
+		result.typeDescriptor = typeDescriptor
 		return result;
 	}
 
@@ -91,21 +83,13 @@ export class State<S extends States> {
 	 * @returns 状态资源副本
 	 */
 	public clone(): State<S> {
-		return new State(this.current.clone() as S);
+		const cloned = new State(this.current.clone() as S);
+		cloned.typeDescriptor = this.typeDescriptor;
+		return cloned;
 	}
 }
 
 
-
-/**
- * 获取或创建特定类型的State资源类
- * @param stateType - 状态类型
- * @returns 特定类型的State资源类
- */
-export function getStateResource<S extends States>(stateType: StateConstructor<S> ): new (state: S) => State<S> {
-	error("notimpl")
-	// return StateResourceWrapper.getForType(stateType);
-}
 
 /**
  * NextState 枚举变体标识
@@ -117,16 +101,7 @@ export enum NextStateVariant {
 }
 
 
-/**
- * 创建 NextState 资源的类型描述符
- * @param typeDescriptor 
- * @returns 
- */
-export function getNextStateTypeDescriptor(typeDescriptor:TypeDescriptor){
-	const clone = table.clone(typeDescriptor)
-	clone.text += "+ SubState"
-	return clone
-}
+
 
 /**
  * NextState 资源 - 待处理的下一个状态
@@ -147,15 +122,9 @@ export class NextState<S extends States> {
 	/**
 	 * 类型描述, 在 create() 时候添加.
 	 */
-	private _typeDescriptor:TypeDescriptor = undefined as unknown as TypeDescriptor
+	public typeDescriptor:TypeDescriptor = undefined as unknown as TypeDescriptor
 
-	/**
-	 * 获取类型描述
-	 * @returns TypeDescriptor
-	 */
-	public getTypeDescriptor():TypeDescriptor{
-		return this._typeDescriptor
-	}
+
 
 
 	/**
@@ -167,9 +136,9 @@ export class NextState<S extends States> {
 	 */
 	public static create<S extends States>(id?:Modding.Generic<S, "id">, text?: Modding.Generic<S,"text">): NextState<S> {
 		let typeDescriptor = getTypeDescriptor(id,text)
-		assert(typeDescriptor)
+		assert(typeDescriptor, "Failed to get TypeDescriptor for NextState: type descriptor is required for next state creation")
 		const result = new NextState<S>();
-		result._typeDescriptor = getNextStateTypeDescriptor(typeDescriptor)
+		result.typeDescriptor = getGenericTypeDescriptor<NextState<S>>(typeDescriptor)
 		return result;
 	}
 

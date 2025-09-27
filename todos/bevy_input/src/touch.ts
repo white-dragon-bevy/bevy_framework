@@ -300,7 +300,7 @@ export function touchScreenInputSystem(world: World): void {
 	touches.clear();
 
 	// 处理触摸输入事件
-	const reader = eventManager.createReader(TouchInput);
+	const reader = eventManager.createReader<TouchInput>();
 	const events = reader.read();
 
 	for (const event of events) {

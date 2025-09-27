@@ -15,6 +15,9 @@
 					"@rbxts": {
 						"$path": "node_modules/@rbxts"
 					},
+					"@flamework": {
+						"$path": "node_modules/@flamework"
+					},
 					"@white-dragon-bevy": {
 						"$className":"Folder",
 						"bevy-framework":{

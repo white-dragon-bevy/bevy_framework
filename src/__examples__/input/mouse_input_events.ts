@@ -8,7 +8,7 @@
 import { App } from "../../bevy_app";
 import { MainScheduleLabel } from "../../bevy_app";
 import { DefaultPlugins } from "../../bevy_internal";
-import { EventReader } from "../../bevy_ecs/events";
+import { MessageReader as EventReader } from "../../bevy_ecs/message";
 import { CursorMoved, MouseButtonInput, MouseMotion, MouseWheel } from "../../bevy_input";
 import type { World } from "@rbxts/matter";
 
@@ -47,10 +47,10 @@ class MouseEventReadersPlugin {
 
 		// 创建并存储读取器
 		this.readers = {
-			buttonReader: eventManager.createReader(MouseButtonInput),
-			motionReader: eventManager.createReader(MouseMotion),
-			cursorReader: eventManager.createReader(CursorMoved),
-			wheelReader: eventManager.createReader(MouseWheel),
+			buttonReader: eventManager.createReader<MouseButtonInput>(),
+			motionReader: eventManager.createReader<MouseMotion>(),
+			cursorReader: eventManager.createReader<CursorMoved>(),
+			wheelReader: eventManager.createReader<MouseWheel>(),
 		};
 
 		// 添加事件打印系统

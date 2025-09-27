@@ -34,13 +34,13 @@ export function updateTransformFromRVO(world: BevyWorld, context: Context): void
 
 	const simulator = simulatorResource.simulator;
 
-	// 获取事件写入器 (暂时注释，需要修复 EventWriter)
-	// const collisionEventWriter = context.getEventWriter<CollisionAvoidanceEvent>();
-	// const goalEventWriter = context.getEventWriter<GoalReachedEvent>();
-	// const velocityEventWriter = context.getEventWriter<VelocityChangedEvent>();
-	const collisionEventWriter = undefined as EventWriter<CollisionAvoidanceEvent> | undefined;
-	const goalEventWriter = undefined as EventWriter<GoalReachedEvent> | undefined;
-	const velocityEventWriter = undefined as EventWriter<VelocityChangedEvent> | undefined;
+	// 获取消息写入器 (暂时注释，需要修复 MessageWriter)
+	// const collisionMessageWriter = context.getMessageWriter<CollisionAvoidanceEvent>();
+	// const goalMessageWriter = context.getMessageWriter<GoalReachedEvent>();
+	// const velocityMessageWriter = context.getMessageWriter<VelocityChangedEvent>();
+	const collisionMessageWriter = undefined as MessageWriter<CollisionAvoidanceEvent> | undefined;
+	const goalMessageWriter = undefined as MessageWriter<GoalReachedEvent> | undefined;
+	const velocityMessageWriter = undefined as MessageWriter<VelocityChangedEvent> | undefined;
 
 	// 查询所有带 RVOAgent 和 Transform 的实体
 	for (const [entity, agent, transform] of world.query(RVOAgent, Transform)) {
@@ -84,9 +84,9 @@ export function updateTransformFromRVO(world: BevyWorld, context: Context): void
 		// 检查速度变化
 		if (agent.currentVelocity) {
 			if (hasSignificantVelocityChange(agent.currentVelocity, newVelocity, 0.1)) {
-				// 发送速度变化事件
-				if (velocityEventWriter) {
-					velocityEventWriter.send(createVelocityChangedEvent(entity, agent.currentVelocity, newVelocity));
+				// 发送速度变化消息
+				if (velocityMessageWriter) {
+					velocityMessageWriter.send(createVelocityChangedEvent(entity, agent.currentVelocity, newVelocity));
 				}
 
 				// 检查是否正在避碰
@@ -94,8 +94,8 @@ export function updateTransformFromRVO(world: BevyWorld, context: Context): void
 				if (!velocitiesEqual(newVelocity, prefVelocity, 0.1)) {
 					// 速度与首选速度不同，说明正在避碰
 					const avoidedEntities = getAvoidedEntities(simAgent, simulatorResource);
-					if (collisionEventWriter && avoidedEntities.size() > 0) {
-						collisionEventWriter.send(
+					if (collisionMessageWriter && avoidedEntities.size() > 0) {
+						collisionMessageWriter.send(
 							createCollisionAvoidanceEvent(entity, avoidedEntities, prefVelocity, newVelocity),
 						);
 					}
@@ -106,9 +106,9 @@ export function updateTransformFromRVO(world: BevyWorld, context: Context): void
 		// 检查是否到达目标
 		if (agent.goalPosition) {
 			if (hasReachedGoal(agent, newPosition, 0.5)) {
-				// 发送目标到达事件
-				if (goalEventWriter) {
-					goalEventWriter.send(createGoalReachedEvent(entity, agent.goalPosition, newPosition, newVelocity));
+				// 发送目标到达消息
+				if (goalMessageWriter) {
+					goalMessageWriter.send(createGoalReachedEvent(entity, agent.goalPosition, newPosition, newVelocity));
 				}
 
 				// 清除目标

@@ -15,7 +15,7 @@ import { AccumulatedMouseMotion, AccumulatedMouseWheel, MouseButton, MousePositi
 import * as ResourceStorage from "./resource-storage";
 import { RobloxContext, isMatchRobloxContext } from "../utils/roblox-utils";
 import { RunService } from "@rbxts/services";
-import { EventWriter } from "../bevy_ecs/events";
+import { MessageWriter as EventWriter } from "../bevy_ecs/message";
 import { ButtonState, CursorMoved, MouseButtonInput, MouseMotion, MouseWheel } from "./mouse-events";
 
 /**
@@ -67,10 +67,10 @@ export class InputPlugin implements Plugin {
 
 		// 获取事件管理器并创建事件写入器
 		const eventManager = app.main().getEventManager();
-		const mouseButtonWriter = eventManager.createWriter(MouseButtonInput);
-		const mouseMotionWriter = eventManager.createWriter(MouseMotion);
-		const mouseWheelWriter = eventManager.createWriter(MouseWheel);
-		const cursorMovedWriter = eventManager.createWriter(CursorMoved);
+		const mouseButtonWriter = eventManager.createWriter<MouseButtonInput>();
+		const mouseMotionWriter = eventManager.createWriter<MouseMotion>();
+		const mouseWheelWriter = eventManager.createWriter<MouseWheel>();
+		const cursorMovedWriter = eventManager.createWriter<CursorMoved>();
 
 		// 添加调试日志
 		print("[InputPlugin] Initializing input handlers on", RunService.IsClient() ? "CLIENT" : "SERVER");

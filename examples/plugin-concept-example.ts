@@ -159,7 +159,7 @@ class AudioPlugin implements Plugin {
 	static audioPlaybackSystem(world: World, context: Context): void {
 		const config = context.resources.getResource<AudioConfig>();
 		const assets = context.resources.getResource<AudioAssets>();
-		const eventReader = context.events.createReader(PlaySoundEvent);
+		const eventReader = context.events.createReader<PlaySoundEvent>();
 
 		if (!config || !assets) return;
 

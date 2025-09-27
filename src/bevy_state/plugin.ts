@@ -8,14 +8,14 @@ import { App } from "../bevy_app/app";
 import { Plugin } from "../bevy_app/plugin";
 import { BuiltinSchedules } from "../bevy_app/main-schedule";
 import { ResourceManager, } from "../bevy_ecs/resource";
-import { EventManager } from "../bevy_ecs/events";
 import { EnumStates, States } from "./states";
 import { NextState, StateConstructor, DefaultStateFn } from "./resources";
 import { StateTransition, StateTransitionManager } from "./transitions";
 import { ComputedStates, ComputedStateManager } from "./computed-states";
 import { SubStates, SubStateManager } from "./sub-states";
 import { Modding } from "@flamework/core";
-import { getTypeDescriptor, TypeDescriptor } from "../bevy_core";
+import { getGenericTypeDescriptor, getTypeDescriptor, TypeDescriptor } from "../bevy_core";
+import { MessageRegistry } from "../bevy_ecs";
 
 /**
  * 状态转换系统集合
@@ -35,16 +35,6 @@ export enum StateTransitionSystems {
 	EnterSchedules = "EnterSchedules",
 }
 
-/**
- * 生成统一的资源键名
- * @param prefix - 资源前缀
- * @param stateType - 状态类型
- * @returns 资源键名
- */
-function generateResourceKey<T extends States>(prefix: string, stateType: StateConstructor<T>): string {
-	const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
-	return `${prefix}<${stateTypeName}>`;
-}
 
 /**
  * 状态插件配置
@@ -70,7 +60,7 @@ export class StatesPlugin<S extends States> implements Plugin {
 	private config: StatePluginConfig<S>;
 	private transitionManager: StateTransitionManager<S> = undefined as unknown as StateTransitionManager<S> ;
 	private resourceManager?: ResourceManager;
-	private eventManager?: EventManager;
+	private messageRegistry?: MessageRegistry;
 
 	/**
 	 * 私有构造函数 (公开调用 create())
@@ -84,15 +74,8 @@ export class StatesPlugin<S extends States> implements Plugin {
 	/**
 	 * 类型描述, 在 create() 时候添加.
 	 */
-	private _typeDescriptor:TypeDescriptor = undefined as unknown as TypeDescriptor
+	public statsTypeDescriptor:TypeDescriptor = undefined as unknown as TypeDescriptor
 
-	/**
-	 * 获取类型描述
-	 * @returns TypeDescriptor
-	 */
-	public getTypeDescriptor():TypeDescriptor{
-		return this._typeDescriptor
-	}
 
 	/**
 	 * 创建新的状态资源
@@ -105,10 +88,9 @@ export class StatesPlugin<S extends States> implements Plugin {
 	 */
 	public static create<S extends States>(config: StatePluginConfig<S>,id?:Modding.Generic<S, "id">, text?: Modding.Generic<S,"text">): StatesPlugin<S>  {
 		let typeDescriptor = getTypeDescriptor(id,text)
-		assert(typeDescriptor)
+		assert(typeDescriptor, "Failed to get TypeDescriptor for StatesPlugin: type descriptor is required for plugin initialization")
 		const result = new StatesPlugin(config);
-		result._typeDescriptor = typeDescriptor
-		result.transitionManager = new StateTransitionManager<S>(result._typeDescriptor);
+		result.statsTypeDescriptor = typeDescriptor
 		return result;
 	}
 
@@ -120,11 +102,15 @@ export class StatesPlugin<S extends States> implements Plugin {
 		const existingResourceManager = app.context.resources
 		this.resourceManager = existingResourceManager;
 
-		let existingEventManager = app.context.events;
-		this.eventManager = existingEventManager;
+		let existingEventManager = app.context.messages;
+		this.messageRegistry = existingEventManager;
 
 		// 设置转换管理器的事件管理器
-		this.transitionManager.setEventManager(this.eventManager);
+		this.transitionManager = StateTransitionManager.create(this.statsTypeDescriptor,this.messageRegistry);
+
+		// add to resources
+		const stateTransitionManagerTypeDescriptor = getGenericTypeDescriptor<StateTransitionManager<S>>(this.statsTypeDescriptor)
+		app.context.resources.insertResourceByTypeDescriptor(this.transitionManager,stateTransitionManagerTypeDescriptor)
 
 		// 注册 StateTransition 调度到主调度顺序（在 PRE_UPDATE 之后，UPDATE 之前）
 		const mainSubApp = app.main();
@@ -139,7 +125,7 @@ export class StatesPlugin<S extends States> implements Plugin {
 			const defaultState = this.config.defaultState();
 			// 初始状态设置为 pending，让转换管理器处理
 			const nextState = NextState.withPending(defaultState)
-			this.resourceManager.insertResourceByTypeDescriptor(nextState,nextState.getTypeDescriptor());
+			this.resourceManager.insertResourceByTypeDescriptor(nextState,nextState.typeDescriptor);
 		}
 
 		// 只在 StateTransition 调度中添加状态转换系统
@@ -159,8 +145,8 @@ export class StatesPlugin<S extends States> implements Plugin {
 
 		// 在 POST_UPDATE 中清理事件系统
 		app.addSystems(BuiltinSchedules.POST_UPDATE, (worldParam: World) => {
-			if (this.eventManager) {
-				this.eventManager.cleanup();
+			if (this.messageRegistry) {
+				this.messageRegistry.cleanup();
 			}
 		});
 	}
@@ -180,7 +166,7 @@ export class StatesPlugin<S extends States> implements Plugin {
 	 * @returns 插件名称
 	 */
 	public name(): string {
-		return this._typeDescriptor.text
+		return this.statsTypeDescriptor.text
 	}
 
 	/**
@@ -218,13 +204,8 @@ export class ComputedStatesPlugin<TSource extends States, TComputed extends Comp
 	 * @param app - 应用实例
 	 */
 	public build(app: App): void {
-		const world = app.getWorld();
-		// 尝试获取已存在的资源管理器，或创建新的
-		const worldWithRM = world as unknown as Record<string, unknown>;
-		this.resourceManager = (worldWithRM["stateResourceManager"] as ResourceManager) ?? new ResourceManager();
-		if (worldWithRM["stateResourceManager"] === undefined) {
-			worldWithRM["stateResourceManager"] = this.resourceManager;
-		}
+		// 使用 App 上下文中的资源管理器，确保所有插件共享同一实例
+		this.resourceManager = app.context.resources;
 
 		// 添加计算状态更新系统 - 在 StateTransition 调度中运行，紧跟在状态转换之后
 		app.addSystems(StateTransition as unknown as string, (worldParam: World) => {
@@ -270,7 +251,7 @@ export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TPar
 	 * @param subType - 子状态类型
 	 * @param defaultSubState - 默认子状态
 	 */
-	public constructor(
+	private constructor(
 		parentType: TypeDescriptor,
 		subType: TypeDescriptor,
 		defaultSubState: () => TSub,
@@ -315,8 +296,8 @@ export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TPar
 	): SubStatesPlugin<TParent , TSub>  {
 			const parentType = getTypeDescriptor(pid,ptext)
 			const subType = getTypeDescriptor(sid,stext)
-			assert(parentType)
-			assert(subType)
+			assert(parentType, "Failed to get TypeDescriptor for parent state: parent type descriptor is required for SubStatesPlugin")
+			assert(subType, "Failed to get TypeDescriptor for sub state: sub type descriptor is required for SubStatesPlugin")
 			const result = new SubStatesPlugin(parentType,subType,defaultSubState)
 			return result
 	}
@@ -326,13 +307,8 @@ export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TPar
 	 * @param app - 应用实例
 	 */
 	public build(app: App): void {
-		const world = app.getWorld();
-		// 尝试获取已存在的资源管理器，或创建新的
-		const worldWithRM = world as unknown as Record<string, unknown>;
-		this.resourceManager = (worldWithRM["stateResourceManager"] as ResourceManager) ?? new ResourceManager();
-		if (worldWithRM["stateResourceManager"] === undefined) {
-			worldWithRM["stateResourceManager"] = this.resourceManager;
-		}
+		// 使用 App 上下文中的资源管理器，确保所有插件共享同一实例
+		this.resourceManager = app.context.resources;
 
 		// 添加子状态管理系统
 		app.addSystems(StateTransition as unknown as string, (worldParam: World) => {

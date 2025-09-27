@@ -5,11 +5,13 @@
 
 import { World } from "@rbxts/matter";
 import type { ScheduleLabel } from "../bevy_ecs/schedule/types";
-import { Event, EventWriter, EventReader, EventManager, EventConstructor } from "../bevy_ecs/events";
+import { Message , MessageWriter , MessageReader,  MessageConstructor , MessageRegistry } from "../bevy_ecs/message";
 import { ResourceManager } from "../bevy_ecs/resource";
 import { States } from "./states";
-import { State, NextState, StateConstructor, getNextStateTypeDescriptor } from "./resources";
-import { TypeDescriptor } from "../bevy_core";
+import { State, NextState, StateConstructor } from "./resources";
+import { getGenericTypeDescriptor, getTypeDescriptor, TypeDescriptor } from "../bevy_core";
+import { cleanupOnStateExit, cleanupOnStateEnter } from "./state-scoped";
+import { Modding } from "@flamework/core";
 
 /**
  * 状态转换调度标签
@@ -20,7 +22,7 @@ export const StateTransition: ScheduleLabel = "StateTransition";
  * 状态转换事件
  * 对应 Rust StateTransitionEvent<S>
  */
-export class StateTransitionEvent<S extends States> implements Event {
+export class StateTransitionMessage<S extends States> implements Message {
 	public readonly timestamp?: number;
 
 	/**
@@ -28,17 +30,36 @@ export class StateTransitionEvent<S extends States> implements Event {
 	 * @param exited - 退出的状态（可选）
 	 * @param entered - 进入的状态（可选）
 	 */
-	public constructor(
+	private constructor(
 		public readonly exited?: S,
 		public readonly entered?: S,
 	) {}
 
 	/**
+	 * 
+	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
+	 * 
+	 * @param exited - 退出的状态（可选）
+	 * @param entered - 进入的状态（可选）
+	 * @returns - 状态转换事件
+	 */
+	public static create<S extends States>(
+		exited?: S, entered?: S,
+		id?: Modding.Generic<S, "id">,
+		text?: Modding.Generic<S, "text">,
+	): StateTransitionMessage<S> {
+		const typeDescriptor = getTypeDescriptor(id,text)
+		assert(typeDescriptor, "Failed to get TypeDescriptor for StateTransitionMessage: type descriptor is required for state transition message creation")
+		return new StateTransitionMessage(exited, entered);
+	}
+
+	/**
 	 * 克隆事件
 	 * @returns 克隆的事件实例
 	 */
-	public clone(): StateTransitionEvent<S> {
-		return new StateTransitionEvent(
+	public clone(): StateTransitionMessage<S> {
+		return new StateTransitionMessage(
 			this.exited?.clone() as S,
 			this.entered?.clone() as S,
 		);
@@ -121,32 +142,33 @@ export const TransitionSchedules = "TransitionSchedules";
  */
 export class StateTransitionManager<S extends States> {
 	private typeDescriptor: TypeDescriptor;
-	private eventWriter?: EventWriter<StateTransitionEvent<S>>;
-	private lastTransitionEvent?: StateTransitionEvent<S>;
-	private eventManager?: EventManager;
+	private eventWriter?: MessageWriter<StateTransitionMessage<S>>;
+	private lastTransitionEvent?: StateTransitionMessage<S>;
+	private messageRegistry: MessageRegistry;
 
 	/**
 	 * 构造函数
 	 * @param stateType - 状态类型构造函数
-	 * @param eventManager - 事件管理器（可选）
+	 * @param messageRegistry - 事件管理器（可选）
 	 */
-	public constructor(typeDescriptor:TypeDescriptor, eventManager?: EventManager) {
+	private constructor(typeDescriptor:TypeDescriptor, messageRegistry: MessageRegistry) {
 		this.typeDescriptor = typeDescriptor;
-		this.eventManager = eventManager;
-		if (eventManager) {
-			this.eventWriter = eventManager.createWriter(StateTransitionEvent as EventConstructor<StateTransitionEvent<S>>);
-		}
+		this.messageRegistry = messageRegistry;
+		this.eventWriter = this.messageRegistry.createWriter<StateTransitionMessage<S>>();
 	}
 
 	/**
-	 * 生成统一的资源键名
-	 * @param prefix - 资源前缀
-	 * @param stateType - 状态类型
-	 * @returns 资源键名
+	 * 创建状态转换管理器
+	 * 
+	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
+	 * 
+	 * @param typeDescriptor - 类型描述
+	 * @param messageRegistry - 事件管理器
+	 * @returns - 状态转换管理器
 	 */
-	private generateResourceKey(prefix: string, stateType: StateConstructor<S>): string {
-		const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
-		return `${prefix}<${stateTypeName}>`;
+	public static create<S extends States>(typeDescriptor:TypeDescriptor, messageRegistry: MessageRegistry): StateTransitionManager<S> {
+		return new StateTransitionManager(typeDescriptor, messageRegistry);
 	}
 
 	/**
@@ -158,7 +180,8 @@ export class StateTransitionManager<S extends States> {
 	 */
 	public processTransition(world: World, resourceManager: ResourceManager, app?: unknown): boolean {
 		// 获取 NextState 资源
-		const nextStateResource = resourceManager.getResourceByTypeDescriptor<NextState<S>>(getNextStateTypeDescriptor(this.typeDescriptor));
+		const genericTypeDescriptor = getGenericTypeDescriptor<NextState<S>>(this.typeDescriptor)
+		const nextStateResource = resourceManager.getResourceByTypeDescriptor<NextState<S>>(genericTypeDescriptor);
 		if (!nextStateResource || !nextStateResource.isPending()) {
 			return false;
 		}
@@ -176,7 +199,7 @@ export class StateTransitionManager<S extends States> {
 		// 检查是否为身份转换（相同状态转换）
 		if (exitedState && exitedState.equals(newState)) {
 			// 身份转换：跳过 OnEnter/OnExit，但仍要发送事件
-			const event = new StateTransitionEvent(exitedState, newState);
+			const event = StateTransitionMessage.create(exitedState, newState);
 			this.sendTransitionEvent(event);
 			return true;
 		}
@@ -210,6 +233,11 @@ export class StateTransitionManager<S extends States> {
 			this.runOnExitSchedule(world, exitedState, app);
 		}
 
+		// 1.5. 清理标记为在状态退出时清理的实体
+		if (exitedState) {
+			cleanupOnStateExit(world, exitedState);
+		}
+
 		// 2. 执行 OnTransition 调度（如果有上一个状态且有 app）
 		if (exitedState && app) {
 			this.runOnTransitionSchedule(world, exitedState, newState, app);
@@ -229,8 +257,11 @@ export class StateTransitionManager<S extends States> {
 			this.runOnEnterSchedule(world, newState, app);
 		}
 
+		// 4.5. 清理标记为在状态进入时清理的实体
+		cleanupOnStateEnter(world, newState);
+
 		// 5. 最后发送转换事件
-		const event = new StateTransitionEvent(exitedState, newState);
+		const event = StateTransitionMessage.create(exitedState, newState);
 		this.sendTransitionEvent(event);
 	}
 
@@ -238,7 +269,7 @@ export class StateTransitionManager<S extends States> {
 	 * 发送状态转换事件
 	 * @param event - 转换事件
 	 */
-	private sendTransitionEvent(event: StateTransitionEvent<S>): void {
+	private sendTransitionEvent(event: StateTransitionMessage<S>): void {
 		if (this.eventWriter) {
 			this.eventWriter.send(event);
 			this.lastTransitionEvent = event;
@@ -252,17 +283,17 @@ export class StateTransitionManager<S extends States> {
 	 * 获取最后一次转换事件
 	 * @returns 最后一次转换事件或 undefined
 	 */
-	public getLastTransition(): StateTransitionEvent<S> | undefined {
+	public getLastTransition(): StateTransitionMessage<S> | undefined {
 		return this.lastTransitionEvent?.clone();
 	}
 
 	/**
 	 * 设置事件管理器
-	 * @param eventManager - 事件管理器
+	 * @param MessageRegistry - 事件管理器
 	 */
-	public setEventManager(eventManager: EventManager): void {
-		this.eventManager = eventManager;
-		this.eventWriter = eventManager.createWriter(StateTransitionEvent as EventConstructor<StateTransitionEvent<S>>);
+	public setMessageRegistry(MessageRegistry: MessageRegistry): void {
+		this.messageRegistry = MessageRegistry;
+		this.eventWriter = MessageRegistry.createWriter<StateTransitionMessage<S>>();
 	}
 
 	/**
@@ -322,39 +353,52 @@ export class StateTransitionManager<S extends States> {
 				}
 			}
 		} catch (err) {
-			warn(`Failed to run schedule ${scheduleLabel}: ${err}`);
+			// 不要静默吞噬错误，应该重新抛出以便调试
+			error(`Failed to run schedule ${scheduleLabel}: ${err}`);
 		}
 	}
 }
 
 /**
  * 获取状态转换事件读取器
- * @param eventManager - 事件管理器
+ * @param MessageRegistry - 事件管理器
  * @returns 事件读取器
  */
 export function getStateTransitionReader<S extends States>(
-	eventManager: EventManager,
-): EventReader<StateTransitionEvent<S>> {
-	return eventManager.createReader(StateTransitionEvent as EventConstructor<StateTransitionEvent<S>>);
+	MessageRegistry: MessageRegistry,
+): MessageReader<StateTransitionMessage<S>> {
+	return MessageRegistry.createReader<StateTransitionMessage<S>>();
 }
+
 
 /**
  * 获取上一次的状态转换
+ * 
+ * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+ * @metadata macro
+ * 
+ * 
  * @param world - 游戏世界
  * @param stateType - 状态类型
  * @returns 最后一次转换或 undefined
  */
 export function lastTransition<S extends States>(
-	world: World,
-	stateType: StateConstructor<S>,
-): StateTransitionEvent<S> | undefined {
+	resources:ResourceManager,
+	id?: Modding.Generic<S, "id">,
+	text?: Modding.Generic<S, "text">,
+): StateTransitionMessage<S> | undefined {
 	// 尝试从世界中获取状态转换管理器
 	try {
-		const worldWithManagers = world as unknown as Record<string, unknown>;
-		const managerKey = `stateTransitionManager_${tostring(stateType)}`;
-		const manager = worldWithManagers[managerKey] as StateTransitionManager<S> | undefined;
-		return manager?.getLastTransition();
-	} catch {
+		// from resources
+		const stateTransitionManagerTypeDescriptor = getGenericTypeDescriptor<StateTransitionManager<S>>(undefined,id,text)
+		const manager = resources.getResourceByTypeDescriptor(stateTransitionManagerTypeDescriptor) as StateTransitionManager<S> | undefined
+		if (!manager) {
+			return undefined;
+		}
+		return manager.getLastTransition();
+	} catch (err) {
+		// 记录错误但返回 undefined，因为这不是致命错误
+		warn(`Failed to get last transition for state type: ${err}`);
 		return undefined;
 	}
 }

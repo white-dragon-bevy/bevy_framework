@@ -6,10 +6,13 @@
 import { Modding } from "@flamework/core";
 
 
-export type TypeDescriptor ={
+export interface TypeDescriptor<T=never> {
+    genericId?:string,
     id:string,
     text:string
 }
+
+
 
 export type ParameterDescriptor = TypeDescriptor
 
@@ -59,6 +62,41 @@ export function getTypeDescriptor(
     }
  }
 
+ /**
+  * 提取泛型类型的外层和内层类型信息
+  * 
+  * 用法：getGenericTypeDescriptor<Foo, Bar>() - 返回 GenericTypeInfo，包含 Foo 和 Bar 的类型信息
+  * 
+  * @metadata macro 
+  * 
+  * @param outerTypeId - 外层类型的 ID（如 Foo）
+  * @param outerTypeText - 外层类型的文本表示
+  * @param innerTypeId - 内层类型的 ID（如 Bar）
+  * @param innerTypeText - 内层类型的文本表示
+  * @returns GenericTypeInfo，包含外层和内层类型的描述符
+  */
+ export function getGenericTypeDescriptor<Outer ,Inner=any >(
+        typeDescriptor?:TypeDescriptor,
+        innerTypeId?: Modding.Generic<Inner, "id">,
+        innerTypeText?: Modding.Generic<Inner, "text">,
+        outerTypeId?: Modding.Generic<Outer, "id">,
+        outerTypeText?: Modding.Generic<Outer, "text">,
+       
+    ): TypeDescriptor {
+
+        if(typeDescriptor){
+            assert(typeDescriptor.genericId===undefined,`${typeDescriptor} should be undefined before set`)
+            return {
+                ...typeDescriptor,
+                genericId:outerTypeId!
+            }
+        }
+        return {
+            id:innerTypeId!,
+            text:innerTypeText!,
+            genericId:outerTypeId!
+        };
+}
 
 
 /** 

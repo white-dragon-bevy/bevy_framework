@@ -133,7 +133,7 @@ export class StateTransitionManager<S extends States> {
 		this.stateType = stateType;
 		this.eventManager = eventManager;
 		if (eventManager) {
-			this.eventWriter = eventManager.createWriter(StateTransitionEvent as EventConstructor<StateTransitionEvent<S>>);
+			this.eventWriter = eventManager.createWriter<StateTransitionEvent as EventConstructor<StateTransitionEvent<S>>>();
 		}
 	}
 
@@ -268,7 +268,7 @@ export class StateTransitionManager<S extends States> {
 	 */
 	public setEventManager(eventManager: EventManager): void {
 		this.eventManager = eventManager;
-		this.eventWriter = eventManager.createWriter(StateTransitionEvent as EventConstructor<StateTransitionEvent<S>>);
+		this.eventWriter = eventManager.createWriter<StateTransitionEvent as EventConstructor<StateTransitionEvent<S>>>();
 	}
 
 	/**
@@ -341,7 +341,7 @@ export class StateTransitionManager<S extends States> {
 export function getStateTransitionReader<S extends States>(
 	eventManager: EventManager,
 ): EventReader<StateTransitionEvent<S>> {
-	return eventManager.createReader(StateTransitionEvent as EventConstructor<StateTransitionEvent<S>>);
+	return eventManager.createReader<StateTransitionEvent as EventConstructor<StateTransitionEvent<S>>>();
 }
 
 /**

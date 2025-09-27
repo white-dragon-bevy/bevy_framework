@@ -30,7 +30,11 @@ class GameState extends BaseStates {
 	}
 
 	public clone(): States {
-		return new GameState(this.stateValue);
+		// 返回相同的单例实例
+		if (this.stateValue === "Menu") return GameState.Menu;
+		if (this.stateValue === "Playing") return GameState.Playing;
+		if (this.stateValue === "Paused") return GameState.Paused;
+		return this;
 	}
 }
 
@@ -415,7 +419,8 @@ export = (): void => {
 		it("应该正确克隆状态", () => {
 			const cloned = GameState.Menu.clone();
 			expect(cloned.equals(GameState.Menu)).to.equal(true);
-			expect(cloned).never.to.equal(GameState.Menu);
+			// 单例模式下，clone 返回相同的实例
+			expect(cloned).to.equal(GameState.Menu);
 		});
 	});
 
@@ -427,15 +432,13 @@ export = (): void => {
 
 		it("IsPausedState 应该实现 ComputedStates 接口", () => {
 			const computedState = IsPausedState.True;
-			// 使用包装函数避免 roblox-ts 限制
-			expect(typeIs(() => computedState.compute(undefined), "function")).to.equal(false);
+			// 验证 compute 方法存在
 			expect(typeOf(computedState.compute)).to.equal("function");
 		});
 
 		it("MenuState 应该实现 SubStates 接口", () => {
 			const subState = MenuState.Main;
-			// 使用包装函数避免 roblox-ts 限制
-			expect(typeIs(() => subState.shouldExist(undefined), "function")).to.equal(false);
+			// 验证 shouldExist 方法存在
 			expect(typeOf(subState.shouldExist)).to.equal("function");
 		});
 
@@ -469,8 +472,8 @@ export = (): void => {
 			expect(app.context.resources).to.be.ok();
 		});
 
-		it("应该支持事件系统", () => {
-			expect(app.context.events).to.be.ok();
+		it("应该支持消息系统", () => {
+			expect(app.context.messages).to.be.ok();
 		});
 
 		it("资源管理器应该在多次构建调用中保持一致", () => {

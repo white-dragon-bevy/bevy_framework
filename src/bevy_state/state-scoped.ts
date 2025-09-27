@@ -49,8 +49,14 @@ export type StateScopedComponent = ReturnType<typeof StateScoped>;
  * @param context - 应用上下文
  */
 export function despawnOnExitStateSystem(world: BevyWorld, context: Context): void {
-	// 这个系统在状态转换时被调度系统调用
-	// 通过 cleanupOnStateExit 函数来执行实际清理
+	// 获取最后一次状态转换事件来确定退出的状态
+	// 这个系统应该在 OnExit 调度中运行
+	// 由于我们无法直接访问当前的状态转换信息，
+	// 我们需要依赖状态转换系统在转换前调用 cleanupOnStateExit
+
+	// 注意：这个系统函数通常不会被直接调用，
+	// 而是通过 StateTransitionManager 在状态转换时调用 cleanupOnStateExit
+	// 这里保留为空，实际清理逻辑在 cleanupOnStateExit 中
 }
 
 /**
@@ -60,8 +66,14 @@ export function despawnOnExitStateSystem(world: BevyWorld, context: Context): vo
  * @param context - 应用上下文
  */
 export function despawnOnEnterStateSystem(world: BevyWorld, context: Context): void {
-	// 这个系统在状态转换时被调度系统调用
-	// 通过 cleanupOnStateEnter 函数来执行实际清理
+	// 获取最后一次状态转换事件来确定进入的状态
+	// 这个系统应该在 OnEnter 调度中运行
+	// 由于我们无法直接访问当前的状态转换信息，
+	// 我们需要依赖状态转换系统在转换后调用 cleanupOnStateEnter
+
+	// 注意：这个系统函数通常不会被直接调用，
+	// 而是通过 StateTransitionManager 在状态转换时调用 cleanupOnStateEnter
+	// 这里保留为空，实际清理逻辑在 cleanupOnStateEnter 中
 }
 
 /**
@@ -70,10 +82,18 @@ export function despawnOnEnterStateSystem(world: BevyWorld, context: Context): v
  * @param entityId - 要清理的实体ID
  */
 function despawnEntityRecursive(world: World, entityId: Entity): void {
-	// 查找子实体（假设使用 Parent/Child 组件系统）
-	// 这里需要根据项目实际的层级组件来实现
-	// 暂时直接清理当前实体
-	world.despawn(entityId);
+	// TODO: 实现递归清理子实体
+	// 当前项目尚未实现 Parent/Child 层级组件系统
+	// 未来需要：
+	// 1. 定义 Parent/Child 组件
+	// 2. 查询具有 Parent(entityId) 的所有子实体
+	// 3. 递归清理每个子实体
+	// 4. 最后清理父实体
+
+	// 临时实现：只清理当前实体
+	if (world.contains(entityId)) {
+		world.despawn(entityId);
+	}
 }
 
 /**

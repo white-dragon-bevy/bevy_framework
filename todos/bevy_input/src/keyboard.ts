@@ -422,7 +422,7 @@ export function keyboardInputSystem(world: World): void {
 	keyInput.clear();
 
 	// 处理键盘输入事件
-	const keyboardReader = eventManager.createReader(KeyboardInput);
+	const keyboardReader = eventManager.createReader<KeyboardInput>();
 	const keyboardEvents = keyboardReader.read();
 
 	for (const event of keyboardEvents) {
@@ -436,7 +436,7 @@ export function keyboardInputSystem(world: World): void {
 	}
 
 	// 处理键盘焦点丢失事件
-	const focusLostReader = eventManager.createReader(KeyboardFocusLost);
+	const focusLostReader = eventManager.createReader<KeyboardFocusLost>();
 	const focusLostEvents = focusLostReader.read();
 
 	if (focusLostEvents.size() > 0) {

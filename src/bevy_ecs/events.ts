@@ -1,275 +1,434 @@
-import { AnyEntity, World } from "@rbxts/matter";
+/**
+ * Bevy ECS Event System
+ *
+ * 基于 rbx-better-signal 实现的事件系统，提供推送式事件处理机制
+ * 支持全局事件、实体事件、事件传播等功能
+ */
+
+import Signal from "@rbxts/rbx-better-signal";
+import { World, Entity, type AnyComponent } from "@rbxts/matter";
+import { ComponentId } from "./component";
 
 /**
- * 事件基类接口
+ * 事件基础接口
+ * 所有事件类型必须实现此接口
  */
 export interface Event {
-	readonly timestamp?: number;
+	/** 事件类型标识符 */
+	readonly eventType?: string;
 }
 
 /**
- * 事件构造器类型
+ * 实体事件接口
+ * 针对特定实体的事件
  */
-export type EventConstructor<T extends Event = Event> = new (...args: never[]) => T;
+export interface EntityEvent extends Event {
+	/** 获取事件目标实体 */
+	getEventTarget(): Entity;
+	/** 设置事件目标实体 */
+	setEventTarget(entity: Entity): void;
+}
 
 /**
- * 事件存储器 - 管理特定类型的事件
+ * 触发器上下文
  */
-class EventStorage<T extends Event> {
-	private events: T[] = [];
-	private readers = new Set<EventReader<T>>();
-	private lastEventId = 0;
+export interface TriggerContext {
+	/** 事件键 */
+	eventKey: EventKey;
+	/** 调用位置信息 */
+	caller?: string;
+}
 
-	/**
-	 * 发送事件
-	 */
-	public send(event: T): void {
-		const eventWithTimestamp = {
-			timestamp: os.clock(),
-			...event,
-		} as T;
+/**
+ * 观察者回调函数类型
+ */
+export type ObserverCallback<E> = (event: E, world: World) => void;
 
-		this.events.push(eventWithTimestamp);
-		this.lastEventId++;
+/**
+ * 观察者连接对象
+ */
+export class ObserverConnection {
+	constructor(private connection: RBXScriptConnection) {}
+
+	/** 断开连接 */
+	public disconnect(): void {
+		this.connection.Disconnect();
 	}
 
-	/**
-	 * 获取指定读取器的新事件
-	 */
-	public getEventsForReader(reader: EventReader<T>): T[] {
-		const readerState = this.getReaderState(reader);
-		const newEvents: T[] = [];
-		for (let i = readerState.lastRead; i < this.events.size(); i++) {
-			newEvents.push(this.events[i]);
-		}
-		readerState.lastRead = this.events.size();
-		return newEvents;
-	}
-
-	/**
-	 * 注册事件读取器
-	 */
-	public registerReader(reader: EventReader<T>): void {
-		this.readers.add(reader);
-	}
-
-	/**
-	 * 注销事件读取器
-	 */
-	public unregisterReader(reader: EventReader<T>): void {
-		this.readers.delete(reader);
-	}
-
-	/**
-	 * 清理旧事件（通常在帧结束时调用）
-	 */
-	public cleanup(): void {
-		// 保留最近的事件，删除过旧的事件以避免内存泄漏
-		if (this.events.size() > 1000) {
-			const keepCount = 100;
-			const oldEventCount = this.events.size();
-			const newEvents: T[] = [];
-			const startIndex = math.max(0, this.events.size() - keepCount);
-
-			for (let i = startIndex; i < this.events.size(); i++) {
-				newEvents.push(this.events[i]);
-			}
-
-			this.events = newEvents;
-
-			// 更新所有读取器的位置
-			const removedCount = oldEventCount - keepCount;
-			for (const reader of this.readers) {
-				const state = this.getReaderState(reader);
-				state.lastRead = math.max(0, state.lastRead - removedCount);
-			}
-		}
-	}
-
-	private getReaderState(reader: EventReader<T>): { lastRead: number } {
-		if (!reader.state) {
-			reader.state = { lastRead: 0 };
-		}
-		return reader.state;
+	/** 连接是否激活 */
+	public isConnected(): boolean {
+		return this.connection.Connected;
 	}
 }
 
 /**
- * 事件写入器 - 用于发送事件，等同于 Bevy 的 EventWriter
+ * 事件键，用于唯一标识事件类型
  */
-export class EventWriter<T extends Event> {
-	private storage: EventStorage<T>;
+export class EventKey {
+	constructor(
+		private readonly id: ComponentId,
+	) {}
 
-	constructor(storage: EventStorage<T>) {
-		this.storage = storage;
+	/**
+	 * 获取组件ID
+	 */
+	public getComponentId(): ComponentId {
+		return this.id;
 	}
 
 	/**
-	 * 发送事件 - 对应 Bevy 的 EventWriter::send()
+	 * 判断是否相等
 	 */
-	public send(event: T): boolean {
-		this.storage.send(event);
-		return true;
+	public equals(other: EventKey): boolean {
+		return this.id === other.id;
+	}
+
+	/**
+	 * 转换为字符串
+	 */
+	public toString(): string {
+		return `EventKey(${this.id})`;
 	}
 }
 
 /**
- * 事件读取器 - 用于读取事件，等同于 Bevy 的 EventReader
+ * 事件传播配置
  */
-export class EventReader<T extends Event> {
-	private storage: EventStorage<T>;
-	public state?: { lastRead: number };
-	private isCleanedUp = false;
-
-	constructor(storage: EventStorage<T>) {
-		this.storage = storage;
-		this.storage.registerReader(this);
-	}
-
-	/**
-	 * 读取新事件 - 对应 Bevy 的 EventReader::read()
-	 */
-	public read(): T[] {
-		if (this.isCleanedUp) {
-			return [];
-		}
-		return this.storage.getEventsForReader(this);
-	}
-
-	/**
-	 * 检查是否有新事件 - 对应 Bevy 的 EventReader::is_empty()
-	 */
-	public isEmpty(): boolean {
-		if (this.isCleanedUp) {
-			return true;
-		}
-		return this.read().size() === 0;
-	}
-
-	/**
-	 * 清理读取器
-	 */
-	public cleanup(): void {
-		this.storage.unregisterReader(this);
-		this.isCleanedUp = true;
-	}
+export interface PropagationConfig {
+	/** 是否启用传播 */
+	enabled: boolean;
+	/** 是否自动传播 */
+	autoProppagate: boolean;
+	/** 传播路径获取函数 */
+	getPath?: (entity: Entity, world: World) => Entity[];
 }
 
 /**
- * 事件管理器 - 管理所有事件类型
+ * 观察者配置
+ */
+export interface ObserverConfig<E> {
+	/** 观察的事件类型 */
+	eventType: new (...args: never[]) => E;
+	/** 回调函数 */
+	callback: ObserverCallback<E>;
+	/** 监听的实体（可选） */
+	entities?: Entity[];
+	/** 监听的组件（可选） */
+	components?: ComponentId[];
+}
+
+/**
+ * 事件管理器
+ * 管理所有事件类型的注册、触发和观察者
  */
 export class EventManager {
-	private storages = new Map<EventConstructor, EventStorage<Event>>();
-	private world: World;
+	private readonly eventSignals = new Map<string, Signal<(event: Event, world: World) => void>>();
+	private readonly entitySignals = new Map<Entity, Map<string, Signal<(event: Event, world: World) => void>>>();
+	private readonly eventKeys = new Map<string, EventKey>();
+	private nextComponentId = 0;
 
-	constructor(world: World) {
-		this.world = world;
-	}
+	constructor(private readonly world: World) {}
 
 	/**
-	 * 获取事件存储器
+	 * 注册事件类型
 	 */
-	private getStorage<T extends Event>(eventType: EventConstructor<T>): EventStorage<T> {
-		let storage = this.storages.get(eventType as EventConstructor);
-		if (!storage) {
-			storage = new EventStorage<Event>();
-			this.storages.set(eventType as EventConstructor, storage);
+	public registerEventType<E>(eventType: new (...args: never[]) => E): EventKey {
+		const typeName = tostring(eventType);
+
+		let eventKey = this.eventKeys.get(typeName);
+		if (!eventKey) {
+			eventKey = new EventKey(this.nextComponentId++);
+			this.eventKeys.set(typeName, eventKey);
+
+			// 创建全局信号
+			if (!this.eventSignals.has(typeName)) {
+				this.eventSignals.set(typeName, new Signal());
+			}
 		}
-		return storage as EventStorage<T>;
+
+		return eventKey;
 	}
 
 	/**
-	 * 创建事件写入器
+	 * 获取事件键
 	 */
-	public createWriter<T extends Event>(eventType: EventConstructor<T>): EventWriter<T> {
-		const storage = this.getStorage(eventType);
-		return new EventWriter(storage);
+	public getEventKey<E>(eventType: new (...args: never[]) => E): EventKey | undefined {
+		const typeName = tostring(eventType);
+		return this.eventKeys.get(typeName);
 	}
 
 	/**
-	 * 创建事件读取器
+	 * 触发事件
 	 */
-	public createReader<T extends Event>(eventType: EventConstructor<T>): EventReader<T> {
-		const storage = this.getStorage(eventType);
-		return new EventReader(storage);
+	public trigger<E extends object>(event: E): void {
+		const typeName = tostring(getmetatable(event) as object);
+
+		// 触发全局观察者
+		const globalSignal = this.eventSignals.get(typeName);
+		if (globalSignal) {
+			globalSignal.Fire(event as unknown as Event, this.world);
+		}
+
+		// 如果是实体事件，触发实体特定观察者
+		if (this.isEntityEvent(event as unknown as Event)) {
+			const entityEvent = event as unknown as EntityEvent;
+			const targetEntity = entityEvent.getEventTarget();
+			this.triggerEntityEvent(targetEntity, event as unknown as Event);
+		}
 	}
 
 	/**
-	 * 直接发送事件（便捷方法）
+	 * 触发实体事件
 	 */
-	public send<T extends Event>(eventType: EventConstructor<T>, event: T): void {
-		const writer = this.createWriter(eventType);
-		writer.send(event);
+	private triggerEntityEvent(entity: Entity, event: Event): void {
+		const entitySignals = this.entitySignals.get(entity);
+		if (!entitySignals) {
+			return;
+		}
+
+		const typeName = tostring(getmetatable(event) as object);
+		const signal = entitySignals.get(typeName);
+		if (signal) {
+			signal.Fire(event, this.world);
+		}
 	}
 
 	/**
-	 * 清理所有事件存储器
+	 * 添加全局观察者
+	 */
+	public addObserver<E>(
+		eventType: new (...args: never[]) => E,
+		callback: ObserverCallback<E>,
+	): ObserverConnection {
+		const typeName = tostring(eventType);
+
+		// 确保事件类型已注册
+		this.registerEventType(eventType);
+
+		// 获取或创建信号
+		let signal = this.eventSignals.get(typeName);
+		if (!signal) {
+			signal = new Signal();
+			this.eventSignals.set(typeName, signal);
+		}
+
+		// 连接观察者
+		const connection = signal.Connect((event, world) => {
+			callback(event as E, world);
+		});
+
+		return new ObserverConnection(connection);
+	}
+
+	/**
+	 * 为特定实体添加观察者
+	 */
+	public addEntityObserver<E>(
+		entity: Entity,
+		eventType: new (...args: never[]) => E,
+		callback: ObserverCallback<E>,
+	): ObserverConnection {
+		const typeName = tostring(eventType);
+
+		// 确保事件类型已注册
+		this.registerEventType(eventType);
+
+		// 获取或创建实体信号映射
+		let entitySignals = this.entitySignals.get(entity);
+		if (!entitySignals) {
+			entitySignals = new Map();
+			this.entitySignals.set(entity, entitySignals);
+		}
+
+		// 获取或创建信号
+		let signal = entitySignals.get(typeName);
+		if (!signal) {
+			signal = new Signal();
+			entitySignals.set(typeName, signal);
+		}
+
+		// 连接观察者
+		const connection = signal.Connect((event, world) => {
+			callback(event as E, world);
+		});
+
+		return new ObserverConnection(connection);
+	}
+
+	/**
+	 * 清理实体的所有观察者
+	 */
+	public cleanupEntity(entity: Entity): void {
+		const entitySignals = this.entitySignals.get(entity);
+		if (entitySignals) {
+			for (const [_, signal] of entitySignals) {
+				signal.DisconnectAll();
+				signal.Destroy();
+			}
+			this.entitySignals.delete(entity);
+		}
+	}
+
+	/**
+	 * 清理所有观察者
 	 */
 	public cleanup(): void {
-		for (const [, storage] of this.storages) {
-			storage.cleanup();
+		// 清理全局信号
+		for (const [_, signal] of this.eventSignals) {
+			signal.DisconnectAll();
+			signal.Destroy();
 		}
+		this.eventSignals.clear();
+
+		// 清理实体信号
+		for (const [_, entitySignals] of this.entitySignals) {
+			for (const [_, signal] of entitySignals) {
+				signal.DisconnectAll();
+				signal.Destroy();
+			}
+		}
+		this.entitySignals.clear();
+
+		// 清理事件键
+		this.eventKeys.clear();
 	}
 
 	/**
-	 * 获取事件统计信息
+	 * 检查是否为实体事件
 	 */
-	public getStats(): Record<string, unknown> {
-		const stats: Record<string, unknown> = {};
-		for (const [eventType, storage] of this.storages) {
-			const typeName = tostring(eventType);
-			stats[typeName] = {
-				eventCount: (storage as unknown as { events?: unknown[] }).events?.size() || 0,
-				readerCount: (storage as unknown as { readers?: Set<unknown> }).readers?.size() || 0,
-			};
-		}
-		return stats;
+	private isEntityEvent(event: Event): boolean {
+		return "getEventTarget" in event && "setEventTarget" in event;
 	}
 }
 
 /**
- * 常用事件类型定义
+ * 观察者构建器
+ * 用于创建复杂的观察者配置
  */
+export class ObserverBuilder<E> {
+	private config: Partial<ObserverConfig<E>> = {};
 
-/**
- * 实体生成事件
- */
-export class EntitySpawnedEvent implements Event {
-	constructor(
-		public readonly entityId: AnyEntity,
-		public readonly componentCount: number,
-		public readonly timestamp?: number,
-	) {}
+	/**
+	 * 设置事件类型
+	 */
+	public event(eventType: new (...args: never[]) => E): this {
+		this.config.eventType = eventType;
+		return this;
+	}
+
+	/**
+	 * 设置回调函数
+	 */
+	public on(callback: ObserverCallback<E>): this {
+		this.config.callback = callback;
+		return this;
+	}
+
+	/**
+	 * 设置监听的实体
+	 */
+	public watchEntities(...entities: Entity[]): this {
+		this.config.entities = entities;
+		return this;
+	}
+
+	/**
+	 * 设置监听的组件
+	 */
+	public watchComponents(...components: ComponentId[]): this {
+		this.config.components = components;
+		return this;
+	}
+
+	/**
+	 * 构建观察者配置
+	 */
+	public build(): ObserverConfig<E> {
+		if (!this.config.eventType || !this.config.callback) {
+			error("Observer must have an event type and callback");
+		}
+		return this.config as ObserverConfig<E>;
+	}
 }
 
 /**
- * 实体销毁事件
+ * 事件传播管理器
+ * 处理事件在实体层级结构中的传播
  */
-export class EntityDespawnedEvent implements Event {
+export class EventPropagator {
 	constructor(
-		public readonly entityId: AnyEntity,
-		public readonly timestamp?: number,
+		private readonly world: World,
+		private readonly eventManager: EventManager,
 	) {}
+
+	/**
+	 * 传播实体事件
+	 */
+	public propagate<E extends EntityEvent>(
+		event: E,
+		config: PropagationConfig,
+	): void {
+		if (!config.enabled) {
+			return;
+		}
+
+		const entity = event.getEventTarget();
+		const path = config.getPath?.(entity, this.world) ?? [];
+
+		for (const pathEntity of path) {
+			event.setEventTarget(pathEntity);
+			this.eventManager.trigger(event);
+
+			// 如果不是自动传播，检查是否应该停止
+			if (!config.autoProppagate) {
+				// TODO: 实现传播控制逻辑
+				break;
+			}
+		}
+	}
 }
 
 /**
- * 组件添加事件
+ * 创建简单事件类
  */
-export class ComponentAddedEvent implements Event {
-	constructor(
-		public readonly entityId: AnyEntity,
-		public readonly componentType: string,
-		public readonly timestamp?: number,
-	) {}
+export function createEvent<T extends Record<string, unknown>>(
+	name: string,
+	fields: T,
+): new (data: T) => Event & T {
+	return class implements Event {
+		readonly eventType = name;
+
+		constructor(data: T) {
+			for (const [key, value] of pairs(data)) {
+				(this as unknown as Record<string, unknown>)[key as string] = value;
+			}
+		}
+	} as new (data: T) => Event & T;
 }
 
 /**
- * 组件移除事件
+ * 创建实体事件类
  */
-export class ComponentRemovedEvent implements Event {
-	constructor(
-		public readonly entityId: AnyEntity,
-		public readonly componentType: string,
-		public readonly timestamp?: number,
-	) {}
+export function createEntityEvent<T extends Record<string, unknown>>(
+	name: string,
+	fields: T & { entity: Entity },
+): new (data: T & { entity: Entity }) => EntityEvent & T {
+	return class implements EntityEvent {
+		readonly eventType = name;
+		entity!: Entity;
+
+		constructor(data: T & { entity: Entity }) {
+			for (const [key, value] of pairs(data)) {
+				(this as unknown as Record<string, unknown>)[key as string] = value;
+			}
+		}
+
+		getEventTarget(): Entity {
+			return this.entity;
+		}
+
+		setEventTarget(entity: Entity): void {
+			this.entity = entity;
+		}
+	} as unknown as new (data: T & { entity: Entity }) => EntityEvent & T;
 }

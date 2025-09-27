@@ -221,7 +221,7 @@ export = () => {
 		describe("updateSubState", () => {
 			it("should create sub state when parent state is allowed", () => {
 				const parentState = State.create(MockParentState.ACTIVE);
-				parentState["_typeDescriptor"] = parentTypeDescriptor;
+				parentState.typeDescriptor = parentTypeDescriptor;
 				resourceManager.insertResourceByTypeDescriptor(parentState, parentTypeDescriptor);
 
 				manager.updateSubState(world, resourceManager);
@@ -235,7 +235,7 @@ export = () => {
 
 			it("should not create sub state when parent state is not allowed", () => {
 				const parentState = State.create(MockParentState.INACTIVE);
-				parentState["_typeDescriptor"] = parentTypeDescriptor;
+				parentState.typeDescriptor = parentTypeDescriptor;
 				resourceManager.insertResourceByTypeDescriptor(parentState, parentTypeDescriptor);
 
 				manager.updateSubState(world, resourceManager);
@@ -248,11 +248,11 @@ export = () => {
 
 			it("should remove sub state when parent changes to disallowed state", () => {
 				const parentState = State.create(MockParentState.ACTIVE);
-				parentState["_typeDescriptor"] = parentTypeDescriptor;
+				parentState.typeDescriptor = parentTypeDescriptor;
 				resourceManager.insertResourceByTypeDescriptor(parentState, parentTypeDescriptor);
 
 				const subState = State.create(MockSubState.SUB_A);
-				subState["_typeDescriptor"] = subTypeDescriptor;
+				subState.typeDescriptor = subTypeDescriptor;
 				resourceManager.insertResourceByTypeDescriptor(subState, subTypeDescriptor);
 
 				parentState._set(MockParentState.INACTIVE);
@@ -267,15 +267,15 @@ export = () => {
 
 			it("should clear NextState when removing sub state", () => {
 				const parentState = State.create(MockParentState.ACTIVE);
-				parentState["_typeDescriptor"] = parentTypeDescriptor;
+				parentState.typeDescriptor = parentTypeDescriptor;
 				resourceManager.insertResourceByTypeDescriptor(parentState, parentTypeDescriptor);
 
 				const subState = State.create(MockSubState.SUB_A);
-				subState["_typeDescriptor"] = subTypeDescriptor;
+				subState.typeDescriptor = subTypeDescriptor;
 				resourceManager.insertResourceByTypeDescriptor(subState, subTypeDescriptor);
 
 				const nextSubState = NextState.create<MockSubState>();
-				nextSubState["_typeDescriptor"] = subTypeDescriptor;
+				nextSubState.typeDescriptor = subTypeDescriptor;
 				nextSubState.set(MockSubState.SUB_B);
 				resourceManager.insertResourceByTypeDescriptor(nextSubState, subTypeDescriptor);
 
@@ -292,11 +292,11 @@ export = () => {
 
 			it("should not recreate existing sub state when still allowed", () => {
 				const parentState = State.create(MockParentState.ACTIVE);
-				parentState["_typeDescriptor"] = parentTypeDescriptor;
+				parentState.typeDescriptor = parentTypeDescriptor;
 				resourceManager.insertResourceByTypeDescriptor(parentState, parentTypeDescriptor);
 
 				const existingSubState = State.create(MockSubState.SUB_B);
-				existingSubState["_typeDescriptor"] = subTypeDescriptor;
+				existingSubState.typeDescriptor = subTypeDescriptor;
 				resourceManager.insertResourceByTypeDescriptor(existingSubState, subTypeDescriptor);
 
 				manager.updateSubState(world, resourceManager);
@@ -312,15 +312,15 @@ export = () => {
 		describe("processSubStateTransition", () => {
 			it("should process pending sub state transition", () => {
 				const parentState = State.create(MockParentState.ACTIVE);
-				parentState["_typeDescriptor"] = parentTypeDescriptor;
+				parentState.typeDescriptor = parentTypeDescriptor;
 				resourceManager.insertResourceByTypeDescriptor(parentState, parentTypeDescriptor);
 
 				const subState = State.create(MockSubState.SUB_A);
-				subState["_typeDescriptor"] = subTypeDescriptor;
+				subState.typeDescriptor = subTypeDescriptor;
 				resourceManager.insertResourceByTypeDescriptor(subState, subTypeDescriptor);
 
 				const nextSubState = NextState.create<MockSubState>();
-				nextSubState["_typeDescriptor"] = subTypeDescriptor;
+				nextSubState.typeDescriptor = subTypeDescriptor;
 				nextSubState.set(MockSubState.SUB_B);
 				resourceManager.insertResourceByTypeDescriptor(nextSubState, subTypeDescriptor);
 
@@ -337,7 +337,7 @@ export = () => {
 
 			it("should return false when no sub state exists", () => {
 				const parentState = State.create(MockParentState.INACTIVE);
-				parentState["_typeDescriptor"] = parentTypeDescriptor;
+				parentState.typeDescriptor = parentTypeDescriptor;
 				resourceManager.insertResourceByTypeDescriptor(parentState, parentTypeDescriptor);
 
 				const transitioned = manager.processSubStateTransition(world, resourceManager);
@@ -347,15 +347,15 @@ export = () => {
 
 			it("should return false when NextState is not pending", () => {
 				const parentState = State.create(MockParentState.ACTIVE);
-				parentState["_typeDescriptor"] = parentTypeDescriptor;
+				parentState.typeDescriptor = parentTypeDescriptor;
 				resourceManager.insertResourceByTypeDescriptor(parentState, parentTypeDescriptor);
 
 				const subState = State.create(MockSubState.SUB_A);
-				subState["_typeDescriptor"] = subTypeDescriptor;
+				subState.typeDescriptor = subTypeDescriptor;
 				resourceManager.insertResourceByTypeDescriptor(subState, subTypeDescriptor);
 
 				const nextSubState = NextState.create<MockSubState>();
-				nextSubState["_typeDescriptor"] = subTypeDescriptor;
+				nextSubState.typeDescriptor = subTypeDescriptor;
 				resourceManager.insertResourceByTypeDescriptor(nextSubState, subTypeDescriptor);
 
 				const transitioned = manager.processSubStateTransition(world, resourceManager);
@@ -365,15 +365,15 @@ export = () => {
 
 			it("should clear NextState after transition", () => {
 				const parentState = State.create(MockParentState.ACTIVE);
-				parentState["_typeDescriptor"] = parentTypeDescriptor;
+				parentState.typeDescriptor = parentTypeDescriptor;
 				resourceManager.insertResourceByTypeDescriptor(parentState, parentTypeDescriptor);
 
 				const subState = State.create(MockSubState.SUB_A);
-				subState["_typeDescriptor"] = subTypeDescriptor;
+				subState["typeDescriptor"] = subTypeDescriptor;
 				resourceManager.insertResourceByTypeDescriptor(subState, subTypeDescriptor);
 
 				const nextSubState = NextState.create<MockSubState>();
-				nextSubState["_typeDescriptor"] = subTypeDescriptor;
+				nextSubState.typeDescriptor = subTypeDescriptor;
 				nextSubState.set(MockSubState.SUB_B);
 				resourceManager.insertResourceByTypeDescriptor(nextSubState, subTypeDescriptor);
 
