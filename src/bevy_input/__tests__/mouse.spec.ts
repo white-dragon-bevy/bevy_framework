@@ -1,6 +1,16 @@
-import { AccumulatedMouseMotion, AccumulatedMouseWheel, MousePosition } from "../mouse";
+import { AccumulatedMouseMotion, AccumulatedMouseWheel, MouseButton, MousePosition } from "../mouse";
 
 export = () => {
+	describe("MouseButton 枚举", () => {
+		it("应该包含所有标准鼠标按钮", () => {
+			expect(MouseButton.Left).to.equal("MouseButton1");
+			expect(MouseButton.Right).to.equal("MouseButton2");
+			expect(MouseButton.Middle).to.equal("MouseButton3");
+			expect(MouseButton.X1).to.equal("MouseButton4");
+			expect(MouseButton.X2).to.equal("MouseButton5");
+		});
+	});
+
 	describe("AccumulatedMouseMotion", () => {
 		let motion: AccumulatedMouseMotion;
 

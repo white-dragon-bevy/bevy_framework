@@ -4,8 +4,57 @@
  */
 
 // 核心类型导出
+export { Axis } from "./axis";
 export { ButtonInput } from "./button-input";
 export { AccumulatedMouseMotion, AccumulatedMouseWheel, MouseButton, MousePosition } from "./mouse";
+
+// 游戏手柄类型导出
+export {
+	AxisSettings,
+	ButtonAxisSettings,
+	ButtonSettings,
+	GamepadAxis,
+	GamepadAxisChangedEvent,
+	GamepadButton,
+	GamepadButtonChangedEvent,
+	GamepadButtonStateChangedEvent,
+	GamepadConnection,
+	GamepadConnectionEvent,
+	GamepadManager,
+	GamepadRumbleRequest,
+	GamepadSettings,
+	GamepadState,
+	RawGamepadAxisChangedEvent,
+	RawGamepadButtonChangedEvent,
+} from "./gamepad";
+
+// 手势类型导出
+export {
+	DEFAULT_GESTURE_CONFIG,
+	DoubleTapGesture,
+	GestureManager,
+	GestureManagerConfig,
+	GestureState,
+	LongPressGesture,
+	PanGesture,
+	PinchGesture,
+	RotationGesture,
+} from "./gestures";
+
+// 键盘类型导出
+export { Key, KeyboardFocusLost, KeyboardInput, keyboardInputSystem } from "./keyboard";
+
+// 触摸类型导出
+export {
+	ForceTouch,
+	Touch,
+	TouchInput,
+	TouchPhase,
+	Touches,
+	getTouches,
+	setTouches,
+	touchScreenInputSystem,
+} from "./touch";
 
 // 事件类型导出
 export {
@@ -35,6 +84,9 @@ export {
 export {
 	InputPlugin,
 	InputResources,
+	getGamepadManager,
+	getGestureManager,
+	getKeyInput,
 	getKeyboardInput,
 	getMouseInput,
 	getMouseMotion,
