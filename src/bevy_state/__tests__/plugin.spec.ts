@@ -94,11 +94,11 @@ class MenuState extends BaseStates implements SubStates<GameState> {
 		return new MenuState(this.value);
 	}
 
-	public shouldExist(sourceState: GameState | undefined): boolean {
+	public shouldExist(sourceState: GameState | undefined): this | undefined {
 		if (sourceState === undefined) {
-			return false;
+			return undefined;
 		}
-		return sourceState.equals(GameState.Menu);
+		return sourceState.equals(GameState.Menu) ? this : undefined;
 	}
 
 	public getSubStateConfig(): import("../sub-states").SubStateConfig<GameState> {
@@ -447,13 +447,13 @@ export = (): void => {
 			expect(computed).to.be.ok();
 
 			if (computed) {
-				expect(computed.equals(IsPausedState.True)).to.equal(true);
+				expect(computed).to.equal(IsPausedState.True);
 			}
 		});
 
 		it("shouldExist() 应该正确判断子状态存在性", () => {
-			expect(MenuState.Main.shouldExist(GameState.Menu)).to.equal(true);
-			expect(MenuState.Main.shouldExist(GameState.Playing)).to.equal(false);
+			expect(MenuState.Main.shouldExist(GameState.Menu)).to.equal(MenuState.Main);
+			expect(MenuState.Main.shouldExist(GameState.Playing)).to.equal(undefined);
 		});
 	});
 

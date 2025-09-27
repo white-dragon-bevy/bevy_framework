@@ -40,10 +40,11 @@ export interface SubStates<TParent extends States> extends States {
 
 	/**
 	 * 检查在给定父状态下是否应该存在
+	 * 如果返回非 undefined 值，表示子状态应该存在，并且返回值为初始状态
 	 * @param parentState - 父状态
-	 * @returns 是否应该存在
+	 * @returns 初始状态或 undefined（表示不应该存在）
 	 */
-	shouldExist(parentState: TParent | undefined): boolean;
+	shouldExist(parentState: TParent | undefined): this | undefined;
 }
 
 /**
@@ -96,15 +97,11 @@ export abstract class BaseSubStates<TParent extends States> implements SubStates
 
 	/**
 	 * 检查在给定父状态下是否应该存在
+	 * 如果返回非 undefined 值，表示子状态应该存在，并且返回值为初始状态
 	 * @param parentState - 父状态
-	 * @returns 是否应该存在
+	 * @returns 初始状态或 undefined（表示不应该存在）
 	 */
-	public shouldExist(parentState: TParent | undefined): boolean {
-		if (parentState === undefined) {
-			return false;
-		}
-		return this.config.allowedParentStates.has(parentState.getStateId());
-	}
+	public abstract shouldExist(parentState: TParent | undefined): this | undefined;
 }
 
 /**
@@ -112,27 +109,31 @@ export abstract class BaseSubStates<TParent extends States> implements SubStates
  */
 export class SubStateManager<TParent extends States, TSub extends SubStates<TParent>> {
 	private parentType: TypeDescriptor;
-	private subType: TypeDescriptor;
-	private defaultSubState: () => TSub;
+	private stateType: TypeDescriptor;  // State<TSub> 的类型描述符
+	private nextStateType: TypeDescriptor; // NextState<TSub> 的类型描述符
+	private subStateClass: new () => TSub;
 
 	/**
 	 * 构造函数
-	 * 
- 	 * @metadata macro 
-	 * 
-	 * 
+	 *
+ 	 * @metadata macro
+	 *
+	 *
 	 * @param parentType - 父状态类型
-	 * @param subType - 子状态类型
-	 * @param defaultSubState - 默认子状态函数
+	 * @param stateType - State<TSub> 的类型描述符
+	 * @param nextStateType - NextState<TSub> 的类型描述符
+	 * @param subStateClass - 子状态类构造函数
 	 */
 	public constructor(
 		parentType: TypeDescriptor,
-		subType: TypeDescriptor,
-		defaultSubState: () => TSub,
+		stateType: TypeDescriptor,
+		nextStateType: TypeDescriptor,
+		subStateClass: new () => TSub,
 	) {
 		this.parentType = parentType;
-		this.subType = subType;
-		this.defaultSubState = defaultSubState;
+		this.stateType = stateType;
+		this.nextStateType = nextStateType;
+		this.subStateClass = subStateClass;
 	}
 
 	/**
@@ -148,18 +149,18 @@ export class SubStateManager<TParent extends States, TSub extends SubStates<TPar
 		const parentValue = parentState?.get();
 
 		// 获取当前子状态
-		const subStateResource = resourceManager.getResourceByTypeDescriptor<State<TSub>>(this.subType);
+		const subStateResource = resourceManager.getResourceByTypeDescriptor<State<TSub>>(this.stateType);
 
-		// 创建临时子状态实例来检查配置
-		const tempSub = this.defaultSubState();
-		const shouldExist = tempSub.shouldExist(parentValue);
+		// 创建临时子状态实例来检查是否应该存在
+		const tempSub = new this.subStateClass();
+		const initialState = tempSub.shouldExist(parentValue);
 
-		if (!shouldExist) {
+		if (initialState === undefined) {
 			// 如果不应该存在，移除子状态
 			if (subStateResource) {
-				resourceManager.removeResourceByDescriptor(this.subType);
+				resourceManager.removeResourceByDescriptor(this.stateType);
 				// 同时清除 NextState
-				const nextSubState = resourceManager.getResourceByTypeDescriptor< NextState<TSub>>(this.subType);
+				const nextSubState = resourceManager.getResourceByTypeDescriptor<NextState<TSub>>(this.nextStateType);
 				if (nextSubState) {
 					nextSubState.reset();
 				}
@@ -167,8 +168,9 @@ export class SubStateManager<TParent extends States, TSub extends SubStates<TPar
 		} else {
 			// 如果应该存在但还不存在，创建默认子状态
 			if (!subStateResource) {
-				const defaultState = this.defaultSubState();
-				resourceManager.insertResource(defaultState);
+				const newState = State.create(initialState);
+				newState.typeDescriptor = this.stateType;
+				resourceManager.insertResourceByTypeDescriptor(newState, this.stateType);
 			}
 		}
 	}
@@ -185,13 +187,13 @@ export class SubStateManager<TParent extends States, TSub extends SubStates<TPar
 		this.updateSubState(world, resourceManager);
 
 		// 获取子状态资源
-		const subStateResource = resourceManager.getResourceByTypeDescriptor<State<TSub>>(this.subType);
+		const subStateResource = resourceManager.getResourceByTypeDescriptor<State<TSub>>(this.stateType);
 		if (!subStateResource) {
 			return false;
 		}
 
 		// 获取 NextState 资源
-		const nextSubStateResource = resourceManager.getResourceByTypeDescriptor<NextState<TSub>> (this.subType) 
+		const nextSubStateResource = resourceManager.getResourceByTypeDescriptor<NextState<TSub>>(this.nextStateType) 
 		if (!nextSubStateResource || !nextSubStateResource.isPending()) {
 			return false;
 		}
@@ -203,7 +205,7 @@ export class SubStateManager<TParent extends States, TSub extends SubStates<TPar
 		}
 
 		// 更新子状态
-		subStateResource._set(newSubState);
+		subStateResource.setInternal(newSubState);
 
 		return true;
 	}
@@ -213,11 +215,13 @@ export class SubStateManager<TParent extends States, TSub extends SubStates<TPar
  * 创建简单的枚举子状态
  * @param config - 子状态配置
  * @param values - 子状态值
+ * @param defaultValue - 默认状态值
  * @returns 子状态类
  */
 export function createEnumSubState<TParent extends States>(
 	config: SubStateConfig<TParent>,
 	values: Record<string, string | number>,
+	defaultValue?: string | number,
 ): {
 	states: Record<string, SubStates<TParent>>;
 	type: new (value: string | number) => SubStates<TParent>;
@@ -236,6 +240,13 @@ export function createEnumSubState<TParent extends States>(
 
 		public clone(): States {
 			return new EnumSubState(this.value, this.config);
+		}
+
+		public shouldExist(parentState: TParent | undefined): this | undefined {
+			if (parentState === undefined) {
+				return undefined;
+			}
+			return this.config.allowedParentStates.has(parentState.getStateId()) ? this : undefined;
 		}
 	}
 

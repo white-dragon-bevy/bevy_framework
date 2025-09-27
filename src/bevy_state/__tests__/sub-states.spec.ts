@@ -45,6 +45,18 @@ class MockSubState extends BaseSubStates<MockParentState> {
 		);
 	}
 
+	/**
+	 * 检查在给定父状态下是否应该存在
+	 * @param parentState - 父状态
+	 * @returns 初始状态或 undefined
+	 */
+	public shouldExist(parentState: MockParentState | undefined): this | undefined {
+		if (parentState === undefined) {
+			return undefined;
+		}
+		return this.config.allowedParentStates.has(parentState.getStateId()) ? this : undefined;
+	}
+
 	public getStateId(): string | number {
 		return this.value;
 	}
@@ -156,24 +168,25 @@ export = () => {
 		});
 
 		describe("shouldExist", () => {
-			it("should return true when parent state is allowed", () => {
+			it("should return self when parent state is allowed", () => {
 				const subState = new MockSubState("test_state", config);
 				const allowedParent = MockParentState.ACTIVE;
 
-				expect(subState.shouldExist(allowedParent)).to.equal(true);
+				const result = subState.shouldExist(allowedParent);
+				expect(result).to.equal(subState);
 			});
 
-			it("should return false when parent state is not allowed", () => {
+			it("should return undefined when parent state is not allowed", () => {
 				const subState = new MockSubState("test_state", config);
 				const notAllowedParent = MockParentState.INACTIVE;
 
-				expect(subState.shouldExist(notAllowedParent)).to.equal(false);
+				expect(subState.shouldExist(notAllowedParent)).to.equal(undefined);
 			});
 
-			it("should return false when parent state is undefined", () => {
+			it("should return undefined when parent state is undefined", () => {
 				const subState = new MockSubState("test_state", config);
 
-				expect(subState.shouldExist(undefined)).to.equal(false);
+				expect(subState.shouldExist(undefined)).to.equal(undefined);
 			});
 
 			it("should handle multiple allowed parent states", () => {
@@ -186,9 +199,9 @@ export = () => {
 				};
 				const subState = new MockSubState("test_state", multiConfig);
 
-				expect(subState.shouldExist(MockParentState.ACTIVE)).to.equal(true);
-				expect(subState.shouldExist(MockParentState.PAUSED)).to.equal(true);
-				expect(subState.shouldExist(MockParentState.INACTIVE)).to.equal(false);
+				expect(subState.shouldExist(MockParentState.ACTIVE)).to.equal(subState);
+				expect(subState.shouldExist(MockParentState.PAUSED)).to.equal(subState);
+				expect(subState.shouldExist(MockParentState.INACTIVE)).to.equal(undefined);
 			});
 		});
 	});
@@ -197,19 +210,29 @@ export = () => {
 		let world: World;
 		let resourceManager: ResourceManager;
 		let parentTypeDescriptor: TypeDescriptor;
-		let subTypeDescriptor: TypeDescriptor;
+		let stateTypeDescriptor: TypeDescriptor;
+		let nextStateTypeDescriptor: TypeDescriptor;
 		let manager: SubStateManager<MockParentState, MockSubState>;
 
 		beforeEach(() => {
 			world = {} as World;
 			resourceManager = new ResourceManager();
 			parentTypeDescriptor = createMockTypeDescriptor("MockParentState");
-			subTypeDescriptor = createMockTypeDescriptor("MockSubState");
+			stateTypeDescriptor = createMockTypeDescriptor("State<MockSubState>");
+			nextStateTypeDescriptor = createMockTypeDescriptor("NextState<MockSubState>");
+
+			// 创建一个简单的子状态类作为工厂
+			class SubStateFactory extends MockSubState {
+				public constructor() {
+					super("sub_a");
+				}
+			}
 
 			manager = new SubStateManager<MockParentState, MockSubState>(
 				parentTypeDescriptor,
-				subTypeDescriptor,
-				() => MockSubState.SUB_A,
+				stateTypeDescriptor,
+				nextStateTypeDescriptor,
+				SubStateFactory as unknown as new () => MockSubState,
 			);
 		});
 
@@ -227,7 +250,7 @@ export = () => {
 				manager.updateSubState(world, resourceManager);
 
 				const subStateResource =
-					resourceManager.getResourceByTypeDescriptor<State<MockSubState>>(subTypeDescriptor);
+					resourceManager.getResourceByTypeDescriptor<State<MockSubState>>(stateTypeDescriptor);
 
 				expect(subStateResource).to.be.ok();
 				expect(subStateResource!.get().getStateId()).to.equal(MockSubState.SUB_A.getStateId());
@@ -241,7 +264,7 @@ export = () => {
 				manager.updateSubState(world, resourceManager);
 
 				const subStateResource =
-					resourceManager.getResourceByTypeDescriptor<State<MockSubState>>(subTypeDescriptor);
+					resourceManager.getResourceByTypeDescriptor<State<MockSubState>>(stateTypeDescriptor);
 
 				expect(subStateResource).never.to.be.ok();
 			});
@@ -252,15 +275,15 @@ export = () => {
 				resourceManager.insertResourceByTypeDescriptor(parentState, parentTypeDescriptor);
 
 				const subState = State.create(MockSubState.SUB_A);
-				subState.typeDescriptor = subTypeDescriptor;
-				resourceManager.insertResourceByTypeDescriptor(subState, subTypeDescriptor);
+				subState.typeDescriptor = stateTypeDescriptor;
+				resourceManager.insertResourceByTypeDescriptor(subState, stateTypeDescriptor);
 
-				parentState._set(MockParentState.INACTIVE);
+				parentState.setInternal(MockParentState.INACTIVE);
 
 				manager.updateSubState(world, resourceManager);
 
 				const subStateResource =
-					resourceManager.getResourceByTypeDescriptor<State<MockSubState>>(subTypeDescriptor);
+					resourceManager.getResourceByTypeDescriptor<State<MockSubState>>(stateTypeDescriptor);
 
 				expect(subStateResource).never.to.be.ok();
 			});
@@ -271,20 +294,20 @@ export = () => {
 				resourceManager.insertResourceByTypeDescriptor(parentState, parentTypeDescriptor);
 
 				const subState = State.create(MockSubState.SUB_A);
-				subState.typeDescriptor = subTypeDescriptor;
-				resourceManager.insertResourceByTypeDescriptor(subState, subTypeDescriptor);
+				subState.typeDescriptor = stateTypeDescriptor;
+				resourceManager.insertResourceByTypeDescriptor(subState, stateTypeDescriptor);
 
 				const nextSubState = NextState.create<MockSubState>();
-				nextSubState.typeDescriptor = subTypeDescriptor;
+				nextSubState.typeDescriptor = nextStateTypeDescriptor;
 				nextSubState.set(MockSubState.SUB_B);
-				resourceManager.insertResourceByTypeDescriptor(nextSubState, subTypeDescriptor);
+				resourceManager.insertResourceByTypeDescriptor(nextSubState, nextStateTypeDescriptor);
 
-				parentState._set(MockParentState.INACTIVE);
+				parentState.setInternal(MockParentState.INACTIVE);
 
 				manager.updateSubState(world, resourceManager);
 
 				const nextSubStateResource =
-					resourceManager.getResourceByTypeDescriptor<NextState<MockSubState>>(subTypeDescriptor);
+					resourceManager.getResourceByTypeDescriptor<NextState<MockSubState>>(nextStateTypeDescriptor);
 
 				expect(nextSubStateResource).to.be.ok();
 				expect(nextSubStateResource!.isUnchanged()).to.equal(true);
@@ -296,13 +319,13 @@ export = () => {
 				resourceManager.insertResourceByTypeDescriptor(parentState, parentTypeDescriptor);
 
 				const existingSubState = State.create(MockSubState.SUB_B);
-				existingSubState.typeDescriptor = subTypeDescriptor;
-				resourceManager.insertResourceByTypeDescriptor(existingSubState, subTypeDescriptor);
+				existingSubState.typeDescriptor = stateTypeDescriptor;
+				resourceManager.insertResourceByTypeDescriptor(existingSubState, stateTypeDescriptor);
 
 				manager.updateSubState(world, resourceManager);
 
 				const subStateResource =
-					resourceManager.getResourceByTypeDescriptor<State<MockSubState>>(subTypeDescriptor);
+					resourceManager.getResourceByTypeDescriptor<State<MockSubState>>(stateTypeDescriptor);
 
 				expect(subStateResource).to.be.ok();
 				expect(subStateResource!.get().getStateId()).to.equal(MockSubState.SUB_B.getStateId());
@@ -316,20 +339,20 @@ export = () => {
 				resourceManager.insertResourceByTypeDescriptor(parentState, parentTypeDescriptor);
 
 				const subState = State.create(MockSubState.SUB_A);
-				subState.typeDescriptor = subTypeDescriptor;
-				resourceManager.insertResourceByTypeDescriptor(subState, subTypeDescriptor);
+				subState.typeDescriptor = stateTypeDescriptor;
+				resourceManager.insertResourceByTypeDescriptor(subState, stateTypeDescriptor);
 
 				const nextSubState = NextState.create<MockSubState>();
-				nextSubState.typeDescriptor = subTypeDescriptor;
+				nextSubState.typeDescriptor = nextStateTypeDescriptor;
 				nextSubState.set(MockSubState.SUB_B);
-				resourceManager.insertResourceByTypeDescriptor(nextSubState, subTypeDescriptor);
+				resourceManager.insertResourceByTypeDescriptor(nextSubState, nextStateTypeDescriptor);
 
 				const transitioned = manager.processSubStateTransition(world, resourceManager);
 
 				expect(transitioned).to.equal(true);
 
 				const subStateResource =
-					resourceManager.getResourceByTypeDescriptor<State<MockSubState>>(subTypeDescriptor);
+					resourceManager.getResourceByTypeDescriptor<State<MockSubState>>(stateTypeDescriptor);
 
 				expect(subStateResource).to.be.ok();
 				expect(subStateResource!.get().getStateId()).to.equal(MockSubState.SUB_B.getStateId());
@@ -351,12 +374,12 @@ export = () => {
 				resourceManager.insertResourceByTypeDescriptor(parentState, parentTypeDescriptor);
 
 				const subState = State.create(MockSubState.SUB_A);
-				subState.typeDescriptor = subTypeDescriptor;
-				resourceManager.insertResourceByTypeDescriptor(subState, subTypeDescriptor);
+				subState.typeDescriptor = stateTypeDescriptor;
+				resourceManager.insertResourceByTypeDescriptor(subState, stateTypeDescriptor);
 
 				const nextSubState = NextState.create<MockSubState>();
-				nextSubState.typeDescriptor = subTypeDescriptor;
-				resourceManager.insertResourceByTypeDescriptor(nextSubState, subTypeDescriptor);
+				nextSubState.typeDescriptor = nextStateTypeDescriptor;
+				resourceManager.insertResourceByTypeDescriptor(nextSubState, nextStateTypeDescriptor);
 
 				const transitioned = manager.processSubStateTransition(world, resourceManager);
 
@@ -369,18 +392,18 @@ export = () => {
 				resourceManager.insertResourceByTypeDescriptor(parentState, parentTypeDescriptor);
 
 				const subState = State.create(MockSubState.SUB_A);
-				subState["typeDescriptor"] = subTypeDescriptor;
-				resourceManager.insertResourceByTypeDescriptor(subState, subTypeDescriptor);
+				subState.typeDescriptor = stateTypeDescriptor;
+				resourceManager.insertResourceByTypeDescriptor(subState, stateTypeDescriptor);
 
 				const nextSubState = NextState.create<MockSubState>();
-				nextSubState.typeDescriptor = subTypeDescriptor;
+				nextSubState.typeDescriptor = nextStateTypeDescriptor;
 				nextSubState.set(MockSubState.SUB_B);
-				resourceManager.insertResourceByTypeDescriptor(nextSubState, subTypeDescriptor);
+				resourceManager.insertResourceByTypeDescriptor(nextSubState, nextStateTypeDescriptor);
 
 				manager.processSubStateTransition(world, resourceManager);
 
 				const nextSubStateResource =
-					resourceManager.getResourceByTypeDescriptor<NextState<MockSubState>>(subTypeDescriptor);
+					resourceManager.getResourceByTypeDescriptor<NextState<MockSubState>>(nextStateTypeDescriptor);
 
 				expect(nextSubStateResource).to.be.ok();
 				expect(nextSubStateResource!.isUnchanged()).to.equal(true);
@@ -437,8 +460,8 @@ export = () => {
 				STATE_A: "a",
 			});
 
-			expect(result.states.STATE_A.shouldExist(MockParentState.ACTIVE)).to.equal(true);
-			expect(result.states.STATE_A.shouldExist(MockParentState.INACTIVE)).to.equal(false);
+			expect(result.states.STATE_A.shouldExist(MockParentState.ACTIVE)).to.equal(result.states.STATE_A);
+			expect(result.states.STATE_A.shouldExist(MockParentState.INACTIVE)).to.equal(undefined);
 		});
 
 		it("should create cloneable states", () => {

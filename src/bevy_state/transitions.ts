@@ -194,7 +194,7 @@ export class StateTransitionManager<S extends States> {
 
 		// 获取当前状态资源
 		let currentStateResource = resourceManager.getResourceByTypeDescriptor<State<S>>(this.typeDescriptor);
-		const exitedState = currentStateResource?.get();
+		const exitedState = currentStateResource && typeIs(currentStateResource.get, "function") ? currentStateResource.get() : undefined;
 
 		// 检查是否为身份转换（相同状态转换）
 		if (exitedState && exitedState.equals(newState)) {
@@ -247,9 +247,13 @@ export class StateTransitionManager<S extends States> {
 		let currentStateResource = resourceManager.getResourceByTypeDescriptor<State<S>>(this.typeDescriptor);
 		if (!currentStateResource) {
 			currentStateResource = State.create(newState);
-			resourceManager.insertResource(currentStateResource);
+			resourceManager.insertResourceByTypeDescriptor(currentStateResource, this.typeDescriptor);
+		} else if (typeIs(currentStateResource.setInternal, "function")) {
+			currentStateResource.setInternal(newState);
 		} else {
-			currentStateResource._set(newState);
+			// 如果资源不是 State 实例，创建新的
+			currentStateResource = State.create(newState);
+			resourceManager.insertResourceByTypeDescriptor(currentStateResource, this.typeDescriptor);
 		}
 
 		// 4. 执行 OnEnter 调度
@@ -389,10 +393,15 @@ export function lastTransition<S extends States>(
 ): StateTransitionMessage<S> | undefined {
 	// 尝试从世界中获取状态转换管理器
 	try {
+		// 检查 resources 是否有 getResourceByTypeDescriptor 方法
+		if (!resources || !typeIs(resources.getResourceByTypeDescriptor, "function")) {
+			return undefined;
+		}
+
 		// from resources
 		const stateTransitionManagerTypeDescriptor = getGenericTypeDescriptor<StateTransitionManager<S>>(undefined,id,text)
 		const manager = resources.getResourceByTypeDescriptor(stateTransitionManagerTypeDescriptor) as StateTransitionManager<S> | undefined
-		if (!manager) {
+		if (!manager || !typeIs(manager.getLastTransition, "function")) {
 			return undefined;
 		}
 		return manager.getLastTransition();

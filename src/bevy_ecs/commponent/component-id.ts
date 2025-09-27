@@ -21,6 +21,11 @@ export type ComponentId = number
  * @returns 组件或者资源的ComponentId
  */
 export function getComponentIdByDescriptor<T>(descriptor:TypeDescriptor):ComponentId{
+    // 如果有 genericId，使用它和原始 id 的组合作为唯一键
+    if (descriptor.genericId) {
+        const combinedId = `${descriptor.genericId}<${descriptor.id}>`;
+        return getComponentId(combinedId, descriptor.text);
+    }
     return getComponentId(descriptor.id, descriptor.text)
 }
 
