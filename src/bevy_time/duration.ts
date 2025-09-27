@@ -159,6 +159,80 @@ export class Duration {
 	}
 
 	/**
+	 * 乘法运算
+	 * 对应 Rust impl Mul<u32> for Duration
+	 */
+	mul(factor: number): Duration {
+		if (factor < 0) {
+			error("Duration multiplication factor must be non-negative");
+		}
+		return Duration.fromNanos(this.asNanos() * factor);
+	}
+
+	/**
+	 * 饱和乘法运算
+	 * 对应 Rust Duration::saturating_mul
+	 */
+	saturatingMul(factor: number): Duration {
+		if (factor < 0) {
+			error("Duration multiplication factor must be non-negative");
+		}
+		const result = this.asNanos() * factor;
+		if (result === math.huge || result > Duration.MAX.asNanos()) {
+			return Duration.MAX;
+		}
+		return Duration.fromNanos(result);
+	}
+
+	/**
+	 * 检查乘法（返回 undefined 如果溢出）
+	 * 对应 Rust Duration::checked_mul
+	 */
+	checkedMul(factor: number): Duration | undefined {
+		if (factor < 0) {
+			return undefined;
+		}
+		const result = this.asNanos() * factor;
+		if (result === math.huge || result > Duration.MAX.asNanos()) {
+			return undefined;
+		}
+		return Duration.fromNanos(result);
+	}
+
+	/**
+	 * 除法运算
+	 * 对应 Rust impl Div<u32> for Duration
+	 */
+	div(divisor: number): Duration {
+		if (divisor <= 0) {
+			error("Duration division by zero or negative number");
+		}
+		return Duration.fromNanos(math.floor(this.asNanos() / divisor));
+	}
+
+	/**
+	 * 检查除法（返回 undefined 如果除数为 0）
+	 * 对应 Rust Duration::checked_div
+	 */
+	checkedDiv(divisor: number): Duration | undefined {
+		if (divisor <= 0) {
+			return undefined;
+		}
+		return Duration.fromNanos(math.floor(this.asNanos() / divisor));
+	}
+
+	/**
+	 * 计算两个 Duration 的比率
+	 * 对应 Rust Duration::as_secs_f64() / other.as_secs_f64()
+	 */
+	divDuration(other: Duration): number {
+		if (other.isZero()) {
+			error("Division by zero Duration");
+		}
+		return this.asSecsF64() / other.asSecsF64();
+	}
+
+	/**
 	 * 检查是否相等
 	 * 对应 Rust PartialEq for Duration
 	 */

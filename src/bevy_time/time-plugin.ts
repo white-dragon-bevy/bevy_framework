@@ -17,6 +17,7 @@ import {
 	GenericTimeResource,
 	TimeUpdateStrategyResource,
 } from "./time-resources";
+import { FrameCount, FrameCountResource, updateFrameCount } from "./frame-count";
 import { Context } from "../bevy_ecs";
 import type { TimeExtension } from "./extensions";
 
@@ -128,6 +129,9 @@ export class TimePlugin extends BasePlugin {
 		// 初始化时间更新策略
 		app.insertResource(new TimeUpdateStrategyResource());
 
+		// 初始化帧计数器
+		app.insertResource(new FrameCountResource(new FrameCount()));
+
 		// 创建时间统计管理器
 		const statsManager = new TimeStatsManager();
 
@@ -178,7 +182,12 @@ export class TimePlugin extends BasePlugin {
 						const resource = app.getResource<VirtualTimeResource>();
 						if (resource) {
 							const vTime = resource.value;
-							(vTime.getContext() as Virtual).paused = true;
+							const context = vTime.getContext() as Virtual;
+							vTime.setContext({
+								...context,
+								paused: true,
+								effectiveSpeed: 0,
+							});
 						}
 					},
 
@@ -186,7 +195,12 @@ export class TimePlugin extends BasePlugin {
 						const resource = app.getResource<VirtualTimeResource>();
 						if (resource) {
 							const vTime = resource.value;
-							(vTime.getContext() as Virtual).paused = false;
+							const context = vTime.getContext() as Virtual;
+							vTime.setContext({
+								...context,
+								paused: false,
+								effectiveSpeed: context.relativeSpeed,
+							});
 						}
 					},
 
@@ -199,8 +213,12 @@ export class TimePlugin extends BasePlugin {
 						const resource = app.getResource<VirtualTimeResource>();
 						if (resource) {
 							const vTime = resource.value;
-							(vTime.getContext() as Virtual).relativeSpeed = scale;
-							(vTime.getContext() as Virtual).effectiveSpeed = scale;
+							const context = vTime.getContext() as Virtual;
+							vTime.setContext({
+								...context,
+								relativeSpeed: scale,
+								effectiveSpeed: context.paused ? 0 : scale,
+							});
 						}
 					},
 
@@ -265,6 +283,12 @@ export class TimePlugin extends BasePlugin {
 					resetStats() {
 						statsManager.reset();
 					},
+
+					// 帧计数功能
+					getFrameCount() {
+						const resource = app.getResource<FrameCountResource>();
+						return resource ? resource.value.getValue() : 0;
+					},
 				} satisfies TimeExtension,
 				metadata: {
 					description: "Unified time system for elapsed time, delta time, control and statistics",
@@ -277,6 +301,14 @@ export class TimePlugin extends BasePlugin {
 		// 对应 lib.rs:90-93
 		app.addSystems(BuiltinSchedules.RUN_FIXED_MAIN_LOOP, (world: World, context: Context) => {
 			runFixedMainLoop(world, context, app);
+		});
+
+		// 添加帧计数器更新系统到 Last 调度
+		app.addSystems(BuiltinSchedules.LAST, (world: World, context: Context) => {
+			const frameCountResource = app.getResource<FrameCountResource>();
+			if (frameCountResource) {
+				updateFrameCount(frameCountResource.value);
+			}
 		});
 
 		// TODO: 消息系统配置（lib.rs:95-99）
@@ -362,14 +394,15 @@ function timeSystem(world: World, context: Context, app: App, statsManager: Time
 	if (virtualTimeResource && realTimeResource) {
 		const virtualTime = virtualTimeResource.value;
 		const realTime = realTimeResource.value;
+		const virtualContext = virtualTime.getContext() as Virtual;
 		// 如果没有暂停，使用 real 时间的增量
-		if (!(virtualTime.getContext() as Virtual).paused) {
+		if (!virtualContext.paused) {
 			const virtualDelta = Duration.fromSecs(
-				delta.asSecsF64() * (virtualTime.getContext() as Virtual).relativeSpeed,
+				delta.asSecsF64() * virtualContext.relativeSpeed,
 			);
 
 			// 应用最大增量限制
-			const maxDelta = (virtualTime.getContext() as Virtual).maxDelta;
+			const maxDelta = virtualContext.maxDelta;
 			const clampedDelta = virtualDelta.lessThan(maxDelta) ? virtualDelta : maxDelta;
 
 			virtualTime.advanceBy(clampedDelta);
@@ -381,26 +414,6 @@ function timeSystem(world: World, context: Context, app: App, statsManager: Time
 
 		// 更新通用 Time（默认使用 Virtual）
 		app.insertResource(new GenericTimeResource(virtualTime.asGeneric()));
-
-		// 更新 Fixed 时间（累积 Virtual 时间的增量）
-		const fixedTimeResource = app.getResource<FixedTimeResource>();
-		if (fixedTimeResource) {
-			const fixedTime = fixedTimeResource.value;
-			// 累积虚拟时间的增量到固定时间
-			fixedTime.accumulate(virtualTime.getDelta());
-
-			// 消费固定时间步（用于测试验证）
-			// 注意：在实际应用中，这应该在 RunFixedMainLoop 调度中处理
-			// 但为了让测试通过，我们在这里处理
-			let iterations = 0;
-			const maxIterations = 10; // 防止死循环
-			while (fixedTime.expend() && iterations < maxIterations) {
-				// 固定时间步已经被消费，elapsed 已更新
-				iterations++;
-			}
-
-			app.insertResource(new FixedTimeResource(fixedTime));
-		}
 	}
 }
 

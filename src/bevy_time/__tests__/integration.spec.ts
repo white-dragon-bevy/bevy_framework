@@ -93,7 +93,12 @@ export = () => {
 
 				// 暂停虚拟时间
 				if (virtualTime1) {
-					(virtualTime1.getContext() as Virtual).paused = true;
+					const context = virtualTime1.getContext() as Virtual;
+					virtualTime1.setContext({
+						...context,
+						paused: true,
+						effectiveSpeed: 0,
+					});
 					app.insertResource(new VirtualTimeResource(virtualTime1));
 				}
 
@@ -119,7 +124,12 @@ export = () => {
 				const virtualTimeResource = app.getResource<VirtualTimeResource>();
 				const virtualTime = virtualTimeResource?.value;
 				if (virtualTime) {
-					(virtualTime.getContext() as Virtual).relativeSpeed = 2.0;
+					const context = virtualTime.getContext() as Virtual;
+					virtualTime.setContext({
+						...context,
+						relativeSpeed: 2.0,
+						effectiveSpeed: 2.0,
+					});
 					app.insertResource(new VirtualTimeResource(virtualTime));
 				}
 

@@ -122,6 +122,13 @@ export interface TimeExtension {
 	 * 重置统计信息
 	 */
 	resetStats(): void;
+
+	// 帧计数功能
+	/**
+	 * 获取当前帧数
+	 * @returns 自应用启动以来的帧数
+	 */
+	getFrameCount(): number;
 }
 
 /**

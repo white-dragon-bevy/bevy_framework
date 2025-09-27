@@ -15,7 +15,7 @@ export {
 	GenericTimeResource,
 	TimeUpdateStrategyResource,
 } from "./time-resources";
-export { FrameCount, updateFrameCount } from "./frame-count";
+export { FrameCount, FrameCountResource, updateFrameCount } from "./frame-count";
 
 // 类型别名
 export type { GenericTime, RealTime, VirtualTime, FixedTime } from "./time";
