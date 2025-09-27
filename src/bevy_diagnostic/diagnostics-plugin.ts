@@ -6,11 +6,7 @@
 import { BasePlugin } from "../../src/bevy_app/plugin";
 import { App } from "../../src/bevy_app/app";
 import { Diagnostic, DiagnosticPath, DiagnosticsStore, installDiagnosticSystem } from "./diagnostic";
-import type {
-	DiagnosticsExtension,
-	DiagnosticsRendererExtension,
-	DiagnosticsStoreExtension,
-} from "./extensions";
+import type { DiagnosticConfig, DiagnosticExtension } from "./extensions";
 
 /**
  * 诊断渲染器
@@ -83,30 +79,46 @@ export class DiagnosticsPlugin extends BasePlugin {
 		// 插入资源
 		app.insertResource( store);
 
-		// 注册扩展到 context
+		// 注册统一的诊断扩展
 		this.registerExtensions(app, {
-			diagnostics: {
+			diagnostic: {
 				extension: {
-					registerDiagnostic(config) {
-						if ("path" in config) {
+					// 核心存储对象
+					store: store,
+
+					// 诊断管理功能
+					registerDiagnostic(config: DiagnosticConfig | Diagnostic) {
+						if ("getPath" in config) {
 							// 是完整的 Diagnostic 对象
 							store.add(config as Diagnostic);
 						} else {
 							// 是 DiagnosticConfig
 							const path = new DiagnosticPath(config.id);
 							const diagnostic = new Diagnostic(path);
+							if (config.name) diagnostic.withSuffix(config.name);
 							if (config.maxHistory) diagnostic.withMaxHistoryLength(config.maxHistory);
+							if (config.value !== undefined) {
+								diagnostic.addMeasurement({
+									time: os.clock(),
+									value: config.value,
+								});
+							}
 							store.add(diagnostic);
 						}
 					},
+
 					getDiagnostic(id: string) {
-						return store.get(id as any);
+						const path = new DiagnosticPath(id);
+						return store.get(path);
 					},
+
 					clearDiagnostics() {
 						store.clear();
 					},
+
 					updateDiagnostic(id: string, value: number) {
-						const diagnostic = store.get(id as any);
+						const path = new DiagnosticPath(id);
+						const diagnostic = store.get(path);
 						if (diagnostic) {
 							diagnostic.addMeasurement({
 								time: os.clock(),
@@ -114,47 +126,35 @@ export class DiagnosticsPlugin extends BasePlugin {
 							});
 						}
 					},
-				} satisfies DiagnosticsExtension,
-				metadata: {
-					description: "Core diagnostics API for registering and managing diagnostic metrics",
-					version: "0.1.0",
-				},
-			},
-			diagnostics_store: {
-				extension: {
-					getStore() {
-						return store;
-					},
+
 					getAllDiagnostics() {
 						return store.getAll();
 					},
+
 					getDiagnosticsCount() {
 						return store.getAll().size();
 					},
-				} satisfies DiagnosticsStoreExtension,
-				metadata: {
-					description: "Direct access to the diagnostics store",
-					dependencies: ["diagnostics"],
-				},
-			},
-			diagnostics_renderer: {
-				extension: {
+
+					// 渲染功能
 					renderToConsole() {
 						renderer.renderToConsole();
 					},
+
 					renderToUI() {
 						renderer.renderToUI();
 					},
+
 					setRenderFormat(format) {
 						renderer.setFormat(format);
 					},
+
 					getRenderFormat() {
 						return renderer.getFormat();
 					},
-				} satisfies DiagnosticsRendererExtension,
+				} satisfies DiagnosticExtension,
 				metadata: {
-					description: "Rendering utilities for diagnostic output",
-					dependencies: ["diagnostics", "diagnostics_store"],
+					description: "Unified diagnostics system for registering, managing and rendering diagnostic metrics",
+					version: "0.1.0",
 				},
 			},
 		});

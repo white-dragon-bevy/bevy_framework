@@ -3,13 +3,13 @@
  * 负责注册和调度 Transform 相关的系统
  */
 
-import { Plugin } from "../../bevy_app/plugin";
-import { App } from "../../bevy_app/app";
-import { BuiltinSchedules } from "../../bevy_app/main-schedule";
+import { Plugin } from "../bevy_app/plugin";
+import { App } from "../bevy_app/app";
+import { BuiltinSchedules } from "../bevy_app/main-schedule";
 import { World } from "@rbxts/matter";
 import { markDirtyTrees, propagateParentTransforms, syncSimpleTransforms, ensureGlobalTransforms } from "./systems";
-import { BevyWorld } from "../../bevy_ecs/bevy-world";
-import { Context } from "../../bevy_ecs/types";
+import { BevyWorld } from "../bevy_ecs/bevy-world";
+import { Context } from "../bevy_ecs/types";
 
 /**
  * Transform 系统集枚举

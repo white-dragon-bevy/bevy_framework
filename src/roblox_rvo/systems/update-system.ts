@@ -6,7 +6,7 @@
 import { BevyWorld } from "../../bevy_ecs/bevy-world";
 import { Context } from "../../bevy_ecs/types";
 import { MessageWriter } from "../../bevy_ecs/message";
-import { Transform } from "../../bevy_transform/src/components/transform";
+import { Transform } from "../../bevy_transform/components/transform";
 import { RVOAgent, hasReachedGoal } from "../components/rvo-agent";
 import { RVOSimulatorResource } from "../resources/rvo-simulator";
 import Agent from "../core/Agent";
@@ -34,13 +34,10 @@ export function updateTransformFromRVO(world: BevyWorld, context: Context): void
 
 	const simulator = simulatorResource.simulator;
 
-	// 获取消息写入器 (暂时注释，需要修复 MessageWriter)
-	// const collisionMessageWriter = context.getMessageWriter<CollisionAvoidanceEvent>();
-	// const goalMessageWriter = context.getMessageWriter<GoalReachedEvent>();
-	// const velocityMessageWriter = context.getMessageWriter<VelocityChangedEvent>();
-	const collisionMessageWriter = undefined as MessageWriter<CollisionAvoidanceEvent> | undefined;
-	const goalMessageWriter = undefined as MessageWriter<GoalReachedEvent> | undefined;
-	const velocityMessageWriter = undefined as MessageWriter<VelocityChangedEvent> | undefined;
+	// 获取消息写入器 - 暂时使用undefined，待context支持MessageWriter
+	const collisionMessageWriter = undefined as unknown as MessageWriter<CollisionAvoidanceEvent> | undefined;
+	const goalMessageWriter = undefined as unknown as MessageWriter<GoalReachedEvent> | undefined;
+	const velocityMessageWriter = undefined as unknown as MessageWriter<VelocityChangedEvent> | undefined;
 
 	// 查询所有带 RVOAgent 和 Transform 的实体
 	for (const [entity, agent, transform] of world.query(RVOAgent, Transform)) {

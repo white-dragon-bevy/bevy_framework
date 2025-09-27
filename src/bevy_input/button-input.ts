@@ -213,37 +213,25 @@ export class ButtonInput<T extends defined> {
 
 	/**
 	 * 获取所有正在按下的输入
-	 * @returns 正在按下的输入数组
+	 * @returns 正在按下的输入集合
 	 */
-	public getPressed(): Array<T> {
-		const result: Array<T> = [];
-		for (const input of this.pressedSet) {
-			result.push(input);
-		}
-		return result;
+	public getPressed(): Set<T> {
+		return this.pressedSet;
 	}
 
 	/**
 	 * 获取所有刚按下的输入
-	 * @returns 刚按下的输入数组
+	 * @returns 刚按下的输入集合
 	 */
-	public getJustPressed(): Array<T> {
-		const result: Array<T> = [];
-		for (const input of this.justPressedSet) {
-			result.push(input);
-		}
-		return result;
+	public getJustPressed(): Set<T> {
+		return this.justPressedSet;
 	}
 
 	/**
 	 * 获取所有刚释放的输入
-	 * @returns 刚释放的输入数组
+	 * @returns 刚释放的输入集合
 	 */
-	public getJustReleased(): Array<T> {
-		const result: Array<T> = [];
-		for (const input of this.justReleasedSet) {
-			result.push(input);
-		}
-		return result;
+	public getJustReleased(): Set<T> {
+		return this.justReleasedSet;
 	}
 }

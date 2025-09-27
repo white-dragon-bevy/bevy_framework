@@ -6,9 +6,9 @@
 
 import { World } from "@rbxts/matter";
 import { App } from "../../bevy_app/app";
-import { Transform, GlobalTransform, createTransform } from "../src/components";
-import { TransformPlugin, createTransformPlugin } from "../src/plugin";
-import { Parent, Children } from "../src/systems";
+import { Transform, GlobalTransform, createTransform } from "../components";
+import { TransformPlugin, createTransformPlugin } from "../plugin";
+import { Parent, Children } from "../systems";
 
 export = () => {
 	describe("TransformPlugin", () => {

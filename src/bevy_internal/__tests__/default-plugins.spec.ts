@@ -7,7 +7,7 @@ import { DefaultPlugins, DefaultPluginsBuilder, MinimalPlugins, MinimalPluginsBu
 import { BasePlugin } from "../../bevy_app/plugin";
 import { LogPlugin } from "../../bevy_log/lib";
 import { TimePlugin } from "../../bevy_time/time-plugin";
-import { TransformPlugin } from "../../bevy_transform/src/plugin";
+import { TransformPlugin } from "../../bevy_transform/plugin";
 import { DiagnosticsPlugin } from "../../bevy_diagnostic/diagnostics-plugin";
 import { FrameCountPlugin } from "../../bevy_diagnostic/frame-count-diagnostics-plugin";
 import { InputPlugin } from "../../bevy_input/plugin";

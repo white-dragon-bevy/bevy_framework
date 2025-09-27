@@ -19,7 +19,7 @@ import {
 	getForward,
 	getRight,
 	getUp,
-} from "../src/components";
+} from "../components";
 
 export = () => {
 	describe("Transform Component", () => {

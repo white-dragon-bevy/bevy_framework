@@ -3,18 +3,25 @@
  * 为 TimePlugin 提供类型安全的扩展接口
  */
 
-import type { Time } from "./time";
+import type { Time, Empty } from "./time";
 
 /**
- * 核心时间扩展接口
- * 提供时间查询和基本控制功能
+ * 统一的时间扩展接口
+ * 整合所有时间相关功能
  */
 export interface TimeExtension {
+	/**
+	 * 获取当前时间对象
+	 * @returns 当前 Time 对象
+	 */
+	getCurrent(): Time<Empty>;
+
+	// 基本时间查询功能
 	/**
 	 * 获取时间资源
 	 * @returns Time 资源实例
 	 */
-	getTime(): Time;
+	getTime(): Time<Empty>;
 
 	/**
 	 * 获取自启动以来的总时间（秒）
@@ -39,13 +46,8 @@ export interface TimeExtension {
 	 * @returns 增量时间（毫秒）
 	 */
 	getDeltaMillis(): number;
-}
 
-/**
- * 时间控制扩展接口
- * 提供高级时间控制功能
- */
-export interface TimeControlExtension {
+	// 时间控制功能
 	/**
 	 * 暂停时间流逝
 	 */
@@ -84,13 +86,8 @@ export interface TimeControlExtension {
 	 * 重置时间到初始状态
 	 */
 	reset(): void;
-}
 
-/**
- * 时间统计扩展接口
- * 提供时间相关的统计信息
- */
-export interface TimeStatsExtension {
+	// 统计功能
 	/**
 	 * 获取平均 FPS
 	 * @returns 平均帧率
@@ -133,7 +130,5 @@ export interface TimeStatsExtension {
 declare module "../bevy_app/extensions" {
 	interface PluginExtensions {
 		time: TimeExtension;
-		time_control: TimeControlExtension;
-		time_stats: TimeStatsExtension;
 	}
 }

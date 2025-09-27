@@ -223,8 +223,8 @@ export = () => {
 				const pressed = buttonInput.getPressed();
 
 				expect(pressed.size()).to.equal(2);
-				expect(pressed.includes(TestInput.Input1)).to.equal(true);
-				expect(pressed.includes(TestInput.Input2)).to.equal(true);
+				expect(pressed.has(TestInput.Input1)).to.equal(true);
+				expect(pressed.has(TestInput.Input2)).to.equal(true);
 			});
 		});
 
@@ -236,8 +236,8 @@ export = () => {
 				const justPressed = buttonInput.getJustPressed();
 
 				expect(justPressed.size()).to.equal(2);
-				expect(justPressed.includes(TestInput.Input1)).to.equal(true);
-				expect(justPressed.includes(TestInput.Input2)).to.equal(true);
+				expect(justPressed.has(TestInput.Input1)).to.equal(true);
+				expect(justPressed.has(TestInput.Input2)).to.equal(true);
 			});
 		});
 
@@ -251,8 +251,8 @@ export = () => {
 				const justReleased = buttonInput.getJustReleased();
 
 				expect(justReleased.size()).to.equal(2);
-				expect(justReleased.includes(TestInput.Input1)).to.equal(true);
-				expect(justReleased.includes(TestInput.Input2)).to.equal(true);
+				expect(justReleased.has(TestInput.Input1)).to.equal(true);
+				expect(justReleased.has(TestInput.Input2)).to.equal(true);
 			});
 		});
 

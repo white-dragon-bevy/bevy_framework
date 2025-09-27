@@ -6,16 +6,24 @@
 import { World } from "@rbxts/matter";
 import { ButtonInput } from "./button-input";
 import { AccumulatedMouseMotion, AccumulatedMouseWheel, MousePosition } from "./mouse";
+import type { Key } from "./keyboard";
+import type { Touches } from "./touch";
+import type { GamepadManager } from "./gamepad";
+import type { GestureManager } from "./gestures";
 
 /**
  * 输入资源存储接口
  */
 interface InputResourceStorage {
+	gamepad?: GamepadManager;
+	gestures?: GestureManager;
+	key?: ButtonInput<Key>;
 	keyboard?: ButtonInput<Enum.KeyCode>;
 	mouse?: ButtonInput<Enum.UserInputType>;
 	mouseMotion?: AccumulatedMouseMotion;
-	mouseWheel?: AccumulatedMouseWheel;
 	mousePosition?: MousePosition;
+	mouseWheel?: AccumulatedMouseWheel;
+	touches?: Touches;
 }
 
 // 用于存储输入资源的 WeakMap
@@ -133,6 +141,86 @@ export function setMousePosition(world: World, mousePosition: MousePosition): vo
 export function getMousePosition(world: World): MousePosition | undefined {
 	const storage = worldStorageMap.get(world);
 	return storage?.mousePosition;
+}
+
+/**
+ * 设置按键输入资源（逻辑键）
+ * @param world - World 实例
+ * @param keyInputValue - 按键输入资源
+ */
+export function setKeyInput(world: World, keyInputValue: ButtonInput<Key>): void {
+	const storage = getOrCreateStorage(world);
+	storage.key = keyInputValue;
+}
+
+/**
+ * 获取按键输入资源（逻辑键）
+ * @param world - World 实例
+ * @returns 按键输入资源
+ */
+export function getKeyInput(world: World): ButtonInput<Key> | undefined {
+	const storage = worldStorageMap.get(world);
+	return storage?.key;
+}
+
+/**
+ * 设置触摸输入资源
+ * @param world - World 实例
+ * @param touches - 触摸输入资源
+ */
+export function setTouches(world: World, touches: Touches): void {
+	const storage = getOrCreateStorage(world);
+	storage.touches = touches;
+}
+
+/**
+ * 获取触摸输入资源
+ * @param world - World 实例
+ * @returns 触摸输入资源
+ */
+export function getTouches(world: World): Touches | undefined {
+	const storage = worldStorageMap.get(world);
+	return storage?.touches;
+}
+
+/**
+ * 设置游戏手柄管理器
+ * @param world - World 实例
+ * @param gamepadManager - 游戏手柄管理器
+ */
+export function setGamepadManager(world: World, gamepadManager: GamepadManager): void {
+	const storage = getOrCreateStorage(world);
+	storage.gamepad = gamepadManager;
+}
+
+/**
+ * 获取游戏手柄管理器
+ * @param world - World 实例
+ * @returns 游戏手柄管理器
+ */
+export function getGamepadManager(world: World): GamepadManager | undefined {
+	const storage = worldStorageMap.get(world);
+	return storage?.gamepad;
+}
+
+/**
+ * 设置手势管理器
+ * @param world - World 实例
+ * @param gestureManager - 手势管理器
+ */
+export function setGestureManager(world: World, gestureManager: GestureManager): void {
+	const storage = getOrCreateStorage(world);
+	storage.gestures = gestureManager;
+}
+
+/**
+ * 获取手势管理器
+ * @param world - World 实例
+ * @returns 手势管理器
+ */
+export function getGestureManager(world: World): GestureManager | undefined {
+	const storage = worldStorageMap.get(world);
+	return storage?.gestures;
 }
 
 /**
