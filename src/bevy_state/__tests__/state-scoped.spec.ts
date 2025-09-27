@@ -3,18 +3,7 @@
  */
 
 import { World } from "@rbxts/matter";
-import {
-	StateScoped,
-	DespawnStrategy,
-	markForDespawnOnExit,
-	markForDespawnOnEnter,
-	getStateScopedData,
-	removeStateScopedMarker,
-	getEntitiesInState,
-	despawnAllInState,
-	cleanupOnStateExit,
-	cleanupOnStateEnter,
-} from "../state-scoped";
+import { markForDespawnOnExit, getStateScopedData, DespawnStrategy, StateScoped, markForDespawnOnEnter, removeStateScopedMarker, getEntitiesInState, despawnAllInState, cleanupOnStateExit, cleanupOnStateEnter } from "../state-scoped";
 import { EnumStates } from "../states";
 
 // 测试状态

@@ -5,3 +5,4 @@ testez-companion-info.model.json
 sourcemap.json
 tmp/
 flamework.build
+.audit/

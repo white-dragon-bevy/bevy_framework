@@ -6,7 +6,7 @@
 import { AppLabel, ErrorHandler, Message, ScheduleLabel } from "./types";
 import { Plugin, PluginState } from "./plugin";
 import { WorldContainer, createWorldContainer, World, Context } from "../bevy_ecs";
-import { ResourceManager, ResourceConstructor, Resource } from "../bevy_ecs/resource";
+import { ResourceManager, Resource } from "../bevy_ecs/resource";
 import { CommandBuffer } from "../bevy_ecs/command-buffer";
 import { EventManager } from "../bevy_ecs/events";
 import { MainScheduleOrder, FixedMainScheduleOrder, runMainSchedule, runFixedMainSchedule, BuiltinSchedules } from "./main-schedule";
@@ -366,11 +366,11 @@ export class SubApp {
 	/** 
 	 * 插入资源
 	 * 
-	 * @metadata macro
 	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
 	 * 
 	 * */
-	public insertResource<T>(resource:T, id?: Modding.Generic<T, "id">, text?: Modding.Generic<T,"text">) {
+	public insertResource<T extends object>(resource:T, id?: Modding.Generic<T, "id">, text?: Modding.Generic<T,"text">) {
 		this.resourceManager.insertResource(resource, id, text);
 	}
 
@@ -379,20 +379,14 @@ export class SubApp {
 	/** 
 	 * 获取资源
 	 * 
-	 * @metadata macro
 	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
 	 * 
 	 * */
 	public getResource<T extends defined>( id?: Modding.Generic<T, "id">, text?: Modding.Generic<T,"text">): T | undefined {
 		return this.resourceManager.getResource<T>(id, text);
 	}
 
-	/**
-	 * 移除资源
-	 */
-	removeResource<T extends Resource>(resourceType: ResourceConstructor<T>): T | undefined {
-		return this.resourceManager.removeResource<T>();
-	}
 
 	/**
 	 * 添加调度

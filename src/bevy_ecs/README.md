@@ -236,7 +236,7 @@ commands.flush(world);
 ```typescript
 import { ResourceManager, Resource } from "bevy_ecs";
 
-@Resource
+
 class GameConfig {
     maxPlayers = 4;
     gameDuration = 300;

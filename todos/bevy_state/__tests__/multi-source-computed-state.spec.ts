@@ -2,16 +2,12 @@
  * multi-source-computed-state.spec.ts - StateSet 和多状态源计算状态测试
  */
 
-import { ResourceManager, ResourceConstructor } from "../../bevy_ecs/resource";
-import { State, StateConstructor } from "../resources";
-import { States, BaseStates } from "../states";
-import {
-	StateSet,
-	SingleStateSet,
-	TupleStateSet,
-	createMultiSourceComputedState,
-	BaseComputedStates
-} from "../computed-states";
+import { ResourceManager, ResourceConstructor } from "../../../src/bevy_ecs";
+import { createMultiSourceComputedState, SingleStateSet, TupleStateSet, BaseComputedStates } from "../../../src/bevy_state/computed-states";
+import { State } from "../../../src/bevy_state/resources";
+import { BaseStates, States } from "../../../src/bevy_state/states";
+
+
 
 // 测试用状态类型
 class AppState extends BaseStates {

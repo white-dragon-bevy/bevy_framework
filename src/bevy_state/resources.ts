@@ -3,8 +3,10 @@
  * 对应 Rust bevy_state/src/state/resources.rs
  */
 
+import { Modding } from "@flamework/core";
 import { Resource } from "../../src/bevy_ecs/resource";
 import { States } from "./states";
+import { getTypeDescriptor, TypeDescriptor } from "../bevy_core";
 
 /**
  * 标记可以自由变更的状态
@@ -17,24 +19,46 @@ export interface FreelyMutableState extends States {}
  * 对应 Rust State<S>
  */
 
-export class State<S extends States> implements Resource {
-	public readonly __brand = "Resource" as const;
+export class State<S extends States> {
 	// 添加类型名称属性以支持唯一资源ID
 	public static readonly typeName?: string;
 
 	/**
-	 * 构造函数
+	 * 私有构造函数 (外部调用使用 Create())
 	 * @param current - 当前状态
 	 */
-	public constructor(private current: S) {}
+	private constructor(private current: S) {}
+
+
+	/**
+	 * 类型描述, 在 create() 时候添加.
+	 */
+	private _typeDescriptor:TypeDescriptor = undefined as unknown as TypeDescriptor
+
+	/**
+	 * 获取类型描述
+	 * @returns TypeDescriptor
+	 */
+	public getTypeDescriptor():TypeDescriptor{
+		return this._typeDescriptor
+	}
+
 
 	/**
 	 * 创建新的状态资源
+	 * 
+	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+ 	 * @metadata macro 
+	 * 
 	 * @param state - 初始状态
 	 * @returns State 资源实例
 	 */
-	public static create<S extends States>(state: S): State<S> {
-		return new State(state);
+	public static create<S extends States>(state: S,id?:Modding.Generic<S, "id">, text?: Modding.Generic<S,"text">): State<S> {
+		let typeDescriptor = getTypeDescriptor(id,text)
+		assert(typeDescriptor)
+		const result = new State(state);
+		result._typeDescriptor = typeDescriptor
+		return result;
 	}
 
 	/**
@@ -71,49 +95,16 @@ export class State<S extends States> implements Resource {
 	}
 }
 
-// 状态资源类缓存
-const stateResourceCache = new Map<string, unknown>();
 
-/**
- * 为特定状态类型创建唯一的资源类包装器
- * 这确保了不同的状态类型会有不同的资源ID
- */
-class StateResourceWrapper<S extends States> {
-	private static readonly wrapperCache = new Map<string, unknown>();
-
-	public static getForType<S extends States>(stateType: StateConstructor<S> | string): new (state: S) => State<S> {
-		const typeName = typeIs(stateType, "string") ? stateType : tostring(stateType);
-		const cacheKey = `StateWrapper_${typeName}`;
-
-		let wrapper = StateResourceWrapper.wrapperCache.get(cacheKey);
-		if (wrapper === undefined) {
-			// 创建一个唯一的包装类
-			
-			class TypedStateResource extends State<S> {
-				public static readonly __stateTypeName = cacheKey;
-			}
-
-			// 覆盖toString以返回唯一标识
-			const mt = getmetatable(TypedStateResource) as { __tostring?: () => string } | undefined;
-			if (mt) {
-				mt.__tostring = () => cacheKey;
-			}
-
-			wrapper = TypedStateResource;
-			StateResourceWrapper.wrapperCache.set(cacheKey, wrapper);
-		}
-
-		return wrapper as new (state: S) => State<S>;
-	}
-}
 
 /**
  * 获取或创建特定类型的State资源类
  * @param stateType - 状态类型
  * @returns 特定类型的State资源类
  */
-export function getStateResource<S extends States>(stateType: StateConstructor<S> | string): new (state: S) => State<S> {
-	return StateResourceWrapper.getForType(stateType);
+export function getStateResource<S extends States>(stateType: StateConstructor<S> ): new (state: S) => State<S> {
+	error("notimpl")
+	// return StateResourceWrapper.getForType(stateType);
 }
 
 /**
@@ -125,17 +116,63 @@ export enum NextStateVariant {
 	Pending = "Pending",
 }
 
+
+/**
+ * 创建 NextState 资源的类型描述符
+ * @param typeDescriptor 
+ * @returns 
+ */
+export function getNextStateTypeDescriptor(typeDescriptor:TypeDescriptor){
+	const clone = table.clone(typeDescriptor)
+	clone.text += "+ SubState"
+	return clone
+}
+
 /**
  * NextState 资源 - 待处理的下一个状态
  * 对应 Rust NextState<S> 枚举
  */
 
-export class NextState<S extends States> implements Resource {
-	public readonly __brand = "Resource" as const;
-	// 添加类型名称属性以支持唯一资源ID
-	public static readonly typeName?: string;
+export class NextState<S extends States> {
 	private variant: NextStateVariant = NextStateVariant.Unchanged;
 	private pendingState?: S;
+
+	
+	/**
+	 * 私有构造函数 (外部调用使用 Create())
+	 */
+	private constructor() {}
+
+
+	/**
+	 * 类型描述, 在 create() 时候添加.
+	 */
+	private _typeDescriptor:TypeDescriptor = undefined as unknown as TypeDescriptor
+
+	/**
+	 * 获取类型描述
+	 * @returns TypeDescriptor
+	 */
+	public getTypeDescriptor():TypeDescriptor{
+		return this._typeDescriptor
+	}
+
+
+	/**
+	 * 创建新的状态资源
+	 * 
+	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+ 	 * @metadata macro 
+	 * 
+	 */
+	public static create<S extends States>(id?:Modding.Generic<S, "id">, text?: Modding.Generic<S,"text">): NextState<S> {
+		let typeDescriptor = getTypeDescriptor(id,text)
+		assert(typeDescriptor)
+		const result = new NextState<S>();
+		result._typeDescriptor = getNextStateTypeDescriptor(typeDescriptor)
+		return result;
+	}
+
 
 	/**
 	 * 创建 Unchanged 变体的 NextState
@@ -210,69 +247,11 @@ export class NextState<S extends States> implements Resource {
 		return this.pendingState;
 	}
 
-	/**
-	 * 兼容性方法：获取待处理状态（已弃用）
-	 * @deprecated 使用 pending() 方法替代
-	 * @returns 待处理状态或 undefined
-	 */
-	public getPending(): S | undefined {
-		return this.pendingState;
-	}
-
-	/**
-	 * 兼容性方法：检查是否有待处理状态（已弃用）
-	 * @deprecated 使用 isPending() 方法替代
-	 * @returns 是否有待处理状态
-	 */
-	public hasPending(): boolean {
-		return this.variant === NextStateVariant.Pending;
-	}
-
 }
 
-// NextState资源类缓存
-const nextStateResourceCache = new Map<string, unknown>();
 
-/**
- * 为特定状态类型创建唯一的NextState资源类包装器
- */
-class NextStateResourceWrapper<S extends States> {
-	private static readonly wrapperCache = new Map<string, unknown>();
 
-	public static getForType<S extends States>(stateType: StateConstructor<S> | string): typeof NextState {
-		const typeName = typeIs(stateType, "string") ? stateType : tostring(stateType);
-		const cacheKey = `NextStateWrapper_${typeName}`;
 
-		let wrapper = NextStateResourceWrapper.wrapperCache.get(cacheKey);
-		if (wrapper === undefined) {
-			// 创建一个唯一的包装类
-			
-			class TypedNextStateResource extends NextState<S> {
-				public static readonly __stateTypeName = cacheKey;
-			}
-
-			// 覆盖toString以返回唯一标识
-			const mt = getmetatable(TypedNextStateResource) as { __tostring?: () => string } | undefined;
-			if (mt) {
-				mt.__tostring = () => cacheKey;
-			}
-
-			wrapper = TypedNextStateResource;
-			NextStateResourceWrapper.wrapperCache.set(cacheKey, wrapper);
-		}
-
-		return wrapper as typeof NextState;
-	}
-}
-
-/**
- * 获取或创建特定类型的NextState资源类
- * @param stateType - 状态类型
- * @returns 特定类型的NextState资源类
- */
-export function getNextStateResource<S extends States>(stateType: StateConstructor<S> | string): typeof NextState {
-	return NextStateResourceWrapper.getForType(stateType);
-}
 
 /**
  * 状态类型的构造函数

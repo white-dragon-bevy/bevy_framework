@@ -3,14 +3,18 @@
  */
 
 import { World } from "@rbxts/matter";
-import { EventManager } from "../../bevy_ecs/events";
-import { StateTransitionEvent, StateTransitionManager, getStateTransitionReader, lastTransition } from "../transitions";
-import { EnumStates } from "../states";
-import { NextState, State } from "../resources";
-import { ResourceManager, ResourceConstructor } from "../../bevy_ecs/resource";
+import { EventManager } from "../../../src/bevy_ecs/events";
+import { ResourceManager, ResourceConstructor } from "../../../src/bevy_ecs/resource";
+import { StateTransitionManager, getStateTransitionReader, lastTransition, StateTransitionEvent } from "../../../src/bevy_state/transitions";
+import { Error } from "@rbxts/luau-polyfill";
+import { NextState, State } from "../../../src/bevy_state/resources";
+import { EnumStates } from "../../../src/bevy_state/states";
 
 // 定义测试状态
 class TestState extends EnumStates {
+	equals(Loading: TestState): any {
+		throw new Error("Method not implemented.");
+	}
 	public static readonly Loading = new TestState("Loading");
 	public static readonly Menu = new TestState("Menu");
 	public static readonly Game = new TestState("Game");
@@ -21,6 +25,9 @@ class TestState extends EnumStates {
 
 	public clone(): TestState {
 		return new TestState(this.getStateId() as string);
+	}
+	getStateId(): string {
+		throw new Error("Method not implemented.");
 	}
 }
 

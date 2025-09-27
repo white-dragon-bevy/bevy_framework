@@ -2,8 +2,9 @@
  * resources.spec.ts - Resources 单元测试
  */
 
-import { State, NextState, NextStateVariant } from "../resources";
+import { State, NextState } from "../resources";
 import { EnumStates } from "../states";
+
 
 export = () => {
 	describe("State", () => {
@@ -56,9 +57,6 @@ export = () => {
 			expect(nextState.isUnchanged()).to.equal(true);
 			expect(nextState.isPending()).to.equal(false);
 			expect(nextState.pending()).to.equal(undefined);
-			// 兼容性测试
-			expect(nextState.hasPending()).to.equal(false);
-			expect(nextState.getPending()).to.equal(undefined);
 		});
 
 		it("should create pending next state using static factory", () => {
@@ -71,8 +69,8 @@ export = () => {
 		it("should support deprecated withPending method", () => {
 			const nextState = NextState.withPending(testState);
 			expect(nextState.isPending()).to.equal(true);
-			expect(nextState.hasPending()).to.equal(true);
-			expect(nextState.getPending()?.getStateId()).to.equal("menu");
+			expect(nextState.isPending()).to.equal(true);
+			expect(nextState.pending()?.getStateId()).to.equal("menu");
 		});
 
 		it("should set next state and change variant", () => {
@@ -89,8 +87,8 @@ export = () => {
 			expect(nextState.pending()?.getStateId()).to.equal("game");
 
 			// 兼容性测试
-			expect(nextState.hasPending()).to.equal(true);
-			expect(nextState.getPending()?.getStateId()).to.equal("game");
+			expect(nextState.isPending()).to.equal(true);
+			expect(nextState.pending()?.getStateId()).to.equal("game");
 		});
 
 		it("should reset next state to unchanged variant", () => {
@@ -103,8 +101,8 @@ export = () => {
 			expect(nextState.pending()).to.equal(undefined);
 
 			// 兼容性测试
-			expect(nextState.hasPending()).to.equal(false);
-			expect(nextState.getPending()).to.equal(undefined);
+			expect(nextState.isPending()).to.equal(false);
+			expect(nextState.pending()).to.equal(undefined);
 		});
 
 		it("should take and clear pending state", () => {
@@ -119,9 +117,6 @@ export = () => {
 			expect(nextState.isPending()).to.equal(false);
 			expect(nextState.pending()).to.equal(undefined);
 
-			// 兼容性测试
-			expect(nextState.hasPending()).to.equal(false);
-			expect(nextState.getPending()).to.equal(undefined);
 		});
 
 		it("should return undefined when taking unchanged state", () => {

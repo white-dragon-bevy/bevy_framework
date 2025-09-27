@@ -8,11 +8,6 @@ import { ComponentId, getComponentId, getComponentIdByDescriptor } from "./commp
 export type ResourceId = string;
 
 /**
- * 资源构造函数类型
- */
-export type ResourceConstructor<T = unknown> = (new (...args: never[]) => T) | string;
-
-/**
  * 资源基础接口
  */
 export interface Resource {}
@@ -43,8 +38,8 @@ export class ResourceManager {
 	/** 
 	 * 获取资源
 	 * 
-	 * @metadata macro 
 	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro 
 	 * 
 	 * */
 	public getResource<T extends defined>( id?: Modding.Generic<T, "id">, text?: Modding.Generic<T,"text">): T | undefined {
@@ -58,11 +53,28 @@ export class ResourceManager {
 		return this.resources.get(componentId) as T
 	}
 
+	/**
+	 * 
+	 * 获取资源
+	 * 
+	 * @param resource 
+	 * @param typeDescriptor 
+	 */
+	public getResourceByTypeDescriptor<T extends defined>(typeDescriptor:TypeDescriptor ):T|undefined {
+		if(typeDescriptor===undefined){
+			return undefined
+		}
+
+		const componentId = getComponentIdByDescriptor(typeDescriptor)
+		return this.resources.get(componentId) as T
+	}
+
+
 	/** 
 	 * 获取资源，如果不存在则创建默认实例
 	 * 
-	 * @metadata macro 
 	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro 
 	 * 
 	 * @param resourceType 资源类构造函数
 	 * @param id 可选的类型ID（用于宏）
@@ -93,8 +105,8 @@ export class ResourceManager {
 	/**
 	 * 使用资源执行操作
 	 * 
-	 * @metadata macro
 	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
 	 * 
 	 * @param callback 操作回调
 	 * @param id 可选的类型ID（用于宏）
@@ -118,8 +130,8 @@ export class ResourceManager {
 	/**
 	 * 使用可变资源执行操作，自动重新插入修改后的资源
 	 * 
-	 * @metadata macro
 	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
 	 * 
 	 * @param callback 操作回调
 	 * @param id 可选的类型ID（用于宏）
@@ -146,16 +158,26 @@ export class ResourceManager {
 	/** 
 	 * 插入资源
 	 * 
-	 * @metadata macro
 	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
 	 * 
 	 * */
-	public insertResource<T>(resource:T, id?: Modding.Generic<T, "id">, text?: Modding.Generic<T,"text">) {
+	public insertResource<T extends object>(resource:T, id?: Modding.Generic<T, "id">, text?: Modding.Generic<T,"text">) {
 		if(id===undefined || text===undefined){
 			error(`insertResource: can't get type descriptor for ${id} ${text}`)
 		}
 		const descriptor = getTypeDescriptor(id,text)!
-		const componentId = getComponentId(id,text)
+		this.insertResourceByTypeDescriptor(resource,descriptor)
+		
+	}
+
+	/**
+	 * 
+	 * @param resource 
+	 * @param typeDescriptor 
+	 */
+	public insertResourceByTypeDescriptor(resource:object, typeDescriptor:TypeDescriptor ) {
+		const componentId = getComponentIdByDescriptor(typeDescriptor)
 
 		// 直接存储资源
 		this.resources.set(componentId, resource as object);
@@ -173,7 +195,7 @@ export class ResourceManager {
 			});
 		} else {
 			this.resourceMetadata.set(componentId, {
-				typeDescriptor: descriptor,
+				typeDescriptor,
 				created: now,
 				updated: now,
 			});
@@ -181,12 +203,11 @@ export class ResourceManager {
 	}
 
 
-
 	/**
 	 * 移除资源
 	 * 
-	 * @metadata macro
 	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
 	 * 
 	 * @returns 被移除的资源实例，如果不存在则返回undefined
 	 */
@@ -208,6 +229,28 @@ export class ResourceManager {
 	}
 
 	/**
+	 * 移除资源
+	 * 
+	 * @returns 被移除的资源实例，如果不存在则返回undefined
+	 */
+	public removeResourceByDescriptor(descriptor:TypeDescriptor): object|undefined {
+		if(descriptor===undefined ){
+			
+			return undefined
+		}
+		
+		const componentId = getComponentIdByDescriptor(descriptor)
+
+		const resource = this.resources.get(componentId);
+
+		// 清理资源和元数据
+		this.resources.delete(componentId);
+		this.resourceMetadata.delete(componentId);
+
+		return resource;
+	}
+
+	/**
 	 * 检查资源是否存在
 	 *
 	 * @metadata macro
@@ -225,6 +268,15 @@ export class ResourceManager {
 		return this.resources.has(componentId);
 	}
 
+	public hasResourceByDescriptor<T >(descriptor:TypeDescriptor): boolean {
+	
+		const componentId = getComponentIdByDescriptor(descriptor)
+		if(componentId===undefined){
+			return false
+		}
+		return this.resources.has(componentId);
+	}
+
 	/**
 	 * 获取所有已注册的资源类型
 	 * @returns 资源ID数组
@@ -239,8 +291,9 @@ export class ResourceManager {
 
 	/**
 	 * 获取资源元数据
-	 * @metadata macro
+	 * 
 	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
 	 * 
 	 * @metadata macro 
 	 * @param resourceType 资源类型

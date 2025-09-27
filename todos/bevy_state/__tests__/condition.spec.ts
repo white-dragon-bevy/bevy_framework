@@ -4,16 +4,8 @@
 
 import { World } from "@rbxts/matter";
 import { ResourceManager, ResourceConstructor } from "../../../src/bevy_ecs/resource";
-import { State } from "../resources";
-import { EnumStates } from "../states";
-import {
-	inState,
-	stateExists,
-	stateChanged,
-	andCondition,
-	orCondition,
-	notCondition,
-} from "../condition";
+import { EnumStates } from "../../../src/bevy_state";
+
 
 export = () => {
 	describe("State Conditions", () => {

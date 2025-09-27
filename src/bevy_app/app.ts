@@ -5,7 +5,6 @@ import { Modding } from "@flamework/core";
  */
 
 import { AppExit, AppExitCode, AppLabel, ErrorHandler, Message, ScheduleLabel } from "./types";
-import { Resource, ResourceConstructor } from "../bevy_ecs/resource";
 import { BuiltinSchedules } from "./main-schedule";
 import { DuplicatePluginError, isPluginGroup, Plugin, PluginGroup, PluginState } from "./plugin";
 import { SubApp, SubApps } from "./sub-app";
@@ -331,11 +330,11 @@ export class App<T extends AppContext = AppContext> {
 	/** 
 	 * 插入资源
 	 * 
-	 * @metadata macro
 	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
 	 * 
 	 * */
-	public insertResource<T>(resource:T, id?: Modding.Generic<T, "id">, text?: Modding.Generic<T,"text">) {
+	public insertResource<T extends object>(resource:T, id?: Modding.Generic<T, "id">, text?: Modding.Generic<T,"text">) {
 		this.subApps.main().insertResource(resource, id, text);
 		return this
 	}
@@ -343,8 +342,8 @@ export class App<T extends AppContext = AppContext> {
 	/** 
 	 * 获取资源
 	 * 
-	 * @metadata macro
 	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
 	 * 
 	 * */
 	public getResource<T extends defined>( id?: Modding.Generic<T, "id">, text?: Modding.Generic<T,"text">): T | undefined {
