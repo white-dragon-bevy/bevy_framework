@@ -45,55 +45,83 @@ export type StateScopedComponent = ReturnType<typeof StateScoped>;
 /**
  * 系统用于在状态退出时清理标记的实体
  * 该系统在状态转换调度阶段执行
+ *
+ * **注意**: 实际清理由 StateTransitionManager 在状态转换时自动调用 cleanupOnStateExit 完成。
+ * 此系统函数保留为空，因为 StateTransitionManager 已在 processRegularTransition() 方法中
+ * 直接调用 cleanupOnStateExit()。如需自定义清理逻辑，应在 OnExit 调度中添加自定义系统。
+ *
  * @param world - ECS 世界
  * @param context - 应用上下文
  */
 export function despawnOnExitStateSystem(world: BevyWorld, context: Context): void {
-	// 获取最后一次状态转换事件来确定退出的状态
-	// 这个系统应该在 OnExit 调度中运行
-	// 由于我们无法直接访问当前的状态转换信息，
-	// 我们需要依赖状态转换系统在转换前调用 cleanupOnStateExit
-
-	// 注意：这个系统函数通常不会被直接调用，
-	// 而是通过 StateTransitionManager 在状态转换时调用 cleanupOnStateExit
-	// 这里保留为空，实际清理逻辑在 cleanupOnStateExit 中
+	// 空实现：清理逻辑由 StateTransitionManager.processRegularTransition() 自动执行
+	// 参见 transitions.ts 第 237-239 行
 }
 
 /**
  * 系统用于在状态进入时清理标记的实体
  * 该系统在状态转换调度阶段执行
+ *
+ * **注意**: 实际清理由 StateTransitionManager 在状态转换时自动调用 cleanupOnStateEnter 完成。
+ * 此系统函数保留为空，因为 StateTransitionManager 已在 processRegularTransition() 方法中
+ * 直接调用 cleanupOnStateEnter()。如需自定义清理逻辑，应在 OnEnter 调度中添加自定义系统。
+ *
  * @param world - ECS 世界
  * @param context - 应用上下文
  */
 export function despawnOnEnterStateSystem(world: BevyWorld, context: Context): void {
-	// 获取最后一次状态转换事件来确定进入的状态
-	// 这个系统应该在 OnEnter 调度中运行
-	// 由于我们无法直接访问当前的状态转换信息，
-	// 我们需要依赖状态转换系统在转换后调用 cleanupOnStateEnter
-
-	// 注意：这个系统函数通常不会被直接调用，
-	// 而是通过 StateTransitionManager 在状态转换时调用 cleanupOnStateEnter
-	// 这里保留为空，实际清理逻辑在 cleanupOnStateEnter 中
+	// 空实现：清理逻辑由 StateTransitionManager.processRegularTransition() 自动执行
+	// 参见 transitions.ts 第 260-261 行
 }
 
 /**
  * 递归清理实体及其子实体
+ *
+ * **当前限制**: 由于项目尚未实现 Parent/Child 层级组件系统，此函数目前仅清理当前实体。
+ *
+ * **未来实现计划**:
+ * 1. 定义 Parent 和 Child 组件:
+ *    ```typescript
+ *    export const Parent = component<{ entityId: Entity }>("Parent");
+ *    export const Children = component<{ entityIds: Array<Entity> }>("Children");
+ *    ```
+ *
+ * 2. 递归清理算法:
+ *    ```typescript
+ *    function despawnRecursive(world: World, entityId: Entity): void {
+ *        // 获取所有子实体
+ *        const childrenComponent = world.get(entityId, Children);
+ *        if (childrenComponent) {
+ *            // 递归清理每个子实体
+ *            for (const childId of childrenComponent.entityIds) {
+ *                despawnRecursive(world, childId);
+ *            }
+ *        }
+ *        // 最后清理当前实体
+ *        world.despawn(entityId);
+ *    }
+ *    ```
+ *
+ * 3. 或者使用查询方式:
+ *    ```typescript
+ *    // 查询所有以 entityId 为父实体的子实体
+ *    for (const [childId, parent] of world.query(Parent)) {
+ *        if (parent.entityId === entityId) {
+ *            despawnRecursive(world, childId);
+ *        }
+ *    }
+ *    ```
+ *
  * @param world - ECS 世界
  * @param entityId - 要清理的实体ID
  */
 function despawnEntityRecursive(world: World, entityId: Entity): void {
-	// TODO: 实现递归清理子实体
-	// 当前项目尚未实现 Parent/Child 层级组件系统
-	// 未来需要：
-	// 1. 定义 Parent/Child 组件
-	// 2. 查询具有 Parent(entityId) 的所有子实体
-	// 3. 递归清理每个子实体
-	// 4. 最后清理父实体
-
-	// 临时实现：只清理当前实体
+	// 当前实现：直接清理单个实体
 	if (world.contains(entityId)) {
 		world.despawn(entityId);
 	}
+
+	// TODO: 在实现 Parent/Child 组件后，添加递归清理逻辑
 }
 
 /**
@@ -143,6 +171,62 @@ export function markForDespawnOnEnter<S extends States>(
 }
 
 /**
+ * 批量标记多个实体在状态退出时被清理
+ *
+ * **性能优势**: 相比循环调用单个标记函数，批量操作减少了函数调用开销
+ *
+ * @param world - ECS 世界
+ * @param entities - 实体ID数组
+ * @param state - 状态
+ * @param recursive - 是否递归清理子实体
+ */
+export function markEntitiesForDespawnOnExit<S extends States>(
+	world: World,
+	entities: ReadonlyArray<Entity>,
+	state: S,
+	recursive = false,
+): void {
+	const stateId = state.getStateId();
+	const component = StateScoped({
+		stateId,
+		strategy: DespawnStrategy.OnExit,
+		recursive,
+	});
+
+	for (const entityId of entities) {
+		world.insert(entityId, component);
+	}
+}
+
+/**
+ * 批量标记多个实体在状态进入时被清理
+ *
+ * **性能优势**: 相比循环调用单个标记函数，批量操作减少了函数调用开销
+ *
+ * @param world - ECS 世界
+ * @param entities - 实体ID数组
+ * @param state - 状态
+ * @param recursive - 是否递归清理子实体
+ */
+export function markEntitiesForDespawnOnEnter<S extends States>(
+	world: World,
+	entities: ReadonlyArray<Entity>,
+	state: S,
+	recursive = false,
+): void {
+	const stateId = state.getStateId();
+	const component = StateScoped({
+		stateId,
+		strategy: DespawnStrategy.OnEnter,
+		recursive,
+	});
+
+	for (const entityId of entities) {
+		world.insert(entityId, component);
+	}
+}
+
+/**
  * 检查实体是否被标记为状态作用域清理
  * @param world - ECS 世界
  * @param entityId - 实体ID
@@ -163,6 +247,9 @@ export function removeStateScopedMarker(world: World, entityId: Entity): void {
 
 /**
  * 获取所有被特定状态标记的实体
+ *
+ * **性能优化**: 使用早期退出条件减少不必要的比较
+ *
  * @param world - ECS 世界
  * @param state - 状态
  * @param strategy - 清理策略（可选）
@@ -177,11 +264,10 @@ export function getEntitiesInState<S extends States>(
 	const entities: Array<Entity> = [];
 
 	for (const [entityId, stateScoped] of world.query(StateScoped)) {
-		if (stateScoped.stateId === stateId) {
-			if (!strategy || stateScoped.strategy === strategy) {
-				entities.push(entityId);
-			}
-		}
+		if (stateScoped.stateId !== stateId) continue;
+		if (strategy && stateScoped.strategy !== strategy) continue;
+
+		entities.push(entityId);
 	}
 
 	return entities;

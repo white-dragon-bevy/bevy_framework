@@ -4,9 +4,9 @@
  */
 
 import { Modding } from "@flamework/core";
+import { getGenericTypeDescriptor, getTypeDescriptor, TypeDescriptor } from "../bevy_core";
 import { Resource } from "../../src/bevy_ecs/resource";
 import { States } from "./states";
-import { getGenericTypeDescriptor, getTypeDescriptor, TypeDescriptor } from "../bevy_core";
 
 /**
  * 标记可以自由变更的状态
@@ -63,9 +63,10 @@ export class State<S extends States> {
 
 	/**
 	 * 内部方法：设置状态（不应直接使用）
+	 * @internal
 	 * @param state - 新状态
 	 */
-	public _set(state: S): void {
+	public setInternal(state: S): void {
 		this.current = state;
 	}
 

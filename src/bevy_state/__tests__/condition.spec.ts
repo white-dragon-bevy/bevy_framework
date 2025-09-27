@@ -88,7 +88,7 @@ export = () => {
 
 			expect(condition(world, resourceManager)).to.equal(false);
 
-			stateResource._set(GameState.PLAYING);
+			stateResource.setInternal(GameState.PLAYING);
 
 			expect(condition(world, resourceManager)).to.equal(true);
 		});
@@ -128,7 +128,7 @@ export = () => {
 
 			condition(world, resourceManager);
 
-			stateResource._set(GameState.PLAYING);
+			stateResource.setInternal(GameState.PLAYING);
 			const result = condition(world, resourceManager);
 
 			expect(result).to.equal(true);
@@ -145,13 +145,13 @@ export = () => {
 
 			expect(condition(world, resourceManager)).to.equal(false);
 
-			stateResource._set(GameState.PLAYING);
+			stateResource.setInternal(GameState.PLAYING);
 
 			expect(condition(world, resourceManager)).to.equal(true);
 
 			expect(condition(world, resourceManager)).to.equal(false);
 
-			stateResource._set(GameState.PAUSED);
+			stateResource.setInternal(GameState.PAUSED);
 
 			expect(condition(world, resourceManager)).to.equal(true);
 		});
@@ -193,7 +193,7 @@ export = () => {
 
 			condition(world, resourceManager);
 
-			stateResource._set(GameState.PLAYING);
+			stateResource.setInternal(GameState.PLAYING);
 			const result = condition(world, resourceManager);
 
 			expect(result).to.equal(true);
@@ -208,7 +208,7 @@ export = () => {
 
 			condition(world, resourceManager);
 
-			stateResource._set(GameState.PLAYING);
+			stateResource.setInternal(GameState.PLAYING);
 
 			condition(world, resourceManager);
 			const result = condition(world, resourceManager);
@@ -225,7 +225,7 @@ export = () => {
 
 			condition(world, resourceManager);
 
-			stateResource._set(GameState.PAUSED);
+			stateResource.setInternal(GameState.PAUSED);
 			const result = condition(world, resourceManager);
 
 			expect(result).to.equal(false);
@@ -253,7 +253,7 @@ export = () => {
 
 			condition(world, resourceManager);
 
-			stateResource._set(GameState.PLAYING);
+			stateResource.setInternal(GameState.PLAYING);
 			const result = condition(world, resourceManager);
 
 			expect(result).to.equal(true);
@@ -268,7 +268,7 @@ export = () => {
 
 			condition(world, resourceManager);
 
-			stateResource._set(GameState.PLAYING);
+			stateResource.setInternal(GameState.PLAYING);
 
 			condition(world, resourceManager);
 			const result = condition(world, resourceManager);
@@ -285,7 +285,7 @@ export = () => {
 
 			condition(world, resourceManager);
 
-			stateResource._set(GameState.PAUSED);
+			stateResource.setInternal(GameState.PAUSED);
 			const result = condition(world, resourceManager);
 
 			expect(result).to.equal(false);

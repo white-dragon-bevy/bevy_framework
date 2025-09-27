@@ -32,7 +32,7 @@ export = () => {
 			const stateResource = State.create(testState);
 			const newState = new EnumStates("game");
 
-			stateResource._set(newState);
+			stateResource.setInternal(newState);
 			expect(stateResource.get().getStateId()).to.equal("game");
 		});
 
@@ -42,6 +42,36 @@ export = () => {
 
 			expect(cloned.get().getStateId()).to.equal(original.get().getStateId());
 			expect(cloned.is(testState)).to.equal(true);
+		});
+
+		it("should clone typeDescriptor correctly", () => {
+			const original = State.create(testState);
+			const cloned = original.clone();
+
+			expect(cloned.typeDescriptor).to.be.ok();
+			expect(cloned.typeDescriptor).to.equal(original.typeDescriptor);
+		});
+
+		it("should create independent clone", () => {
+			const original = State.create(testState);
+			const cloned = original.clone();
+			const newState = new EnumStates("game");
+
+			cloned.setInternal(newState);
+
+			expect(cloned.get().getStateId()).to.equal("game");
+			expect(original.get().getStateId()).to.equal("menu");
+		});
+
+		it("should handle multiple clones correctly", () => {
+			const original = State.create(testState);
+			const clone1 = original.clone();
+			const clone2 = original.clone();
+			const clone3 = clone1.clone();
+
+			expect(clone1.is(testState)).to.equal(true);
+			expect(clone2.is(testState)).to.equal(true);
+			expect(clone3.is(testState)).to.equal(true);
 		});
 	});
 

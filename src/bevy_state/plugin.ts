@@ -239,8 +239,8 @@ export class ComputedStatesPlugin<TSource extends States, TComputed extends Comp
  */
 export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TParent>> implements Plugin {
 	private parentType: TypeDescriptor;
-	private subType: TypeDescriptor;
-	private defaultSubState: () => TSub;
+	private stateType: TypeDescriptor;
+	private nextStateType: TypeDescriptor;
 	private manager: SubStateManager<TParent, TSub>;
 	private resourceManager?: ResourceManager;
 
@@ -248,19 +248,21 @@ export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TPar
 	 * 私有构造函数 (公开调用 create())
 	 * 
 	 * @param parentType - 父状态类型
-	 * @param subType - 子状态类型
-	 * @param defaultSubState - 默认子状态
+	 * @param stateType - State<TSub> 类型描述符
+	 * @param nextStateType - NextState<TSub> 类型描述符
+	 * @param subStateClass - 子状态类构造函数
 	 */
 	private constructor(
 		parentType: TypeDescriptor,
-		subType: TypeDescriptor,
-		defaultSubState: () => TSub,
-		
+		stateType: TypeDescriptor,
+		nextStateType: TypeDescriptor,
+		subStateClass: new () => TSub,
+
 	) {
 		this.parentType = parentType;
-		this.subType = subType;
-		this.defaultSubState = defaultSubState;
-		this.manager = new SubStateManager(parentType, subType, defaultSubState);
+		this.stateType = stateType;
+		this.nextStateType = nextStateType;
+		this.manager = new SubStateManager(parentType, stateType, nextStateType, subStateClass);
 	}
 
 
@@ -287,18 +289,21 @@ export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TPar
 	 * @returns State 资源实例
 	 */
 	public static create<TParent extends States, TSub extends SubStates<TParent>>(
-		defaultSubState: () => TSub,
+		subStateClass: new () => TSub,
 		pid?:Modding.Generic<TParent, "id">,
 		ptext?: Modding.Generic<TParent,"text">,
-		sid?:Modding.Generic<TParent, "id">,
-		stext?: Modding.Generic<TParent,"text">,
-		
+		sid?:Modding.Generic<TSub, "id">,
+		stext?: Modding.Generic<TSub,"text">,
+
 	): SubStatesPlugin<TParent , TSub>  {
 			const parentType = getTypeDescriptor(pid,ptext)
-			const subType = getTypeDescriptor(sid,stext)
+			// 为 State<TSub> 和 NextState<TSub> 创建不同的类型描述符
+			const stateType = getTypeDescriptor(sid ? `State_${sid}` : undefined, stext ? `State<${stext}>` : undefined)
+			const nextStateType = getTypeDescriptor(sid ? `NextState_${sid}` : undefined, stext ? `NextState<${stext}>` : undefined)
 			assert(parentType, "Failed to get TypeDescriptor for parent state: parent type descriptor is required for SubStatesPlugin")
-			assert(subType, "Failed to get TypeDescriptor for sub state: sub type descriptor is required for SubStatesPlugin")
-			const result = new SubStatesPlugin(parentType,subType,defaultSubState)
+			assert(stateType, "Failed to get TypeDescriptor for sub state: state type descriptor is required for SubStatesPlugin")
+			assert(nextStateType, "Failed to get TypeDescriptor for next sub state: next state type descriptor is required for SubStatesPlugin")
+			const result = new SubStatesPlugin(parentType,stateType,nextStateType,subStateClass)
 			return result
 	}
 
@@ -320,7 +325,7 @@ export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TPar
 
 		// 初始化 NextState 资源
 		if (this.resourceManager) {
-			this.resourceManager.insertResourceByTypeDescriptor(NextState.unchanged<TSub>(),this.subType);
+			this.resourceManager.insertResourceByTypeDescriptor(NextState.unchanged<TSub>(),this.nextStateType);
 		}
 	}
 
@@ -330,8 +335,8 @@ export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TPar
 	 */
 	public name(): string {
 		const parentType = this.parentType as unknown as { name?: string };
-		const subType = this.subType as unknown as { name?: string };
-		return `SubStatesPlugin<${parentType.name ?? "Parent"}, ${subType.name ?? "Sub"}>`;
+		const stateType = this.stateType as unknown as { name?: string };
+		return `SubStatesPlugin<${parentType.name ?? "Parent"}, ${stateType.name ?? "Sub"}>`;
 	}
 
 	/**

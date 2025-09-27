@@ -31,13 +31,52 @@ export interface States {
 }
 
 /**
+ * 类型守卫：检查值是否为有效的 States 对象
+ *
+ * **用途**: 在运行时验证对象是否实现了 States 接口，避免类型转换错误
+ *
+ * @param value - 待检查的值
+ * @returns 如果是 States 对象则返回 true
+ */
+export function isStates(value: unknown): value is States {
+	return (
+		typeIs(value, "table") &&
+		typeIs((value as States).getStateId, "function") &&
+		typeIs((value as States).equals, "function") &&
+		typeIs((value as States).clone, "function")
+	);
+}
+
+/**
  * 抽象状态基类
  * 提供 States 接口的基础实现
  */
 export abstract class BaseStates implements States {
 	/**
 	 * 状态依赖深度
-	 * 用于排序和防止循环依赖
+	 *
+	 * **设计目的**:
+	 * - 用于状态转换时的拓扑排序
+	 * - 防止状态之间的循环依赖
+	 * - 确定状态转换的执行顺序
+	 *
+	 * **使用建议**:
+	 * - 独立状态（无依赖）: 设置为 1
+	 * - 依赖其他状态的子状态: 设置为父状态深度 + 1
+	 * - 计算状态（ComputedStates）: 设置为源状态深度 + 1
+	 *
+	 * **示例**:
+	 * ```typescript
+	 * class GameState extends BaseStates {
+	 *     public static readonly DEPENDENCY_DEPTH = 1; // 根状态
+	 * }
+	 *
+	 * class MenuState extends SubStates<GameState> {
+	 *     public static readonly DEPENDENCY_DEPTH = 2; // 依赖 GameState
+	 * }
+	 * ```
+	 *
+	 * **注意**: 子类应根据实际依赖关系覆盖此值
 	 */
 	public static readonly DEPENDENCY_DEPTH = 1;
 

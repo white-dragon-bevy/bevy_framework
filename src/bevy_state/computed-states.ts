@@ -7,6 +7,7 @@ import { World } from "@rbxts/matter";
 import { ResourceManager } from "../../src/bevy_ecs/resource";
 import { States, BaseStates } from "./states";
 import { State, StateConstructor } from "./resources";
+import { TypeDescriptor } from "../bevy_core";
 
 /**
  * 生成状态资源键名
@@ -43,11 +44,19 @@ export interface StateSet<T = unknown> {
  * @template S - 状态类型
  */
 export class SingleStateSet<S extends States> implements StateSet<S> {
+	private typeDescriptor?: TypeDescriptor;
+
 	/**
 	 * 构造函数
 	 * @param stateType - 状态类型构造函数
+	 * @param typeDescriptor - 可选的类型描述符（用于资源查询）
 	 */
-	constructor(private stateType: StateConstructor<S>) {}
+	constructor(
+		private stateType: StateConstructor<S>,
+		typeDescriptor?: TypeDescriptor,
+	) {
+		this.typeDescriptor = typeDescriptor;
+	}
 
 	/**
 	 * 获取依赖深度
@@ -60,19 +69,29 @@ export class SingleStateSet<S extends States> implements StateSet<S> {
 
 	/**
 	 * 获取当前状态
+	 *
+	 * **注意**: 此方法需要在构造时提供 TypeDescriptor，否则会抛出错误。
+	 * TypeDescriptor 用于从 ResourceManager 查询对应的 State<S> 资源。
+	 *
 	 * @param resourceManager - 资源管理器
 	 * @returns 当前状态或 undefined
 	 */
 	public getStates(resourceManager: ResourceManager): S | undefined {
-		// TODO: 需要实现从 stateType 生成正确的 TypeDescriptor
-		// 当前依赖 Modding 宏系统，需要在宏转换后才能正确实现
-		// 临时保留 error 以避免运行时错误
-		error('SingleStateSet.getStates not implemented - requires Modding macro support');
+		if (!this.typeDescriptor) {
+			error(
+				"SingleStateSet.getStates requires TypeDescriptor. " +
+				"Please provide TypeDescriptor in constructor or use Modding macro system."
+			);
+		}
 
-		// 未来实现思路：
-		// 1. 从 stateType 构造函数获取或生成 TypeDescriptor
-		// 2. 使用 resourceManager.getResourceByTypeDescriptor() 获取 State 资源
-		// 3. 返回 state.get() 的结果
+		// 使用 TypeDescriptor 获取 State<S> 资源
+		const stateResource = resourceManager.getResourceByTypeDescriptor<State<S>>(this.typeDescriptor);
+
+		if (!stateResource) {
+			return undefined;
+		}
+
+		return stateResource.get();
 	}
 }
 
@@ -82,13 +101,22 @@ export class SingleStateSet<S extends States> implements StateSet<S> {
  */
 export class TupleStateSet<T extends ReadonlyArray<States>> implements StateSet<T> {
 	private stateTypes: ReadonlyArray<StateConstructor<States>>;
+	private typeDescriptors?: ReadonlyArray<TypeDescriptor>;
 
 	/**
 	 * 构造函数
-	 * @param stateTypes - 状态类型构造函数数组
+	 * @param stateTypes - 状态类型构造函数数组（变长参数）
 	 */
 	constructor(...stateTypes: { [K in keyof T]: StateConstructor<T[K]> }) {
 		this.stateTypes = stateTypes as ReadonlyArray<StateConstructor<States>>;
+	}
+
+	/**
+	 * 设置类型描述符（用于资源查询）
+	 * @param typeDescriptors - 类型描述符数组
+	 */
+	public setTypeDescriptors(typeDescriptors: ReadonlyArray<TypeDescriptor>): void {
+		this.typeDescriptors = typeDescriptors;
 	}
 
 	/**
@@ -109,26 +137,43 @@ export class TupleStateSet<T extends ReadonlyArray<States>> implements StateSet<
 
 	/**
 	 * 获取所有状态组成的元组
+	 *
+	 * **注意**: 此方法需要在构造时提供 TypeDescriptor 数组，否则会抛出错误。
+	 * TypeDescriptor 用于从 ResourceManager 查询对应的 State<S> 资源。
+	 *
 	 * @param resourceManager - 资源管理器
 	 * @returns 状态元组或 undefined（如果任一状态不存在）
 	 */
 	public getStates(resourceManager: ResourceManager): T | undefined {
-		// TODO: 需要实现从 stateTypes 生成正确的 TypeDescriptor 数组
-		// 当前依赖 Modding 宏系统，需要在宏转换后才能正确实现
-		// 临时保留 error 以避免运行时错误
-		error("TupleStateSet.getStates not implemented - requires Modding macro support");
+		if (!this.typeDescriptors) {
+			error(
+				"TupleStateSet.getStates requires TypeDescriptor array. " +
+				"Please provide TypeDescriptor array in constructor or use Modding macro system."
+			);
+		}
 
-		// 未来实现思路：
-		// 1. 遍历 stateTypes 数组
-		// 2. 对每个 stateType 生成对应的 TypeDescriptor
-		// 3. 使用 resourceManager.getResourceByTypeDescriptor() 获取各个 State 资源
-		// 4. 收集所有状态并返回为元组
-		// 	if (!state) {
-		// 		return undefined; // 如果任一状态不存在，返回 undefined
-		// 	}
-		// 	states.push(state);
-		// }
-		// return states as unknown as T;
+		if (this.typeDescriptors.size() !== this.stateTypes.size()) {
+			error(
+				"TupleStateSet: TypeDescriptor array size must match stateTypes array size"
+			);
+		}
+
+		const states: Array<States> = [];
+
+		// 遍历所有 TypeDescriptor 并获取对应的状态
+		for (let index = 0; index < this.typeDescriptors.size(); index++) {
+			const typeDescriptor = this.typeDescriptors[index];
+			const stateResource = resourceManager.getResourceByTypeDescriptor<State<States>>(typeDescriptor);
+
+			if (!stateResource) {
+				// 如果任一状态不存在，返回 undefined
+				return undefined;
+			}
+
+			states.push(stateResource.get());
+		}
+
+		return states as unknown as T;
 	}
 }
 
@@ -279,7 +324,7 @@ export class ComputedStateManager<TSource = unknown, TComputed extends ComputedS
 		} else {
 			// 更新或创建计算状态资源
 			if (computedStateResource) {
-				computedStateResource._set(newComputedState as TComputed);
+				computedStateResource.setInternal(newComputedState as TComputed);
 			} else {
 				resourceManager.insertResource(
 					State.create(newComputedState as TComputed),
@@ -387,13 +432,19 @@ export class MappedComputedState<TSource extends States> extends BaseComputedSta
  * 便利函数：创建支持多状态源的计算状态
  * @param sourceTypes - 源状态类型构造函数数组
  * @param computeFn - 计算函数
+ * @param typeDescriptors - 可选的类型描述符数组
  * @returns 计算状态类构造函数
  */
 export function createMultiSourceComputedState<T extends ReadonlyArray<States>, R extends States>(
 	sourceTypes: { [K in keyof T]: StateConstructor<T[K]> },
-	computeFn: (sources: T) => R | undefined
+	computeFn: (sources: T) => R | undefined,
+	typeDescriptors?: ReadonlyArray<TypeDescriptor>,
 ): StateConstructor<ComputedStates<T>> {
+	// 创建 stateSet
 	const stateSet = new TupleStateSet<T>(...sourceTypes);
+	if (typeDescriptors) {
+		stateSet.setTypeDescriptors(typeDescriptors);
+	}
 
 	return class extends BaseComputedStates<T> {
 		private value?: R;
