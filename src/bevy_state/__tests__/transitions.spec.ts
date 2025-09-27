@@ -16,7 +16,7 @@ import {
 import { State, NextState, StateConstructor } from "../resources";
 import { ResourceManager } from "../../bevy_ecs/resource";
 import { MessageRegistry as EventManager } from "../../bevy_ecs/message";
-import { getTypeDescriptor } from "../../bevy_core";
+import { getTypeDescriptor, getGenericTypeDescriptor } from "../../bevy_core";
 
 /**
  * 测试用状态类
@@ -48,7 +48,7 @@ export = () => {
 
 	describe("StateTransitionEvent", () => {
 		it("should create event with exited and entered states", () => {
-			const event = new StateTransitionMessage(TestState.IDLE, TestState.RUNNING);
+			const event = StateTransitionMessage.create(TestState.IDLE, TestState.RUNNING);
 
 			expect(event.exited).to.be.ok();
 			expect(event.entered).to.be.ok();
@@ -57,7 +57,7 @@ export = () => {
 		});
 
 		it("should create event with only entered state", () => {
-			const event = new StateTransitionMessage(undefined, TestState.RUNNING);
+			const event = StateTransitionMessage.create(undefined, TestState.RUNNING);
 
 			expect(event.exited).never.to.be.ok();
 			expect(event.entered).to.be.ok();
@@ -65,7 +65,7 @@ export = () => {
 		});
 
 		it("should clone event correctly", () => {
-			const original = new StateTransitionMessage(TestState.IDLE, TestState.RUNNING);
+			const original = StateTransitionMessage.create(TestState.IDLE, TestState.RUNNING);
 			const cloned = original.clone();
 
 			expect(cloned.exited).to.be.ok();
@@ -75,7 +75,7 @@ export = () => {
 		});
 
 		it("should check isExitingFrom correctly", () => {
-			const event = new StateTransitionMessage(TestState.IDLE, TestState.RUNNING);
+			const event = StateTransitionMessage.create(TestState.IDLE, TestState.RUNNING);
 
 			expect(event.isExitingFrom(TestState.IDLE)).to.equal(true);
 			expect(event.isExitingFrom(TestState.RUNNING)).to.equal(false);
@@ -83,7 +83,7 @@ export = () => {
 		});
 
 		it("should check isEnteringTo correctly", () => {
-			const event = new StateTransitionMessage(TestState.IDLE, TestState.RUNNING);
+			const event = StateTransitionMessage.create(TestState.IDLE, TestState.RUNNING);
 
 			expect(event.isEnteringTo(TestState.RUNNING)).to.equal(true);
 			expect(event.isEnteringTo(TestState.IDLE)).to.equal(false);
@@ -91,7 +91,7 @@ export = () => {
 		});
 
 		it("should check isTransition correctly", () => {
-			const event = new StateTransitionMessage(TestState.IDLE, TestState.RUNNING);
+			const event = StateTransitionMessage.create(TestState.IDLE, TestState.RUNNING);
 
 			expect(event.isTransition(TestState.IDLE, TestState.RUNNING)).to.equal(true);
 			expect(event.isTransition(TestState.RUNNING, TestState.IDLE)).to.equal(false);
@@ -99,7 +99,7 @@ export = () => {
 		});
 
 		it("should handle undefined states in checks", () => {
-			const event = new StateTransitionMessage(undefined, TestState.RUNNING);
+			const event = StateTransitionMessage.create(undefined, TestState.RUNNING);
 
 			expect(event.isExitingFrom(TestState.IDLE)).to.equal(false);
 			expect(event.isEnteringTo(TestState.RUNNING)).to.equal(true);
@@ -149,12 +149,12 @@ export = () => {
 			const descriptor = getTypeDescriptor("TestState", "TestState");
 			assert(descriptor !== undefined, "TypeDescriptor should not be undefined");
 			typeDescriptor = descriptor;
-			manager = new StateTransitionManager(typeDescriptor, eventManager);
+			manager = StateTransitionManager.create(typeDescriptor, eventManager);
 		});
 
 		it("should not process transition when NextState is not pending", () => {
 			const nextState = NextState.unchanged<TestState>();
-			const nextStateDescriptor = getTypeDescriptor("TestState_NextState", "TestState_NextState")!;
+			const nextStateDescriptor = getGenericTypeDescriptor<NextState<TestState>>(typeDescriptor);
 			resourceManager.insertResourceByTypeDescriptor(nextState, nextStateDescriptor);
 
 			const result = manager.processTransition(world, resourceManager);
@@ -162,14 +162,15 @@ export = () => {
 			expect(result).to.equal(false);
 		});
 
-		it("should process transition when NextState is pending", () => {
+		it("should process transition when NextState is pending", () =>       {
 			// 设置初始状态
 			const currentState = State.create(TestState.IDLE);
-			resourceManager.insertResourceByTypeDescriptor(currentState, currentState.getTypeDescriptor());
+			// State 资源使用状态类型的 TypeDescriptor，而不是 State 本身的
+			resourceManager.insertResourceByTypeDescriptor(currentState, typeDescriptor);
 
 			// 设置下一个状态
 			const nextState = NextState.withPending(TestState.RUNNING);
-			const nextStateDescriptor = getTypeDescriptor("TestState_NextState", "TestState_NextState")!;
+			const nextStateDescriptor = getGenericTypeDescriptor<NextState<TestState>>(typeDescriptor);
 			resourceManager.insertResourceByTypeDescriptor(nextState, nextStateDescriptor);
 
 			const result = manager.processTransition(world, resourceManager);
@@ -180,11 +181,12 @@ export = () => {
 		it("should handle identity transition correctly", () => {
 			// 设置初始状态为 IDLE
 			const currentState = State.create(TestState.IDLE);
-			resourceManager.insertResourceByTypeDescriptor(currentState, currentState.getTypeDescriptor());
+			const stateTypeDescriptor = getGenericTypeDescriptor<State<TestState>>(typeDescriptor);
+			resourceManager.insertResourceByTypeDescriptor(currentState, stateTypeDescriptor);
 
 			// 设置下一个状态也为 IDLE（身份转换）
 			const nextState = NextState.withPending(TestState.IDLE);
-			const nextStateDescriptor = getTypeDescriptor("TestState_NextState", "TestState_NextState")!;
+			const nextStateDescriptor = getGenericTypeDescriptor<NextState<TestState>>(typeDescriptor);
 			resourceManager.insertResourceByTypeDescriptor(nextState, nextStateDescriptor);
 
 			const result = manager.processTransition(world, resourceManager);
@@ -201,11 +203,12 @@ export = () => {
 		it("should handle regular transition correctly", () => {
 			// 设置初始状态
 			const currentState = State.create(TestState.IDLE);
-			resourceManager.insertResourceByTypeDescriptor(currentState, currentState.getTypeDescriptor());
+			// State 资源使用状态类型的 TypeDescriptor，而不是 State 本身的
+			resourceManager.insertResourceByTypeDescriptor(currentState, typeDescriptor);
 
 			// 设置下一个状态
 			const nextState = NextState.withPending(TestState.RUNNING);
-			const nextStateDescriptor = getTypeDescriptor("TestState_NextState", "TestState_NextState")!;
+			const nextStateDescriptor = getGenericTypeDescriptor<NextState<TestState>>(typeDescriptor);
 			resourceManager.insertResourceByTypeDescriptor(nextState, nextStateDescriptor);
 
 			const result = manager.processTransition(world, resourceManager);
@@ -214,7 +217,7 @@ export = () => {
 
 			// 验证状态已更新
 			const updatedState = resourceManager.getResourceByTypeDescriptor<State<TestState>>(
-				currentState.getTypeDescriptor(),
+				currentState.typeDescriptor,
 			);
 			expect(updatedState).to.be.ok();
 			expect(updatedState!.is(TestState.RUNNING)).to.equal(true);
@@ -223,11 +226,12 @@ export = () => {
 		it("should record last transition event", () => {
 			// 设置初始状态
 			const currentState = State.create(TestState.IDLE);
-			resourceManager.insertResourceByTypeDescriptor(currentState, currentState.getTypeDescriptor());
+			// State 资源使用状态类型的 TypeDescriptor，而不是 State 本身的
+			resourceManager.insertResourceByTypeDescriptor(currentState, typeDescriptor);
 
 			// 设置下一个状态
 			const nextState = NextState.withPending(TestState.RUNNING);
-			const nextStateDescriptor = getTypeDescriptor("TestState_NextState", "TestState_NextState")!;
+			const nextStateDescriptor = getGenericTypeDescriptor<NextState<TestState>>(typeDescriptor);
 			resourceManager.insertResourceByTypeDescriptor(nextState, nextStateDescriptor);
 
 			manager.processTransition(world, resourceManager);
@@ -240,7 +244,7 @@ export = () => {
 		it("should handle first transition without current state", () => {
 			// 不设置初始状态
 			const nextState = NextState.withPending(TestState.RUNNING);
-			const nextStateDescriptor = getTypeDescriptor("TestState_NextState", "TestState_NextState")!;
+			const nextStateDescriptor = getGenericTypeDescriptor<NextState<TestState>>(typeDescriptor);
 			resourceManager.insertResourceByTypeDescriptor(nextState, nextStateDescriptor);
 
 			const result = manager.processTransition(world, resourceManager);
@@ -256,11 +260,12 @@ export = () => {
 		it("should clone last transition correctly", () => {
 			// 设置初始状态
 			const currentState = State.create(TestState.IDLE);
-			resourceManager.insertResourceByTypeDescriptor(currentState, currentState.getTypeDescriptor());
+			// State 资源使用状态类型的 TypeDescriptor，而不是 State 本身的
+			resourceManager.insertResourceByTypeDescriptor(currentState, typeDescriptor);
 
 			// 设置下一个状态
 			const nextState = NextState.withPending(TestState.RUNNING);
-			const nextStateDescriptor = getTypeDescriptor("TestState_NextState", "TestState_NextState")!;
+			const nextStateDescriptor = getGenericTypeDescriptor<NextState<TestState>>(typeDescriptor);
 			resourceManager.insertResourceByTypeDescriptor(nextState, nextStateDescriptor);
 
 			manager.processTransition(world, resourceManager);
@@ -284,15 +289,16 @@ export = () => {
 
 		it("should read transition events", () => {
 			const typeDescriptor = getTypeDescriptor("TestState", "TestState")!;
-			const manager = new StateTransitionManager<TestState>(typeDescriptor, eventManager);
+			const manager = StateTransitionManager.create(typeDescriptor, eventManager);
 
 			// 设置初始状态
 			const currentState = State.create(TestState.IDLE);
-			resourceManager.insertResourceByTypeDescriptor(currentState, currentState.getTypeDescriptor());
+			// State 资源使用状态类型的 TypeDescriptor，而不是 State 本身的
+			resourceManager.insertResourceByTypeDescriptor(currentState, typeDescriptor);
 
 			// 设置下一个状态
 			const nextState = NextState.withPending(TestState.RUNNING);
-			const nextStateDescriptor = getTypeDescriptor("TestState_NextState", "TestState_NextState")!;
+			const nextStateDescriptor = getGenericTypeDescriptor<NextState<TestState>>(typeDescriptor);
 			resourceManager.insertResourceByTypeDescriptor(nextState, nextStateDescriptor);
 
 			// 处理转换
@@ -309,44 +315,44 @@ export = () => {
 
 	describe("lastTransition", () => {
 		it("should return undefined when no manager exists", () => {
-			const result = lastTransition(world, TestState as unknown as StateConstructor<TestState>);
+			const result = lastTransition<TestState>(resourceManager);
 
 			expect(result).never.to.be.ok();
 		});
 
 		it("should return last transition when manager exists", () => {
 			const typeDescriptor = getTypeDescriptor("TestState", "TestState")!;
-			const manager = new StateTransitionManager<TestState>(typeDescriptor, eventManager);
+			const manager = StateTransitionManager.create(typeDescriptor, eventManager);
+
+			// 将 StateTransitionManager 注册到 resourceManager
+			const managerTypeDescriptor = getGenericTypeDescriptor<StateTransitionManager<TestState>>(typeDescriptor);
+			resourceManager.insertResourceByTypeDescriptor(manager, managerTypeDescriptor);
 
 			// 设置初始状态
 			const currentState = State.create(TestState.IDLE);
-			resourceManager.insertResourceByTypeDescriptor(currentState, currentState.getTypeDescriptor());
+			// State 资源使用状态类型的 TypeDescriptor，而不是 State 本身的
+			resourceManager.insertResourceByTypeDescriptor(currentState, typeDescriptor);
 
 			// 设置下一个状态
 			const nextState = NextState.withPending(TestState.RUNNING);
-			const nextStateDescriptor = getTypeDescriptor("TestState_NextState", "TestState_NextState")!;
+			const nextStateDescriptor = getGenericTypeDescriptor<NextState<TestState>>(typeDescriptor);
 			resourceManager.insertResourceByTypeDescriptor(nextState, nextStateDescriptor);
 
 			// 处理转换
 			manager.processTransition(world, resourceManager);
 
-			// 将管理器存储到 world
-			const worldWithManagers = world as unknown as Record<string, unknown>;
-			const managerKey = `stateTransitionManager_${tostring(TestState)}`;
-			worldWithManagers[managerKey] = manager;
-
 			// 获取最后的转换
-			const result = lastTransition(world, TestState as unknown as StateConstructor<TestState>);
+			const result = lastTransition<TestState>(resourceManager);
 
 			expect(result).to.be.ok();
 			expect(result!.isTransition(TestState.IDLE, TestState.RUNNING)).to.equal(true);
 		});
 
 		it("should handle errors gracefully", () => {
-			// 创建一个会抛出错误的 world
-			const badWorld = {} as World;
+			// 创建一个会抛出错误的 rm
+			const badRM = {} as ResourceManager;
 
-			const result = lastTransition(badWorld, TestState as unknown as StateConstructor<TestState>);
+			const result = lastTransition<TestState>(badRM);
 
 			expect(result).never.to.be.ok();
 		});
@@ -355,24 +361,26 @@ export = () => {
 	describe("Edge Cases", () => {
 		it("should handle multiple sequential transitions", () => {
 			const typeDescriptor = getTypeDescriptor("TestState", "TestState")!;
-			const manager = new StateTransitionManager<TestState>(typeDescriptor, eventManager);
+			const manager = StateTransitionManager.create(typeDescriptor, eventManager);
+
+			// 将 StateTransitionManager 注册到 resourceManager
+			const managerTypeDescriptor = getGenericTypeDescriptor<StateTransitionManager<TestState>>(typeDescriptor);
+			resourceManager.insertResourceByTypeDescriptor(manager, managerTypeDescriptor);
 
 			// 第一次转换：undefined -> IDLE
 			const nextState1 = NextState.withPending(TestState.IDLE);
-			const nextStateDescriptor1 = getTypeDescriptor("TestState_NextState1", "TestState_NextState1")!;
-			resourceManager.insertResourceByTypeDescriptor(nextState1, nextStateDescriptor1);
+			const nextStateDescriptor = getGenericTypeDescriptor<NextState<TestState>>(typeDescriptor);
+			resourceManager.insertResourceByTypeDescriptor(nextState1, nextStateDescriptor);
 			manager.processTransition(world, resourceManager);
 
 			// 第二次转换：IDLE -> RUNNING
 			const nextState2 = NextState.withPending(TestState.RUNNING);
-			const nextStateDescriptor2 = getTypeDescriptor("TestState_NextState2", "TestState_NextState2")!;
-			resourceManager.insertResourceByTypeDescriptor(nextState2, nextStateDescriptor2);
+			resourceManager.insertResourceByTypeDescriptor(nextState2, nextStateDescriptor);
 			manager.processTransition(world, resourceManager);
 
 			// 第三次转换：RUNNING -> PAUSED
 			const nextState3 = NextState.withPending(TestState.PAUSED);
-			const nextStateDescriptor3 = getTypeDescriptor("TestState_NextState3", "TestState_NextState3")!;
-			resourceManager.insertResourceByTypeDescriptor(nextState3, nextStateDescriptor3);
+			resourceManager.insertResourceByTypeDescriptor(nextState3, nextStateDescriptor);
 			manager.processTransition(world, resourceManager);
 
 			const lastEvent = manager.getLastTransition();
@@ -382,10 +390,10 @@ export = () => {
 
 		it("should handle transition when NextState is taken", () => {
 			const typeDescriptor = getTypeDescriptor("TestState", "TestState")!;
-			const manager = new StateTransitionManager<TestState>(typeDescriptor, eventManager);
+			const manager = StateTransitionManager.create(typeDescriptor, eventManager);
 
 			const nextState = NextState.withPending(TestState.RUNNING);
-			const nextStateDescriptor = getTypeDescriptor("TestState_NextState", "TestState_NextState")!;
+			const nextStateDescriptor = getGenericTypeDescriptor<NextState<TestState>>(typeDescriptor);
 			resourceManager.insertResourceByTypeDescriptor(nextState, nextStateDescriptor);
 
 			// 手动取出状态

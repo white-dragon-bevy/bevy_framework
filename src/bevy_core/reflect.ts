@@ -6,7 +6,7 @@
 import { Modding } from "@flamework/core";
 
 
-export interface TypeDescriptor {
+export interface TypeDescriptor<T=never> {
     genericId?:string,
     id:string,
     text:string
@@ -63,26 +63,39 @@ export function getTypeDescriptor(
  }
 
  /**
-  * 创建泛型类的类型描述符
+  * 提取泛型类型的外层和内层类型信息
   * 
-  * T 允许为 Foo<S> 嵌套类型, 无论 S 是什么类型都对结果没有影响, 因为Metadata 的 id 不会有嵌套的泛型类型的信息(只有text有)
+  * 用法：getGenericTypeDescriptor<Foo, Bar>() - 返回 GenericTypeInfo，包含 Foo 和 Bar 的类型信息
   * 
   * @metadata macro 
   * 
-  * @param typeDescriptor - 状态的类型描述符, genericId 必须为空
-  * @returns 新的 NextState 类型描述符
+  * @param outerTypeId - 外层类型的 ID（如 Foo）
+  * @param outerTypeText - 外层类型的文本表示
+  * @param innerTypeId - 内层类型的 ID（如 Bar）
+  * @param innerTypeText - 内层类型的文本表示
+  * @returns GenericTypeInfo，包含外层和内层类型的描述符
   */
- export function getGenericTypeDescriptor<T=never>(
-        typeDescriptor:TypeDescriptor,
-        id?:Modding.Generic<T, "id">,
-        ..._enforce: [T] extends [never] 
-        ? [errorMessage: "Error: You must explicitly specify the generic type, e.g., getGenericTypeDescriptor<MyType>(...)"] 
-        : []
-    ){
-        assert(typeDescriptor.genericId===undefined,`${typeDescriptor} should be undefined before set`)
-        const clone = table.clone(typeDescriptor)
-        clone.genericId = id
-        return clone
+ export function getGenericTypeDescriptor<Outer ,Inner=any >(
+        typeDescriptor?:TypeDescriptor,
+        innerTypeId?: Modding.Generic<Inner, "id">,
+        innerTypeText?: Modding.Generic<Inner, "text">,
+        outerTypeId?: Modding.Generic<Outer, "id">,
+        outerTypeText?: Modding.Generic<Outer, "text">,
+       
+    ): TypeDescriptor {
+
+        if(typeDescriptor){
+            assert(typeDescriptor.genericId===undefined,`${typeDescriptor} should be undefined before set`)
+            return {
+                ...typeDescriptor,
+                genericId:outerTypeId!
+            }
+        }
+        return {
+            id:innerTypeId!,
+            text:innerTypeText!,
+            genericId:outerTypeId!
+        };
 }
 
 

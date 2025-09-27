@@ -9,7 +9,7 @@ import { Message , MessageWriter , MessageReader,  MessageConstructor , MessageR
 import { ResourceManager } from "../bevy_ecs/resource";
 import { States } from "./states";
 import { State, NextState, StateConstructor } from "./resources";
-import { getGenericTypeDescriptor, TypeDescriptor } from "../bevy_core";
+import { getGenericTypeDescriptor, getTypeDescriptor, TypeDescriptor } from "../bevy_core";
 import { cleanupOnStateExit, cleanupOnStateEnter } from "./state-scoped";
 import { Modding } from "@flamework/core";
 
@@ -30,10 +30,29 @@ export class StateTransitionMessage<S extends States> implements Message {
 	 * @param exited - 退出的状态（可选）
 	 * @param entered - 进入的状态（可选）
 	 */
-	public constructor(
+	private constructor(
 		public readonly exited?: S,
 		public readonly entered?: S,
 	) {}
+
+	/**
+	 * 
+	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
+	 * 
+	 * @param exited - 退出的状态（可选）
+	 * @param entered - 进入的状态（可选）
+	 * @returns - 状态转换事件
+	 */
+	public static create<S extends States>(
+		exited?: S, entered?: S,
+		id?: Modding.Generic<S, "id">,
+		text?: Modding.Generic<S, "text">,
+	): StateTransitionMessage<S> {
+		const typeDescriptor = getTypeDescriptor(id,text)
+		assert(typeDescriptor, "Failed to get TypeDescriptor for StateTransitionMessage: type descriptor is required for state transition message creation")
+		return new StateTransitionMessage(exited, entered);
+	}
 
 	/**
 	 * 克隆事件
@@ -132,10 +151,24 @@ export class StateTransitionManager<S extends States> {
 	 * @param stateType - 状态类型构造函数
 	 * @param messageRegistry - 事件管理器（可选）
 	 */
-	public constructor(typeDescriptor:TypeDescriptor, messageRegistry: MessageRegistry) {
+	private constructor(typeDescriptor:TypeDescriptor, messageRegistry: MessageRegistry) {
 		this.typeDescriptor = typeDescriptor;
 		this.messageRegistry = messageRegistry;
 		this.eventWriter = this.messageRegistry.createWriter<StateTransitionMessage<S>>();
+	}
+
+	/**
+	 * 创建状态转换管理器
+	 * 
+	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
+	 * 
+	 * @param typeDescriptor - 类型描述
+	 * @param messageRegistry - 事件管理器
+	 * @returns - 状态转换管理器
+	 */
+	public static create<S extends States>(typeDescriptor:TypeDescriptor, messageRegistry: MessageRegistry): StateTransitionManager<S> {
+		return new StateTransitionManager(typeDescriptor, messageRegistry);
 	}
 
 	/**
@@ -166,7 +199,7 @@ export class StateTransitionManager<S extends States> {
 		// 检查是否为身份转换（相同状态转换）
 		if (exitedState && exitedState.equals(newState)) {
 			// 身份转换：跳过 OnEnter/OnExit，但仍要发送事件
-			const event = new StateTransitionMessage(exitedState, newState);
+			const event = StateTransitionMessage.create(exitedState, newState);
 			this.sendTransitionEvent(event);
 			return true;
 		}
@@ -228,7 +261,7 @@ export class StateTransitionManager<S extends States> {
 		cleanupOnStateEnter(world, newState);
 
 		// 5. 最后发送转换事件
-		const event = new StateTransitionMessage(exitedState, newState);
+		const event = StateTransitionMessage.create(exitedState, newState);
 		this.sendTransitionEvent(event);
 	}
 
@@ -340,20 +373,29 @@ export function getStateTransitionReader<S extends States>(
 
 /**
  * 获取上一次的状态转换
+ * 
+ * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+ * @metadata macro
+ * 
+ * 
  * @param world - 游戏世界
  * @param stateType - 状态类型
  * @returns 最后一次转换或 undefined
  */
 export function lastTransition<S extends States>(
-	world: World,
-	stateType: StateConstructor<S>,
+	resources:ResourceManager,
+	id?: Modding.Generic<S, "id">,
+	text?: Modding.Generic<S, "text">,
 ): StateTransitionMessage<S> | undefined {
 	// 尝试从世界中获取状态转换管理器
 	try {
-		const worldWithManagers = world as unknown as Record<string, unknown>;
-		const managerKey = `stateTransitionManager_${tostring(stateType)}`;
-		const manager = worldWithManagers[managerKey] as StateTransitionManager<S> | undefined;
-		return manager?.getLastTransition();
+		// from resources
+		const stateTransitionManagerTypeDescriptor = getGenericTypeDescriptor<StateTransitionManager<S>>(undefined,id,text)
+		const manager = resources.getResourceByTypeDescriptor(stateTransitionManagerTypeDescriptor) as StateTransitionManager<S> | undefined
+		if (!manager) {
+			return undefined;
+		}
+		return manager.getLastTransition();
 	} catch (err) {
 		// 记录错误但返回 undefined，因为这不是致命错误
 		warn(`Failed to get last transition for state type: ${err}`);

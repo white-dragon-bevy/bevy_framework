@@ -26,10 +26,10 @@
 
 		// plugins
 		"plugins":[
+			{ "transform": "rbxts-transformer-flamework" },
 			{
 				"transform":"rbxts-transformer-wd-globals"
-			},
-			{ "transform": "rbxts-transformer-flamework" }
+			}
 		]
 	},
 	"exclude": [

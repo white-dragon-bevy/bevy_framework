@@ -14,7 +14,7 @@ import { StateTransition, StateTransitionManager } from "./transitions";
 import { ComputedStates, ComputedStateManager } from "./computed-states";
 import { SubStates, SubStateManager } from "./sub-states";
 import { Modding } from "@flamework/core";
-import { getTypeDescriptor, TypeDescriptor } from "../bevy_core";
+import { getGenericTypeDescriptor, getTypeDescriptor, TypeDescriptor } from "../bevy_core";
 import { MessageRegistry } from "../bevy_ecs";
 
 /**
@@ -74,15 +74,8 @@ export class StatesPlugin<S extends States> implements Plugin {
 	/**
 	 * 类型描述, 在 create() 时候添加.
 	 */
-	private _typeDescriptor:TypeDescriptor = undefined as unknown as TypeDescriptor
+	public statsTypeDescriptor:TypeDescriptor = undefined as unknown as TypeDescriptor
 
-	/**
-	 * 获取类型描述
-	 * @returns TypeDescriptor
-	 */
-	public getTypeDescriptor():TypeDescriptor{
-		return this._typeDescriptor
-	}
 
 	/**
 	 * 创建新的状态资源
@@ -97,7 +90,7 @@ export class StatesPlugin<S extends States> implements Plugin {
 		let typeDescriptor = getTypeDescriptor(id,text)
 		assert(typeDescriptor, "Failed to get TypeDescriptor for StatesPlugin: type descriptor is required for plugin initialization")
 		const result = new StatesPlugin(config);
-		result._typeDescriptor = typeDescriptor
+		result.statsTypeDescriptor = typeDescriptor
 		return result;
 	}
 
@@ -113,7 +106,11 @@ export class StatesPlugin<S extends States> implements Plugin {
 		this.messageRegistry = existingEventManager;
 
 		// 设置转换管理器的事件管理器
-		this.transitionManager = new StateTransitionManager<S>(this._typeDescriptor,this.messageRegistry);
+		this.transitionManager = StateTransitionManager.create(this.statsTypeDescriptor,this.messageRegistry);
+
+		// add to resources
+		const stateTransitionManagerTypeDescriptor = getGenericTypeDescriptor<StateTransitionManager<S>>(this.statsTypeDescriptor)
+		app.context.resources.insertResourceByTypeDescriptor(this.transitionManager,stateTransitionManagerTypeDescriptor)
 
 		// 注册 StateTransition 调度到主调度顺序（在 PRE_UPDATE 之后，UPDATE 之前）
 		const mainSubApp = app.main();
@@ -128,7 +125,7 @@ export class StatesPlugin<S extends States> implements Plugin {
 			const defaultState = this.config.defaultState();
 			// 初始状态设置为 pending，让转换管理器处理
 			const nextState = NextState.withPending(defaultState)
-			this.resourceManager.insertResourceByTypeDescriptor(nextState,nextState.getTypeDescriptor());
+			this.resourceManager.insertResourceByTypeDescriptor(nextState,nextState.typeDescriptor);
 		}
 
 		// 只在 StateTransition 调度中添加状态转换系统
@@ -169,7 +166,7 @@ export class StatesPlugin<S extends States> implements Plugin {
 	 * @returns 插件名称
 	 */
 	public name(): string {
-		return this._typeDescriptor.text
+		return this.statsTypeDescriptor.text
 	}
 
 	/**
