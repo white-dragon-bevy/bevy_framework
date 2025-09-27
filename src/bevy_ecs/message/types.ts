@@ -3,13 +3,16 @@
  * 对应 Rust bevy_ecs/src/message/mod.rs
  */
 
+import { Modding } from "@flamework/core";
 import { AnyEntity } from "@rbxts/matter";
+
+
+
 
 /**
  * 消息基础接口
  * 对应 Rust 的 Message trait
- *
- * Rust: pub trait Message: Send + Sync + 'static {}
+ * 
  */
 export interface Message {
 	// TypeScript 中所有类型都是 'static

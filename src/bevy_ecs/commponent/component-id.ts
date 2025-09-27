@@ -4,8 +4,9 @@
  */
 
 import { TypeDescriptor } from "../../bevy_core"
+import { TypeMap } from "../../bevy_core/type-map";
 
-const scriptComponentIdMap: Map<string, Map<string, ComponentId>> = new Map();
+const typeMap: TypeMap<ComponentId> = new TypeMap();
 let componentIdCounter = 0;
 
 /**
@@ -24,15 +25,10 @@ export function getComponentIdByDescriptor<T>(descriptor:TypeDescriptor):Compone
 }
 
 export function getComponentId(id:string, text:string):ComponentId{
-    let componentIdMap = scriptComponentIdMap.get(id)
-    if(componentIdMap===undefined){
-        componentIdMap = new Map();
-        scriptComponentIdMap.set(id, componentIdMap);
-    }
-    let componentId = componentIdMap.get(text)
+    let componentId = typeMap.get(id, text)
     if(componentId===undefined){
         componentId = componentIdCounter++
-        componentIdMap.set(text, componentId)
+        typeMap.set(componentId, id, text)
     }
     return componentId
 }

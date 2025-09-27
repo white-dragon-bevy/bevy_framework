@@ -182,7 +182,7 @@ export function mouseButtonInputSystem(world: World): void {
 	mouseButtonInput.clear();
 
 	// 处理鼠标按钮输入事件
-	const reader = eventManager.createReader(MouseButtonInput);
+	const reader = eventManager.createReader<MouseButtonInput>();
 	const events = reader.read();
 
 	for (const event of events) {
@@ -222,7 +222,7 @@ export function accumulateMouseMotionSystem(world: World): void {
 	accumulatedMotion.reset();
 
 	// 累积所有鼠标移动事件
-	const reader = eventManager.createReader(MouseMotion);
+	const reader = eventManager.createReader<MouseMotion>();
 	const events = reader.read();
 
 	for (const event of events) {
@@ -258,7 +258,7 @@ export function accumulateMouseScrollSystem(world: World): void {
 	accumulatedScroll.reset();
 
 	// 累积所有鼠标滚轮事件
-	const reader = eventManager.createReader(MouseWheel);
+	const reader = eventManager.createReader<MouseWheel>();
 	const events = reader.read();
 
 	for (const event of events) {

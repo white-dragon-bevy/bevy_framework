@@ -6,10 +6,13 @@
 import { Modding } from "@flamework/core";
 
 
-export type TypeDescriptor ={
+export interface TypeDescriptor {
+    genericId?:string,
     id:string,
     text:string
 }
+
+
 
 export type ParameterDescriptor = TypeDescriptor
 
@@ -59,6 +62,28 @@ export function getTypeDescriptor(
     }
  }
 
+ /**
+  * 创建泛型类的类型描述符
+  * 
+  * T 允许为 Foo<S> 嵌套类型, 无论 S 是什么类型都对结果没有影响, 因为Metadata 的 id 不会有嵌套的泛型类型的信息(只有text有)
+  * 
+  * @metadata macro 
+  * 
+  * @param typeDescriptor - 状态的类型描述符, genericId 必须为空
+  * @returns 新的 NextState 类型描述符
+  */
+ export function getGenericTypeDescriptor<T=never>(
+        typeDescriptor:TypeDescriptor,
+        id?:Modding.Generic<T, "id">,
+        ..._enforce: [T] extends [never] 
+        ? [errorMessage: "Error: You must explicitly specify the generic type, e.g., getGenericTypeDescriptor<MyType>(...)"] 
+        : []
+    ){
+        assert(typeDescriptor.genericId===undefined,`${typeDescriptor} should be undefined before set`)
+        const clone = table.clone(typeDescriptor)
+        clone.genericId = id
+        return clone
+}
 
 
 /** 

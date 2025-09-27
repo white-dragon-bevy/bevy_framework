@@ -272,8 +272,8 @@ class PlayerJoinedEvent implements Event {
 const eventManager = new EventManager(world);
 
 // 创建写入器和读取器
-const writer = eventManager.createWriter(PlayerJoinedEvent);
-const reader = eventManager.createReader(PlayerJoinedEvent);
+const writer = eventManager.createWriter<PlayerJoinedEvent>();
+const reader = eventManager.createReader<PlayerJoinedEvent>();
 
 // 发送事件
 writer.send(new PlayerJoinedEvent("Alice"));

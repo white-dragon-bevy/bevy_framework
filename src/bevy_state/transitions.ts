@@ -5,12 +5,13 @@
 
 import { World } from "@rbxts/matter";
 import type { ScheduleLabel } from "../bevy_ecs/schedule/types";
-import { Message as Event, MessageWriter as EventWriter, MessageReader as EventReader, MessageRegistry as EventManager, MessageConstructor as EventConstructor } from "../bevy_ecs/message";
+import { Message , MessageWriter , MessageReader,  MessageConstructor , MessageRegistry } from "../bevy_ecs/message";
 import { ResourceManager } from "../bevy_ecs/resource";
 import { States } from "./states";
-import { State, NextState, StateConstructor, getNextStateTypeDescriptor } from "./resources";
-import { TypeDescriptor } from "../bevy_core";
+import { State, NextState, StateConstructor } from "./resources";
+import { getGenericTypeDescriptor, TypeDescriptor } from "../bevy_core";
 import { cleanupOnStateExit, cleanupOnStateEnter } from "./state-scoped";
+import { Modding } from "@flamework/core";
 
 /**
  * 状态转换调度标签
@@ -21,7 +22,7 @@ export const StateTransition: ScheduleLabel = "StateTransition";
  * 状态转换事件
  * 对应 Rust StateTransitionEvent<S>
  */
-export class StateTransitionEvent<S extends States> implements Event {
+export class StateTransitionMessage<S extends States> implements Message {
 	public readonly timestamp?: number;
 
 	/**
@@ -38,8 +39,8 @@ export class StateTransitionEvent<S extends States> implements Event {
 	 * 克隆事件
 	 * @returns 克隆的事件实例
 	 */
-	public clone(): StateTransitionEvent<S> {
-		return new StateTransitionEvent(
+	public clone(): StateTransitionMessage<S> {
+		return new StateTransitionMessage(
 			this.exited?.clone() as S,
 			this.entered?.clone() as S,
 		);
@@ -122,21 +123,19 @@ export const TransitionSchedules = "TransitionSchedules";
  */
 export class StateTransitionManager<S extends States> {
 	private typeDescriptor: TypeDescriptor;
-	private eventWriter?: EventWriter<StateTransitionEvent<S>>;
-	private lastTransitionEvent?: StateTransitionEvent<S>;
-	private eventManager?: EventManager;
+	private eventWriter?: MessageWriter<StateTransitionMessage<S>>;
+	private lastTransitionEvent?: StateTransitionMessage<S>;
+	private messageRegistry: MessageRegistry;
 
 	/**
 	 * 构造函数
 	 * @param stateType - 状态类型构造函数
-	 * @param eventManager - 事件管理器（可选）
+	 * @param messageRegistry - 事件管理器（可选）
 	 */
-	public constructor(typeDescriptor:TypeDescriptor, eventManager?: EventManager) {
+	public constructor(typeDescriptor:TypeDescriptor, messageRegistry: MessageRegistry) {
 		this.typeDescriptor = typeDescriptor;
-		this.eventManager = eventManager;
-		if (eventManager) {
-			this.eventWriter = eventManager.createWriter(StateTransitionEvent as EventConstructor<StateTransitionEvent<S>>);
-		}
+		this.messageRegistry = messageRegistry;
+		this.eventWriter = this.messageRegistry.createWriter<StateTransitionMessage<S>>();
 	}
 
 	/**
@@ -148,7 +147,8 @@ export class StateTransitionManager<S extends States> {
 	 */
 	public processTransition(world: World, resourceManager: ResourceManager, app?: unknown): boolean {
 		// 获取 NextState 资源
-		const nextStateResource = resourceManager.getResourceByTypeDescriptor<NextState<S>>(getNextStateTypeDescriptor(this.typeDescriptor));
+		const genericTypeDescriptor = getGenericTypeDescriptor<NextState<S>>(this.typeDescriptor)
+		const nextStateResource = resourceManager.getResourceByTypeDescriptor<NextState<S>>(genericTypeDescriptor);
 		if (!nextStateResource || !nextStateResource.isPending()) {
 			return false;
 		}
@@ -166,7 +166,7 @@ export class StateTransitionManager<S extends States> {
 		// 检查是否为身份转换（相同状态转换）
 		if (exitedState && exitedState.equals(newState)) {
 			// 身份转换：跳过 OnEnter/OnExit，但仍要发送事件
-			const event = new StateTransitionEvent(exitedState, newState);
+			const event = new StateTransitionMessage(exitedState, newState);
 			this.sendTransitionEvent(event);
 			return true;
 		}
@@ -228,7 +228,7 @@ export class StateTransitionManager<S extends States> {
 		cleanupOnStateEnter(world, newState);
 
 		// 5. 最后发送转换事件
-		const event = new StateTransitionEvent(exitedState, newState);
+		const event = new StateTransitionMessage(exitedState, newState);
 		this.sendTransitionEvent(event);
 	}
 
@@ -236,7 +236,7 @@ export class StateTransitionManager<S extends States> {
 	 * 发送状态转换事件
 	 * @param event - 转换事件
 	 */
-	private sendTransitionEvent(event: StateTransitionEvent<S>): void {
+	private sendTransitionEvent(event: StateTransitionMessage<S>): void {
 		if (this.eventWriter) {
 			this.eventWriter.send(event);
 			this.lastTransitionEvent = event;
@@ -250,17 +250,17 @@ export class StateTransitionManager<S extends States> {
 	 * 获取最后一次转换事件
 	 * @returns 最后一次转换事件或 undefined
 	 */
-	public getLastTransition(): StateTransitionEvent<S> | undefined {
+	public getLastTransition(): StateTransitionMessage<S> | undefined {
 		return this.lastTransitionEvent?.clone();
 	}
 
 	/**
 	 * 设置事件管理器
-	 * @param eventManager - 事件管理器
+	 * @param MessageRegistry - 事件管理器
 	 */
-	public setEventManager(eventManager: EventManager): void {
-		this.eventManager = eventManager;
-		this.eventWriter = eventManager.createWriter(StateTransitionEvent as EventConstructor<StateTransitionEvent<S>>);
+	public setMessageRegistry(MessageRegistry: MessageRegistry): void {
+		this.messageRegistry = MessageRegistry;
+		this.eventWriter = MessageRegistry.createWriter<StateTransitionMessage<S>>();
 	}
 
 	/**
@@ -328,14 +328,15 @@ export class StateTransitionManager<S extends States> {
 
 /**
  * 获取状态转换事件读取器
- * @param eventManager - 事件管理器
+ * @param MessageRegistry - 事件管理器
  * @returns 事件读取器
  */
 export function getStateTransitionReader<S extends States>(
-	eventManager: EventManager,
-): EventReader<StateTransitionEvent<S>> {
-	return eventManager.createReader(StateTransitionEvent as EventConstructor<StateTransitionEvent<S>>);
+	MessageRegistry: MessageRegistry,
+): MessageReader<StateTransitionMessage<S>> {
+	return MessageRegistry.createReader<StateTransitionMessage<S>>();
 }
+
 
 /**
  * 获取上一次的状态转换
@@ -346,7 +347,7 @@ export function getStateTransitionReader<S extends States>(
 export function lastTransition<S extends States>(
 	world: World,
 	stateType: StateConstructor<S>,
-): StateTransitionEvent<S> | undefined {
+): StateTransitionMessage<S> | undefined {
 	// 尝试从世界中获取状态转换管理器
 	try {
 		const worldWithManagers = world as unknown as Record<string, unknown>;

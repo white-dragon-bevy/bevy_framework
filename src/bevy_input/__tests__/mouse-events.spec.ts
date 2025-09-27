@@ -28,8 +28,8 @@ export = () => {
 
 	describe("MouseButtonInput", () => {
 		it("应该能够发送和接收鼠标按钮消息", () => {
-			const writer = messageRegistry.createWriter(MouseButtonInput);
-			const reader = messageRegistry.createReader(MouseButtonInput);
+			const writer = messageRegistry.createWriter<MouseButtonInput>();
+			const reader = messageRegistry.createReader<MouseButtonInput>();
 
 			// 发送按下事件
 			const pressEvent = new MouseButtonInput(Enum.UserInputType.MouseButton1, ButtonState.Pressed);
@@ -56,8 +56,8 @@ export = () => {
 
 	describe("MouseMotion", () => {
 		it("应该能够发送和接收鼠标移动消息", () => {
-			const writer = messageRegistry.createWriter(MouseMotion);
-			const reader = messageRegistry.createReader(MouseMotion);
+			const writer = messageRegistry.createWriter<MouseMotion>();
+			const reader = messageRegistry.createReader<MouseMotion>();
 
 			// 发送移动事件
 			const motionEvent = new MouseMotion(10.5, -20.3);
@@ -79,8 +79,8 @@ export = () => {
 
 	describe("MouseWheel", () => {
 		it("应该能够发送和接收鼠标滚轮消息", () => {
-			const writer = messageRegistry.createWriter(MouseWheel);
-			const reader = messageRegistry.createReader(MouseWheel);
+			const writer = messageRegistry.createWriter<MouseWheel>();
+			const reader = messageRegistry.createReader<MouseWheel>();
 
 			// 发送滚轮事件
 			const wheelEvent = new MouseWheel(0, 3, MouseScrollUnit.Line);
@@ -113,8 +113,8 @@ export = () => {
 
 	describe("CursorMoved", () => {
 		it("应该能够发送和接收光标移动消息", () => {
-			const writer = messageRegistry.createWriter(CursorMoved);
-			const reader = messageRegistry.createReader(CursorMoved);
+			const writer = messageRegistry.createWriter<CursorMoved>();
+			const reader = messageRegistry.createReader<CursorMoved>();
 
 			// 发送光标移动事件
 			const position = new Vector2(100, 200);
@@ -149,9 +149,9 @@ export = () => {
 
 	describe("多个读取器", () => {
 		it("应该支持多个读取器独立读取消息", () => {
-			const writer = messageRegistry.createWriter(MouseMotion);
-			const reader1 = messageRegistry.createReader(MouseMotion);
-			const reader2 = messageRegistry.createReader(MouseMotion);
+			const writer = messageRegistry.createWriter<MouseMotion>();
+			const reader1 = messageRegistry.createReader<MouseMotion>();
+			const reader2 = messageRegistry.createReader<MouseMotion>();
 
 			// 发送第一个事件
 			writer.send(new MouseMotion(1, 1));

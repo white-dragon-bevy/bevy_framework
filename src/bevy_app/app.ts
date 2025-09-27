@@ -71,7 +71,7 @@ export class App<T extends AppContext = AppContext> {
 		mainApp.setUpdateSchedule(BuiltinSchedules.MAIN);
 
 		// 创建 AppExit 消息读取器
-		this.appExitEventReader = this.context.messages.createReader(AppExit);
+		this.appExitEventReader = this.context.messages.createReader<AppExit>();
 
 		// 添加基础调度
 		this.initializeDefaultSchedules();
@@ -498,7 +498,7 @@ export class App<T extends AppContext = AppContext> {
 	 * 对应 Rust App::exit
 	 */
 	exit(): void {
-		const writer = this.context.messages.createWriter(AppExit as never);
+		const writer = this.context.messages.createWriter<AppExit>();
 		writer.send(AppExit.success());
 	}
 
@@ -507,7 +507,7 @@ export class App<T extends AppContext = AppContext> {
 	 * 对应 Rust App::exit_with_code
 	 */
 	exitWithCode(code: number): void {
-		const writer = this.context.messages.createWriter(AppExit as never);
+		const writer = this.context.messages.createWriter<AppExit>();
 		writer.send(AppExit.error(code));
 	}
 

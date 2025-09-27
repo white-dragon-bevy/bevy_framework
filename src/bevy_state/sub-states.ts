@@ -6,7 +6,7 @@
 import { World } from "@rbxts/matter";
 import { ResourceManager } from "../bevy_ecs/resource";
 import { States } from "./states";
-import { State, NextState, StateConstructor, getStateResource } from "./resources";
+import { State, NextState, StateConstructor } from "./resources";
 import { Modding } from "@flamework/core";
 import { TypeDescriptor } from "../bevy_core";
 

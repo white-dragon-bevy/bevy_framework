@@ -275,7 +275,7 @@ export function gamepadConnectionSystem(world: World): void {
 	}
 
 	// 处理连接事件
-	const reader = eventManager.createReader(GamepadConnectionEvent);
+	const reader = eventManager.createReader<GamepadConnectionEvent>();
 	const events = reader.read();
 
 	for (const event of events) {
@@ -326,7 +326,7 @@ export function gamepadEventProcessingSystem(world: World): void {
 	}
 
 	// 处理原始按钮事件
-	const buttonReader = eventManager.createReader(RawGamepadButtonChangedEvent);
+	const buttonReader = eventManager.createReader<RawGamepadButtonChangedEvent>();
 	const buttonEvents = buttonReader.read();
 
 	for (const event of buttonEvents) {
@@ -366,7 +366,7 @@ export function gamepadEventProcessingSystem(world: World): void {
 	buttonReader.cleanup();
 
 	// 处理原始轴事件
-	const axisReader = eventManager.createReader(RawGamepadAxisChangedEvent);
+	const axisReader = eventManager.createReader<RawGamepadAxisChangedEvent>();
 	const axisEvents = axisReader.read();
 
 	for (const event of axisEvents) {

@@ -12,7 +12,7 @@ export { State, NextState, NextStateVariant } from "./resources";
 // 转换
 export {
 	StateTransition,
-	StateTransitionEvent,
+	StateTransitionMessage as StateTransitionEvent,
 	OnEnter,
 	OnExit,
 	OnTransition,

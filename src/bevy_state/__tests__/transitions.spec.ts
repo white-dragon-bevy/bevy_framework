@@ -5,7 +5,7 @@
 import { World } from "@rbxts/matter";
 import { EnumStates, States } from "../states";
 import {
-	StateTransitionEvent,
+	StateTransitionMessage,
 	OnEnter,
 	OnExit,
 	OnTransition,
@@ -48,7 +48,7 @@ export = () => {
 
 	describe("StateTransitionEvent", () => {
 		it("should create event with exited and entered states", () => {
-			const event = new StateTransitionEvent(TestState.IDLE, TestState.RUNNING);
+			const event = new StateTransitionMessage(TestState.IDLE, TestState.RUNNING);
 
 			expect(event.exited).to.be.ok();
 			expect(event.entered).to.be.ok();
@@ -57,7 +57,7 @@ export = () => {
 		});
 
 		it("should create event with only entered state", () => {
-			const event = new StateTransitionEvent(undefined, TestState.RUNNING);
+			const event = new StateTransitionMessage(undefined, TestState.RUNNING);
 
 			expect(event.exited).never.to.be.ok();
 			expect(event.entered).to.be.ok();
@@ -65,7 +65,7 @@ export = () => {
 		});
 
 		it("should clone event correctly", () => {
-			const original = new StateTransitionEvent(TestState.IDLE, TestState.RUNNING);
+			const original = new StateTransitionMessage(TestState.IDLE, TestState.RUNNING);
 			const cloned = original.clone();
 
 			expect(cloned.exited).to.be.ok();
@@ -75,7 +75,7 @@ export = () => {
 		});
 
 		it("should check isExitingFrom correctly", () => {
-			const event = new StateTransitionEvent(TestState.IDLE, TestState.RUNNING);
+			const event = new StateTransitionMessage(TestState.IDLE, TestState.RUNNING);
 
 			expect(event.isExitingFrom(TestState.IDLE)).to.equal(true);
 			expect(event.isExitingFrom(TestState.RUNNING)).to.equal(false);
@@ -83,7 +83,7 @@ export = () => {
 		});
 
 		it("should check isEnteringTo correctly", () => {
-			const event = new StateTransitionEvent(TestState.IDLE, TestState.RUNNING);
+			const event = new StateTransitionMessage(TestState.IDLE, TestState.RUNNING);
 
 			expect(event.isEnteringTo(TestState.RUNNING)).to.equal(true);
 			expect(event.isEnteringTo(TestState.IDLE)).to.equal(false);
@@ -91,7 +91,7 @@ export = () => {
 		});
 
 		it("should check isTransition correctly", () => {
-			const event = new StateTransitionEvent(TestState.IDLE, TestState.RUNNING);
+			const event = new StateTransitionMessage(TestState.IDLE, TestState.RUNNING);
 
 			expect(event.isTransition(TestState.IDLE, TestState.RUNNING)).to.equal(true);
 			expect(event.isTransition(TestState.RUNNING, TestState.IDLE)).to.equal(false);
@@ -99,7 +99,7 @@ export = () => {
 		});
 
 		it("should handle undefined states in checks", () => {
-			const event = new StateTransitionEvent(undefined, TestState.RUNNING);
+			const event = new StateTransitionMessage(undefined, TestState.RUNNING);
 
 			expect(event.isExitingFrom(TestState.IDLE)).to.equal(false);
 			expect(event.isEnteringTo(TestState.RUNNING)).to.equal(true);

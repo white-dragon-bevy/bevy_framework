@@ -8,7 +8,6 @@ import { App } from "../bevy_app/app";
 import { Plugin } from "../bevy_app/plugin";
 import { BuiltinSchedules } from "../bevy_app/main-schedule";
 import { ResourceManager, } from "../bevy_ecs/resource";
-import { MessageRegistry as EventManager } from "../bevy_ecs/message";
 import { EnumStates, States } from "./states";
 import { NextState, StateConstructor, DefaultStateFn } from "./resources";
 import { StateTransition, StateTransitionManager } from "./transitions";
@@ -16,6 +15,7 @@ import { ComputedStates, ComputedStateManager } from "./computed-states";
 import { SubStates, SubStateManager } from "./sub-states";
 import { Modding } from "@flamework/core";
 import { getTypeDescriptor, TypeDescriptor } from "../bevy_core";
+import { MessageRegistry } from "../bevy_ecs";
 
 /**
  * 状态转换系统集合
@@ -35,16 +35,6 @@ export enum StateTransitionSystems {
 	EnterSchedules = "EnterSchedules",
 }
 
-/**
- * 生成统一的资源键名
- * @param prefix - 资源前缀
- * @param stateType - 状态类型
- * @returns 资源键名
- */
-function generateResourceKey<T extends States>(prefix: string, stateType: StateConstructor<T>): string {
-	const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
-	return `${prefix}<${stateTypeName}>`;
-}
 
 /**
  * 状态插件配置
@@ -70,7 +60,7 @@ export class StatesPlugin<S extends States> implements Plugin {
 	private config: StatePluginConfig<S>;
 	private transitionManager: StateTransitionManager<S> = undefined as unknown as StateTransitionManager<S> ;
 	private resourceManager?: ResourceManager;
-	private eventManager?: EventManager;
+	private messageRegistry?: MessageRegistry;
 
 	/**
 	 * 私有构造函数 (公开调用 create())
@@ -108,7 +98,6 @@ export class StatesPlugin<S extends States> implements Plugin {
 		assert(typeDescriptor, "Failed to get TypeDescriptor for StatesPlugin: type descriptor is required for plugin initialization")
 		const result = new StatesPlugin(config);
 		result._typeDescriptor = typeDescriptor
-		result.transitionManager = new StateTransitionManager<S>(result._typeDescriptor);
 		return result;
 	}
 
@@ -121,10 +110,10 @@ export class StatesPlugin<S extends States> implements Plugin {
 		this.resourceManager = existingResourceManager;
 
 		let existingEventManager = app.context.messages;
-		this.eventManager = existingEventManager;
+		this.messageRegistry = existingEventManager;
 
 		// 设置转换管理器的事件管理器
-		this.transitionManager.setEventManager(this.eventManager);
+		this.transitionManager = new StateTransitionManager<S>(this._typeDescriptor,this.messageRegistry);
 
 		// 注册 StateTransition 调度到主调度顺序（在 PRE_UPDATE 之后，UPDATE 之前）
 		const mainSubApp = app.main();
@@ -159,8 +148,8 @@ export class StatesPlugin<S extends States> implements Plugin {
 
 		// 在 POST_UPDATE 中清理事件系统
 		app.addSystems(BuiltinSchedules.POST_UPDATE, (worldParam: World) => {
-			if (this.eventManager) {
-				this.eventManager.cleanup();
+			if (this.messageRegistry) {
+				this.messageRegistry.cleanup();
 			}
 		});
 	}
@@ -265,7 +254,7 @@ export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TPar
 	 * @param subType - 子状态类型
 	 * @param defaultSubState - 默认子状态
 	 */
-	public constructor(
+	private constructor(
 		parentType: TypeDescriptor,
 		subType: TypeDescriptor,
 		defaultSubState: () => TSub,

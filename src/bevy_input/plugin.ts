@@ -67,10 +67,10 @@ export class InputPlugin implements Plugin {
 
 		// 获取事件管理器并创建事件写入器
 		const eventManager = app.main().getEventManager();
-		const mouseButtonWriter = eventManager.createWriter(MouseButtonInput);
-		const mouseMotionWriter = eventManager.createWriter(MouseMotion);
-		const mouseWheelWriter = eventManager.createWriter(MouseWheel);
-		const cursorMovedWriter = eventManager.createWriter(CursorMoved);
+		const mouseButtonWriter = eventManager.createWriter<MouseButtonInput>();
+		const mouseMotionWriter = eventManager.createWriter<MouseMotion>();
+		const mouseWheelWriter = eventManager.createWriter<MouseWheel>();
+		const cursorMovedWriter = eventManager.createWriter<CursorMoved>();
 
 		// 添加调试日志
 		print("[InputPlugin] Initializing input handlers on", RunService.IsClient() ? "CLIENT" : "SERVER");

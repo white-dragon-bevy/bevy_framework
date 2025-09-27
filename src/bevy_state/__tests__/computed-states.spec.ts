@@ -5,7 +5,6 @@
 import { World } from "@rbxts/matter";
 import { ResourceManager } from "../../bevy_ecs/resource";
 import { States } from "../states";
-import { State } from "../resources";
 import {
 	SingleStateSet,
 	TupleStateSet,

@@ -64,11 +64,18 @@ export class Messages<M extends Message> {
 	 * 对应 Rust 的 write
 	 */
 	public write(message: M): MessageId<M> {
+		const timestamp = os.clock();
 		const messageId: MessageId<M> = {
 			id: this.messageCount,
-			timestamp: os.clock(),
+			timestamp,
 			_marker: message as M,
 		};
+
+		// 如果消息有 timestamp 属性，设置它
+		const messageWithTimestamp = message as M & { timestamp?: number };
+		if (messageWithTimestamp.timestamp === undefined) {
+			messageWithTimestamp.timestamp = timestamp;
+		}
 
 		const messageInstance: MessageInstance<M> = {
 			messageId,
@@ -91,11 +98,18 @@ export class Messages<M extends Message> {
 		const lastCount = this.messageCount;
 
 		for (const message of messages) {
+			const timestamp = os.clock();
 			const messageId: MessageId<M> = {
 				id: this.messageCount,
-				timestamp: os.clock(),
+				timestamp,
 				_marker: message as M,
 			};
+
+			// 如果消息有 timestamp 属性，设置它
+			const messageWithTimestamp = message as M & { timestamp?: number };
+			if (messageWithTimestamp.timestamp === undefined) {
+				messageWithTimestamp.timestamp = timestamp;
+			}
 
 			const messageInstance: MessageInstance<M> = {
 				messageId,
