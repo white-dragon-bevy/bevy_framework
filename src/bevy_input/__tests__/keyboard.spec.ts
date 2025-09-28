@@ -2,7 +2,7 @@
  * 键盘输入模块单元测试
  */
 
-import { World } from "@rbxts/matter";
+import { World } from "../../bevy_ecs";
 import { MessageRegistry } from "../../bevy_ecs/message";
 import { KeyboardFocusLost, KeyboardInput, keyboardInputSystem } from "../keyboard";
 import { ButtonState } from "../mouse-events";

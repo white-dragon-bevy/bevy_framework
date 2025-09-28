@@ -9,12 +9,11 @@
  * 对应 Rust Bevy 示例: bevy-origin/examples/input/keyboard_input.rs
  */
 
-import { RunService } from "@rbxts/services";
 import { App } from "../../bevy_app";
 import { DefaultPlugins } from "../../bevy_internal";
 import { MainScheduleLabel } from "../../bevy_app";
 import { getKeyboardInput } from "../../bevy_input";
-import type { World } from "@rbxts/matter";
+import type { World } from "../../bevy_ecs";
 
 /**
  * 键盘输入系统 - 业务逻辑

@@ -1,5 +1,5 @@
 import { AnyComponent, component } from "@rbxts/matter";
-import { BevyWorld } from "../bevy-world";
+import { World } from "../bevy-world";
 import {
 	CommandBuffer,
 	CommandType,
@@ -48,11 +48,11 @@ const VelocityComponent = component<{ vx: number; vy: number; vz: number }>("Vel
 });
 
 export = () => {
-	let world: BevyWorld;
+	let world: World;
 	let commandBuffer: CommandBuffer;
 
 	beforeEach(() => {
-		world = new BevyWorld();
+		world = new World();
 		commandBuffer = new CommandBuffer();
 	});
 

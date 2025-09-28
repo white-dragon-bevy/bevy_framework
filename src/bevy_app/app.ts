@@ -8,7 +8,7 @@ import { AppExit, AppExitCode, AppLabel, ErrorHandler, Message, ScheduleLabel } 
 import { BuiltinSchedules } from "./main-schedule";
 import { DuplicatePluginError, isPluginGroup, Plugin, PluginGroup, PluginState } from "./plugin";
 import { SubApp, SubApps } from "./sub-app";
-import { BevyWorld, WorldContainer } from "../bevy_ecs";
+import { World, WorldContainer } from "../bevy_ecs";
 import { Schedule } from "../bevy_ecs/schedule/schedule";
 import type { SystemFunction } from "../bevy_ecs/schedule/types";
 import type { IntoSystemConfigs } from "../bevy_ecs/schedule";
@@ -361,7 +361,7 @@ export class App<T extends AppContext = AppContext> {
 	/**
 	 * 获取BevyWorld实例
 	 */
-	getWorld(): BevyWorld {
+	getWorld(): World {
 		return this.subApps.main().world().world;
 	}
 

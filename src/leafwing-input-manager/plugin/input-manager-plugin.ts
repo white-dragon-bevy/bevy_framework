@@ -1,4 +1,3 @@
-import { World } from "@rbxts/matter";
 import { RunService } from "@rbxts/services";
 import { CentralInputStore } from "../user-input/central-input-store";
 import { InputManagerSystem } from "./input-manager-system";
@@ -12,7 +11,7 @@ import { MainScheduleLabel } from "../../bevy_app";
 import { AppContext } from "../../bevy_app/context";
 import { registerInputManagerExtension, getInputManagerExtension } from "./context-helpers";
 import { InputMapComponent, ActionStateComponent } from "./components";
-import { Resource } from "../../bevy_ecs";
+import { Resource, World } from "../../bevy_ecs";
 import { InputInstanceManager } from "./input-instance-manager";
 import { InputInstanceManagerResource } from "./input-instance-manager-resource";
 import { BuiltinSchedules } from "../../bevy_app/main-schedule";

@@ -20,17 +20,16 @@ import {
 	EventKey
 } from "../bevy_ecs/events";
 import { Modding } from "@flamework/core";
-import { BevyWorld } from "../bevy_ecs";
 
 /**
  * App 上下文类
  * 继承自 ContextBase，提供插件扩展的注册、访问和管理功能
  */
 export class AppContext extends ContextBase {
-	world: BevyWorld;
+	world: World;
 
 
-	constructor(world: BevyWorld) {
+	constructor(world: World) {
 		super();
 		this.world = world;
 	}

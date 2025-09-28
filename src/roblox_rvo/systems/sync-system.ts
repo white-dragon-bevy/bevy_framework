@@ -3,7 +3,7 @@
  * 在 PreUpdate 阶段运行，同步 Transform 到 RVO Agent
  */
 
-import { BevyWorld, World } from "../../bevy_ecs/bevy-world";
+import { World } from "../../bevy_ecs/bevy-world";
 import { Context } from "../../bevy_ecs/types";
 import { Transform } from "../../bevy_transform/components/transform";
 import { RVOAgent, setAgentGoal } from "../components/rvo-agent";
@@ -15,7 +15,7 @@ import { RVOSimulatorResource } from "../resources/rvo-simulator";
  * @param world - ECS 世界实例
  * @param context - 系统上下文
  */
-export function syncTransformToRVO(world: BevyWorld, context: Context): void {
+export function syncTransformToRVO(world: World, context: Context): void {
 	// 获取模拟器资源
 	const simulatorResource = world.resources.getResource<RVOSimulatorResource>();
 	if (!simulatorResource || !simulatorResource.initialized) {

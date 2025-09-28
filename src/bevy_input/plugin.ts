@@ -5,7 +5,8 @@
  */
 
 import { UserInputService } from "@rbxts/services";
-import { World, useEvent } from "@rbxts/matter";
+import { useEvent } from "@rbxts/matter";
+import { World } from "../bevy_ecs";
 import { App } from "../bevy_app/app";
 import { Plugin } from "../bevy_app/plugin";
 import { MainScheduleLabel } from "../bevy_app/main-schedule";

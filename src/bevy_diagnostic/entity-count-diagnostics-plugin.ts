@@ -5,8 +5,7 @@
 
 import { Plugin } from "../../src/bevy_app/plugin";
 import { App } from "../../src/bevy_app/app";
-import { World } from "@rbxts/matter";
-import { BevyWorld, Context } from "../bevy_ecs";
+import { World, Context } from "../bevy_ecs";
 import { Update } from "../../src/bevy_app/main-schedule";
 import {
 	Diagnostic,
@@ -80,7 +79,7 @@ export class EntityCountDiagnosticsPlugin implements Plugin {
 	 * @param world - ECS世界
 	 * @param context - 系统上下文
 	 */
-	static diagnosticSystem(world: BevyWorld, context: Context): void {
+	static diagnosticSystem(world: World, context: Context): void {
 		const resources = world.resources;
 		const diagnosticsStore = resources.getResource<DiagnosticsStore>();
 		if (!diagnosticsStore) return;

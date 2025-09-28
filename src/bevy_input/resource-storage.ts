@@ -3,7 +3,7 @@
  * 为 World 提供类型安全的资源存储
  */
 
-import { World } from "@rbxts/matter";
+import {World} from "../bevy_ecs";
 import { ButtonInput } from "./button-input";
 import { AccumulatedMouseMotion, AccumulatedMouseWheel, MousePosition } from "./mouse";
 import type { Key } from "./keyboard";

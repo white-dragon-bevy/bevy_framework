@@ -3,7 +3,7 @@
  * 管理多个调度阶段，提供系统注册和执行协调功能
  */
 
-import { BevyWorld } from "../bevy-world";
+import { World } from "../bevy-world";
 import { Loop } from "./loop";
 import { Schedule } from "./schedule";
 import type {
@@ -27,7 +27,7 @@ import { BevySystem, Context } from "../types";
  */
 export class Schedules {
 	private readonly schedules = new Map<ScheduleLabel, Schedule>();
-	private readonly loop: Loop<[BevyWorld, Context]>;
+	private readonly loop: Loop<[World, Context]>;
 	private readonly context: Context;
 	private compiled = false;
 	private runningSchedules = new Set<ScheduleLabel>();
@@ -37,7 +37,7 @@ export class Schedules {
 	 * @param world - BevyWorld 实例
 	 * @param context - 应用上下文
 	 */
-	public constructor(world: BevyWorld, context: Context) {
+	public constructor(world: World, context: Context) {
 		this.loop = new Loop(world, context);
 		this.context = context;
 	}
@@ -273,7 +273,7 @@ export class Schedules {
 	 * 获取底层的 Matter Loop 实例
 	 * @returns Loop 实例
 	 */
-	public getLoop(): Loop<[BevyWorld, Context]> {
+	public getLoop(): Loop<[World, Context]> {
 		return this.loop;
 	}
 

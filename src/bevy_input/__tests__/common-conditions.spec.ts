@@ -2,7 +2,8 @@
  * 输入条件函数单元测试
  */
 
-import { World } from "@rbxts/matter";
+import {World} from "../../bevy_ecs";
+
 import { ButtonInput } from "../button-input";
 import {
 	allInputPressed,

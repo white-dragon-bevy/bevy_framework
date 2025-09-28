@@ -4,17 +4,17 @@
  */
 
 import { Loop, BevySystemStruct } from "../schedule/loop";
-import { BevyWorld } from "../bevy-world";
+import { World } from "../bevy-world";
 import { component } from "@rbxts/matter";
 import { RunService } from "@rbxts/services";
 
 export = () => {
 	describe("Loop System Execution", () => {
-		let loop: Loop<[BevyWorld]>;
-		let world: BevyWorld;
+		let loop: Loop<[World]>;
+		let world: World;
 
 		beforeEach(() => {
-			world = new BevyWorld();
+			world = new World();
 			loop = new Loop(world);
 		});
 
@@ -26,9 +26,9 @@ export = () => {
 		describe("基本系统执行", () => {
 			it("应该执行简单的系统函数", () => {
 				let systemExecuted = false;
-				let worldReceived: BevyWorld | undefined;
+				let worldReceived: World | undefined;
 
-				const testSystem = (receivedWorld: BevyWorld) => {
+				const testSystem = (receivedWorld: World) => {
 					systemExecuted = true;
 					worldReceived = receivedWorld;
 					
@@ -113,7 +113,7 @@ export = () => {
 				let systemExecutionCount = 0;
 				let testCompleted = false;
 
-				const conditionalSystem: BevySystemStruct<[BevyWorld]> = {
+				const conditionalSystem: BevySystemStruct<[World]> = {
 					system: () => {
 						systemExecutionCount++;
 					},
@@ -147,17 +147,17 @@ export = () => {
 				const executionOrder: string[] = [];
 				let testCompleted = false;
 
-				const firstSystem: BevySystemStruct<[BevyWorld]> = {
+				const firstSystem: BevySystemStruct<[World]> = {
 					system: () => executionOrder.push("First"),
 					schedule: "First"
 				};
 
-				const updateSystem: BevySystemStruct<[BevyWorld]> = {
+				const updateSystem: BevySystemStruct<[World]> = {
 					system: () => executionOrder.push("Update"),
 					schedule: "Update"
 				};
 
-				const lastSystem: BevySystemStruct<[BevyWorld]> = {
+				const lastSystem: BevySystemStruct<[World]> = {
 					system: () => {
 						executionOrder.push("Last");
 						
@@ -189,18 +189,18 @@ export = () => {
 				const executionOrder: string[] = [];
 				let testCompleted = false;
 
-				const inputSystem: BevySystemStruct<[BevyWorld]> = {
+				const inputSystem: BevySystemStruct<[World]> = {
 					system: () => executionOrder.push("Input"),
 					systemSet: "InputSet"
 				};
 
-				const physicsSystem: BevySystemStruct<[BevyWorld]> = {
+				const physicsSystem: BevySystemStruct<[World]> = {
 					system: () => executionOrder.push("Physics"),
 					systemSet: "PhysicsSet",
 					afterSet: "InputSet"
 				};
 
-				const renderSystem: BevySystemStruct<[BevyWorld]> = {
+				const renderSystem: BevySystemStruct<[World]> = {
 					system: () => {
 						executionOrder.push("Render");
 						
@@ -230,8 +230,8 @@ export = () => {
 				let normalSystemExecuted = false;
 				let testCompleted = false;
 
-				const exclusiveSystem: BevySystemStruct<[BevyWorld]> = {
-					system: (world: BevyWorld) => {
+				const exclusiveSystem: BevySystemStruct<[World]> = {
+					system: (world: World) => {
 						exclusiveSystemExecuted = true;
 						// 排他性系统应该能完全访问世界
 						expect(world).to.equal(world);
@@ -431,7 +431,7 @@ export = () => {
 				let totalTime = 0;
 				let testCompleted = false;
 
-				const performanceSystem = (world: BevyWorld) => {
+				const performanceSystem = (world: World) => {
 					if (!testCompleted) {
 						const startTime = os.clock();
 						

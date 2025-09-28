@@ -3,7 +3,7 @@
  * 在 Startup 阶段运行，初始化 RVO 模拟器
  */
 
-import { BevyWorld } from "../../bevy_ecs/bevy-world";
+import { World } from "../../bevy_ecs/bevy-world";
 import { Context } from "../../bevy_ecs/types";
 import { RVOConfig } from "../resources/rvo-config";
 import { RVOSimulatorResource } from "../resources/rvo-simulator";
@@ -13,7 +13,7 @@ import { RVOSimulatorResource } from "../resources/rvo-simulator";
  * @param world - ECS 世界实例
  * @param context - 系统上下文
  */
-export function initRVOSystem(world: BevyWorld, context: Context): void {
+export function initRVOSystem(world: World, context: Context): void {
 	// 获取配置资源
 	const config = world.resources.getResource<RVOConfig>();
 	if (!config) {

@@ -3,12 +3,12 @@
  * 负责可见性管理和 Transform 同步
  */
 
-import { World, AnyEntity } from "@rbxts/matter";
+import {  AnyEntity } from "@rbxts/matter";
 import { Workspace, ReplicatedStorage, RunService } from "@rbxts/services";
 import { GlobalTransform } from "../bevy_transform";
 import { RobloxInstance, Visibility, ViewVisibility, VisibilityState } from "./components";
 import { Parent } from "../bevy_ecs/hierarchy";
-import { BevyWorld } from "../bevy_ecs/bevy-world";
+import { World } from "../bevy_ecs/bevy-world";
 
 /**
  * 获取或创建隐藏容器
@@ -28,7 +28,7 @@ function getHiddenContainer(): Folder {
  * 可见性系统
  * 计算最终可见性并管理对象显示/隐藏
  */
-export function visibilitySystem(world: BevyWorld): void {
+export function visibilitySystem(world: World): void {
 	const hiddenContainer = getHiddenContainer();
 
 	// 第一步：计算 ViewVisibility
@@ -82,7 +82,7 @@ export function visibilitySystem(world: BevyWorld): void {
  * Roblox 同步系统
  * 将 GlobalTransform 同步到 Roblox 实例的 CFrame
  */
-export function robloxSyncSystem(world: BevyWorld): void {
+export function robloxSyncSystem(world: World): void {
 	// 查询所有需要同步的实体
 	for (const [entity, globalTransform, robloxInstance] of world.query(GlobalTransform, RobloxInstance)) {
 		const instance = robloxInstance.instance;
@@ -123,7 +123,7 @@ export function robloxSyncSystem(world: BevyWorld): void {
  * 清理系统
  * 移除没有对应 ECS 实体的 Roblox 实例
  */
-export function cleanupRemovedEntities(world: BevyWorld): void {
+export function cleanupRemovedEntities(world: World): void {
 	// 这个系统应该监听实体删除事件
 	// 当前简化实现：检查所有 RobloxInstance 组件是否还有效
 	for (const [entity, robloxInstance] of world.query(RobloxInstance)) {
@@ -140,7 +140,7 @@ export function cleanupRemovedEntities(world: BevyWorld): void {
  * 渲染系统集
  * 包含所有渲染相关系统的执行顺序
  */
-export function renderSystemSet(world: BevyWorld): void {
+export function renderSystemSet(world: World): void {
 	// 1. 计算可见性
 	visibilitySystem(world);
 

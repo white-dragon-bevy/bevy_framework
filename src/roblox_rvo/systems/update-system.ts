@@ -3,7 +3,7 @@
  * 在 PostUpdate 阶段运行，将 RVO 计算结果应用到 Transform
  */
 
-import { BevyWorld } from "../../bevy_ecs/bevy-world";
+import { World } from "../../bevy_ecs/bevy-world";
 import { Context } from "../../bevy_ecs/types";
 import { MessageWriter } from "../../bevy_ecs/message";
 import { Transform } from "../../bevy_transform/components/transform";
@@ -25,7 +25,7 @@ import {
  * @param world - ECS 世界实例
  * @param context - 系统上下文
  */
-export function updateTransformFromRVO(world: BevyWorld, context: Context): void {
+export function updateTransformFromRVO(world: World, context: Context): void {
 	// 获取模拟器资源
 	const simulatorResource = world.resources.getResource<RVOSimulatorResource>();
 	if (!simulatorResource || !simulatorResource.initialized) {

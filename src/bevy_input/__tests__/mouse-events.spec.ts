@@ -3,7 +3,7 @@
  */
 
 import { MessageRegistry } from "../../bevy_ecs/message";
-import { BevyWorld } from "../../bevy_ecs/bevy-world";
+import { World } from "../../bevy_ecs/bevy-world";
 import {
 	ButtonState,
 	CursorMoved,
@@ -14,11 +14,11 @@ import {
 } from "../mouse-events";
 
 export = () => {
-	let world: BevyWorld;
+	let world: World;
 	let messageRegistry: MessageRegistry;
 
 	beforeEach(() => {
-		world = new BevyWorld();
+		world = new World();
 		messageRegistry = new MessageRegistry(world);
 	});
 

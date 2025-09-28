@@ -7,7 +7,7 @@
  */
 
 import type { Message, MessageReader } from "../bevy_ecs/message";
-import type { World } from "@rbxts/matter";
+import type { World } from "../bevy_ecs";
 import { ButtonInput } from "./button-input";
 import { ButtonState } from "./mouse-events";
 import * as ResourceStorage from "./resource-storage";

@@ -6,9 +6,8 @@
 import { Plugin } from "../bevy_app/plugin";
 import { App } from "../bevy_app/app";
 import { BuiltinSchedules } from "../bevy_app/main-schedule";
-import { World } from "@rbxts/matter";
 import { markDirtyTrees, propagateParentTransforms, syncSimpleTransforms, ensureGlobalTransforms } from "./systems";
-import { BevyWorld } from "../bevy_ecs/bevy-world";
+import { World } from "../bevy_ecs/bevy-world";
 import { Context } from "../bevy_ecs/types";
 
 /**
@@ -30,14 +29,14 @@ export class TransformPlugin implements Plugin {
 	 */
 	build(app: App): void {
 		// 定义系统函数，并给它们起名
-		const transformStartupSystem = (world: BevyWorld, context: Context) => {
+		const transformStartupSystem = (world: World, context: Context) => {
 			ensureGlobalTransforms(world);
 			markDirtyTrees(world);
 			propagateParentTransforms(world);
 			syncSimpleTransforms(world);
 		};
 
-		const transformUpdateSystem = (world: BevyWorld, context: Context) => {
+		const transformUpdateSystem = (world: World, context: Context) => {
 			markDirtyTrees(world);
 			propagateParentTransforms(world);
 			syncSimpleTransforms(world);

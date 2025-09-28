@@ -8,7 +8,7 @@ import { App } from "../bevy_app/app";
 import { BuiltinSchedules } from "../bevy_app/main-schedule";
 // import { TransformSystems } from "../bevy_transform/src";
 import { visibilitySystem, robloxSyncSystem, cleanupRemovedEntities } from "./systems";
-import { BevyWorld } from "../bevy_ecs/bevy-world";
+import { World } from "../bevy_ecs/bevy-world";
 import { Context } from "../bevy_ecs/types";
 
 /**
@@ -34,7 +34,7 @@ export class RenderPlugin implements Plugin {
 	 */
 	build(app: App): void {
 		// 定义渲染系统组合
-		const renderUpdateSystem = (world: BevyWorld, context: Context) => {
+		const renderUpdateSystem = (world: World, context: Context) => {
 			// 1. 计算可见性
 			visibilitySystem(world);
 
@@ -56,7 +56,7 @@ export class RenderPlugin implements Plugin {
 		});
 
 		// 启动时的初始化系统
-		const renderStartupSystem = (world: BevyWorld, context: Context) => {
+		const renderStartupSystem = (world: World, context: Context) => {
 			// 初始化可见性
 			visibilitySystem(world);
 			// 初始同步

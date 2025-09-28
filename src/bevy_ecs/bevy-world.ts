@@ -5,18 +5,15 @@
 
 import { CommandBuffer } from "./command-buffer";
 import { EventManager, EventPropagator } from "./events";
-import { World } from "./matter-world";
+import { World as MatterWorld } from "./matter-world";
 import { MessageRegistry } from "./message";
 import { ResourceManager } from "./resource";
-
-// 导出 Matter 的 World 类型
-export { World } from "@rbxts/matter";
 
 /**
  * BevyWorld 类
  * 扩展 Matter 的 World，提供额外的查询功能
  */
-export class BevyWorld extends World {
+export class World extends MatterWorld {
 	resources: ResourceManager;
 	commands: CommandBuffer;
 	messages: MessageRegistry;
@@ -47,13 +44,13 @@ export class BevyWorld extends World {
 
 // WorldContainer 类型（用于兼容）
 export interface WorldContainer {
-	world: BevyWorld;
-	getWorld(): BevyWorld;
+	world: World;
+	getWorld(): World;
 }
 
 // 创建 WorldContainer
 export function createWorldContainer(): WorldContainer {
-	const world = new BevyWorld();
+	const world = new World();
 	return {
 		world,
 		getWorld() {

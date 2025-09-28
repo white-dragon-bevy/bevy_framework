@@ -13,7 +13,7 @@ import { error as logError, warn, info, debug, trace } from "../../../bevy_log";
 import { errorOnce, warnOnce, infoOnce, debugOnce, traceOnce, once } from "../../../bevy_log";
 import { getKeyboardInput } from "../../../bevy_input";
 import { Players, StarterGui, RunService } from "@rbxts/services";
-import type { World } from "@rbxts/matter";
+import type { World } from "../../../bevy_ecs";
 
 /**
  * 设置 UI 提示文本

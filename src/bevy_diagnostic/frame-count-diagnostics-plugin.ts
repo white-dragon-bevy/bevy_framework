@@ -5,10 +5,9 @@
 
 import { Plugin } from "../../src/bevy_app/plugin";
 import { App } from "../../src/bevy_app/app";
-import { World } from "@rbxts/matter";
 import { Last } from "../../src/bevy_app/main-schedule";
 import { Resource } from "../../src/bevy_ecs/resource";
-import { BevyWorld, Context } from "../bevy_ecs";
+import { World, Context } from "../bevy_ecs";
 
 /**
  * 维护从应用启动以来渲染的帧数
@@ -74,7 +73,7 @@ export class FrameCountPlugin implements Plugin {
  * @param world - ECS世界
  * @param context - 系统上下文
  */
-export function updateFrameCount(world: BevyWorld, context: Context): void {
+export function updateFrameCount(world: World, context: Context): void {
 	const resources = world.resources;
 	if (!resources) {
 		return;

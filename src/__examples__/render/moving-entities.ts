@@ -6,7 +6,7 @@
 import { Workspace } from "@rbxts/services";
 import { App } from "../../bevy_app/app";
 import { createRenderPlugin, RobloxInstance, Visibility, VisibilityState, ViewVisibility } from "../../bevy_render";
-import { BevyWorld } from "../../bevy_ecs/bevy-world";
+import { World } from "../../bevy_ecs/bevy-world";
 import { BuiltinSchedules } from "../../bevy_app/main-schedule";
 import { Schedule } from "../../bevy_ecs/schedule/schedule";
 import { component } from "@rbxts/matter";
@@ -93,7 +93,7 @@ export function runMovingEntitiesExample(): void {
 	app.editSchedule(BuiltinSchedules.STARTUP, (schedule: Schedule) => {
 		schedule.addSystem({
 			name: "SpawnMovingEntities",
-			system: (world: BevyWorld) => {
+			system: (world: World) => {
 				print("创建100个运动实体...");
 
 				for (let index = 0; index < 100; index++) {
@@ -141,7 +141,7 @@ export function runMovingEntitiesExample(): void {
 	app.editSchedule(BuiltinSchedules.UPDATE, (schedule: Schedule) => {
 		schedule.addSystem({
 			name: "MoveEntities",
-			system: (world: BevyWorld) => {
+			system: (world: World) => {
 				const currentTime = os.clock();
 				const deltaTime = currentTime - lastTime;
 				lastTime = currentTime;
@@ -219,7 +219,7 @@ export function runMovingEntitiesExample(): void {
 		let syncDebugFrame = 0;
 		schedule.addSystem({
 			name: "SyncPositions",
-			system: (world: BevyWorld) => {
+			system: (world: World) => {
 				syncDebugFrame++;
 				let syncCount = 0;
 				for (const [entity, position, robloxInstance] of world.query(Position, RobloxInstance)) {
@@ -247,7 +247,7 @@ export function runMovingEntitiesExample(): void {
 		let colorLastTime = os.clock();
 		schedule.addSystem({
 			name: "ColorAnimation",
-			system: (world: BevyWorld) => {
+			system: (world: World) => {
 				const currentTime = os.clock();
 				const deltaTime = currentTime - colorLastTime;
 				colorLastTime = currentTime;

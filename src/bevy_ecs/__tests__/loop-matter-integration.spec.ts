@@ -4,17 +4,17 @@
  */
 
 import { Loop } from "../schedule/loop";
-import { BevyWorld } from "../bevy-world";
+import { World } from "../bevy-world";
 import { component, useEvent, useDeltaTime, useThrottle, log } from "@rbxts/matter";
 import { RunService, Players } from "@rbxts/services";
 
 export = () => {
 	describe("Loop Matter Integration", () => {
-		let loop: Loop<[BevyWorld]>;
-		let world: BevyWorld;
+		let loop: Loop<[World]>;
+		let world: World;
 
 		beforeEach(() => {
-			world = new BevyWorld();
+			world = new World();
 			loop = new Loop(world);
 		});
 
@@ -30,7 +30,7 @@ export = () => {
 				let entityCreated: number | undefined;
 				let queryResults: Array<{ id: number; value: number }> = [];
 
-				const testSystem = (world: BevyWorld) => {
+				const testSystem = (world: World) => {
 					if (!systemExecuted) {
 						systemExecuted = true;
 
@@ -74,7 +74,7 @@ export = () => {
 				let testEntity: number;
 				let testCompleted = false;
 
-				const testSystem = (world: BevyWorld) => {
+				const testSystem = (world: World) => {
 					if (phase === 0) {
 						// 第一阶段：创建实体
 						testEntity = world.spawn(TestComponent({ value: 1 }));
@@ -136,7 +136,7 @@ export = () => {
 				let deltaTimeReceived = false;
 				let deltaValue: number;
 
-				const testSystem = (world: BevyWorld) => {
+				const testSystem = (world: World) => {
 					if (!deltaTimeReceived) {
 						deltaValue = useDeltaTime();
 						deltaTimeReceived = true;
@@ -159,7 +159,7 @@ export = () => {
 				let throttleResults: boolean[] = [];
 				let testCompleted = false;
 
-				const testSystem = (world: BevyWorld) => {
+				const testSystem = (world: World) => {
 					if (!testCompleted) {
 						throttleCallCount++;
 						const shouldExecute = useThrottle(0.05); // 50ms 节流
@@ -188,7 +188,7 @@ export = () => {
 			it("系统内部应该能使用 useEvent", () => {
 				let eventReceived = false;
 
-				const testSystem = (world: BevyWorld) => {
+				const testSystem = (world: World) => {
 					if (!eventReceived) {
 						// 监听玩家加入事件
 						for (const [i, player] of useEvent(Players, "PlayerAdded")) {
@@ -217,7 +217,7 @@ export = () => {
 			it("系统内部应该能使用 log", () => {
 				let logCalled = false;
 
-				const testSystem = (world: BevyWorld) => {
+				const testSystem = (world: World) => {
 					if (!logCalled) {
 						// 测试 Matter 的 log 函数
 						log("Test log message", { data: "test" });
@@ -240,7 +240,7 @@ export = () => {
 				let componentCreated = false;
 				let componentUsed = false;
 
-				const testSystem = (world: BevyWorld) => {
+				const testSystem = (world: World) => {
 					if (!componentCreated) {
 						// 创建组件实例
 						const comp = TestComponent({ value: 42, name: "test" });
@@ -281,7 +281,7 @@ export = () => {
 				
 				let testCompleted = false;
 
-				const testSystem = (world: BevyWorld) => {
+				const testSystem = (world: World) => {
 					if (!testCompleted) {
 						// 创建组件时只提供部分数据
 						const comp = ComponentWithDefaults({ value: 200, enabled: true, name: "default" });
@@ -317,7 +317,7 @@ export = () => {
 				let setupComplete = false;
 				let queryTestComplete = false;
 
-				const testSystem = (world: BevyWorld) => {
+				const testSystem = (world: World) => {
 					if (!setupComplete) {
 						// 设置测试数据
 						world.spawn(PositionComponent({ x: 1, y: 1 }), VelocityComponent({ dx: 1, dy: 0 }));
@@ -371,7 +371,7 @@ export = () => {
 				let entityId: number;
 				let testCompleted = false;
 
-				const testSystem = (world: BevyWorld) => {
+				const testSystem = (world: World) => {
 					if (phase === 0) {
 						// 创建实体
 						entityId = world.spawn(TestComponent({ value: 1 }));
@@ -434,7 +434,7 @@ export = () => {
 				let system2Executed = false;
 				let testCompleted = false;
 
-				const system1 = (world: BevyWorld) => {
+				const system1 = (world: World) => {
 					if (!system1Executed) {
 						sharedEntityId = world.spawn(SharedComponent({ counter: 0 }));
 						system1Executed = true;
@@ -448,7 +448,7 @@ export = () => {
 					}
 				};
 
-				const system2 = (world: BevyWorld) => {
+				const system2 = (world: World) => {
 					if (system1Executed && !system2Executed) {
 						// 验证能看到 system1 创建的实体
 						let found = false;

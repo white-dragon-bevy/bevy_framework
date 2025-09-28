@@ -3,7 +3,7 @@
  * 在 Update 阶段运行，执行 RVO 算法计算
  */
 
-import { BevyWorld } from "../../bevy_ecs/bevy-world";
+import { World } from "../../bevy_ecs/bevy-world";
 import { Context } from "../../bevy_ecs/types";
 import { RVOConfig } from "../resources/rvo-config";
 import { RVOSimulatorResource } from "../resources/rvo-simulator";
@@ -13,7 +13,7 @@ import { RVOSimulatorResource } from "../resources/rvo-simulator";
  * @param world - ECS 世界实例
  * @param context - 系统上下文
  */
-export function simulateRVO(world: BevyWorld, context: Context): void {
+export function simulateRVO(world: World, context: Context): void {
 	// 获取配置资源
 	const config = world.resources.getResource<RVOConfig>();
 	if (!config) {
@@ -69,7 +69,7 @@ function debugPrintStats(simulatorResource: RVOSimulatorResource): void {
  * @param world - ECS 世界实例
  * @returns 是否成功执行模拟
  */
-export function stepSimulation(world: BevyWorld): boolean {
+export function stepSimulation(world: World): boolean {
 	const simulatorResource = world.resources.getResource<RVOSimulatorResource>();
 	if (!simulatorResource || !simulatorResource.initialized) {
 		return false;
@@ -89,7 +89,7 @@ export function stepSimulation(world: BevyWorld): boolean {
  * @param context - 系统上下文
  * @param timeStep - 新的时间步长
  */
-export function setSimulationTimeStep(world: BevyWorld, context: Context, timeStep: number): void {
+export function setSimulationTimeStep(world: World, context: Context, timeStep: number): void {
 	const config = world.resources.getResource<RVOConfig>();
 	if (config) {
 		config.timeStep = timeStep;
@@ -106,7 +106,7 @@ export function setSimulationTimeStep(world: BevyWorld, context: Context, timeSt
  * @param context - 系统上下文
  * @returns 统计信息
  */
-export function getSimulationStats(world: BevyWorld): {
+export function getSimulationStats(world: World): {
 	agentCount: number;
 	obstacleCount: number;
 	averageSimulationTime: number;

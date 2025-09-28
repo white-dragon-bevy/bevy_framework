@@ -6,7 +6,7 @@
  * Based on Bevy's touch input system design
  */
 
-import { World } from "@rbxts/matter";
+import { World } from "../bevy_ecs";
 import { MessageReader as EventReader } from "../bevy_ecs/message";
 import { getTouches as getResourceTouches } from "./resource-storage";
 

@@ -1,4 +1,4 @@
-import { BevyWorld } from "../bevy-world";
+import { World } from "../bevy-world";
 import {
 	Message,
 	MessageWriter,
@@ -28,11 +28,11 @@ class AnotherTestMessage implements Message {
 }
 
 export = () => {
-	let world: BevyWorld;
+	let world: World;
 	let messageRegistry: MessageRegistry;
 
 	beforeEach(() => {
-		world = new BevyWorld();
+		world = new World();
 		messageRegistry = new MessageRegistry(world);
 	});
 

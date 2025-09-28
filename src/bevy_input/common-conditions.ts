@@ -3,7 +3,8 @@
  * 提供声明式的输入检测条件，用于系统运行控制
  */
 
-import { World } from "@rbxts/matter";
+import { World } from "../bevy_ecs";
+
 import { ButtonInput } from "./button-input";
 import * as ResourceStorage from "./resource-storage";
 

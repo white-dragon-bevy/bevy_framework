@@ -3,7 +3,7 @@
  * 用于清理 RVO 资源和状态
  */
 
-import { BevyWorld } from "../../bevy_ecs/bevy-world";
+import { World } from "../../bevy_ecs/bevy-world";
 import { Context } from "../../bevy_ecs/types";
 import { RVOSimulatorResource } from "../resources/rvo-simulator";
 
@@ -12,7 +12,7 @@ import { RVOSimulatorResource } from "../resources/rvo-simulator";
  * @param world - ECS 世界实例
  * @param context - 系统上下文
  */
-export function cleanupRVOSystem(world: BevyWorld, context: Context): void {
+export function cleanupRVOSystem(world: World, context: Context): void {
 	// 获取模拟器资源
 	const simulatorResource = world.resources.getResource<RVOSimulatorResource>();
 	if (!simulatorResource) {

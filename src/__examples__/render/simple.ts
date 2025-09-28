@@ -6,7 +6,7 @@
 import { Workspace } from "@rbxts/services";
 import { App } from "../../bevy_app/app";
 import { createRenderPlugin, RobloxInstance, Visibility, VisibilityState, ViewVisibility } from "../../bevy_render";
-import { BevyWorld } from "../../bevy_ecs/bevy-world";
+import { World } from "../../bevy_ecs/bevy-world";
 import { BuiltinSchedules } from "../../bevy_app/main-schedule";
 import { Schedule } from "../../bevy_ecs/schedule/schedule";
 import { RobloxRunnerPlugin } from "../../bevy_app/roblox-adapters";
@@ -38,7 +38,7 @@ export function runRenderExample(): void {
 	app.editSchedule(BuiltinSchedules.STARTUP, (schedule: Schedule) => {
 		schedule.addSystem({
 			name: "SpawnTestEntity",
-			system: (world: BevyWorld) => {
+			system: (world: World) => {
 				// 创建实体并添加渲染组件
 				const entity = world.spawn(
 					RobloxInstance({
@@ -63,7 +63,7 @@ export function runRenderExample(): void {
 	app.editSchedule(BuiltinSchedules.UPDATE, (schedule: Schedule) => {
 		schedule.addSystem({
 			name: "ToggleVisibility",
-			system: (world: BevyWorld) => {
+			system: (world: World) => {
 				frameCount++;
 
 				// 每60帧切换一次可见性

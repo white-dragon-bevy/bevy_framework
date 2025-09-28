@@ -3,7 +3,7 @@
  * 验证新的 Schedule 和 Schedules 系统功能
  */
 
-import { BevyWorld, World } from "../bevy-world";
+import {  World } from "../bevy-world";
 import { Schedule, Schedules, SystemConfig, SystemSetConfig } from "../schedule/index";
 import { MainScheduleLabel, CoreSystemSet } from "../../bevy_app/main-schedule";
 import { ResourceManager } from "../resource";
@@ -14,11 +14,11 @@ import { Context } from "../types";
 export = () => {
 	describe("Schedule", () => {
 		let schedule: Schedule;
-		let world: BevyWorld;
+		let world: World;
 
 		beforeEach(() => {
 			schedule = new Schedule(MainScheduleLabel.UPDATE);
-			world = new BevyWorld();
+			world = new World();
 		});
 
 		afterEach(() => {
@@ -90,7 +90,7 @@ export = () => {
 				const compiledSystems = schedule.compile();
 				expect(compiledSystems.size()).to.equal(2);
 
-				world = new BevyWorld();
+				world = new World();
 
 				// 执行系统模拟
 				for (const loopSystem of compiledSystems) {
@@ -186,7 +186,7 @@ export = () => {
 
 				const compiledSystems = schedule.compile();
 
-				world = new BevyWorld();
+				world = new World();
 				// 执行系统
 				for (const loopSystem of compiledSystems) {
 					loopSystem.system(world, new AppContext(world));
@@ -282,7 +282,7 @@ export = () => {
 				});
 
 				const compiledSystems = schedule.compile();
-				world = new BevyWorld();
+				world = new World();
 
 				// 捕获错误
 				for (const loopSystem of compiledSystems) {
@@ -300,10 +300,10 @@ export = () => {
 
 	describe("Schedules", () => {
 		let schedules: Schedules;
-		let world: BevyWorld;
+		let world: World;
 
 		beforeEach(() => {
-			world = new BevyWorld();
+			world = new World();
 			schedules = new Schedules(world, new AppContext(world));
 		});
 

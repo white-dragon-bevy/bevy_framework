@@ -5,7 +5,7 @@
 /// <reference types="@rbxts/testez/globals" />
 
 import { App } from "../../bevy_app/app";
-import { BevyWorld } from "../../bevy_ecs/bevy-world";
+import { World } from "../../bevy_ecs/bevy-world";
 import { Context } from "../../bevy_ecs/types";
 import { Transform, transformFromPosition } from "../../bevy_transform/components/transform";
 import { TransformPlugin } from "../../bevy_transform/plugin";
