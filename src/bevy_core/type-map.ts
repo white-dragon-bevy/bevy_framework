@@ -61,6 +61,7 @@ export class TypeMap<T> {
 			const { id, text = '', genericId = '' } = idOrTypeDescriptor as TypeDescriptor;
 			return this.map.get(id)?.get(text)?.get(genericId);
 		}
+		assert(idOrTypeDescriptor!==undefined, "idOrTypeDescriptor is undefined");
 		if (text === undefined) text = '';
 		if (genericId === undefined) genericId = '';
 		return this.map.get(idOrTypeDescriptor as string)?.get(text)?.get(genericId);
@@ -103,6 +104,7 @@ export class TypeMap<T> {
 			const flatKey = this.getFlatKey(id, text, genericId);
 			this.flatMap.set(flatKey, textOrValue as T);
 		} else  {
+			assert(idOrTypeDescriptor!==undefined, "idOrTypeDescriptor is undefined");
 			const genericId = genericIdOrUndefined || '';
 			const text = textOrValue as string || '';
 			this.getOrCreatePath(idOrTypeDescriptor as string, text).set(genericId, value);

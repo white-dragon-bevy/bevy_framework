@@ -1,6 +1,10 @@
 /**
  * 鼠标输入事件示例
- * 打印所有鼠标事件到控制台
+ * 演示如何使用事件系统处理鼠标输入
+ * 
+ * 使用者只需要：
+ * 1. 添加 DefaultPlugins（已包含 InputPlugin）
+ * 2. 添加自己的系统，通过 EventReader 参数读取事件
  *
  * 对应 Rust Bevy 示例: bevy-origin/examples/input/mouse_input_events.rs
  */
@@ -8,10 +12,9 @@
 import { App } from "../../bevy_app";
 import { MainScheduleLabel } from "../../bevy_app";
 import { DefaultPlugins } from "../../bevy_internal";
-import { MessageReader as EventReader } from "../../bevy_ecs/message";
+import { MessageReader as EventReader, Message } from "../../bevy_ecs/message";
 import { CursorMoved, MouseButtonInput, MouseMotion, MouseWheel } from "../../bevy_input";
 import type { World } from "@rbxts/matter";
-
 
 /**
  * 获取按钮的友好名称
@@ -31,118 +34,97 @@ function getButtonName(button: Enum.UserInputType | unknown): string {
 }
 
 /**
- * 事件读取器资源存储插件
- * 更好的实现方式：将读取器作为资源存储
+ * 鼠标事件处理系统
+ * 
+ * 在 Rust Bevy 中，这个系统会接收 EventReader 参数：
+ * - EventReader<MouseButtonInput>
+ * - EventReader<MouseMotion>
+ * - EventReader<CursorMoved>
+ * - EventReader<MouseWheel>
+ * 
+ * 在我们的实现中，我们需要从 world 获取事件管理器来创建读取器
+ * 
+ * @param world - Matter World 实例
  */
-class MouseEventReadersPlugin {
-	private readers?: {
-		buttonReader: EventReader<MouseButtonInput>;
-		motionReader: EventReader<MouseMotion>;
-		cursorReader: EventReader<CursorMoved>;
-		wheelReader: EventReader<MouseWheel>;
-	};
+function mouseEventsSystem(world: World): void {
+	// 获取事件管理器
+	const context = (world as unknown as { context?: { messages?: unknown } }).context;
+	if (!context?.messages) return;
+	const messageRegistry = context.messages as { createReader: <T extends Message>(type?: any, text?: any) => EventReader<T> };
 
-	public build(app: App): void {
-		const eventManager = app.main().getEventManager();
+	// 创建事件读取器（在 Rust 中这些是系统参数）
+	const buttonReader = messageRegistry.createReader<MouseButtonInput>();
+	const motionReader = messageRegistry.createReader<MouseMotion>();
+	const cursorReader = messageRegistry.createReader<CursorMoved>();
+	const wheelReader = messageRegistry.createReader<MouseWheel>();
 
-		// 创建并存储读取器
-		this.readers = {
-			buttonReader: eventManager.createReader<MouseButtonInput>(),
-			motionReader: eventManager.createReader<MouseMotion>(),
-			cursorReader: eventManager.createReader<CursorMoved>(),
-			wheelReader: eventManager.createReader<MouseWheel>(),
-		};
-
-		// 添加事件打印系统
-		app.addSystems(MainScheduleLabel.UPDATE, (_world: World) => {
-			if (!this.readers) {
-				return;
-			}
-
-			// 读取并打印鼠标按钮事件
-			const buttonEvents = this.readers.buttonReader.read();
-			for (const event of buttonEvents) {
-				const buttonName = getButtonName(event.button);
-				const stateText = event.state === "Pressed" ? "pressed" : "released";
-				print(`[MouseButtonInput] ${buttonName} ${stateText}`);
-			}
-
-			// 读取并打印鼠标移动事件
-			const motionEvents = this.readers.motionReader.read();
-			for (const event of motionEvents) {
-				if (math.abs(event.deltaX) > 0.01 || math.abs(event.deltaY) > 0.01) {
-					print(
-						`[MouseMotion] delta: (${string.format("%.2f", event.deltaX)}, ${string.format(
-							"%.2f",
-							event.deltaY,
-						)})`,
-					);
-				}
-			}
-
-			// 读取并打印光标移动事件
-			const cursorEvents = this.readers.cursorReader.read();
-			for (const event of cursorEvents) {
-				if (event.delta && (math.abs(event.delta.X) > 1 || math.abs(event.delta.Y) > 1)) {
-					print(
-						`[CursorMoved] position: (${string.format("%.0f", event.position.X)}, ${string.format(
-							"%.0f",
-							event.position.Y,
-						)}) delta: (${string.format("%.0f", event.delta.X)}, ${string.format(
-							"%.0f",
-							event.delta.Y,
-						)})`,
-					);
-				}
-			}
-
-			// 读取并打印鼠标滚轮事件
-			const wheelEvents = this.readers.wheelReader.read();
-			for (const event of wheelEvents) {
-				if (math.abs(event.y) > 0.01) {
-					const direction = event.y > 0 ? "up" : "down";
-					print(`[MouseWheel] scrolling ${direction}: ${string.format("%.2f", event.y)}`);
-				}
-			}
-		});
+	// 读取并打印鼠标按钮事件
+	const buttonEvents = buttonReader.read();
+	for (const event of buttonEvents) {
+		const buttonName = getButtonName(event.button);
+		const stateText = event.state === "Pressed" ? "pressed" : "released";
+		print(`[MouseButtonInput] ${buttonName} ${stateText}`);
 	}
 
-	public name(): string {
-		return "MouseEventReadersPlugin";
+	// 读取并打印鼠标移动事件
+	const motionEvents = motionReader.read();
+	for (const event of motionEvents) {
+		if (math.abs(event.deltaX) > 0.01 || math.abs(event.deltaY) > 0.01) {
+			print(
+				`[MouseMotion] delta: (${string.format("%.2f", event.deltaX)}, ${string.format(
+					"%.2f",
+					event.deltaY,
+				)})`,
+			);
+		}
 	}
 
-	public isUnique(): boolean {
-		return true;
+	// 读取并打印光标移动事件
+	const cursorEvents = cursorReader.read();
+	for (const event of cursorEvents) {
+		if (event.delta && (math.abs(event.delta.X) > 1 || math.abs(event.delta.Y) > 1)) {
+			print(
+				`[CursorMoved] position: (${string.format("%.0f", event.position.X)}, ${string.format(
+					"%.0f",
+					event.position.Y,
+				)}) delta: (${string.format("%.0f", event.delta.X)}, ${string.format(
+					"%.0f",
+					event.delta.Y,
+				)})`,
+			);
+		}
 	}
 
-	public cleanup(): void {
-		if (this.readers) {
-			this.readers.buttonReader.cleanup();
-			this.readers.motionReader.cleanup();
-			this.readers.cursorReader.cleanup();
-			this.readers.wheelReader.cleanup();
+	// 读取并打印鼠标滚轮事件
+	const wheelEvents = wheelReader.read();
+	for (const event of wheelEvents) {
+		if (math.abs(event.y) > 0.01) {
+			const direction = event.y > 0 ? "up" : "down";
+			print(`[MouseWheel] scrolling ${direction}: ${string.format("%.2f", event.y)}`);
 		}
 	}
 }
 
 /**
- * 主函数
- * 创建应用并添加鼠标事件系统
+ * 主函数 - 使用者的入口点
+ * 只需要添加插件，然后添加自己的系统
  */
 export function main(): App {
 	const app = App.create();
 
-	// 添加默认插件组（包含 InputPlugin）
-	app.addPlugins(...DefaultPlugins.create().build().getPlugins());
+	// 1. 添加默认插件组（包含 InputPlugin）
+	// InputPlugin 会自动处理输入事件并发送到事件系统
+	app.addPlugins(DefaultPlugins.create());
 
-	// 添加鼠标事件读取器插件
-	app.addPlugin(new MouseEventReadersPlugin());
+	// 2. 添加我们的事件处理系统到 Update 阶段
+	// 这个系统会读取 InputPlugin 发送的事件
+	app.addSystems(MainScheduleLabel.UPDATE, mouseEventsSystem);
 
 	// 打印使用说明
 	print("========================================");
 	print("Mouse Input Events Example - 鼠标输入事件示例");
 	print("========================================");
-	print("本示例使用事件系统来处理鼠标输入");
+	print("这个示例展示了 Bevy 风格的事件处理");
 	print("----------------------------------------");
 	print("操作说明:");
 	print("  • 点击鼠标按钮 - 查看 MouseButtonInput 事件");

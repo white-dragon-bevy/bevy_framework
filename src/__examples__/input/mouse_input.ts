@@ -1,107 +1,168 @@
 /**
  * 鼠标输入示例
- * 打印鼠标按钮事件和移动/滚动事件
+ * 演示如何在业务代码中使用鼠标输入
+ * 
+ * 使用者只需要：
+ * 1. 添加 DefaultPlugins（已包含 InputPlugin）
+ * 2. 在业务逻辑中调用相关 API 获取鼠标状态
  *
  * 对应 Rust Bevy 示例: bevy-origin/examples/input/mouse_input.rs
  */
 
+import { RunService } from "@rbxts/services";
 import { App } from "../../bevy_app";
-import { MainScheduleLabel } from "../../bevy_app";
 import { DefaultPlugins } from "../../bevy_internal";
 import { getMouseInput, getMouseMotion, getMouseWheel } from "../../bevy_input";
-import type { World } from "@rbxts/matter";
 
 /**
- * 鼠标点击系统
- * 检测并打印鼠标按钮的按下、刚按下、刚释放状态
- * @param world - Matter World 实例
+ * 相机控制器业务逻辑示例
+ * 演示如何使用鼠标输入实现相机控制
  */
-function mouseClickSystem(world: World): void {
-	const mouseButtonInput = getMouseInput(world);
+class CameraController {
+	private app: App;
+	private sensitivity = 2.0;
 
-	if (!mouseButtonInput) {
-		return;
+	constructor(app: App) {
+		this.app = app;
 	}
 
-	// 检查左键状态
-	if (mouseButtonInput.isPressed(Enum.UserInputType.MouseButton1)) {
-		print("left mouse currently pressed");
-	}
+	/**
+	 * 处理鼠标输入的业务逻辑
+	 * 这是使用者需要关心的核心代码
+	 */
+	public handleMouseInput(): void {
+		const world = this.app.getWorld();
 
-	if (mouseButtonInput.justPressed(Enum.UserInputType.MouseButton1)) {
-		print("left mouse just pressed");
-	}
+		// 获取鼠标按钮输入
+		const mouseInput = getMouseInput(world);
+		// 获取鼠标移动数据
+		const mouseMotion = getMouseMotion(world);
+		// 获取鼠标滚轮数据
+		const mouseWheel = getMouseWheel(world);
 
-	if (mouseButtonInput.justReleased(Enum.UserInputType.MouseButton1)) {
-		print("left mouse just released");
-	}
-}
+		// 业务逻辑：鼠标点击处理
+		if (mouseInput) {
+			if (mouseInput.justPressed(Enum.UserInputType.MouseButton1)) {
+				print("🎯 Left click - Select object!");
+			}
 
-/**
- * 鼠标移动和滚动系统
- * 打印鼠标的移动和滚轮滚动信息
- * @param world - Matter World 实例
- */
-function mouseMoveSystem(world: World): void {
-	const accumulatedMouseMotion = getMouseMotion(world);
-	const accumulatedMouseScroll = getMouseWheel(world);
+			if (mouseInput.justPressed(Enum.UserInputType.MouseButton2)) {
+				print("📋 Right click - Context menu!");
+			}
 
-	// 处理鼠标移动
-	if (accumulatedMouseMotion) {
-		// 先检查是否有数据
-		if (accumulatedMouseMotion.hasData()) {
-			const motionData = accumulatedMouseMotion.consume();
+			if (mouseInput.justPressed(Enum.UserInputType.MouseButton3)) {
+				print("🔍 Middle click - Focus camera!");
+			}
+
+			// 检测拖拽开始
+			if (mouseInput.isPressed(Enum.UserInputType.MouseButton1)) {
+				// 左键按住状态 - 可以实现拖拽逻辑
+			}
+		}
+
+		// 业务逻辑：相机旋转（鼠标移动）
+		if (mouseMotion && mouseMotion.hasData()) {
+			const motionData = mouseMotion.consume();
 			if (motionData) {
 				const [deltaX, deltaY] = motionData;
-				// 打印任何非零移动
 				if (math.abs(deltaX) > 0.01 || math.abs(deltaY) > 0.01) {
-					print(`mouse moved (${string.format("%.2f", deltaX)}, ${string.format("%.2f", deltaY)})`);
+					const rotationX = deltaX * this.sensitivity;
+					const rotationY = deltaY * this.sensitivity;
+					print(`🎥 Camera rotation: X=${string.format("%.1f", rotationX)}, Y=${string.format("%.1f", rotationY)}`);
+				}
+			}
+		}
+
+		// 业务逻辑：相机缩放（鼠标滚轮）
+		if (mouseWheel && mouseWheel.hasData()) {
+			const scrollDelta = mouseWheel.consume();
+			if (scrollDelta !== undefined && math.abs(scrollDelta) > 0.01) {
+				const zoomAmount = scrollDelta * 0.1;
+				if (scrollDelta > 0) {
+					print(`🔍 Zoom in: ${string.format("%.2f", zoomAmount)}`);
+				} else {
+					print(`🔎 Zoom out: ${string.format("%.2f", math.abs(zoomAmount))}`);
 				}
 			}
 		}
 	}
 
-	// 处理鼠标滚轮
-	if (accumulatedMouseScroll) {
-		// 首先检查是否有数据
-		if (accumulatedMouseScroll.hasData()) {
-			const scrollDelta = accumulatedMouseScroll.consume();
-			if (scrollDelta !== undefined && math.abs(scrollDelta) > 0.01) {
-				// 打印滚轮信息
-				print(`mouse scrolled (0, ${string.format("%.2f", scrollDelta)})`);
-			}
-		}
+	/**
+	 * 更新相机控制器
+	 */
+	public update(): void {
+		this.handleMouseInput();
+		// 其他相机逻辑...
 	}
 }
 
 /**
- * 主函数
- * 创建应用并添加鼠标输入系统
+ * UI控制器业务逻辑示例
+ * 演示在UI交互中使用鼠标输入
+ */
+class UIController {
+	private app: App;
+
+	constructor(app: App) {
+		this.app = app;
+	}
+
+	public handleUIInput(): void {
+		const mouseInput = getMouseInput(this.app.getWorld());
+
+		if (!mouseInput) return;
+
+		// 业务逻辑：UI交互
+		if (mouseInput.justPressed(Enum.UserInputType.MouseButton1)) {
+			print("🖱️ UI Click - Button pressed or item selected!");
+		}
+
+		if (mouseInput.justReleased(Enum.UserInputType.MouseButton1)) {
+			print("🖱️ UI Release - Button action triggered!");
+		}
+	}
+
+	public update(): void {
+		this.handleUIInput();
+	}
+}
+
+/**
+ * 主函数 - 使用者的入口点
+ * 只需要添加插件，然后使用业务逻辑类
  */
 export function main(): App {
-	const app = App.create();
+	// 1. 创建应用并添加默认插件（包含输入系统）
+	const app = App.create().addPlugins(DefaultPlugins.create());
 
-	// 添加默认插件组（包含 InputPlugin）
-	app.addPlugins(...DefaultPlugins.create().build().getPlugins());
+	// 2. 创建业务逻辑控制器
+	const cameraController = new CameraController(app);
+	const uiController = new UIController(app);
 
-	// 添加鼠标系统到更新阶段
-	app.addSystems(MainScheduleLabel.UPDATE, mouseClickSystem, mouseMoveSystem);
+	// 3. 启动游戏循环
+	const connection = RunService.Heartbeat.Connect(() => {
+		cameraController.update();
+		uiController.update();
+	});
 
 	// 打印使用说明
 	print("========================================");
 	print("Mouse Input Example - 鼠标输入示例");
 	print("========================================");
-	print("操作说明:");
-	print("  • 左键点击 - 检测按下/释放状态");
-	print("  • 按住右键并移动 - 检测鼠标移动");
-	print("  • 滚动滚轮 - 检测滚轮滚动");
+	print("这是一个面向业务使用者的简单示例");
 	print("----------------------------------------");
-	print("注意: Roblox 中鼠标移动事件仅在按住右键时触发");
+	print("控制说明:");
+	print("  • 左键点击 - 选择对象/UI交互");
+	print("  • 右键点击 - 上下文菜单");
+	print("  • 中键点击 - 聚焦相机");
+	print("  • 鼠标移动 - 相机旋转");
+	print("  • 滚轮 - 相机缩放");
+	print("----------------------------------------");
+	print("注意: Roblox 中鼠标移动需要按住右键");
 	print("========================================");
 
-	// 注意: 在示例中我们返回 app 而不是调用 run()
-	// 这允许测试框架或其他代码控制应用的运行
 	return app;
 }
 
+// 运行示例
 main().run();
