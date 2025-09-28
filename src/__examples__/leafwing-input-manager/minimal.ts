@@ -1,6 +1,7 @@
 /**
  * 最小化的 Leafwing Input Manager 示例
- * 用于调试输入问题
+ * 标准的用户示范，展示如何正确使用 InputMap 和 ActionState
+ * 对应 Rust leafwing-input-manager 的 minimal.rs 示例
  */
 
 import { App } from "../../bevy_app";
@@ -14,7 +15,6 @@ import {
 	KeyCode,
 	MouseButton,
 	InputManagerPlugin,
-	InputManagerPluginResource,
 	InputMapComponent,
 	ActionStateComponent,
 	InputEnabled,
@@ -22,17 +22,20 @@ import {
 	isJustPressed,
 	isJustReleased,
 } from "../../leafwing-input-manager";
+import { getInputInstanceManager } from "../../leafwing-input-manager/plugin/context-helpers";
 import { component, type World } from "@rbxts/matter";
 import { RunService } from "@rbxts/services";
+import { Context } from "../../bevy_ecs";
 
 /**
- * 简单动作枚举
+ * 简单动作枚举 - 对应 Rust 版本的 Action enum
+ * 这是游戏中所有可能动作的列表
  */
-class SimpleAction implements Actionlike {
-	static readonly Test = new SimpleAction("Test", InputControlKind.Button);
+class Action implements Actionlike {
+	static readonly Jump = new Action("Jump", InputControlKind.Button);
 
 	// 添加类名属性供 InputManager 使用
-	static readonly name = "SimpleAction";
+	static readonly name = "Action";
 
 	constructor(
 		private readonly actionName: string,
@@ -44,11 +47,11 @@ class SimpleAction implements Actionlike {
 	}
 
 	hash(): string {
-		return `SimpleAction_${this.actionName}`;
+		return `Action_${this.actionName}`;
 	}
 
 	equals(other: Actionlike): boolean {
-		return other instanceof SimpleAction && other.actionName === this.actionName;
+		return other instanceof Action && other.actionName === this.actionName;
 	}
 
 	toString(): string {
@@ -57,134 +60,108 @@ class SimpleAction implements Actionlike {
 }
 
 /**
- * Player组件
+ * Player组件 - 对应 Rust 版本的 Player struct
  */
-const Player = component<{ name: string }>("Player");
+const Player = component<{}>("Player");
 
 /**
- * 全局 App 实例
+ * 生成玩家实体 - 对应 Rust 版本的 spawn_player 函数
+ * 描述如何将玩家输入转换为游戏动作
  */
-let globalApp: App | undefined;
-
-/**
- * 生成玩家
- */
-function spawnPlayer(world: World): void {
-	const isServer = RunService.IsServer();
-	const isClient = RunService.IsClient();
-	print("========================================");
-	print("Minimal Input Manager Example");
-	print("IsClient:", isClient);
-	print("IsServer:", isServer);
-	print(`Running on: ${isServer ? "SERVER" : "CLIENT"}`);
-	print("========================================");
+function spawnPlayer(world: World, context: Context): void {
+	// 服务端不需要处理本地输入
+	if (RunService.IsServer()) {
+		return;
+	}
 
 	// 检查是否已存在玩家
 	for (const [_entity, _player] of world.query(Player)) {
 		return;
 	}
 
-	// 创建输入映射
-	const inputMap = new InputMap<SimpleAction>();
-	inputMap.insert(SimpleAction.Test, KeyCode.Space);
-	inputMap.insert(SimpleAction.Test, MouseButton.left());
-
-	print("InputMap created with bindings:");
-	print("  Space -> Test");
-	print("  Left Mouse -> Test");
+	// 创建输入映射 - 对应 Rust 版本的 InputMap::new([(Action::Jump, KeyCode::Space)])
+	const inputMap = new InputMap<Action>();
+	inputMap.insert(Action.Jump, KeyCode.Space);
 
 	// 创建动作状态
-	const actionState = new ActionState<SimpleAction>();
-	actionState.registerAction(SimpleAction.Test);
+	const actionState = new ActionState<Action>();
+	actionState.registerAction(Action.Jump);
 
-	// 生成玩家实体
-	const entity = world.spawn(
-		Player({ name: "TestPlayer" }),
-		InputMapComponent({} as unknown as InputMap<SimpleAction>),
-		ActionStateComponent({} as unknown as ActionState<SimpleAction>),
+	// 生成玩家实体 - 使用实际的实例而不是空占位符
+	world.spawn(
+		Player({}),
+		InputMapComponent(inputMap as InputMap<Actionlike>),
+		ActionStateComponent(actionState as ActionState<Actionlike>),
 		InputEnabled({ enabled: true }),
 		LocalPlayer({ playerId: 1 }),
 	);
 
-	// 注册实例到 InstanceManager
-	const resource = getInputManagerResource();
-	if (resource) {
-		const instanceManager = resource.plugin.getInstanceManager();
-		if (instanceManager) {
-			instanceManager.registerInputMap(entity, inputMap);
-			instanceManager.registerActionState(entity, actionState);
-			print("Instances registered successfully");
-		} else {
-			print("ERROR: InstanceManager not found");
-		}
-	} else {
-		print("ERROR: InputManagerResource not found");
-	}
-
+	print("========================================");
+	print("Minimal Input Manager Example");
+	print("Controls:");
+	print("  Space - Jump");
 	print("========================================");
 }
 
 /**
- * 获取资源
+ * 跳跃系统 - 对应 Rust 版本的 jump 函数
+ * 在游戏逻辑系统中查询 ActionState 组件！
  */
-function getInputManagerResource(): InputManagerPluginResource<SimpleAction> | undefined {
-	if (!globalApp) {
-		return undefined;
-	}
-	return globalApp.getResource<InputManagerPluginResource<SimpleAction>>();
-}
-
-/**
- * 处理动作
- */
-function handleActions(world: World): void {
-	const resource = getInputManagerResource();
-	if (!resource) {
+function jump(world: World, context: Context): void {
+	// 服务端不处理本地输入
+	if (RunService.IsServer()) {
 		return;
 	}
 
-	const instanceManager = resource.plugin.getInstanceManager();
+	// 获取实例管理器
+	const instanceManager = getInputInstanceManager(context, Action);
 	if (!instanceManager) {
+		print("[jump] ERROR: Could not get InputInstanceManager");
 		return;
 	}
 
-	for (const [entity, player] of world.query(Player)) {
-		const state = instanceManager.getActionState(entity) as ActionState<SimpleAction> | undefined;
-		if (!state) {
+	// 查询带有 Player 组件的实体
+	let foundEntities = 0;
+	for (const [entity, player] of world.query(Player, InputMapComponent, ActionStateComponent)) {
+		foundEntities++;
+		print(`[jump] Found player entity ${entity}`);
+		
+		// 从实例管理器获取真实的 ActionState 实例
+		const actionState = instanceManager.getActionState(entity);
+		if (!actionState) {
+			print(`[jump] ERROR: No ActionState for entity ${entity}`);
 			continue;
 		}
 
-		// 使用安全包装函数
-		const isServer = RunService.IsServer();
-		if (isJustPressed(state, SimpleAction.Test)) {
-			print(`[SUCCESS ${isServer ? "SERVER" : "CLIENT"}] ${player.name} triggered Test action!`);
+		print(`[jump] Got ActionState for entity ${entity}`);
+
+		// 每个动作都有自己的类似按钮的状态，你可以检查
+		if (isJustPressed(actionState, Action.Jump)) {
+			print("I'm jumping!");
 		}
-		if (isJustReleased(state, SimpleAction.Test)) {
-			print(`[SUCCESS ${isServer ? "SERVER" : "CLIENT"}] ${player.name} released Test action!`);
-		}
+	}
+
+	if (foundEntities === 0) {
+		print("[jump] WARNING: No player entities found");
 	}
 }
 
 /**
- * 主函数
+ * 主函数 - 对应 Rust 版本的 main 函数
  */
 export function main(): App {
-	const app = App.create();
-	globalApp = app;
-
-	// 添加默认插件组（包含 InputPlugin）
-	app.addPlugins(...DefaultPlugins.create().build().getPlugins());
-
-	// 添加 InputManagerPlugin
-	app.addPlugin(
-		new InputManagerPlugin<SimpleAction>({
-			actionType: SimpleAction,
-		}),
-	);
-
-	// 添加系统
-	app.addSystems(MainScheduleLabel.STARTUP, spawnPlayer);
-	app.addSystems(MainScheduleLabel.UPDATE, handleActions);
+	const app = App.create()
+		// 添加默认插件
+		.addPlugins(...DefaultPlugins.create().build().getPlugins())
+		// 这个插件将输入映射到与输入类型无关的动作状态
+		// 我们需要为它提供一个枚举，该枚举存储玩家可能采取的所有可能动作
+		.addPlugin(new InputManagerPlugin<Action>({
+			actionType: Action,
+		}))
+		// InputMap 和 ActionState 组件将被添加到任何具有 Player 组件的实体
+		.addSystems(MainScheduleLabel.STARTUP, spawnPlayer)
+		// 使用查询在你的系统中读取 ActionState！
+		.addSystems(MainScheduleLabel.UPDATE, jump);
 
 	return app;
 }
