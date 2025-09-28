@@ -5,11 +5,15 @@
  * 对应 Rust Bevy 示例: bevy-origin/examples/input/keyboard_input.rs
  */
 
+import { RunService } from "@rbxts/services";
 import { App } from "../../bevy_app";
 import { MainScheduleLabel } from "../../bevy_app";
 import { DefaultPlugins } from "../../bevy_internal";
 import { getKeyboardInput } from "../../bevy_input";
 import type { World } from "@rbxts/matter";
+
+// 添加计数器来减少日志频率
+let frameCount = 0;
 
 /**
  * 键盘输入系统
@@ -17,10 +21,44 @@ import type { World } from "@rbxts/matter";
  * @param world - Matter World 实例
  */
 function keyboardInputSystem(world: World): void {
+	frameCount++;
+
+	// 键盘输入只在客户端处理
+	if (!RunService.IsClient()) {
+		if (frameCount === 1) {
+			print("[keyboardInputSystem] ⚠️ Running on SERVER - keyboard input is CLIENT only!");
+		}
+		return;
+	}
+
+	// 每60帧输出一次调试信息
+	if (frameCount % 60 === 1) {
+		print(`[keyboardInputSystem] 🔍 Frame ${frameCount} - Getting keyboard input from world (CLIENT)...`);
+	}
+
 	const keyboardInput = getKeyboardInput(world);
 
 	if (!keyboardInput) {
+		if (frameCount % 60 === 1) {
+			print("[keyboardInputSystem] ❌ No keyboard input found in world!");
+		}
 		return;
+	}
+
+	if (frameCount % 60 === 1) {
+		print("[keyboardInputSystem] ✅ Keyboard input found, checking for key presses...");
+	}
+
+	// 调试：显示当前按键状态
+	const pressed = keyboardInput.getPressed();
+	const justPressed = keyboardInput.getJustPressed();
+	const justReleased = keyboardInput.getJustReleased();
+
+	if (pressed.size() > 0 || justPressed.size() > 0 || justReleased.size() > 0) {
+		print(`[keyboardInputSystem] 📊 Current state:`);
+		print(`  - Pressed keys: ${pressed.size()}`);
+		print(`  - Just pressed: ${justPressed.size()}`);
+		print(`  - Just released: ${justReleased.size()}`);
 	}
 
 	// KeyCode 用于跨不同键盘布局时的按键位置
@@ -83,13 +121,18 @@ function keyboardInputSystem(world: World): void {
  * 创建应用并添加键盘输入系统
  */
 export function main(): App {
+	print("[main] 🚀 Creating App...");
 	const app = App.create();
 
 	// 添加默认插件组（包含 InputPlugin）
+	print("[main] 📦 Adding DefaultPlugins...");
 	app.addPlugins(...DefaultPlugins.create().build().getPlugins());
+	print("[main] ✅ DefaultPlugins added");
 
 	// 添加键盘系统到更新阶段
+	print("[main] 🎮 Adding keyboard input system to UPDATE schedule...");
 	app.addSystems(MainScheduleLabel.UPDATE, keyboardInputSystem);
+	print("[main] ✅ Keyboard input system added");
 
 	// 打印使用说明
 	print("========================================");
@@ -109,8 +152,18 @@ export function main(): App {
 
 	// 注意: 在示例中我们返回 app 而不是调用 run()
 	// 这允许测试框架或其他代码控制应用的运行
+	print("[main] 💡 Returning app instance...");
 	return app;
 }
 
-// 运行应用
-main().run();
+// 运行应用 - 只在客户端运行键盘输入示例
+if (RunService.IsClient()) {
+	print("\n=== STARTING KEYBOARD INPUT EXAMPLE (CLIENT) ===\n");
+	const app = main();
+	print("[App] 🏃 Starting app.run() on CLIENT...");
+	app.run();
+	print("[App] ⚠️ App.run() has returned (this shouldn't happen in normal operation)");
+} else {
+	print("\n=== KEYBOARD INPUT EXAMPLE - SKIPPED (SERVER) ===");
+	print("Keyboard input example only runs on client side");
+}

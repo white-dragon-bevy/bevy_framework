@@ -15,11 +15,17 @@ export class ButtonInput<T extends defined> {
 	private justPressedSet: Set<T>;
 	/** 本帧刚释放的输入集合 */
 	private justReleasedSet: Set<T>;
+	/** 用于调试的类型名称 */
+	private debugName?: string;
 
-	constructor() {
+	constructor(debugName?: string) {
 		this.pressedSet = new Set();
 		this.justPressedSet = new Set();
 		this.justReleasedSet = new Set();
+		this.debugName = debugName;
+		if (debugName) {
+			print(`[ButtonInput<${debugName}>] 🎯 Instance created`);
+		}
 	}
 
 	/**
@@ -30,6 +36,13 @@ export class ButtonInput<T extends defined> {
 		if (!this.pressedSet.has(input)) {
 			this.pressedSet.add(input);
 			this.justPressedSet.add(input);
+			if (this.debugName) {
+				print(`[ButtonInput<${this.debugName}>] ➕ Pressed: ${tostring(input)}`);
+				print(`  - pressedSet size: ${this.pressedSet.size()}`);
+				print(`  - justPressedSet size: ${this.justPressedSet.size()}`);
+			}
+		} else if (this.debugName) {
+			print(`[ButtonInput<${this.debugName}>] 🔁 Already pressed: ${tostring(input)}`);
 		}
 	}
 
@@ -78,6 +91,13 @@ export class ButtonInput<T extends defined> {
 		if (this.pressedSet.has(input)) {
 			this.pressedSet.delete(input);
 			this.justReleasedSet.add(input);
+			if (this.debugName) {
+				print(`[ButtonInput<${this.debugName}>] ➖ Released: ${tostring(input)}`);
+				print(`  - pressedSet size: ${this.pressedSet.size()}`);
+				print(`  - justReleasedSet size: ${this.justReleasedSet.size()}`);
+			}
+		} else if (this.debugName) {
+			print(`[ButtonInput<${this.debugName}>] ⚠️ Release called on non-pressed: ${tostring(input)}`);
 		}
 	}
 
@@ -207,6 +227,16 @@ export class ButtonInput<T extends defined> {
 	 * 通常在每帧开始时调用
 	 */
 	public clear(): void {
+		const justPressedSize = this.justPressedSet.size();
+		const justReleasedSize = this.justReleasedSet.size();
+
+		if (this.debugName && (justPressedSize > 0 || justReleasedSize > 0)) {
+			print(`[ButtonInput<${this.debugName}>] 🧹 Clearing just_* states:`);
+			print(`  - justPressed cleared: ${justPressedSize} items`);
+			print(`  - justReleased cleared: ${justReleasedSize} items`);
+			print(`  - pressed remains: ${this.pressedSet.size()} items`);
+		}
+
 		this.justPressedSet.clear();
 		this.justReleasedSet.clear();
 	}

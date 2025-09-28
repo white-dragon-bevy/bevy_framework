@@ -1,12 +1,11 @@
 /**
- * InputPlugin - 轻量级输入管理插件
- * 集成 Roblox UserInputService 与 ButtonInput 状态管理
- * 支持事件系统和状态管理
- * 支持事件系统和状态管理
+ * InputPlugin - ECS 输入管理插件
+ * 使用 Matter ECS 的 useEvent hook 处理输入事件
+ * 支持键盘、鼠标、游戏手柄和手势输入
  */
 
 import { UserInputService } from "@rbxts/services";
-import { World } from "@rbxts/matter";
+import { World, useEvent } from "@rbxts/matter";
 import { App } from "../bevy_app/app";
 import { Plugin } from "../bevy_app/plugin";
 import { MainScheduleLabel } from "../bevy_app/main-schedule";
@@ -116,10 +115,9 @@ function isGamepadInput(inputType: Enum.UserInputType): boolean {
 
 /**
  * 输入管理插件
- * 提供键盘、鼠标、游戏手柄输入的状态管理和事件系统
+ * 使用 ECS 系统处理所有输入事件
  */
 export class InputPlugin implements Plugin {
-	private connections: Array<RBXScriptConnection> = [];
 	private gestureManager?: GestureManager;
 
 	robloxContext?: RobloxContext.Client;
@@ -131,22 +129,28 @@ export class InputPlugin implements Plugin {
 	public build(app: App): void {
 		// 只在客户端运行
 		if (RunService.IsServer()) {
+			print("[InputPlugin] ⚠️ Running on SERVER, skipping input setup");
 			return;
 		}
 
+		print("[InputPlugin] ✅ Starting build on CLIENT");
 		const world = app.getWorld();
 
 		// 初始化输入资源
+		print("[InputPlugin] 📦 Creating input resources...");
 		const gamepadManager = new GamepadManager();
 		const gestureManager = new GestureManager();
-		const keyInputValue = new ButtonInput<Key>();
-		const keyboard = new ButtonInput<Enum.KeyCode>();
-		const mouse = new ButtonInput<Enum.UserInputType>();
+		this.gestureManager = gestureManager;
+		const keyInputValue = new ButtonInput<Key>("Key");
+		const keyboard = new ButtonInput<Enum.KeyCode>("KeyCode");
+		const mouse = new ButtonInput<Enum.UserInputType>("Mouse");
 		const mouseMotion = new AccumulatedMouseMotion();
 		const mouseWheel = new AccumulatedMouseWheel();
 		const mousePosition = new MousePosition();
+		print("[InputPlugin] ✅ Input resources created");
 
 		// 存储资源到 World
+		print("[InputPlugin] 💾 Storing resources to World...");
 		ResourceStorage.setGamepadManager(world, gamepadManager);
 		ResourceStorage.setGestureManager(world, gestureManager);
 		ResourceStorage.setKeyInput(world, keyInputValue);
@@ -155,61 +159,25 @@ export class InputPlugin implements Plugin {
 		ResourceStorage.setMouseMotion(world, mouseMotion);
 		ResourceStorage.setMouseWheel(world, mouseWheel);
 		ResourceStorage.setMousePosition(world, mousePosition);
+		print("[InputPlugin] ✅ Resources stored");
 
-		// 获取事件管理器并创建事件写入器
-		const eventManager = app.main().getEventManager();
-		const cursorMovedWriter = eventManager.createWriter<CursorMoved>();
-		const doubleTapWriter = eventManager.createWriter<DoubleTapGesture>();
-		const gamepadAxisChangedWriter = eventManager.createWriter<GamepadAxisChangedEvent>();
-		const gamepadButtonChangedWriter = eventManager.createWriter<GamepadButtonChangedEvent>();
-		const gamepadButtonStateChangedWriter = eventManager.createWriter<GamepadButtonStateChangedEvent>();
-		const gamepadConnectionWriter = eventManager.createWriter<GamepadConnectionEvent>();
-		const keyboardInputWriter = eventManager.createWriter<KeyboardInput>();
-		const keyboardFocusLostWriter = eventManager.createWriter<KeyboardFocusLost>();
-		const longPressWriter = eventManager.createWriter<LongPressGesture>();
-		const mouseButtonWriter = eventManager.createWriter<MouseButtonInput>();
-		const mouseMotionWriter = eventManager.createWriter<MouseMotion>();
-		const mouseWheelWriter = eventManager.createWriter<MouseWheel>();
-		const panWriter = eventManager.createWriter<PanGesture>();
-		const pinchWriter = eventManager.createWriter<PinchGesture>();
-		const rawGamepadAxisChangedWriter = eventManager.createWriter<RawGamepadAxisChangedEvent>();
-		const rawGamepadButtonChangedWriter = eventManager.createWriter<RawGamepadButtonChangedEvent>();
-		const rotationWriter = eventManager.createWriter<RotationGesture>();
+		// 添加输入处理系统
+		print("[InputPlugin] 🎮 Adding input processing systems...");
 
-		// 添加调试日志
-		print("[InputPlugin] Initializing input handlers on", RunService.IsClient() ? "CLIENT" : "SERVER");
+		// 添加主输入处理系统
+		app.addSystems(MainScheduleLabel.PRE_UPDATE, this.createInputProcessingSystem());
 
-		// 设置游戏手柄连接事件
-		this.setupGamepadConnections(gamepadManager, gamepadConnectionWriter);
+		// 添加游戏手柄连接系统
+		app.addSystems(MainScheduleLabel.PRE_UPDATE, this.createGamepadConnectionSystem());
 
-		// 设置手势事件处理器
-		this.gestureManager = gestureManager;
-		gestureManager.setupHandlers(pinchWriter, rotationWriter, doubleTapWriter, panWriter, longPressWriter);
+		// 添加手势处理系统
+		app.addSystems(MainScheduleLabel.PRE_UPDATE, this.createGestureSystem());
 
-		this.setupInputHandlers(
-			gamepadManager,
-			keyInputValue,
-			keyboard,
-			mouse,
-			mouseMotion,
-			mouseWheel,
-			mousePosition,
-			cursorMovedWriter,
-			gamepadAxisChangedWriter,
-			gamepadButtonChangedWriter,
-			gamepadButtonStateChangedWriter,
-			gamepadConnectionWriter,
-			keyboardInputWriter,
-			keyboardFocusLostWriter,
-			mouseButtonWriter,
-			mouseMotionWriter,
-			mouseWheelWriter,
-			rawGamepadAxisChangedWriter,
-			rawGamepadButtonChangedWriter,
-		);
+		print("[InputPlugin] ✅ Input systems added");
 
-		// 添加帧清理系统 - 在 PreUpdate 阶段清理上一帧的状态
-		app.addSystems(MainScheduleLabel.PRE_UPDATE, (worldParam: World) => {
+		// 添加帧清理系统 - 在 PostUpdate 阶段清理当前帧的状态
+		print("[InputPlugin] 🔄 Adding frame cleanup system...");
+		app.addSystems(MainScheduleLabel.POST_UPDATE, (worldParam: World) => {
 			const gamepadResource = ResourceStorage.getGamepadManager(worldParam);
 			const keyInputResource = ResourceStorage.getKeyInput(worldParam);
 			const keyboardResource = ResourceStorage.getKeyboardInput(worldParam);
@@ -232,59 +200,156 @@ export class InputPlugin implements Plugin {
 				mouseResource.clear();
 			}
 		});
+		print("[InputPlugin] ✅ Frame cleanup system added");
+		print("[InputPlugin] 🎉 InputPlugin build complete!");
 	}
 
 	/**
-	 * 设置游戏手柄连接事件
-	 * @param gamepadManager - 游戏手柄管理器
-	 * @param connectionWriter - 连接事件写入器
+	 * 创建游戏手柄连接系统
+	 * @returns 游戏手柄连接处理系统函数
 	 */
-	private setupGamepadConnections(
-		gamepadManager: GamepadManager,
-		connectionWriter: EventWriter<GamepadConnectionEvent>,
-	): void {
-		// 监听游戏手柄连接
-		const gamepadConnected = UserInputService.GamepadConnected.Connect((gamepadId) => {
-			print(`[InputPlugin] Gamepad connected: ${gamepadId.Name}`);
-			gamepadManager.add(gamepadId, gamepadId.Name);
-			connectionWriter.send(new GamepadConnectionEvent(gamepadId, GamepadConnection.Connected));
-		});
+	private createGamepadConnectionSystem(): (world: World) => void {
+		let initialized = false;
 
-		// 监听游戏手柄断开
-		const gamepadDisconnected = UserInputService.GamepadDisconnected.Connect((gamepadId) => {
-			print(`[InputPlugin] Gamepad disconnected: ${gamepadId.Name}`);
-			gamepadManager.remove(gamepadId);
-			connectionWriter.send(new GamepadConnectionEvent(gamepadId, GamepadConnection.Disconnected));
-		});
+		return (world: World) => {
+			const gamepadManager = ResourceStorage.getGamepadManager(world);
+			if (!gamepadManager) return;
 
-		// 检查已连接的游戏手柄
-		const connectedGamepads = UserInputService.GetConnectedGamepads();
+			const context = (world as unknown as { context?: { messages?: unknown } }).context;
+			if (!context?.messages) return;
+			const messageRegistry = context.messages as { createWriter: (type: unknown) => unknown };
 
-		for (const gamepadId of connectedGamepads) {
-			print(`[InputPlugin] Detected connected gamepad: ${gamepadId.Name}`);
-			gamepadManager.add(gamepadId, gamepadId.Name);
-			connectionWriter.send(new GamepadConnectionEvent(gamepadId, GamepadConnection.Connected));
-		}
+			const connectionWriter = messageRegistry.createWriter(GamepadConnectionEvent) as EventWriter<GamepadConnectionEvent>;
 
-		this.connections.push(gamepadConnected, gamepadDisconnected);
+			// 初次运行时检查已连接的游戏手柄
+			if (!initialized) {
+				const connectedGamepads = UserInputService.GetConnectedGamepads();
+				for (const gamepadId of connectedGamepads) {
+					print(`[InputPlugin] Detected connected gamepad: ${gamepadId.Name}`);
+					gamepadManager.add(gamepadId, gamepadId.Name);
+					connectionWriter.send(new GamepadConnectionEvent(gamepadId, GamepadConnection.Connected));
+				}
+				initialized = true;
+			}
+
+			// 使用 useEvent 监听游戏手柄连接事件
+			for (const [_, gamepadId] of useEvent(UserInputService, "GamepadConnected")) {
+				print(`[InputPlugin] Gamepad connected: ${gamepadId.Name}`);
+				gamepadManager.add(gamepadId, gamepadId.Name);
+				connectionWriter.send(new GamepadConnectionEvent(gamepadId, GamepadConnection.Connected));
+			}
+
+			// 使用 useEvent 监听游戏手柄断开事件
+			for (const [_, gamepadId] of useEvent(UserInputService, "GamepadDisconnected")) {
+				print(`[InputPlugin] Gamepad disconnected: ${gamepadId.Name}`);
+				gamepadManager.remove(gamepadId);
+				connectionWriter.send(new GamepadConnectionEvent(gamepadId, GamepadConnection.Disconnected));
+			}
+		};
 	}
 
 	/**
-	 * 设置输入事件处理器
+	 * 创建手势处理系统
+	 * @returns 手势处理系统函数
 	 */
-	private setupInputHandlers(
-		gamepadManager: GamepadManager,
-		keyInputValue: ButtonInput<Key>,
+	private createGestureSystem(): (world: World) => void {
+		return (world: World) => {
+			const gestureManager = ResourceStorage.getGestureManager(world);
+			if (!gestureManager) return;
+
+			const context = (world as unknown as { context?: { messages?: unknown } }).context;
+			if (!context?.messages) return;
+			const messageRegistry = context.messages as { createWriter: (type: unknown) => unknown };
+
+			const pinchWriter = messageRegistry.createWriter(PinchGesture) as EventWriter<PinchGesture>;
+			const rotationWriter = messageRegistry.createWriter(RotationGesture) as EventWriter<RotationGesture>;
+			const doubleTapWriter = messageRegistry.createWriter(DoubleTapGesture) as EventWriter<DoubleTapGesture>;
+			const panWriter = messageRegistry.createWriter(PanGesture) as EventWriter<PanGesture>;
+			const longPressWriter = messageRegistry.createWriter(LongPressGesture) as EventWriter<LongPressGesture>;
+
+			gestureManager.setupHandlers(pinchWriter, rotationWriter, doubleTapWriter, panWriter, longPressWriter);
+		};
+	}
+
+	/**
+	 * 创建主输入处理系统
+	 * @returns 输入处理系统函数
+	 */
+	private createInputProcessingSystem(): (world: World) => void {
+		let callCount = 0;
+		return (world: World) => {
+			callCount++;
+			if (callCount % 60 === 1) { // 每60帧输出一次，避免日志过多
+				print(`[InputPlugin.processInputSystem] 📍 System called (frame ${callCount})`);
+			}
+
+			// 获取资源
+			const gamepadManager = ResourceStorage.getGamepadManager(world);
+			const keyInputValue = ResourceStorage.getKeyInput(world);
+			const keyboard = ResourceStorage.getKeyboardInput(world);
+			const mouse = ResourceStorage.getMouseInput(world);
+			const mouseMotion = ResourceStorage.getMouseMotion(world);
+			const mouseWheel = ResourceStorage.getMouseWheel(world);
+			const mousePosition = ResourceStorage.getMousePosition(world);
+
+			if (!keyboard || !mouse) return;
+
+			// 获取消息注册表
+			const context = (world as unknown as { context?: { messages?: unknown } }).context;
+			if (!context?.messages) return;
+			const messageRegistry = context.messages as { createWriter: (type: unknown) => unknown };
+
+			// 创建事件写入器
+			const cursorMovedWriter = messageRegistry.createWriter(CursorMoved) as EventWriter<CursorMoved>;
+			const gamepadAxisChangedWriter = messageRegistry.createWriter(GamepadAxisChangedEvent) as EventWriter<GamepadAxisChangedEvent>;
+			const gamepadButtonChangedWriter = messageRegistry.createWriter(GamepadButtonChangedEvent) as EventWriter<GamepadButtonChangedEvent>;
+			const gamepadButtonStateChangedWriter = messageRegistry.createWriter(GamepadButtonStateChangedEvent) as EventWriter<GamepadButtonStateChangedEvent>;
+			const keyboardInputWriter = messageRegistry.createWriter(KeyboardInput) as EventWriter<KeyboardInput>;
+			const keyboardFocusLostWriter = messageRegistry.createWriter(KeyboardFocusLost) as EventWriter<KeyboardFocusLost>;
+			const mouseButtonWriter = messageRegistry.createWriter(MouseButtonInput) as EventWriter<MouseButtonInput>;
+			const mouseMotionWriter = messageRegistry.createWriter(MouseMotion) as EventWriter<MouseMotion>;
+			const mouseWheelWriter = messageRegistry.createWriter(MouseWheel) as EventWriter<MouseWheel>;
+			const rawGamepadAxisChangedWriter = messageRegistry.createWriter(RawGamepadAxisChangedEvent) as EventWriter<RawGamepadAxisChangedEvent>;
+			const rawGamepadButtonChangedWriter = messageRegistry.createWriter(RawGamepadButtonChangedEvent) as EventWriter<RawGamepadButtonChangedEvent>;
+
+			this.processInputEvents(
+				gamepadManager,
+				keyInputValue,
+				keyboard,
+				mouse,
+				mouseMotion,
+				mouseWheel,
+				mousePosition,
+				cursorMovedWriter,
+				gamepadAxisChangedWriter,
+				gamepadButtonChangedWriter,
+				gamepadButtonStateChangedWriter,
+				keyboardInputWriter,
+				keyboardFocusLostWriter,
+				mouseButtonWriter,
+				mouseMotionWriter,
+				mouseWheelWriter,
+				rawGamepadAxisChangedWriter,
+				rawGamepadButtonChangedWriter,
+			);
+		};
+	}
+
+	/**
+	 * 处理所有输入事件
+	 */
+	private processInputEvents(
+		gamepadManager: GamepadManager | undefined,
+		keyInputValue: ButtonInput<Key> | undefined,
 		keyboard: ButtonInput<Enum.KeyCode>,
 		mouse: ButtonInput<Enum.UserInputType>,
-		mouseMotion: AccumulatedMouseMotion,
-		mouseWheel: AccumulatedMouseWheel,
-		mousePosition: MousePosition,
+		mouseMotion: AccumulatedMouseMotion | undefined,
+		mouseWheel: AccumulatedMouseWheel | undefined,
+		mousePosition: MousePosition | undefined,
 		cursorMovedWriter: EventWriter<CursorMoved>,
 		gamepadAxisChangedWriter: EventWriter<GamepadAxisChangedEvent>,
 		gamepadButtonChangedWriter: EventWriter<GamepadButtonChangedEvent>,
 		gamepadButtonStateChangedWriter: EventWriter<GamepadButtonStateChangedEvent>,
-		gamepadConnectionWriter: EventWriter<GamepadConnectionEvent>,
 		keyboardInputWriter: EventWriter<KeyboardInput>,
 		keyboardFocusLostWriter: EventWriter<KeyboardFocusLost>,
 		mouseButtonWriter: EventWriter<MouseButtonInput>,
@@ -293,20 +358,23 @@ export class InputPlugin implements Plugin {
 		rawGamepadAxisChangedWriter: EventWriter<RawGamepadAxisChangedEvent>,
 		rawGamepadButtonChangedWriter: EventWriter<RawGamepadButtonChangedEvent>,
 	): void {
-		// 处理输入开始事件
-		const inputBegan = UserInputService.InputBegan.Connect((input, gameProcessed) => {
-			// 忽略被游戏 UI 处理的输入
-			if (gameProcessed) {
-				return;
-			}
+		// 调试: 记录每次函数调用
+		let inputBeganCount = 0;
+		let inputEndedCount = 0;
 
+		// 使用 useEvent 处理输入开始事件
+		for (const [_, input, gameProcessed] of useEvent(UserInputService, "InputBegan")) {
+			inputBeganCount++;
+			print(`[InputPlugin] 🎯 InputBegan event #${inputBeganCount}: Type=${input.UserInputType.Name}, KeyCode=${input.KeyCode.Name}, GameProcessed=${gameProcessed}`);
 			if (input.UserInputType === Enum.UserInputType.Keyboard) {
-				print(`[InputPlugin] Key pressed: ${input.KeyCode}`);
+				// 即使 gameProcessed 为 true，也处理键盘输入（用于调试和测试）
 				keyboard.press(input.KeyCode);
 
 				// 获取逻辑键（字符）- 在 Roblox 中使用 KeyCode 的名称作为逻辑键
 				const logicalKey = input.KeyCode.Name;
-				keyInputValue.press(logicalKey);
+				if (keyInputValue) {
+					keyInputValue.press(logicalKey);
+				}
 
 				// 发送键盘输入事件
 				keyboardInputWriter.send(
@@ -317,11 +385,18 @@ export class InputPlugin implements Plugin {
 				input.UserInputType === Enum.UserInputType.MouseButton2 ||
 				input.UserInputType === Enum.UserInputType.MouseButton3
 			) {
-				print(`[InputPlugin] Mouse button pressed: ${input.UserInputType}`);
+				// 鼠标输入仍然检查 gameProcessed，避免与 UI 冲突
+				if (gameProcessed) {
+					continue;
+				}
 				mouse.press(input.UserInputType);
 				// 发送鼠标按钮按下事件
 				mouseButtonWriter.send(new MouseButtonInput(input.UserInputType, ButtonState.Pressed));
-			} else if (isGamepadInput(input.UserInputType)) {
+			} else if (isGamepadInput(input.UserInputType) && gamepadManager) {
+				// 游戏手柄输入也检查 gameProcessed
+				if (gameProcessed) {
+					continue;
+				}
 				// 处理游戏手柄按钮输入
 				const button = mapKeyCodeToGamepadButton(input.KeyCode);
 
@@ -360,17 +435,21 @@ export class InputPlugin implements Plugin {
 					}
 				}
 			}
-		});
+		}
 
-		// 处理输入结束事件
-		const inputEnded = UserInputService.InputEnded.Connect((input, gameProcessed) => {
+		// 使用 useEvent 处理输入结束事件
+		for (const [_, input, gameProcessed] of useEvent(UserInputService, "InputEnded")) {
+			inputEndedCount++;
+			print(`[InputPlugin] 🎯 InputEnded event #${inputEndedCount}: Type=${input.UserInputType.Name}, KeyCode=${input.KeyCode.Name}, GameProcessed=${gameProcessed}`);
 			// 即使被游戏 UI 处理，也要记录释放事件
 			if (input.UserInputType === Enum.UserInputType.Keyboard) {
 				keyboard.release(input.KeyCode);
 
 				// 释放逻辑键
 				const logicalKey = input.KeyCode.Name;
-				keyInputValue.release(logicalKey);
+				if (keyInputValue) {
+					keyInputValue.release(logicalKey);
+				}
 
 				// 发送键盘输入事件
 				keyboardInputWriter.send(
@@ -384,7 +463,7 @@ export class InputPlugin implements Plugin {
 				mouse.release(input.UserInputType);
 				// 发送鼠标按钮释放事件
 				mouseButtonWriter.send(new MouseButtonInput(input.UserInputType, ButtonState.Released));
-			} else if (isGamepadInput(input.UserInputType)) {
+			} else if (isGamepadInput(input.UserInputType) && gamepadManager) {
 				// 处理游戏手柄按钮释放
 				const button = mapKeyCodeToGamepadButton(input.KeyCode);
 
@@ -423,32 +502,34 @@ export class InputPlugin implements Plugin {
 					}
 				}
 			}
-		});
+		}
 
-		// 处理输入变化事件（鼠标移动、滚轮、游戏手柄轴等）
-		const inputChanged = UserInputService.InputChanged.Connect((input, gameProcessed) => {
+		// 使用 useEvent 处理输入变化事件（鼠标移动、滚轮、游戏手柄轴等）
+		for (const [_, input, gameProcessed] of useEvent(UserInputService, "InputChanged")) {
 			if (gameProcessed) {
-				return;
+				continue;
 			}
 
 			if (input.UserInputType === Enum.UserInputType.MouseMovement) {
 				const delta = input.Delta;
 				// 只有当有实际移动时才累积
-				if (delta.X !== 0 || delta.Y !== 0) {
+				if (mouseMotion && (delta.X !== 0 || delta.Y !== 0)) {
 					mouseMotion.accumulate(delta.X, delta.Y);
 					// 发送鼠标移动事件
 					mouseMotionWriter.send(new MouseMotion(delta.X, delta.Y));
 				}
 
 				// 更新鼠标位置
-				const position = input.Position;
-				const newPos = new Vector2(position.X, position.Y);
-				const oldPos = mousePosition.getPosition();
-				mousePosition.update(newPos);
+				if (mousePosition) {
+					const position = input.Position;
+					const newPos = new Vector2(position.X, position.Y);
+					const oldPos = mousePosition.getPosition();
+					mousePosition.update(newPos);
 
-				// 发送光标移动事件
-				cursorMovedWriter.send(new CursorMoved(newPos, newPos.sub(oldPos)));
-			} else if (input.UserInputType === Enum.UserInputType.MouseWheel) {
+					// 发送光标移动事件
+					cursorMovedWriter.send(new CursorMoved(newPos, newPos.sub(oldPos)));
+				}
+			} else if (input.UserInputType === Enum.UserInputType.MouseWheel && mouseWheel) {
 				// 鼠标滚轮使用 Position.Z 作为滚动增量
 				// 正值表示向前滚动，负值表示向后滚动
 				const scrollDelta = input.Position.Z;
@@ -457,7 +538,7 @@ export class InputPlugin implements Plugin {
 					// 发送鼠标滚轮事件
 					mouseWheelWriter.send(new MouseWheel(0, scrollDelta));
 				}
-			} else if (isGamepadInput(input.UserInputType)) {
+			} else if (isGamepadInput(input.UserInputType) && gamepadManager) {
 				// 处理游戏手柄轴输入
 				const gamepadState = gamepadManager.get(input.UserInputType);
 
@@ -528,24 +609,28 @@ export class InputPlugin implements Plugin {
 							);
 						}
 					}
-					// Roblox 的扳机作为按钮处理，不需要在这里处理轴
+					// Roblox 的扣机作为按钮处理，不需要在这里处理轴
 				}
 			}
-		});
+		}
 
-		// 处理窗口焦点丢失
-		const windowFocusReleased = UserInputService.WindowFocusReleased.Connect(() => {
+		// 使用 useEvent 处理窗口焦点丢失
+		for (const [_] of useEvent(UserInputService, "WindowFocusReleased")) {
 			// 释放所有按键
-			keyInputValue.releaseAll();
+			if (keyInputValue) {
+				keyInputValue.releaseAll();
+			}
 			keyboard.releaseAll();
 			mouse.releaseAll();
 
 			// 发送焦点丢失事件
 			keyboardFocusLostWriter.send(new KeyboardFocusLost());
-		});
+		}
 
-		// 保存连接以便清理
-		this.connections.push(inputBegan, inputEnded, inputChanged, windowFocusReleased);
+		// 调试: 在处理完所有事件后输出总计
+		if (inputBeganCount > 0 || inputEndedCount > 0) {
+			print(`[InputPlugin] 📊 Events processed this frame: InputBegan=${inputBeganCount}, InputEnded=${inputEndedCount}`);
+		}
 	}
 
 	/**
@@ -568,17 +653,12 @@ export class InputPlugin implements Plugin {
 	 * 清理插件资源
 	 */
 	public cleanup(): void {
-		// 断开所有事件连接
-		for (const connection of this.connections) {
-			connection.Disconnect();
-		}
-		this.connections.clear();
-
 		// 清理手势管理器
 		if (this.gestureManager) {
 			this.gestureManager.cleanup();
 			this.gestureManager = undefined;
 		}
+		// 注意：使用 useEvent 后，事件会在系统停止时自动清理
 	}
 }
 

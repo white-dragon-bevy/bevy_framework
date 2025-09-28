@@ -1,8 +1,11 @@
+import { RunService } from "@rbxts/services";
+
 // Choose which example to run
-const exampleFolder: string = "app"; // Change to "state" for the other example
-const exampleName: string = "empty_defaults"; // Change to "computed_states" for the other example
+const exampleFolder: string = "ecs"; // Change to "input" or "state" for other examples
+const exampleName: string = "use-event-example"; // Change to other example names
 
 export function bootstrap() {
+	print(`[Examples] Bootstrap called on ${RunService.IsClient() ? "CLIENT" : "SERVER"}`);
 
 	// 然后运行原有的示例
 	const folder = script.FindFirstChild(exampleFolder);
@@ -10,5 +13,6 @@ export function bootstrap() {
 	const exampleScript = folder.FindFirstChild(exampleName) as ModuleScript;
 	assert(exampleScript, "can't find exampleScript :" + exampleName);
 
+	print(`[Examples] Loading example: ${exampleFolder}/${exampleName}`);
 	require(exampleScript)
 }
