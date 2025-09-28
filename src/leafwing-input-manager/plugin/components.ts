@@ -6,7 +6,7 @@
 import { component } from "@rbxts/matter";
 import { InputMap, InputMapComponent } from "../input-map/input-map";
 import { ActionState, ActionStateComponent } from "../action-state/action-state";
-import { Actionlike } from "../core/actionlike";
+import { Actionlike } from "../actionlike";
 
 // Re-export existing components
 export { InputMapComponent } from "../input-map/input-map";

@@ -1,6 +1,6 @@
 import { UserInputService } from "@rbxts/services";
 import { World } from "@rbxts/matter";
-import { InputControlKind } from "../core/input-control-kind";
+import { InputControlKind } from "../input-control-kind";
 import { UserInput } from "./traits/user-input";
 import { BasicInputs } from "../clashing-inputs/basic-inputs";
 import { Buttonlike, ButtonValue } from "./traits/buttonlike";
@@ -11,7 +11,7 @@ import { CentralInputStore } from "./central-input-store";
 /**
  * A gamepad button that can be pressed
  */
-export class GamepadButton implements Buttonlike {
+export class GamepadButton implements UserInput, Buttonlike {
 	constructor(private readonly button: Enum.KeyCode) {}
 
 	/**
@@ -168,7 +168,7 @@ export class GamepadButton implements Buttonlike {
 /**
  * A gamepad stick (thumbstick) that provides dual-axis input
  */
-export class GamepadStick implements DualAxislike {
+export class GamepadStick implements UserInput, DualAxislike {
 	constructor(private readonly stickType: "Left" | "Right") {}
 
 	/**
@@ -234,7 +234,7 @@ export class GamepadStick implements DualAxislike {
 /**
  * A single axis from a gamepad stick
  */
-export class GamepadControlAxis implements Axislike {
+export class GamepadControlAxis implements UserInput, Axislike {
 	constructor(
 		private readonly stick: GamepadStick,
 		private readonly axis: "X" | "Y",

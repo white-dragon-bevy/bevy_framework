@@ -1,5 +1,5 @@
 import { UserInput } from "./traits/user-input";
-import { InputControlKind } from "../core/input-control-kind";
+import { InputControlKind } from "../input-control-kind";
 import { CentralInputStore } from "./central-input-store";
 import { KeyCode, ModifierKey } from "./keyboard";
 import { MouseButton } from "./mouse";

@@ -9,7 +9,7 @@ import { DefaultPlugins } from "../../bevy_internal";
 import {
 	InputMap,
 	ActionState,
-	ActionlikeEnum,
+	Actionlike,
 	InputControlKind,
 	KeyCode,
 	MouseButton,
@@ -28,14 +28,31 @@ import { RunService } from "@rbxts/services";
 /**
  * 简单动作枚举
  */
-class SimpleAction extends ActionlikeEnum {
-	static readonly Test = new SimpleAction("Test");
+class SimpleAction implements Actionlike {
+	static readonly Test = new SimpleAction("Test", InputControlKind.Button);
 
 	// 添加类名属性供 InputManager 使用
 	static readonly name = "SimpleAction";
 
-	constructor(name: string) {
-		super(name, InputControlKind.Button);
+	constructor(
+		private readonly actionName: string,
+		private readonly controlKind: InputControlKind,
+	) {}
+
+	getInputControlKind(): InputControlKind {
+		return this.controlKind;
+	}
+
+	hash(): string {
+		return `SimpleAction_${this.actionName}`;
+	}
+
+	equals(other: Actionlike): boolean {
+		return other instanceof SimpleAction && other.actionName === this.actionName;
+	}
+
+	toString(): string {
+		return this.actionName;
 	}
 }
 
@@ -83,8 +100,8 @@ function spawnPlayer(world: World): void {
 	// 生成玩家实体
 	const entity = world.spawn(
 		Player({ name: "TestPlayer" }),
-		InputMapComponent({} as unknown as InputMap<ActionlikeEnum>),
-		ActionStateComponent({} as unknown as ActionState<ActionlikeEnum>),
+		InputMapComponent({} as unknown as InputMap<SimpleAction>),
+		ActionStateComponent({} as unknown as ActionState<SimpleAction>),
 		InputEnabled({ enabled: true }),
 		LocalPlayer({ playerId: 1 }),
 	);

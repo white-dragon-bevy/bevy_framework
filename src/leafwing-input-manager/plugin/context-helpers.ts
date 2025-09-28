@@ -8,10 +8,10 @@
 
 import { AppContext } from "../../bevy_app/context";
 import { PluginExtensions } from "../../bevy_app/extensions";
-import { Actionlike } from "../core/actionlike";
+import { Actionlike } from "../actionlike";
 import { InputManagerExtension } from "./extensions";
 import { InputManagerPlugin } from "./input-manager-plugin";
-import { InputInstanceManager } from "./input-instance-manager";
+import { InputInstanceManagerResource } from "./input-instance-manager-resource";
 
 /**
  * 生成 InputManager 扩展的唯一键
@@ -42,33 +42,12 @@ export function getInputManagerExtensionKey<A extends Actionlike>(
  * }
  * ```
  */
-// Debug counter for limiting log output
-let debugHelperCounter = 0;
-
 export function getInputManagerExtension<A extends Actionlike>(
 	context: AppContext,
 	actionType: (new (...args: any[]) => A) & { name: string },
 ): InputManagerExtension<A> | undefined {
-	debugHelperCounter++;
 	const key = getInputManagerExtensionKey(actionType);
-
-	if (debugHelperCounter % 60 === 0) {
-		print(`[getInputManagerExtension] Looking for key: ${key}`);
-		const allExtensions = context.listExtensions();
-		print(`[getInputManagerExtension] Available extensions:`);
-		for (const ext of allExtensions) {
-			if ((ext as string).sub(1, 14) === "input-manager:") {
-				print(`  - ${ext}`);
-			}
-		}
-	}
-
 	const extension = context.tryGet(key as keyof PluginExtensions) as InputManagerExtension<A> | undefined;
-
-	if (debugHelperCounter % 60 === 0) {
-		print(`[getInputManagerExtension] Extension found: ${extension !== undefined}`);
-	}
-
 	return extension;
 }
 
@@ -91,16 +70,10 @@ export function getInputManagerPlugin<A extends Actionlike>(
 ): InputManagerPlugin<A> | undefined {
 	const extension = getInputManagerExtension(context, actionType);
 	if (!extension) {
-		if (debugHelperCounter % 60 === 0) {
-			print(`[getInputManagerPlugin] No extension found for ${actionType.name}`);
-		}
 		return undefined;
 	}
 
 	const plugin = extension.getPlugin() as unknown as InputManagerPlugin<A>;
-	if (debugHelperCounter % 60 === 0) {
-		print(`[getInputManagerPlugin] Plugin found: ${plugin !== undefined}`);
-	}
 
 	// 需要类型断言，因为扩展接口返回的是基础类型
 	return plugin;
@@ -110,7 +83,7 @@ export function getInputManagerPlugin<A extends Actionlike>(
  * 获取特定 Action 类型的实例管理器
  * @param context - App 上下文
  * @param actionType - Action 类型构造函数
- * @returns InputInstanceManager 实例，如果不存在则返回 undefined
+ * @returns InputInstanceManagerResource 实例，如果不存在则返回 undefined
  * @example
  * ```typescript
  * const instanceManager = getInputInstanceManager(context, PlayerAction);
@@ -122,21 +95,15 @@ export function getInputManagerPlugin<A extends Actionlike>(
 export function getInputInstanceManager<A extends Actionlike>(
 	context: AppContext,
 	actionType: (new (...args: any[]) => A) & { name: string },
-): InputInstanceManager<A> | undefined {
-	const plugin = getInputManagerPlugin(context, actionType);
-	if (!plugin) {
-		if (debugHelperCounter % 60 === 0) {
-			print(`[getInputInstanceManager] No plugin found for ${actionType.name}`);
-		}
+): InputInstanceManagerResource<A> | undefined {
+	// 从扩展系统获取
+	const extension = getInputManagerExtension(context, actionType);
+	if (!extension) {
 		return undefined;
 	}
 
-	const instanceManager = plugin.getInstanceManager();
-	if (debugHelperCounter % 60 === 0) {
-		print(`[getInputInstanceManager] InstanceManager found: ${instanceManager !== undefined}`);
-	}
-
-	return instanceManager;
+	const manager = extension.getInstanceManager();
+	return manager;
 }
 
 /**
@@ -151,23 +118,26 @@ export function registerInputManagerExtension<A extends Actionlike>(
 	context: AppContext,
 	actionType: (new (...args: any[]) => A) & { name: string },
 	plugin: InputManagerPlugin<A>,
+	instanceManager: InputInstanceManagerResource<A>,
 ): void {
 	const key = getInputManagerExtensionKey(actionType);
-	print(`[registerInputManagerExtension] Registering with key: ${key}`);
 
-	// Store plugin reference to ensure it's not lost
+	// Check if extension already exists
+	if (context.has(key as keyof PluginExtensions)) {
+		// Extension already registered, skip to avoid warning
+		return;
+	}
+
+	// Store references to ensure they're not lost
 	const pluginRef = plugin;
-	print(`[registerInputManagerExtension] Plugin ref captured: ${pluginRef !== undefined}`);
+	const managerRef = instanceManager;
 
 	const extension: InputManagerExtension<A> = {
 		getPlugin(): InputManagerPlugin<A> {
-			print(`[InputManagerExtension.getPlugin] Called for ${actionType.name}`);
-			print(`  - pluginRef is: ${pluginRef !== undefined}`);
-			if (pluginRef) {
-				const instanceMgr = pluginRef.getInstanceManager();
-				print(`  - Plugin's instanceManager check: ${instanceMgr !== undefined}`);
-			}
 			return pluginRef;
+		},
+		getInstanceManager(): InputInstanceManagerResource<A> {
+			return managerRef;
 		},
 	};
 
@@ -175,24 +145,6 @@ export function registerInputManagerExtension<A extends Actionlike>(
 		description: `InputManager for ${actionType.name} actions`,
 		version: "0.1.0",
 	});
-
-	print(`[registerInputManagerExtension] Registration complete`);
-
-	// Verify registration
-	const verifyKey = key as keyof PluginExtensions;
-	const verified = context.tryGet(verifyKey);
-	print(`[registerInputManagerExtension] Verification: extension exists = ${verified !== undefined}`);
-
-	// Test the extension immediately
-	if (verified) {
-		const testExtension = verified as unknown as InputManagerExtension<A>;
-		const testPlugin = testExtension.getPlugin();
-		print(`[registerInputManagerExtension] Test getPlugin: ${testPlugin !== undefined}`);
-		if (testPlugin) {
-			const testInstanceMgr = testPlugin.getInstanceManager();
-			print(`[registerInputManagerExtension] Test instanceManager: ${testInstanceMgr !== undefined}`);
-		}
-	}
 }
 
 /**
@@ -242,19 +194,15 @@ export function listInputManagers(context: AppContext): string[] {
  */
 export function debugInputManagers(context: AppContext): void {
 	const managers = listInputManagers(context);
-	print("=== Registered InputManagers ===");
+
 	if (managers.size() === 0) {
-		print("  No InputManagers registered");
+		// No InputManagers registered
 	} else {
 		for (const manager of managers) {
 			const key = `input-manager:${manager}`;
 			const metadata = context.getMetadata(key as keyof PluginExtensions);
-			print(`  ${manager}:`);
-			if (metadata) {
-				if (metadata.description) print(`    Description: ${metadata.description}`);
-				if (metadata.version) print(`    Version: ${metadata.version}`);
-			}
+
+			// Metadata available but no debug output needed
 		}
 	}
-	print("================================");
 }

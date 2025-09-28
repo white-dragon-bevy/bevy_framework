@@ -4,7 +4,7 @@
  */
 
 import { ActionState } from "./action-state";
-import { Actionlike } from "../core/actionlike";
+import { Actionlike } from "../actionlike";
 
 interface StateWithMethods<A extends Actionlike> {
 	justPressed?: (action: A) => boolean;

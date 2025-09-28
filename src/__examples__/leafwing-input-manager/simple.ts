@@ -13,7 +13,7 @@ import { RunService } from "@rbxts/services";
 import {
 	InputMap,
 	ActionState,
-	ActionlikeEnum,
+	Actionlike,
 	InputControlKind,
 	KeyCode,
 	MouseButton,
@@ -34,15 +34,32 @@ import { Context } from "../../bevy_ecs";
  * 玩家动作枚举
  * 定义游戏中的所有可能动作
  */
-class PlayerAction extends ActionlikeEnum {
-	static readonly Jump = new PlayerAction("Jump");
-	static readonly Shoot = new PlayerAction("Shoot");
+class PlayerAction implements Actionlike {
+	static readonly Jump = new PlayerAction("Jump", InputControlKind.Button);
+	static readonly Shoot = new PlayerAction("Shoot", InputControlKind.Button);
 
 	// 添加类名属性供 InputManager 使用
 	static readonly name = "PlayerAction";
 
-	constructor(name: string) {
-		super(name, InputControlKind.Button);
+	constructor(
+		private readonly actionName: string,
+		private readonly controlKind: InputControlKind,
+	) {}
+
+	getInputControlKind(): InputControlKind {
+		return this.controlKind;
+	}
+
+	hash(): string {
+		return `PlayerAction_${this.actionName}`;
+	}
+
+	equals(other: Actionlike): boolean {
+		return other instanceof PlayerAction && other.actionName === this.actionName;
+	}
+
+	toString(): string {
+		return this.actionName;
 	}
 }
 
@@ -85,8 +102,8 @@ function spawnPlayer(world: World, context:Context): void {
 	// 生成玩家实体 - 仅使用组件作为标记，实际实例存储在 InstanceManager
 	const entity = world.spawn(
 		Player({ name: "Player1" }),
-		InputMapComponent({} as unknown as InputMap<ActionlikeEnum>), // 空占位符
-		ActionStateComponent({} as unknown as ActionState<ActionlikeEnum>), // 空占位符
+		InputMapComponent({} as unknown as InputMap<PlayerAction>), // 空占位符
+		ActionStateComponent({} as unknown as ActionState<PlayerAction>), // 空占位符
 		InputEnabled({ enabled: true }),
 		LocalPlayer({ playerId: 1 }),
 	);

@@ -1,8 +1,8 @@
 import { ActionState } from "../action-state/action-state";
 import { ActionData } from "../action-state/action-data";
 import { ButtonData } from "../action-state/button-data";
-import { Actionlike } from "../core/actionlike";
-import { InputControlKind } from "../core/input-control-kind";
+import { Actionlike } from "../actionlike";
+import { InputControlKind } from "../input-control-kind";
 
 class TestAction implements Actionlike {
 	static readonly Jump = new TestAction("Jump");

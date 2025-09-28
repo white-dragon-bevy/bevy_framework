@@ -6,18 +6,24 @@
  * 每个插件使用动态键: "input-manager:ActionTypeName"
  */
 
-import { Actionlike } from "../core/actionlike";
+import { Actionlike } from "../actionlike";
 import { InputManagerPlugin } from "./input-manager-plugin";
+import { InputInstanceManagerResource } from "./input-instance-manager-resource";
 
 /**
  * InputManager 扩展接口
- * 提供对 InputManagerPlugin 实例的访问
+ * 提供对 InputManagerPlugin 实例和 InputInstanceManager 的访问
  */
 export interface InputManagerExtension<A extends Actionlike = Actionlike> {
 	/**
 	 * 获取 InputManagerPlugin 实例
 	 */
 	getPlugin(): InputManagerPlugin<A>;
+
+	/**
+	 * 获取 InputInstanceManagerResource 实例
+	 */
+	getInstanceManager(): InputInstanceManagerResource<A>;
 }
 
 /**

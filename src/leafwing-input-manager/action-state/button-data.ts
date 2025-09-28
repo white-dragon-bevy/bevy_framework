@@ -75,7 +75,7 @@ export class ButtonData {
 	 * This is used when transitioning from Update to FixedUpdate schedules
 	 */
 	public swapToFixedUpdateState(): void {
-		// Save current state as updateState if not already saved
+		// Save current state as updateState
 		if (!this.updateState) {
 			this.updateState = this.clone();
 		} else {
@@ -83,13 +83,16 @@ export class ButtonData {
 			this.updateState.copyFrom(this);
 		}
 
-		// Initialize fixedUpdateState if it doesn't exist
+		// Initialize fixedUpdateState if it doesn't exist, or copy from it if it exists
 		if (!this.fixedUpdateState) {
 			this.fixedUpdateState = new ButtonData();
+			// Reset current state to default for fixed update
+			this.justPressed = false;
+			this.justReleased = false;
+		} else {
+			// Swap to existing fixed update state
+			this.copyFrom(this.fixedUpdateState);
 		}
-
-		// Swap to fixed update state
-		this.copyFrom(this.fixedUpdateState);
 	}
 
 	/**
@@ -106,9 +109,10 @@ export class ButtonData {
 	 */
 	public swapToUpdateState(): void {
 		// Save current (fixed update) state
-		if (this.fixedUpdateState) {
-			this.fixedUpdateState.copyFrom(this);
+		if (!this.fixedUpdateState) {
+			this.fixedUpdateState = new ButtonData();
 		}
+		this.fixedUpdateState.copyFrom(this);
 
 		// Restore update state
 		if (this.updateState) {

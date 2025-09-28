@@ -1,6 +1,6 @@
 import { UserInputService } from "@rbxts/services";
 import { World } from "@rbxts/matter";
-import { InputControlKind } from "../core/input-control-kind";
+import { InputControlKind } from "../input-control-kind";
 import { UserInput } from "./traits/user-input";
 import { BasicInputs } from "../clashing-inputs/basic-inputs";
 import { Buttonlike, ButtonValue } from "./traits/buttonlike";
@@ -11,7 +11,7 @@ import { CentralInputStore } from "./central-input-store";
 /**
  * A mouse button that can be clicked
  */
-export class MouseButton implements Buttonlike {
+export class MouseButton implements UserInput, Buttonlike {
 	constructor(private readonly button: Enum.UserInputType) {}
 
 	/**
@@ -100,7 +100,7 @@ export class MouseButton implements Buttonlike {
 /**
  * Mouse movement as a dual-axis input
  */
-export class MouseMove implements DualAxislike {
+export class MouseMove implements UserInput, DualAxislike {
 	private static instance?: MouseMove;
 
 	private constructor() {}
@@ -162,7 +162,7 @@ export class MouseMove implements DualAxislike {
 /**
  * Mouse scroll wheel as a single-axis input
  */
-export class MouseScroll implements Axislike {
+export class MouseScroll implements UserInput, Axislike {
 	private static instance?: MouseScroll;
 
 	private constructor() {}
@@ -214,7 +214,7 @@ export class MouseScroll implements Axislike {
 /**
  * Mouse movement along a specific axis
  */
-export class MouseMoveAxis implements Axislike {
+export class MouseMoveAxis implements UserInput, Axislike {
 	constructor(private readonly axis: "X" | "Y") {}
 
 	/**

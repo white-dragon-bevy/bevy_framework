@@ -3,7 +3,7 @@
  */
 
 import {
-	ActionlikeEnum,
+	Actionlike,
 	InputControlKind,
 	InputMap,
 	ActionState,
@@ -20,14 +20,35 @@ import {
 
 export = () => {
 	// Test action definitions
-	class TestAction extends ActionlikeEnum {
+	class TestAction implements Actionlike {
 		static readonly Jump = new TestAction("Jump", InputControlKind.Button);
 		static readonly Move = new TestAction("Move", InputControlKind.DualAxis);
 		static readonly Attack = new TestAction("Attack", InputControlKind.Button);
 		static readonly Block = new TestAction("Block", InputControlKind.Button);
+
+		constructor(
+			private readonly name: string,
+			private readonly controlKind: InputControlKind,
+		) {}
+
+		getInputControlKind(): InputControlKind {
+			return this.controlKind;
+		}
+
+		hash(): string {
+			return `TestAction_${this.name}`;
+		}
+
+		equals(other: Actionlike): boolean {
+			return other instanceof TestAction && other.name === this.name;
+		}
+
+		toString(): string {
+			return this.name;
+		}
 	}
 
-	describe("ActionlikeEnum", () => {
+	describe("Actionlike", () => {
 		it("should create actions with correct properties", () => {
 			expect(TestAction.Jump.toString()).to.equal("Jump");
 			expect(TestAction.Jump.getInputControlKind()).to.equal(InputControlKind.Button);

@@ -1,4 +1,4 @@
-import { Actionlike } from "../core/actionlike";
+import { Actionlike } from "./actionlike";
 
 /**
  * Represents a change in action state for network synchronization

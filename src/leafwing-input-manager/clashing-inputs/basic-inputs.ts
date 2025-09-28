@@ -247,6 +247,32 @@ export class BasicInputs {
 	}
 
 	/**
+	 * Finds the position of a character in a string
+	 * @param text - The string to search in
+	 * @param char - The character to find
+	 * @returns The position (1-indexed) or undefined if not found
+	 */
+	private findCharPosition(text: string, char: string): number | undefined {
+		for (let index = 1; index <= text.size(); index++) {
+			if (text.sub(index, index) === char) {
+				return index;
+			}
+		}
+		return undefined;
+	}
+
+	/**
+	 * Checks if a string contains a substring
+	 * @param text - The string to search in
+	 * @param substring - The substring to find
+	 * @returns True if substring is found
+	 */
+	private containsSubstring(text: string, substring: string): boolean {
+		const replaced = text.gsub(substring, "")[0];
+		return replaced.size() !== text.size();
+	}
+
+	/**
 	 * Determines the type of a UserInput for clash detection
 	 * @param input - The input to analyze
 	 * @returns The InputType classification
@@ -283,8 +309,9 @@ export class BasicInputs {
 		if (hash.sub(1, 6) === "Chord:") {
 			// Parse the chord hash to count components
 			// Format: Chord:[hash1,hash2,...]:requireAllModifiers
-			const startPos = hash.find("[", 1)[0];
-			const endPos = hash.find("]", 1)[0];
+			const startPos = this.findCharPosition(hash, "[");
+			const endPos = this.findCharPosition(hash, "]");
+
 			if (startPos && endPos && startPos < endPos) {
 				const componentsPart = hash.sub(startPos + 1, endPos - 1);
 				// Count commas to determine number of components
@@ -326,10 +353,11 @@ export class BasicInputs {
 
 		if (firstHash) {
 			const metadata = this.metadata.get(firstHash);
-			return metadata?.typeValue ?? InputType.Simple;
+			// If no metadata available, treat as Composite for safety
+			return metadata?.typeValue ?? InputType.Composite;
 		}
 
-		return InputType.Simple;
+		return InputType.Composite;
 	}
 
 	/**
@@ -476,13 +504,12 @@ export class BasicInputs {
 
 		// Check if the chord contains the simple input by examining the chord hash
 		// The chord hash format is: Chord:[hash1,hash2,...]:requireAllModifiers
-		const startPos = chordHash.find("[", 1)[0];
-		const endPos = chordHash.find("]", 1)[0];
+		const startPos = this.findCharPosition(chordHash, "[");
+		const endPos = this.findCharPosition(chordHash, "]");
 		if (startPos && endPos && startPos < endPos) {
 			const componentsPart = chordHash.sub(startPos + 1, endPos - 1);
 			// Check if the simple input hash is in the components
-			const searchPattern = simpleInputHash;
-			return componentsPart.find(searchPattern, 1)[0] !== undefined;
+			return this.containsSubstring(componentsPart, simpleInputHash);
 		}
 
 		return false;
@@ -552,8 +579,8 @@ export class BasicInputs {
 
 		// Parse the chord hash to get component hashes
 		// The chord hash format is: Chord:[hash1,hash2,...]:requireAllModifiers
-		const startPos = chordHash.find("[", 1)[0];
-		const endPos = chordHash.find("]", 1)[0];
+		const startPos = this.findCharPosition(chordHash, "[");
+		const endPos = this.findCharPosition(chordHash, "]");
 		if (startPos && endPos && startPos < endPos) {
 			const componentsPart = chordHash.sub(startPos + 1, endPos - 1);
 			const componentSet = new Set<string>();

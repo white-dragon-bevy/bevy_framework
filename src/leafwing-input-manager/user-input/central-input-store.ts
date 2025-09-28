@@ -1,5 +1,5 @@
 import { ButtonValue } from "./traits/buttonlike";
-import { HashMap } from "../core";
+
 import { ButtonInput } from "../../bevy_input/button-input";
 import { AccumulatedMouseMotion, AccumulatedMouseWheel, MouseButton } from "../../bevy_input/mouse";
 import { UserInputService } from "@rbxts/services";
@@ -27,10 +27,10 @@ const DEFAULT_GAMEPAD_CONFIG: GamepadConfig = {
 };
 
 export class CentralInputStore {
-	private buttonStates: HashMap<string, ButtonValue> = new Map();
-	private axisValues: HashMap<string, number> = new Map();
-	private dualAxisValues: HashMap<string, Vector2> = new Map();
-	private tripleAxisValues: HashMap<string, Vector3> = new Map();
+	private buttonStates: Map<string, ButtonValue> = new Map();
+	private axisValues: Map<string, number> = new Map();
+	private dualAxisValues: Map<string, Vector2> = new Map();
+	private tripleAxisValues: Map<string, Vector3> = new Map();
 	private gamepadConfig: GamepadConfig = DEFAULT_GAMEPAD_CONFIG;
 	private gamepadConnections: Array<RBXScriptConnection> = [];
 	private isGamepadListenerActive = false;
@@ -258,7 +258,6 @@ export class CentralInputStore {
 			return; // Already initialized
 		}
 
-		print("[CentralInputStore] Initializing gamepad listeners");
 
 		// Listen for gamepad input changes
 		const inputChangedConnection = UserInputService.InputChanged.Connect((input: InputObject) => {
@@ -317,7 +316,6 @@ export class CentralInputStore {
 			...this.gamepadConfig,
 			...config,
 		};
-		print(`[CentralInputStore] Updated gamepad config: deadZone=${this.gamepadConfig.deadZone}, sensitivity=${this.gamepadConfig.sensitivity}`);
 	}
 
 	/**
@@ -336,7 +334,6 @@ export class CentralInputStore {
 			return;
 		}
 
-		print("[CentralInputStore] Cleaning up gamepad listeners");
 
 		for (const connection of this.gamepadConnections) {
 			connection.Disconnect();
@@ -402,11 +399,6 @@ export class CentralInputStore {
 			for (const keyCode of commonKeys) {
 				const key = `keyboard_${keyCode.Name}`;
 				const pressed = keyboardInput.isPressed(keyCode);
-
-				// Debug space key
-				if (keyCode === Enum.KeyCode.Space && pressed) {
-					print(`[CentralInputStore] Space key is pressed! key=${key}`);
-				}
 
 				// Always update the state, whether pressed or not
 				this.updateButtonlike(key, {

@@ -1,6 +1,6 @@
 import { UserInputService } from "@rbxts/services";
 import { World } from "@rbxts/matter";
-import { InputControlKind } from "../core/input-control-kind";
+import { InputControlKind } from "../input-control-kind";
 import { UserInput } from "./traits/user-input";
 import { BasicInputs } from "../clashing-inputs/basic-inputs";
 import { Buttonlike, ButtonValue } from "./traits/buttonlike";
@@ -9,7 +9,9 @@ import { CentralInputStore } from "./central-input-store";
 /**
  * A keyboard key that can be pressed
  */
-export class KeyCode implements Buttonlike {
+export class KeyCode implements UserInput, Buttonlike {
+	private cachedHash?: string;
+
 	constructor(private readonly keyCode: Enum.KeyCode) {}
 
 	// Static key constants for common keys
@@ -93,7 +95,10 @@ export class KeyCode implements Buttonlike {
 	}
 
 	hash(): string {
-		return `keyboard_${this.keyCode.Name}`;
+		if (!this.cachedHash) {
+			this.cachedHash = `keyboard_${this.keyCode.Name}`;
+		}
+		return this.cachedHash;
 	}
 
 	equals(other: UserInput): boolean {
@@ -234,7 +239,7 @@ export function updateKeyboardInput(inputStore: CentralInputStore): void {
 /**
  * Helper class for modifier keys that can be either left or right
  */
-export class ModifierKey implements Buttonlike {
+export class ModifierKey implements UserInput, Buttonlike {
 	private readonly leftKey: KeyCode;
 	private readonly rightKey: KeyCode;
 

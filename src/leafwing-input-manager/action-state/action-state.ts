@@ -1,5 +1,5 @@
-import { Actionlike } from "../core/actionlike";
-import { HashMap, Instant } from "../core";
+import { Actionlike } from "../actionlike";
+import { Instant } from "../instant";
 import { ActionData } from "./action-data";
 import { ButtonData } from "./button-data";
 import { component } from "@rbxts/matter";
@@ -8,7 +8,7 @@ import { component } from "@rbxts/matter";
  * Represents the updated state of all actions after processing from InputMap
  */
 export interface UpdatedActions<Action extends Actionlike> {
-	readonly actionData: HashMap<string, ActionData>;
+	readonly actionData: Map<string, ActionData>;
 	readonly consumedInputs: Set<string>;
 }
 
@@ -23,12 +23,12 @@ export class ActionState<Action extends Actionlike> {
 	/**
 	 * The current state of each action
 	 */
-	private readonly actionData: HashMap<string, ActionData>;
+	private readonly actionData: Map<string, ActionData>;
 
 	/**
 	 * The button-specific state data
 	 */
-	private readonly buttonData: HashMap<string, ButtonData>;
+	private readonly buttonData: Map<string, ButtonData>;
 
 	/**
 	 * Actions that should not be updated from input
@@ -43,7 +43,7 @@ export class ActionState<Action extends Actionlike> {
 	/**
 	 * Map from action hash to action instance for reverse lookup
 	 */
-	private readonly hashToAction: HashMap<string, Action>;
+	private readonly hashToAction: Map<string, Action>;
 
 	/**
 	 * Creates a new ActionState
@@ -199,9 +199,9 @@ export class ActionState<Action extends Actionlike> {
 			return;
 		}
 
-		for (const [actionHash, newActionData] of updatedActions.actionData) {
+		updatedActions.actionData.forEach((newActionData, actionHash) => {
 			if (this.disabledActions.has(actionHash)) {
-				continue;
+				return;
 			}
 
 			const currentActionData = this.actionData.get(actionHash) || ActionData.default();
@@ -221,7 +221,7 @@ export class ActionState<Action extends Actionlike> {
 
 			this.actionData.set(actionHash, currentActionData);
 			this.buttonData.set(actionHash, currentButtonData);
-		}
+		});
 	}
 
 	/**
@@ -231,15 +231,15 @@ export class ActionState<Action extends Actionlike> {
 	 */
 	public tick(deltaTime?: number): void {
 		// Always tick button data
-		for (const [, buttonData] of this.buttonData) {
+		this.buttonData.forEach((buttonData) => {
 			buttonData.tick();
-		}
+		});
 
 		// Handle timing updates for action data
 		if (deltaTime !== undefined) {
-			for (const [, actionData] of this.actionData) {
+			this.actionData.forEach((actionData) => {
 				actionData.tickDelta(deltaTime);
-			}
+			});
 		}
 	}
 
@@ -250,14 +250,14 @@ export class ActionState<Action extends Actionlike> {
 	 */
 	public tickWithInstants(currentInstant: Instant, previousInstant: Instant): void {
 		// Always tick button data
-		for (const [, buttonData] of this.buttonData) {
+		this.buttonData.forEach((buttonData) => {
 			buttonData.tick();
-		}
+		});
 
 		// Use precise instant-based timing
-		for (const [, actionData] of this.actionData) {
+		this.actionData.forEach((actionData) => {
 			actionData.tick(currentInstant, previousInstant);
-		}
+		});
 	}
 
 	/**
@@ -267,24 +267,31 @@ export class ActionState<Action extends Actionlike> {
 	 */
 	public tickFixed(fixedDeltaTime: number): void {
 		// Always tick button data for fixed updates
-		for (const [, buttonData] of this.buttonData) {
+		this.buttonData.forEach((buttonData) => {
 			buttonData.tick();
-		}
+		});
 
 		// Handle timing updates with fixed delta time
-		for (const [, actionData] of this.actionData) {
+		this.actionData.forEach((actionData) => {
 			if (actionData.pressed) {
 				// Update duration with fixed delta time for consistent physics
 				actionData.duration += fixedDeltaTime;
 
-				// Also update timing system if available
+				// Update timing system with fixed delta time
 				if (actionData.timing.isActive()) {
 					const currentInstant = Instant.now();
-					const previousInstant = Instant.fromSeconds(currentInstant.elapsedSeconds() - fixedDeltaTime);
+					const previousInstant = Instant.fromTimestamp(currentInstant.getTimestamp() - fixedDeltaTime);
 					actionData.timing.tick(currentInstant, previousInstant);
+				} else {
+					// If timing is not active, start it now
+					const currentInstant = Instant.now();
+					actionData.timing.start(currentInstant);
 				}
+
+				// Sync timing.currentDuration with actionData.duration for consistency
+				actionData.timing.currentDuration = actionData.duration;
 			}
-		}
+		});
 	}
 
 	/**
@@ -313,13 +320,13 @@ export class ActionState<Action extends Actionlike> {
 	 * Resets the state of all actions
 	 */
 	public resetAll(): void {
-		for (const [, actionData] of this.actionData) {
+		this.actionData.forEach((actionData) => {
 			actionData.reset();
-		}
+		});
 
-		for (const [, buttonData] of this.buttonData) {
+		this.buttonData.forEach((buttonData) => {
 			buttonData.reset();
-		}
+		});
 	}
 
 	/**
@@ -389,11 +396,11 @@ export class ActionState<Action extends Actionlike> {
 	public getActiveActionCount(): number {
 		let count = 0;
 
-		for (const [, actionData] of this.actionData) {
+		this.actionData.forEach((actionData) => {
 			if (actionData.pressed) {
 				count++;
 			}
-		}
+		});
 
 		return count;
 	}
@@ -405,11 +412,11 @@ export class ActionState<Action extends Actionlike> {
 	public getActiveActions(): Array<string> {
 		const activeActions: Array<string> = [];
 
-		for (const [actionHash, actionData] of this.actionData) {
+		this.actionData.forEach((actionData, actionHash) => {
 			if (actionData.pressed) {
 				activeActions.push(actionHash);
 			}
-		}
+		});
 
 		return activeActions;
 	}
@@ -508,14 +515,14 @@ export class ActionState<Action extends Actionlike> {
 		}
 
 		// Swap all action data
-		for (const [, actionData] of this.actionData) {
+		this.actionData.forEach((actionData) => {
 			actionData.swapToFixedUpdateState();
-		}
+		});
 
 		// Swap all button data
-		for (const [, buttonData] of this.buttonData) {
+		this.buttonData.forEach((buttonData) => {
 			buttonData.swapToFixedUpdateState();
-		}
+		});
 	}
 
 	/**
@@ -528,14 +535,14 @@ export class ActionState<Action extends Actionlike> {
 		}
 
 		// Swap all action data back
-		for (const [, actionData] of this.actionData) {
+		this.actionData.forEach((actionData) => {
 			actionData.swapToUpdateState();
-		}
+		});
 
 		// Swap all button data back
-		for (const [, buttonData] of this.buttonData) {
+		this.buttonData.forEach((buttonData) => {
 			buttonData.swapToUpdateState();
-		}
+		});
 	}
 
 	/**

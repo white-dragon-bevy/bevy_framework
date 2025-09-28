@@ -4,8 +4,8 @@ import { ClashStrategy } from "../clash-strategy";
 import { KeyCode } from "../../user-input/keyboard";
 import { InputChord } from "../../user-input/chord";
 import { MouseButton } from "../../user-input/mouse";
-import { Actionlike } from "../../core/actionlike";
-import { InputControlKind } from "../../core/input-control-kind";
+import { Actionlike } from "../../actionlike";
+import { InputControlKind } from "../../input-control-kind";
 
 /**
  * Mock action class for testing

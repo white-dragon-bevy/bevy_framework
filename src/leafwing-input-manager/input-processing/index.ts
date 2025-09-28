@@ -35,3 +35,19 @@ export {
 	crossDeadzone,
 	ellipseDeadzone,
 } from "./deadzone";
+
+// Custom processors
+export {
+	CustomSingleAxisProcessor,
+	CustomDualAxisProcessor,
+	CustomSingleAxisProcessorBase,
+	CustomDualAxisProcessorBase,
+	ExponentialCurveProcessor,
+	SmoothingProcessor,
+	AccelerationProcessor,
+	RadialDeadzoneProcessor,
+	SquareMappingProcessor,
+	RotationProcessor,
+	ProcessorFactory,
+	ProcessorRegistry,
+} from "./custom-processor";

@@ -1,4 +1,5 @@
-import { Instant, Timing } from "../core";
+import { Instant } from "../instant";
+import { Timing } from "../timing";
 
 /**
  * The raw data of an action
@@ -125,6 +126,7 @@ export class ActionData {
 			// Action just started - flip timing to capture previous state, then start new timing
 			this.timing.flip();
 			const currentInstant = Instant.now();
+			this.timing.start(currentInstant);
 			this.whenPressed = currentInstant;
 			this.duration = 0;
 		} else if (!pressed && wasPressed) {
@@ -143,7 +145,14 @@ export class ActionData {
 		if (!this.pressed) {
 			return 0.0;
 		}
-		return this.timing.getCurrentDuration();
+
+		// Return timing.currentDuration if available, otherwise fall back to duration
+		// This ensures compatibility with both instant-based and delta-based timing
+		if (this.timing.isActive()) {
+			return this.timing.getCurrentDuration();
+		}
+
+		return this.duration;
 	}
 
 	/**
@@ -199,7 +208,7 @@ export class ActionData {
 	 * This is used when transitioning from Update to FixedUpdate schedules
 	 */
 	public swapToFixedUpdateState(): void {
-		// Save current state as updateState if not already saved
+		// Save current state as updateState
 		if (!this.updateState) {
 			this.updateState = this.clone();
 		} else {
@@ -207,13 +216,20 @@ export class ActionData {
 			this.updateState.copyFrom(this);
 		}
 
-		// Initialize fixedUpdateState if it doesn't exist
+		// Initialize fixedUpdateState if it doesn't exist, or copy from it if it exists
 		if (!this.fixedUpdateState) {
 			this.fixedUpdateState = new ActionData();
+			// Reset current state to default for fixed update
+			this.pressed = false;
+			this.value = 0.0;
+			this.axisPairX = 0.0;
+			this.axisPairY = 0.0;
+			this.whenPressed = undefined;
+			this.duration = 0;
+		} else {
+			// Swap to existing fixed update state
+			this.copyFrom(this.fixedUpdateState);
 		}
-
-		// Swap to fixed update state
-		this.copyFrom(this.fixedUpdateState);
 	}
 
 	/**
@@ -222,9 +238,10 @@ export class ActionData {
 	 */
 	public swapToUpdateState(): void {
 		// Save current (fixed update) state
-		if (this.fixedUpdateState) {
-			this.fixedUpdateState.copyFrom(this);
+		if (!this.fixedUpdateState) {
+			this.fixedUpdateState = new ActionData();
 		}
+		this.fixedUpdateState.copyFrom(this);
 
 		// Restore update state
 		if (this.updateState) {

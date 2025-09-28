@@ -1,11 +1,11 @@
-import { Actionlike } from "../core/actionlike";
-import { HashMap } from "../core";
-import { InputControlKind } from "../core/input-control-kind";
+import { Actionlike } from "../actionlike";
+import { InputControlKind } from "../input-control-kind";
 import { UserInput } from "../user-input/traits/user-input";
 import { Buttonlike } from "../user-input/traits/buttonlike";
 import { Axislike } from "../user-input/traits/axislike";
 import { DualAxislike } from "../user-input/traits/dual-axislike";
 import { CentralInputStore } from "../user-input/central-input-store";
+
 import { component } from "@rbxts/matter";
 
 /**
@@ -23,7 +23,7 @@ export interface ProcessedActionState {
  * Represents the updated state of all actions after processing
  */
 export interface UpdatedActions<Action extends Actionlike> {
-	readonly actionData: HashMap<string, ProcessedActionState>;
+	readonly actionData: Map<string, ProcessedActionState>;
 	readonly consumedInputs: Set<string>;
 }
 
@@ -34,8 +34,8 @@ export interface UpdatedActions<Action extends Actionlike> {
  * to implement input rebinding and support multiple controllers at once.
  */
 export class InputMap<Action extends Actionlike> {
-	private readonly actionToInputs: HashMap<string, Set<UserInput>>;
-	private readonly inputToActions: HashMap<string, Set<string>>;
+	private readonly actionToInputs: Map<string, Set<UserInput>>;
+	private readonly inputToActions: Map<string, Set<string>>;
 	private readonly gamepadAssociation: number | undefined;
 
 	/**
@@ -188,13 +188,13 @@ export class InputMap<Action extends Actionlike> {
 	clone(): InputMap<Action> {
 		const clonedMap = new InputMap<Action>(this.gamepadAssociation);
 
-		for (const [actionKey, inputs] of this.actionToInputs) {
+		this.actionToInputs.forEach((inputs, actionKey) => {
 			const clonedInputs = new Set<UserInput>();
 			for (const input of inputs) {
 				clonedInputs.add(input);
 			}
 			clonedMap.actionToInputs.set(actionKey, clonedInputs);
-		}
+		});
 
 		return clonedMap;
 	}
@@ -207,12 +207,12 @@ export class InputMap<Action extends Actionlike> {
 	 */
 	processActions(
 		inputStore: CentralInputStore,
-		previousActions?: HashMap<string, ProcessedActionState>
+		previousActions?: Map<string, ProcessedActionState>
 	): UpdatedActions<Action> {
-		const actionData: HashMap<string, ProcessedActionState> = new Map();
+		const actionData: Map<string, ProcessedActionState> = new Map();
 		const consumedInputs: Set<string> = new Set();
 
-		for (const [actionKey, inputs] of this.actionToInputs) {
+		this.actionToInputs.forEach((inputs, actionKey) => {
 			let pressed = false;
 			let value = 0;
 			let axisPair: Vector2 | undefined;
@@ -232,16 +232,10 @@ export class InputMap<Action extends Actionlike> {
 					const buttonPressed = input.pressed(inputStore, this.gamepadAssociation);
 					const buttonValue = input.value(inputStore, this.gamepadAssociation);
 
-					// Debug logging for Space key
-					if (inputHash === "keyboard_Space") {
-						print(`[InputMap] Checking Space key: pressed=${buttonPressed}, value=${buttonValue}`);
-					}
-
 					if (buttonPressed) {
 						pressed = true;
 						value = math.max(value, buttonValue);
 						consumedInputs.add(inputHash);
-						print(`[InputMap] Button ${inputHash} pressed for action ${actionKey}`);
 					}
 				} else if (controlKind === InputControlKind.Axis && this.isAxislike(input)) {
 					const axisValue = input.value(inputStore, this.gamepadAssociation);
@@ -275,7 +269,7 @@ export class InputMap<Action extends Actionlike> {
 				value,
 				axisPair,
 			});
-		}
+		});
 
 		return {
 			actionData,
@@ -300,9 +294,9 @@ export class InputMap<Action extends Actionlike> {
 	 */
 	getActions(): Array<string> {
 		const actions: Array<string> = [];
-		for (const [actionKey] of this.actionToInputs) {
+		this.actionToInputs.forEach((_, actionKey) => {
 			actions.push(actionKey);
-		}
+		});
 		return actions;
 	}
 
@@ -331,7 +325,7 @@ export class InputMap<Action extends Actionlike> {
 	 * @param other - The InputMap to merge from
 	 */
 	merge(other: InputMap<Action>): void {
-		for (const [actionKey, inputs] of other.actionToInputs) {
+		other.actionToInputs.forEach((inputs, actionKey) => {
 			for (const input of inputs) {
 				// We need to reconstruct the action from the hash
 				// This is a limitation of the current design
@@ -346,7 +340,7 @@ export class InputMap<Action extends Actionlike> {
 				actions.add(actionKey);
 				this.inputToActions.set(inputKey, actions);
 			}
-		}
+		});
 	}
 
 	/**
@@ -355,9 +349,9 @@ export class InputMap<Action extends Actionlike> {
 	 */
 	size(): number {
 		let totalBindings = 0;
-		for (const [, inputs] of this.actionToInputs) {
+		this.actionToInputs.forEach((inputs) => {
 			totalBindings += inputs.size();
-		}
+		});
 		return totalBindings;
 	}
 

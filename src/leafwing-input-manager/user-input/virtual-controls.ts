@@ -1,4 +1,4 @@
-import { InputControlKind } from "../core/input-control-kind";
+import { InputControlKind } from "../input-control-kind";
 import { UserInput } from "./traits/user-input";
 import { BasicInputs } from "../clashing-inputs/basic-inputs";
 import { Buttonlike } from "./traits/buttonlike";
@@ -11,7 +11,7 @@ import { KeyCode } from "./keyboard";
 /**
  * A virtual axis created from two buttons
  */
-export class VirtualAxis implements Axislike {
+export class VirtualAxis implements UserInput, Axislike {
 	constructor(
 		private readonly negative: Buttonlike,
 		private readonly positive: Buttonlike,
@@ -81,7 +81,7 @@ export class VirtualAxis implements Axislike {
 /**
  * A virtual D-pad created from four buttons
  */
-export class VirtualDPad implements DualAxislike {
+export class VirtualDPad implements UserInput, DualAxislike {
 	constructor(
 		private readonly up: Buttonlike,
 		private readonly down: Buttonlike,

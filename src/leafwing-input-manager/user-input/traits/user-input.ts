@@ -1,4 +1,4 @@
-import { InputControlKind } from "../../core/input-control-kind";
+import { InputControlKind } from "../../input-control-kind";
 import { World } from "@rbxts/matter";
 import type { BasicInputs } from "../../clashing-inputs/basic-inputs";
 

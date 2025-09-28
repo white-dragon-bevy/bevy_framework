@@ -4,10 +4,13 @@
  */
 
 // Core exports
-export * from "./core";
-
-// Axislike types and utilities
+export * from "./actionlike";
+export * from "./timing";
 export * from "./axislike";
+export * from "./action-diff";
+export * from "./common-conditions";
+export * from "./systems";
+export * from "./input-control-kind";
 
 // User input traits
 export * from "./user-input/traits/user-input";
@@ -42,16 +45,11 @@ export { ClashStrategy } from "./clashing-inputs/clash-strategy";
 export { ClashDetector } from "./clashing-inputs/clash-detection";
 export type { InputClash } from "./clashing-inputs/clash-detection";
 
-// Networking
-export * from "./networking";
 
 // Plugin system
 export * from "./plugin";
 
 // Re-export commonly used types
-export { InputControlKind } from "./core/input-control-kind";
-export { Actionlike, ActionlikeEnum } from "./core/actionlike";
-export { Instant } from "./core/instant";
 export { CentralInputStore } from "./user-input/central-input-store";
 export { KeyCode, ModifierKey } from "./user-input/keyboard";
 export { MouseButton, MouseMove, MouseScroll, MouseMoveAxis } from "./user-input/mouse";

@@ -1,5 +1,5 @@
-import { Instant } from "../core/instant";
-import { Timing } from "../core/timing";
+import { Instant } from "../instant";
+import { Timing } from "../timing";
 import { ActionData } from "../action-state/action-data";
 
 export = () => {

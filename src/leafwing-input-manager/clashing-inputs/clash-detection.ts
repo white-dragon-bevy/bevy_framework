@@ -1,4 +1,4 @@
-import { Actionlike } from "../core/actionlike";
+import { Actionlike } from "../actionlike";
 import { BasicInputs } from "./basic-inputs";
 import { ClashStrategy } from "./clash-strategy";
 import { UserInput } from "../user-input/traits/user-input";
@@ -113,32 +113,37 @@ export class ClashDetector<A extends Actionlike> {
 		// Apply strategy
 		switch (strategy) {
 			case ClashStrategy.PrioritizeLargest: {
-				// For each clash, only allow the action with most inputs
-				for (const clash of clashes) {
-					let largestAction: string | undefined;
-					let largestSize = 0;
+				// Find the globally largest action from all clashed actions
+				let globalLargestAction: string | undefined;
+				let globalLargestSize = 0;
 
-					// If inputStore is available, also check if inputs are actually pressed
-					for (const action of clash.actions) {
-						const actionHash = (action as unknown as string);
-						const inputs = this.actionInputs.get(actionHash);
-						const size = actionSizes.get(actionHash) ?? 0;
+				// Consider all clashed actions and find the one with the most inputs
+				for (const actionHash of clashedActions) {
+					const inputs = this.actionInputs.get(actionHash);
+					const size = actionSizes.get(actionHash) ?? 0;
 
-						// Only consider this action if its inputs are actually active (if we have inputStore)
-						if (inputStore && inputs && !inputs.areAllInputsActive(inputStore)) {
-							continue;
-						}
-
-						if (size > largestSize) {
-							largestSize = size;
-							largestAction = actionHash;
-						}
+					// Only consider this action if its inputs are actually active (if we have inputStore)
+					if (inputStore && inputs && !inputs.areAllInputsActive(inputStore)) {
+						continue;
 					}
 
-					if (largestAction) {
-						triggeredActions.add(largestAction);
+					if (size > globalLargestSize) {
+						globalLargestSize = size;
+						globalLargestAction = actionHash;
 					}
 				}
+
+				// Add the globally largest action
+				if (globalLargestAction) {
+					triggeredActions.add(globalLargestAction);
+				}
+
+				// Add any non-clashed actions
+				this.actionInputs.forEach((_, actionHash) => {
+					if (!clashedActions.has(actionHash)) {
+						triggeredActions.add(actionHash);
+					}
+				});
 				break;
 			}
 
