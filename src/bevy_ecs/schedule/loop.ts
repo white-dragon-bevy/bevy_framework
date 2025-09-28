@@ -7,9 +7,11 @@ import { RunService } from "@rbxts/services";
 import type { World } from "@rbxts/matter";
 import type { BevySystem, Context } from "../types";
 
+// Import Matter's topological runtime for proper hook support
+import { start as topoStart } from "@rbxts/matter/lib/topoRuntime";
+
 // Declare Lua functions for direct table access
 declare function rawget<T>(table: unknown, key: unknown): T | undefined;
-declare function rawset(table: unknown, key: unknown, value: unknown): void;
 
 /**
  * 系统函数类型
@@ -74,6 +76,10 @@ export class Loop<T extends Array<unknown>> {
 	private readonly _systemSets: Map<string, Array<System<T>>> = new Map();
 	private _bevyScheduleMap?: { [schedule: string]: RBXScriptSignal };
 	public _debugger?: unknown; // Matter debugger instance
+
+	// 用于 step 方法的状态跟踪
+	private _lastStepTime?: number;
+	private _generation: boolean = false;
 
 	// 使用普通对象而不是 Map，以兼容 Matter 调试器
 	// Matter 调试器期望 profiling 是一个Lua表，系统对象作为键
@@ -310,9 +316,51 @@ export class Loop<T extends Array<unknown>> {
 						`system: ${this.isBevySystemStruct(system) && system.exclusive ? "[Exclusive] " : ""}${systemNameStr}`,
 					);
 
-					const thread = coroutine.create(fn);
+					// Set up topological context for Matter hooks
 					const startTime = os.clock();
-					const [success, errorValue] = coroutine.resume(thread, ...this._state);
+					let success: boolean;
+					let errorValue: unknown;
+
+					// Create system context for topological runtime
+					const systemContext = {
+						system: system,
+						deltaTime: deltaTime,
+						generation: generation,
+					};
+
+					// Run system within topological context
+					try {
+						// Use Matter's topological runtime to execute the system
+						// This enables hooks like useDeltaTime, useThrottle, etc.
+						// Matter expects the system property to be a table where each key is a baseKey
+						// and each value is {storage: {}, cleanupCallback?: function}
+						// Get or create system state for this system (like Matter Loop does)
+						let systemState = this._systemState.get(system);
+						if (!systemState) {
+							// Initialize as empty object that will be populated by useHookState
+							systemState = {};
+							this._systemState.set(system, systemState);
+						}
+						
+						const node = {
+							frame: {
+								generation: generation,
+								deltaTime: deltaTime,
+								dirtyWorlds: [...dirtyWorlds] as any[],
+							},
+							currentSystem: system,
+							system: systemState as any, // This should be the state table for hook storage
+						};
+						
+						topoStart(node, () => {
+							fn(...this._state);
+						});
+						
+						success = true;
+					} catch (err) {
+						success = false;
+						errorValue = err;
+					}
 
 					if (this.profiling !== undefined) {
 						const duration = os.clock() - startTime;
@@ -332,13 +380,7 @@ export class Loop<T extends Array<unknown>> {
 						profilingData.index = ((currentIndex + 1) % MAX_SAMPLES) + 1; // Back to 1-based
 					}
 
-					if (coroutine.status(thread) !== "dead") {
-						coroutine.close(thread);
-						task.spawn(
-							error,
-							`Matter: System ${systemNameStr} yielded! Its thread has been closed. Yielding in systems is not allowed.`,
-						);
-					}
+					// No need to check coroutine status since we're executing directly
 
 					// 优化脏世界
 					for (const world of dirtyWorlds) {
@@ -347,7 +389,7 @@ export class Loop<T extends Array<unknown>> {
 					dirtyWorlds.clear();
 
 					if (!success) {
-						this.handleSystemError(system, errorValue as string, thread);
+						this.handleSystemError(system, errorValue as string);
 					}
 
 					debug.profileend();
@@ -379,6 +421,139 @@ export class Loop<T extends Array<unknown>> {
 	 */
 	public addMiddleware(middleware: (nextFn: () => void, eventName: string) => () => void): void {
 		this._middlewares.push(middleware);
+	}
+
+	/**
+	 * 手动执行一帧的系统更新
+	 * 主要用于单元测试，避免使用 begin() 启动持续循环
+	 * 
+	 * @param eventName - 要执行的事件名称，默认为 "default"
+	 * @param deltaTime - 可选的 deltaTime，如果不提供则自动计算
+	 */
+	public step(eventName: string = "default", deltaTime?: number): void {
+		// 确保系统已经排序
+		this._sortSystems();
+
+		const orderedSystems = this._orderedSystemsByEvent.get(eventName);
+		if (!orderedSystems) {
+			// 没有系统需要执行
+			return;
+		}
+
+		// 计算 deltaTime
+		const currentTime = os.clock();
+		const calculatedDeltaTime = deltaTime !== undefined ? deltaTime : 
+			(this._lastStepTime !== undefined ? currentTime - this._lastStepTime : 1/60);
+		this._lastStepTime = currentTime;
+
+		// 切换 generation
+		this._generation = !this._generation;
+
+		const dirtyWorlds = new Set<World>();
+
+		for (const system of orderedSystems) {
+			if (this._skipSystems.get(system)) {
+				if (this.profiling !== undefined) {
+					rawset(this.profiling, system, undefined);
+				}
+				continue;
+			}
+
+			// Bevy: 检查运行条件
+			if (this.isBevySystemStruct(system) && system.runCondition) {
+				const shouldRun = system.runCondition(...this._state);
+				if (!shouldRun) {
+					if (this.profiling !== undefined) {
+						rawset(this.profiling, system, undefined);
+					}
+					continue;
+				}
+			}
+
+			// Bevy: 检查应用状态条件
+			if (this.isBevySystemStruct(system) && system.state) {
+				// 从资源中获取当前状态（需要在状态中实现）
+				const world = this._state[0] as unknown;
+				const currentState = (world as { currentAppState?: string })?.currentAppState;
+				if (currentState !== system.state) {
+					if (this.profiling !== undefined) {
+						rawset(this.profiling, system, undefined);
+					}
+					continue;
+				}
+			}
+
+			const fn = this.getSystemFn(system);
+			const systemNameStr = this.getSystemName(system);
+
+			debug.profilebegin(
+				`system: ${this.isBevySystemStruct(system) && system.exclusive ? "[Exclusive] " : ""}${systemNameStr}`,
+			);
+
+			// Set up topological context for Matter hooks
+			const startTime = os.clock();
+			let success: boolean;
+			let errorValue: unknown;
+
+			// Run system within topological context
+			try {
+				// Use Matter's topological runtime to execute the system
+				// This enables hooks like useDeltaTime, useThrottle, etc.
+				const node = {
+					frame: {
+						generation: this._generation,
+						deltaTime: calculatedDeltaTime,
+						dirtyWorlds: [...dirtyWorlds] as any[],
+					},
+					currentSystem: system as any,
+					system: system as any,
+				};
+				
+				topoStart(node, () => {
+					fn(...this._state);
+				});
+				
+				success = true;
+			} catch (err) {
+				success = false;
+				errorValue = err;
+			}
+
+			if (this.profiling !== undefined) {
+				const duration = os.clock() - startTime;
+
+				// Matter uses a different structure for profiling data
+				// It's an array with an index property for rolling average
+				let profilingData = rawget<number[] & { index?: number }>(this.profiling, system);
+				if (!profilingData) {
+					profilingData = [] as number[] & { index?: number };
+					rawset(this.profiling, system, profilingData);
+				}
+
+				// Implement rolling average like Matter does
+				const MAX_SAMPLES = 60;
+				const currentIndex = (profilingData.index || 1) - 1; // Convert to 0-based
+				profilingData[currentIndex] = duration;
+				profilingData.index = ((currentIndex + 1) % MAX_SAMPLES) + 1; // Back to 1-based
+			}
+
+			// No need to check coroutine status since we're executing directly
+
+			// 优化脏世界
+			for (const world of dirtyWorlds) {
+				(world as { optimizeQueries?: () => void }).optimizeQueries?.();
+			}
+			dirtyWorlds.clear();
+
+			if (!success) {
+				this.handleSystemError(system, errorValue as string);
+			}
+
+			debug.profileend();
+		}
+
+		// 应用中间件（如果需要的话）
+		// 注意：在 step 模式下，中间件的行为可能与连续模式不同
 	}
 
 	// ==================== 私有方法 ====================
@@ -413,7 +588,7 @@ export class Loop<T extends Array<unknown>> {
 				}
 			}
 
-			// 验证依赖关系
+			// 验证依赖关系 - 延迟到所有系统都添加后再验证
 			if (this.isSystemStruct(system) && system.after) {
 				if (system.priority !== undefined) {
 					error(`${this.getSystemName(system)} shouldn't have both priority and after defined`);
@@ -424,14 +599,6 @@ export class Loop<T extends Array<unknown>> {
 						`System "${this.getSystemName(system)}" "after" table was provided but is empty; did you accidentally use a nil value or make a typo?`,
 					);
 				}
-
-				for (const dependency of system.after) {
-					if (!this._systems.includes(dependency as any)) {
-						error(
-							`Unable to schedule "${this.getSystemName(system)}" because the system "${this.getSystemName(dependency as any)}" is not scheduled.\n\nEither schedule "${this.getSystemName(dependency as any)}" before "${this.getSystemName(system)}" or consider scheduling these systems together with scheduleSystems`,
-						);
-					}
-				}
 			}
 
 			let eventSystems = systemsByEvent.get(eventName);
@@ -440,6 +607,27 @@ export class Loop<T extends Array<unknown>> {
 				systemsByEvent.set(eventName, eventSystems);
 			}
 			eventSystems.push(system);
+		}
+
+		// 现在验证所有系统的依赖关系
+		for (const system of this._systems) {
+			if ((this.isSystemStruct(system) || this.isBevySystemStruct(system)) && system.after) {
+				for (const dependency of system.after) {
+					// 检查依赖的系统函数是否被任何已调度的系统引用
+					const dependencyExists = this._systems.some(scheduledSystem => {
+						if (this.isSystemStruct(scheduledSystem) || this.isBevySystemStruct(scheduledSystem)) {
+							return scheduledSystem.system === dependency;
+						}
+						return scheduledSystem === dependency;
+					});
+					
+					if (!dependencyExists) {
+						error(
+							`Unable to schedule "${this.getSystemName(system)}" because the system "${this.getSystemName(dependency as any)}" is not scheduled.\n\nEither schedule "${this.getSystemName(dependency as any)}" before "${this.getSystemName(system)}" or consider scheduling these systems together with scheduleSystems`,
+						);
+					}
+				}
+			}
 		}
 
 		this._orderedSystemsByEvent.clear();
@@ -477,7 +665,18 @@ export class Loop<T extends Array<unknown>> {
 
 					if (system.after) {
 						for (const dependency of system.after) {
-							const depSystem = dependency as System<T>;
+							// 找到包含这个依赖函数的系统结构
+							const depSystem = unscheduledSystems.find(s => {
+								if (this.isSystemStruct(s) || this.isBevySystemStruct(s)) {
+									return s.system === dependency;
+								}
+								return s === dependency;
+							});
+							
+							if (!depSystem) {
+								error(`Dependency system not found in unscheduledSystems: ${this.getSystemName(dependency as any)}`);
+							}
+							
 							if (systemPriorityMap.get(depSystem) === "visiting") {
 								error(
 									`Cyclic dependency detected: System '${this.getSystemName(system)}' is set to execute after System '${this.getSystemName(depSystem)}', and vice versa. This creates a loop that prevents the systems from being able to execute in a valid order.\nTo resolve this issue, reconsider the dependencies between these systems. One possible solution is to update the 'after' field from one of the systems.`,
@@ -504,7 +703,18 @@ export class Loop<T extends Array<unknown>> {
 				} else if (this.isSystemStruct(system)) {
 					if (system.after) {
 						for (const dependency of system.after) {
-							const depSystem = dependency as System<T>;
+							// 找到包含这个依赖函数的系统结构
+							const depSystem = unscheduledSystems.find(s => {
+								if (this.isSystemStruct(s) || this.isBevySystemStruct(s)) {
+									return s.system === dependency;
+								}
+								return s === dependency;
+							});
+							
+							if (!depSystem) {
+								error(`Dependency system not found in unscheduledSystems: ${this.getSystemName(dependency as any)}`);
+							}
+							
 							if (systemPriorityMap.get(depSystem) === "visiting") {
 								error(
 									`Cyclic dependency detected: System '${this.getSystemName(system)}' is set to execute after System '${this.getSystemName(depSystem)}', and vice versa.`,
@@ -521,6 +731,7 @@ export class Loop<T extends Array<unknown>> {
 				return priority;
 			} else if (existingPriority === "visiting") {
 				error("Detected circular dependency in system scheduling");
+				return 0; // This line should never be reached, but ensures type safety
 			} else {
 				return existingPriority;
 			}
@@ -532,26 +743,28 @@ export class Loop<T extends Array<unknown>> {
 			const priorityA = getSystemPriority(a);
 			const priorityB = getSystemPriority(b);
 
-			if (priorityA === priorityB) {
-				const nameA = this.getSystemName(a);
-				const nameB = this.getSystemName(b);
+			if (priorityA !== priorityB) {
+				return priorityA < priorityB;
+			}
 
-				if (nameA === nameB) {
-					return unscheduledSystems.indexOf(a) < unscheduledSystems.indexOf(b);
-				}
+			const nameA = this.getSystemName(a);
+			const nameB = this.getSystemName(b);
 
+			if (nameA !== nameB) {
 				return nameA < nameB;
 			}
 
-			return priorityA < priorityB;
+			const indexA = unscheduledSystems.indexOf(a);
+			const indexB = unscheduledSystems.indexOf(b);
+			return indexA < indexB;
 		});
 
 		return scheduledSystems;
 	}
 
-	private handleSystemError(system: System<T>, errorValue: string, thread: thread): void {
+	private handleSystemError(system: System<T>, errorValue: string): void {
 		// 错误处理逻辑（简化版）
-		const errorString = `${this.getSystemName(system)}: ${errorValue}\n${debug.traceback(thread)}`;
+		const errorString = `${this.getSystemName(system)}: ${errorValue}\n${debug.traceback()}`;
 		task.spawn(error, errorString);
 
 		if (this.trackErrors) {
