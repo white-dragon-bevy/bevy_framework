@@ -745,29 +745,40 @@ export class Loop<T extends Array<unknown>> {
 			}
 		};
 
-		const scheduledSystems = [...unscheduledSystems];
+		// Pre-compute priorities, names, and indices for stable sorting
+		// This ensures strict weak ordering required by Lua's sort
+		const systemInfo = unscheduledSystems.map((system, index) => ({
+			system,
+			priority: getSystemPriority(system),
+			name: this.getSystemName(system),
+			originalIndex: index,
+		}));
 
-		scheduledSystems.sort((a, b) => {
-			const priorityA = getSystemPriority(a);
-			const priorityB = getSystemPriority(b);
-
-			if (priorityA !== priorityB) {
-				return priorityA < priorityB;
+		// Sort the info array
+		systemInfo.sort((a, b) => {
+			// First, sort by priority
+			if (a.priority < b.priority) {
+				return true;
+			}
+			if (a.priority > b.priority) {
+				return false;
 			}
 
-			const nameA = this.getSystemName(a);
-			const nameB = this.getSystemName(b);
-
-			if (nameA !== nameB) {
-				return nameA < nameB;
+			// If priorities are equal, sort by name
+			if (a.name < b.name) {
+				return true;
+			}
+			if (a.name > b.name) {
+				return false;
 			}
 
-			const indexA = unscheduledSystems.indexOf(a);
-			const indexB = unscheduledSystems.indexOf(b);
-			return indexA < indexB;
+			// If names are equal, sort by original index for stability
+			// This guarantees strict weak ordering since indices are unique
+			return a.originalIndex < b.originalIndex;
 		});
 
-		return scheduledSystems;
+		// Extract sorted systems
+		return systemInfo.map(info => info.system);
 	}
 
 	private handleSystemError(system: System<T>, errorValue: string): void {
