@@ -499,7 +499,7 @@ export class App<T extends AppContext = AppContext> {
 	 */
 	exit(): void {
 		const writer = this.world().world.messages.createWriter<AppExit>();
-		writer.send(AppExit.success());
+		writer.write(AppExit.success());
 	}
 
 	/**
@@ -508,7 +508,7 @@ export class App<T extends AppContext = AppContext> {
 	 */
 	exitWithCode(code: number): void {
 		const writer = this.world().world.messages.createWriter<AppExit>();
-		writer.send(AppExit.error(code));
+		writer.write(AppExit.error(code));
 	}
 
 	/**

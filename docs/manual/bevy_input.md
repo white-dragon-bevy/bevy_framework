@@ -1583,7 +1583,7 @@ function comboDetectionSystem(
 		keyboard.isPressed(Enum.KeyCode.LeftShift) &&
 		keyboard.justPressed(Enum.KeyCode.T)
 	) {
-		writer.send(new ComboInputEvent("TeleportCombo", [
+		writer.write(new ComboInputEvent("TeleportCombo", [
 			Enum.KeyCode.LeftControl,
 			Enum.KeyCode.LeftShift,
 			Enum.KeyCode.T

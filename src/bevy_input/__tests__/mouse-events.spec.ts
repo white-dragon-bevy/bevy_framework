@@ -33,7 +33,7 @@ export = () => {
 
 			// 发送按下事件
 			const pressEvent = new MouseButtonInput(Enum.UserInputType.MouseButton1, ButtonState.Pressed);
-			writer.send(pressEvent);
+			writer.write(pressEvent);
 
 			// 读取事件
 			const events = reader.read();
@@ -43,7 +43,7 @@ export = () => {
 
 			// 发送释放事件
 			const releaseEvent = new MouseButtonInput(Enum.UserInputType.MouseButton1, ButtonState.Released);
-			writer.send(releaseEvent);
+			writer.write(releaseEvent);
 
 			// 读取第二个事件
 			const events2 = reader.read();
@@ -61,7 +61,7 @@ export = () => {
 
 			// 发送移动事件
 			const motionEvent = new MouseMotion(10.5, -20.3);
-			writer.send(motionEvent);
+			writer.write(motionEvent);
 
 			// 读取事件
 			const events = reader.read();
@@ -84,7 +84,7 @@ export = () => {
 
 			// 发送滚轮事件
 			const wheelEvent = new MouseWheel(0, 3, MouseScrollUnit.Line);
-			writer.send(wheelEvent);
+			writer.write(wheelEvent);
 
 			// 读取事件
 			const events = reader.read();
@@ -120,7 +120,7 @@ export = () => {
 			const position = new Vector2(100, 200);
 			const delta = new Vector2(5, -10);
 			const cursorEvent = new CursorMoved(position, delta);
-			writer.send(cursorEvent);
+			writer.write(cursorEvent);
 
 			// 读取事件
 			const events = reader.read();
@@ -154,7 +154,7 @@ export = () => {
 			const reader2 = messageRegistry.createReader<MouseMotion>();
 
 			// 发送第一个事件
-			writer.send(new MouseMotion(1, 1));
+			writer.write(new MouseMotion(1, 1));
 
 			// 两个读取器都应该能读到
 			const events1 = reader1.read();
@@ -163,7 +163,7 @@ export = () => {
 			expect(events2.size()).to.equal(1);
 
 			// 发送第二个事件
-			writer.send(new MouseMotion(2, 2));
+			writer.write(new MouseMotion(2, 2));
 
 			// 两个读取器都应该只读到新事件
 			const events1_2 = reader1.read();

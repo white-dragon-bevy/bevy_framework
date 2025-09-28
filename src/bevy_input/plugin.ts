@@ -239,7 +239,7 @@ export class InputPlugin implements Plugin {
 				for (const gamepadId of connectedGamepads) {
 					print(`[InputPlugin] Detected connected gamepad: ${gamepadId.Name}`);
 					gamepadManager.add(gamepadId, gamepadId.Name);
-					connectionWriter.send(new GamepadConnectionEvent(gamepadId, GamepadConnection.Connected));
+					connectionWriter.write(new GamepadConnectionEvent(gamepadId, GamepadConnection.Connected));
 				}
 				initialized = true;
 			}
@@ -248,14 +248,14 @@ export class InputPlugin implements Plugin {
 			for (const [_, gamepadId] of useEvent(UserInputService, "GamepadConnected")) {
 				print(`[InputPlugin] Gamepad connected: ${gamepadId.Name}`);
 				gamepadManager.add(gamepadId, gamepadId.Name);
-				connectionWriter.send(new GamepadConnectionEvent(gamepadId, GamepadConnection.Connected));
+				connectionWriter.write(new GamepadConnectionEvent(gamepadId, GamepadConnection.Connected));
 			}
 
 			// 使用 useEvent 监听游戏手柄断开事件
 			for (const [_, gamepadId] of useEvent(UserInputService, "GamepadDisconnected")) {
 				print(`[InputPlugin] Gamepad disconnected: ${gamepadId.Name}`);
 				gamepadManager.remove(gamepadId);
-				connectionWriter.send(new GamepadConnectionEvent(gamepadId, GamepadConnection.Disconnected));
+				connectionWriter.write(new GamepadConnectionEvent(gamepadId, GamepadConnection.Disconnected));
 			}
 		};
 	}
@@ -407,7 +407,7 @@ export class InputPlugin implements Plugin {
 				}
 
 				// 发送键盘输入事件
-				keyboardInputWriter.send(
+				keyboardInputWriter.write(
 					new KeyboardInput(input.KeyCode, logicalKey, ButtonState.Pressed, undefined, false),
 				);
 			} else if (
@@ -421,7 +421,7 @@ export class InputPlugin implements Plugin {
 				}
 				mouse.press(input.UserInputType);
 				// 发送鼠标按钮按下事件
-				mouseButtonWriter.send(new MouseButtonInput(input.UserInputType, ButtonState.Pressed));
+				mouseButtonWriter.write(new MouseButtonInput(input.UserInputType, ButtonState.Pressed));
 			} else if (isGamepadInput(input.UserInputType) && gamepadManager) {
 				// 游戏手柄输入也检查 gameProcessed
 				if (gameProcessed) {
@@ -438,7 +438,7 @@ export class InputPlugin implements Plugin {
 						const settings = gamepadManager.settings.getButtonSettings(button);
 
 						// 发送原始事件
-						rawGamepadButtonChangedWriter.send(
+						rawGamepadButtonChangedWriter.write(
 							new RawGamepadButtonChangedEvent(input.UserInputType, button, value),
 						);
 
@@ -448,12 +448,12 @@ export class InputPlugin implements Plugin {
 							gamepadState.setButtonValue(button, value);
 
 							// 发送状态变化事件
-							gamepadButtonStateChangedWriter.send(
+							gamepadButtonStateChangedWriter.write(
 								new GamepadButtonStateChangedEvent(input.UserInputType, button, ButtonState.Pressed),
 							);
 
 							// 发送按钮变化事件
-							gamepadButtonChangedWriter.send(
+							gamepadButtonChangedWriter.write(
 								new GamepadButtonChangedEvent(
 									input.UserInputType,
 									button,
@@ -482,7 +482,7 @@ export class InputPlugin implements Plugin {
 				}
 
 				// 发送键盘输入事件
-				keyboardInputWriter.send(
+				keyboardInputWriter.write(
 					new KeyboardInput(input.KeyCode, logicalKey, ButtonState.Released, undefined, false),
 				);
 			} else if (
@@ -492,7 +492,7 @@ export class InputPlugin implements Plugin {
 			) {
 				mouse.release(input.UserInputType);
 				// 发送鼠标按钮释放事件
-				mouseButtonWriter.send(new MouseButtonInput(input.UserInputType, ButtonState.Released));
+				mouseButtonWriter.write(new MouseButtonInput(input.UserInputType, ButtonState.Released));
 			} else if (isGamepadInput(input.UserInputType) && gamepadManager) {
 				// 处理游戏手柄按钮释放
 				const button = mapKeyCodeToGamepadButton(input.KeyCode);
@@ -505,7 +505,7 @@ export class InputPlugin implements Plugin {
 						const settings = gamepadManager.settings.getButtonSettings(button);
 
 						// 发送原始事件
-						rawGamepadButtonChangedWriter.send(
+						rawGamepadButtonChangedWriter.write(
 							new RawGamepadButtonChangedEvent(input.UserInputType, button, value),
 						);
 
@@ -515,12 +515,12 @@ export class InputPlugin implements Plugin {
 							gamepadState.setButtonValue(button, value);
 
 							// 发送状态变化事件
-							gamepadButtonStateChangedWriter.send(
+							gamepadButtonStateChangedWriter.write(
 								new GamepadButtonStateChangedEvent(input.UserInputType, button, ButtonState.Released),
 							);
 
 							// 发送按钮变化事件
-							gamepadButtonChangedWriter.send(
+							gamepadButtonChangedWriter.write(
 								new GamepadButtonChangedEvent(
 									input.UserInputType,
 									button,
@@ -546,7 +546,7 @@ export class InputPlugin implements Plugin {
 				if (mouseMotion && (delta.X !== 0 || delta.Y !== 0)) {
 					mouseMotion.accumulate(delta.X, delta.Y);
 					// 发送鼠标移动事件
-					mouseMotionWriter.send(new MouseMotion(delta.X, delta.Y));
+					mouseMotionWriter.write(new MouseMotion(delta.X, delta.Y));
 				}
 
 				// 更新鼠标位置
@@ -557,7 +557,7 @@ export class InputPlugin implements Plugin {
 					mousePosition.update(newPos);
 
 					// 发送光标移动事件
-					cursorMovedWriter.send(new CursorMoved(newPos, newPos.sub(oldPos)));
+					cursorMovedWriter.write(new CursorMoved(newPos, newPos.sub(oldPos)));
 				}
 			} else if (input.UserInputType === Enum.UserInputType.MouseWheel && mouseWheel) {
 				// 鼠标滚轮使用 Position.Z 作为滚动增量
@@ -566,7 +566,7 @@ export class InputPlugin implements Plugin {
 				if (scrollDelta !== 0) {
 					mouseWheel.accumulate(scrollDelta);
 					// 发送鼠标滚轮事件
-					mouseWheelWriter.send(new MouseWheel(0, scrollDelta));
+					mouseWheelWriter.write(new MouseWheel(0, scrollDelta));
 				}
 			} else if (isGamepadInput(input.UserInputType) && gamepadManager) {
 				// 处理游戏手柄轴输入
@@ -587,10 +587,10 @@ export class InputPlugin implements Plugin {
 
 						if (filteredX !== undefined) {
 							gamepadState.setAxis(GamepadAxis.LeftStickX, filteredX);
-							rawGamepadAxisChangedWriter.send(
+							rawGamepadAxisChangedWriter.write(
 								new RawGamepadAxisChangedEvent(input.UserInputType, GamepadAxis.LeftStickX, xValue),
 							);
-							gamepadAxisChangedWriter.send(
+							gamepadAxisChangedWriter.write(
 								new GamepadAxisChangedEvent(input.UserInputType, GamepadAxis.LeftStickX, filteredX),
 							);
 						}
@@ -600,10 +600,10 @@ export class InputPlugin implements Plugin {
 
 						if (filteredY !== undefined) {
 							gamepadState.setAxis(GamepadAxis.LeftStickY, filteredY);
-							rawGamepadAxisChangedWriter.send(
+							rawGamepadAxisChangedWriter.write(
 								new RawGamepadAxisChangedEvent(input.UserInputType, GamepadAxis.LeftStickY, yValue),
 							);
-							gamepadAxisChangedWriter.send(
+							gamepadAxisChangedWriter.write(
 								new GamepadAxisChangedEvent(input.UserInputType, GamepadAxis.LeftStickY, filteredY),
 							);
 						}
@@ -618,10 +618,10 @@ export class InputPlugin implements Plugin {
 
 						if (filteredX !== undefined) {
 							gamepadState.setAxis(GamepadAxis.RightStickX, filteredX);
-							rawGamepadAxisChangedWriter.send(
+							rawGamepadAxisChangedWriter.write(
 								new RawGamepadAxisChangedEvent(input.UserInputType, GamepadAxis.RightStickX, xValue),
 							);
-							gamepadAxisChangedWriter.send(
+							gamepadAxisChangedWriter.write(
 								new GamepadAxisChangedEvent(input.UserInputType, GamepadAxis.RightStickX, filteredX),
 							);
 						}
@@ -631,10 +631,10 @@ export class InputPlugin implements Plugin {
 
 						if (filteredY !== undefined) {
 							gamepadState.setAxis(GamepadAxis.RightStickY, filteredY);
-							rawGamepadAxisChangedWriter.send(
+							rawGamepadAxisChangedWriter.write(
 								new RawGamepadAxisChangedEvent(input.UserInputType, GamepadAxis.RightStickY, yValue),
 							);
-							gamepadAxisChangedWriter.send(
+							gamepadAxisChangedWriter.write(
 								new GamepadAxisChangedEvent(input.UserInputType, GamepadAxis.RightStickY, filteredY),
 							);
 						}
@@ -654,7 +654,7 @@ export class InputPlugin implements Plugin {
 			mouse.releaseAll();
 
 			// 发送焦点丢失事件
-			keyboardFocusLostWriter.send(new KeyboardFocusLost());
+			keyboardFocusLostWriter.write(new KeyboardFocusLost());
 		}
 
 		// 调试: 在处理完所有事件后输出总计

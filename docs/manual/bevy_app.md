@@ -1175,7 +1175,7 @@ class InputPlugin extends BasePlugin {
 
 				// 发送事件
 				const writer = app.getContext().messages.createWriter<KeyPressedEvent>();
-				writer.send(new KeyPressedEvent(input.KeyCode));
+				writer.write(new KeyPressedEvent(input.KeyCode));
 			}
 		});
 
@@ -1188,7 +1188,7 @@ class InputPlugin extends BasePlugin {
 
 				// 发送事件
 				const writer = app.getContext().messages.createWriter<KeyReleasedEvent>();
-				writer.send(new KeyReleasedEvent(input.KeyCode));
+				writer.write(new KeyReleasedEvent(input.KeyCode));
 			}
 		});
 
@@ -1428,7 +1428,7 @@ app.addSystems(BuiltinSchedules.UPDATE, (world, context) => {
 
 			// 发送事件
 			const writer = context.messages.createWriter<PlayerDamagedEvent>();
-			writer.send(new PlayerDamagedEvent(
+			writer.write(new PlayerDamagedEvent(
 				entity as number,
 				damage,
 				"Enemy"
@@ -1585,7 +1585,7 @@ function asyncSystem(world: World, context: AppContext): void {
 
 		// 结果需要通过命令或事件传回系统
 		const writer = context.messages.createWriter<ResultEvent>();
-		writer.send(new ResultEvent(result));
+		writer.write(new ResultEvent(result));
 	});
 }
 ```

@@ -59,22 +59,6 @@ export class MessageWriter<M extends Message> {
 		return this.messages.writeDefault(defaultMessage);
 	}
 
-	/**
-	 * 发送消息的便捷方法（send 是 write 的别名）
-	 * 保留用于向后兼容
-	 */
-	public send(message: M): boolean {
-		this.write(message);
-		return true;
-	}
-
-	/**
-	 * 批量发送消息的便捷方法
-	 * 保留用于向后兼容
-	 */
-	public sendBatch(messages: M[]): WriteBatchIds<M> {
-		return this.writeBatch(messages);
-	}
 
 	/**
 	 * 获取底层的 Messages 实例（内部使用）

@@ -276,7 +276,7 @@ const writer = eventManager.createWriter<PlayerJoinedEvent>();
 const reader = eventManager.createReader<PlayerJoinedEvent>();
 
 // 发送事件
-writer.send(new PlayerJoinedEvent("Alice"));
+writer.write(new PlayerJoinedEvent("Alice"));
 
 // 读取事件
 const events = reader.read();

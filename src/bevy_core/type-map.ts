@@ -168,27 +168,9 @@ export class TypeMap<T> {
 		});
 	}
 
-	// 注意：移除了 Symbol.iterator 实现，因为它在 Luau 环境中不工作
-	// 使用 getIterableEntries() 方法来获取可迭代的条目
-
-	// 暴露扁平化 Map 的迭代器作为备用方案
-	public getIterableEntries(): Array<[TypeDescriptor, T]> {
-		const entries: Array<[TypeDescriptor, T]> = [];
-		for (const [flatKey, value] of this.flatMap) {
-			const typeDescriptor = this.parseTypeDescriptor(flatKey);
-			entries.push([typeDescriptor, value]);
-		}
-		return entries;
-	}
-	
 	// 获取所有条目 - 返回数组形式
-	public entries(): Array<[TypeDescriptor, T]> {
-		const entries: Array<[TypeDescriptor, T]> = [];
-		for (const [flatKey, value] of this.flatMap) {
-			const typeDescriptor = this.parseTypeDescriptor(flatKey);
-			entries.push([typeDescriptor, value]);
-		}
-		return entries;
+	public entries(): Map<string, T> {
+		return this.flatMap;
 	}
 	
 	// 获取所有值 - 直接使用 flatMap 的 values

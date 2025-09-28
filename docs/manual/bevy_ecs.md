@@ -158,15 +158,15 @@ const writer = messageRegistry.createWriter<InputMessage>();
 const reader = messageRegistry.createReader<InputMessage>();
 
 // 写入消息（不会立即处理）
-writer.send(new InputMessage("W", true));
-writer.send(new InputMessage("A", false));
+writer.write(new InputMessage("W", true));
+writer.write(new InputMessage("A", false));
 
 // 批量写入
 const batch = [
 	new InputMessage("W", true),
 	new InputMessage("D", true)
 ];
-writer.sendBatch(batch);
+writer.writeBatch(batch);
 
 // 系统中读取消息
 function inputSystem() {
@@ -420,11 +420,11 @@ function collectInputSystem(writer: MessageWriter<InputMessage>) {
 	const UserInputService = game.GetService("UserInputService");
 
 	UserInputService.InputBegan.Connect((input) => {
-		writer.send(new InputMessage(input.KeyCode, "press"));
+		writer.write(new InputMessage(input.KeyCode, "press"));
 	});
 
 	UserInputService.InputEnded.Connect((input) => {
-		writer.send(new InputMessage(input.KeyCode, "release"));
+		writer.write(new InputMessage(input.KeyCode, "release"));
 	});
 }
 
@@ -660,7 +660,7 @@ eventManager.trigger(new PlayerConnectedEvent(player));
 class NetworkPacketMessage implements Message {
 	constructor(public data: Buffer) {}
 }
-writer.sendBatch(packets);
+writer.writeBatch(packets);
 ```
 
 ### 4. 系统调度优化

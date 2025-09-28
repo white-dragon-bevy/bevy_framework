@@ -49,7 +49,7 @@ export = () => {
 			const testMessage = new TestMessage("test message", 42);
 
 			expect(() => {
-				writer.send(testMessage);
+				writer.write(testMessage);
 			}).never.to.throw();
 		});
 
@@ -58,7 +58,7 @@ export = () => {
 			const reader = messageRegistry.createReader<TestMessage>();
 
 			const testMessage = new TestMessage("test", 123);
-			writer.send(testMessage);
+			writer.write(testMessage);
 
 			const messages = reader.read();
 			expect(messages.size()).to.equal(1);
@@ -76,7 +76,7 @@ export = () => {
 			const testValue = 456;
 			const testMsg = new TestMessage(testMessage, testValue);
 
-			writer.send(testMsg);
+			writer.write(testMsg);
 
 			const messages = reader.read();
 			expect(messages.size()).to.equal(1);
@@ -89,12 +89,12 @@ export = () => {
 			const reader = messageRegistry.createReader<TestMessage>();
 
 			// 发送第一个消息
-			writer.send(new TestMessage("first", 1));
+			writer.write(new TestMessage("first", 1));
 			const firstRead = reader.read();
 			expect(firstRead.size()).to.equal(1);
 
 			// 发送第二个消息
-			writer.send(new TestMessage("second", 2));
+			writer.write(new TestMessage("second", 2));
 			const secondRead = reader.read();
 			expect(secondRead.size()).to.equal(1);
 			expect(secondRead[0].message).to.equal("second");
@@ -110,7 +110,7 @@ export = () => {
 
 			expect(reader.isEmpty()).to.equal(true);
 
-			writer.send(new TestMessage("test", 1));
+			writer.write(new TestMessage("test", 1));
 			expect(reader.isEmpty()).to.equal(false);
 
 			reader.read();
@@ -122,7 +122,7 @@ export = () => {
 			const reader1 = messageRegistry.createReader<TestMessage>();
 			const reader2 = messageRegistry.createReader<TestMessage>();
 
-			writer.send(new TestMessage("shared", 100));
+			writer.write(new TestMessage("shared", 100));
 
 			const messages1 = reader1.read();
 			const messages2 = reader2.read();
@@ -141,8 +141,8 @@ export = () => {
 			const testReader = messageRegistry.createReader<TestMessage>();
 			const anotherReader = messageRegistry.createReader<AnotherTestMessage>();
 
-			testWriter.send(new TestMessage("test", 1));
-			anotherWriter.send(new AnotherTestMessage("another"));
+			testWriter.write(new TestMessage("test", 1));
+			anotherWriter.write(new AnotherTestMessage("another"));
 
 			const testMessages = testReader.read();
 			const anotherMessages = anotherReader.read();
@@ -169,8 +169,8 @@ export = () => {
 			const writer = messageRegistry.createWriter<TestMessage>();
 			const reader = messageRegistry.createReader<TestMessage>();
 
-			writer.send(new TestMessage("stats test", 1));
-			writer.send(new TestMessage("stats test 2", 2));
+			writer.write(new TestMessage("stats test", 1));
+			writer.write(new TestMessage("stats test 2", 2));
 
 			const stats = messageRegistry.getStats();
 			expect(typeIs(stats, "table")).to.equal(true);
@@ -179,9 +179,10 @@ export = () => {
 			let hasTestMessageStats = false;
 			for (const [key, value] of pairs(stats)) {
 				const keyStr = tostring(key);
-				if (keyStr.gsub("TestMessage", "")[0] !== keyStr) {
+				// Check if key contains "TestMessage" or is related to TestMessage class
+				if (keyStr.match("TestMessage")[0] !== undefined || keyStr === tostring(TestMessage)) {
 					hasTestMessageStats = true;
-					const messageStats = value as { messageCount: number; readerCount: number };
+					const messageStats = value ;
 					expect(messageStats.messageCount).to.equal(2);
 					expect(messageStats.readerCount).to.equal(1);
 					break;
@@ -196,7 +197,7 @@ export = () => {
 
 			// 发送大量消息以触发清理逻辑
 			for (let index = 1; index <= 1001; index++) {
-				writer.send(new TestMessage(`message ${index}`, index));
+				writer.write(new TestMessage(`message ${index}`, index));
 			}
 
 			// 读取一些消息
@@ -206,7 +207,7 @@ export = () => {
 			messageRegistry.cleanup();
 
 			// 清理后应该仍然能够正常工作
-			writer.send(new TestMessage("after cleanup", 999));
+			writer.write(new TestMessage("after cleanup", 999));
 			const messagesAfterCleanup = reader.read();
 			expect(messagesAfterCleanup.size()).to.equal(1);
 			expect(messagesAfterCleanup[0].message).to.equal("after cleanup");
@@ -218,10 +219,10 @@ export = () => {
 			const writer = messageRegistry.createWriter<TestMessage>();
 			const reader = messageRegistry.createReader<TestMessage>();
 
-			writer.send(new TestMessage("before cleanup", 1));
+			writer.write(new TestMessage("before cleanup", 1));
 			reader.cleanup();
 
-			writer.send(new TestMessage("after cleanup", 2));
+			writer.write(new TestMessage("after cleanup", 2));
 
 			// 已清理的读取器不应该收到新消息
 			const messages = reader.read();
@@ -239,9 +240,9 @@ export = () => {
 			const reader = messageRegistry.createReader<TestMessage>();
 
 			const sameMessage = new TestMessage("same", 42);
-			writer.send(sameMessage);
-			writer.send(sameMessage);
-			writer.send(sameMessage);
+			writer.write(sameMessage);
+			writer.write(sameMessage);
+			writer.write(sameMessage);
 
 			const messages = reader.read();
 			expect(messages.size()).to.equal(3);
@@ -258,7 +259,7 @@ export = () => {
 			const reader = messageRegistry.createReader<TestMessage>();
 
 			// 第一批消息
-			writer.send(new TestMessage("before update", 1));
+			writer.write(new TestMessage("before update", 1));
 
 			// 更新前读取
 			const beforeUpdate = reader.read();
@@ -269,7 +270,7 @@ export = () => {
 			messageRegistry.updateAll();
 
 			// 第二批消息
-			writer.send(new TestMessage("after update", 2));
+			writer.write(new TestMessage("after update", 2));
 
 			// 更新后读取
 			const afterUpdate = reader.read();
@@ -282,19 +283,19 @@ export = () => {
 			const reader = messageRegistry.createReader<TestMessage>();
 
 			// 发送第一条消息
-			writer.send(new TestMessage("message 1", 1));
+			writer.write(new TestMessage("message 1", 1));
 
 			// 第一次更新
 			messageRegistry.updateAll();
 
 			// 发送第二条消息
-			writer.send(new TestMessage("message 2", 2));
+			writer.write(new TestMessage("message 2", 2));
 
 			// 第二次更新
 			messageRegistry.updateAll();
 
 			// 发送第三条消息
-			writer.send(new TestMessage("message 3", 3));
+			writer.write(new TestMessage("message 3", 3));
 
 			// 新的读取器应该只能看到最新的消息
 			const newReader = messageRegistry.createReader<TestMessage>();
@@ -320,16 +321,16 @@ export = () => {
 			const reader2 = messageRegistry.createReader<TestMessage>();
 
 			// 发送第一批消息
-			writer.send(new TestMessage("message 1", 1));
-			writer.send(new TestMessage("message 2", 2));
+			writer.write(new TestMessage("message 1", 1));
+			writer.write(new TestMessage("message 2", 2));
 
 			// reader1 读取所有消息
 			const messages1 = reader1.read();
 			expect(messages1.size()).to.equal(2);
 
 			// 发送更多消息
-			writer.send(new TestMessage("message 3", 3));
-			writer.send(new TestMessage("message 4", 4));
+			writer.write(new TestMessage("message 3", 3));
+			writer.write(new TestMessage("message 4", 4));
 
 			// reader1 只应看到新消息
 			const messages1New = reader1.read();
@@ -346,11 +347,11 @@ export = () => {
 			const reader = messageRegistry.createReader<TestMessage>();
 
 			// 发送消息并多次更新以丢弃旧消息
-			writer.send(new TestMessage("old message", 1));
+			writer.write(new TestMessage("old message", 1));
 			messageRegistry.updateAll();
-			writer.send(new TestMessage("middle message", 2));
+			writer.write(new TestMessage("middle message", 2));
 			messageRegistry.updateAll();
-			writer.send(new TestMessage("new message", 3));
+			writer.write(new TestMessage("new message", 3));
 
 			// 读取应该只返回仍然可用的消息
 			const messages = reader.read();
@@ -370,7 +371,7 @@ export = () => {
 			];
 
 			// 使用批量发送
-			const batchIds = writer.sendBatch(batch);
+			const batchIds = writer.writeBatch(batch);
 			expect(batchIds).to.be.ok();
 
 			// 读取所有消息
@@ -406,10 +407,10 @@ export = () => {
 			const reader = messageRegistry.createReader<TestMessage>();
 
 			// 两个 writer 交替写入
-			writer1.send(new TestMessage("from writer 1 - 1", 1));
-			writer2.send(new TestMessage("from writer 2 - 1", 2));
-			writer1.send(new TestMessage("from writer 1 - 2", 3));
-			writer2.send(new TestMessage("from writer 2 - 2", 4));
+			writer1.write(new TestMessage("from writer 1 - 1", 1));
+			writer2.write(new TestMessage("from writer 2 - 1", 2));
+			writer1.write(new TestMessage("from writer 1 - 2", 3));
+			writer2.write(new TestMessage("from writer 2 - 2", 4));
 
 			const messages = reader.read();
 			expect(messages.size()).to.equal(4);
@@ -421,7 +422,7 @@ export = () => {
 			const reader2 = messageRegistry.createReader<TestMessage>();
 			const reader3 = messageRegistry.createReader<TestMessage>();
 
-			writer.send(new TestMessage("shared message", 100));
+			writer.write(new TestMessage("shared message", 100));
 
 			// 每个 reader 独立读取
 			const messages1 = reader1.read();
@@ -446,8 +447,8 @@ export = () => {
 
 			// 并行发送不同类型的消息
 			for (let index = 1; index <= 5; index++) {
-				testWriter.send(new TestMessage(`test ${index}`, index));
-				anotherWriter.send(new AnotherTestMessage(`another ${index}`));
+				testWriter.write(new TestMessage(`test ${index}`, index));
+				anotherWriter.write(new AnotherTestMessage(`another ${index}`));
 			}
 
 			const testMessages = testReader.read();
@@ -467,7 +468,7 @@ export = () => {
 
 			// 发送大量消息
 			for (let index = 1; index <= messageCount; index++) {
-				writer.send(new TestMessage(`message ${index}`, index));
+				writer.write(new TestMessage(`message ${index}`, index));
 			}
 
 			const messages = reader.read();
@@ -480,7 +481,7 @@ export = () => {
 			const writer = messageRegistry.createWriter<EmptyMessage>();
 			const reader = messageRegistry.createReader<EmptyMessage>();
 
-			writer.send(new EmptyMessage());
+			writer.write(new EmptyMessage());
 
 			const messages = reader.read();
 			expect(messages.size()).to.equal(1);
@@ -491,13 +492,13 @@ export = () => {
 			const writer = messageRegistry.createWriter<TestMessage>();
 			const reader = messageRegistry.createReader<TestMessage>();
 
-			writer.send(new TestMessage("before clear", 1));
+			writer.write(new TestMessage("before clear", 1));
 
 			// 清空所有消息
 			messageRegistry.clearAll();
 
 			// 清空后发送新消息
-			writer.send(new TestMessage("after clear", 2));
+			writer.write(new TestMessage("after clear", 2));
 
 			const messages = reader.read();
 			expect(messages.size()).to.equal(1);
@@ -520,7 +521,7 @@ export = () => {
 			const writer2 = messageRegistry.createWriter<AnotherTestMessage>();
 			const startSingle = os.clock();
 			for (let index = 1; index <= messageCount; index++) {
-				writer2.send(new AnotherTestMessage(`single ${index}`));
+				writer2.write(new AnotherTestMessage(`single ${index}`));
 			}
 			const singleTime = os.clock() - startSingle;
 

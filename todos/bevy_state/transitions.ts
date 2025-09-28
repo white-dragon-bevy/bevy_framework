@@ -246,7 +246,7 @@ export class StateTransitionManager<S extends States> {
 	 */
 	private sendTransitionEvent(event: StateTransitionEvent<S>): void {
 		if (this.eventWriter) {
-			this.eventWriter.send(event);
+			this.eventWriter.write(event);
 			this.lastTransitionEvent = event;
 		} else {
 			// 如果没有事件写入器，仍然记录最后的转换

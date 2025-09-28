@@ -428,7 +428,7 @@ export class GestureManager {
 						this.lastPinchScale = undefined;
 					}
 
-					pinchWriter.send(new PinchGesture(gestureState, delta, velocity, scale, positions));
+					pinchWriter.write(new PinchGesture(gestureState, delta, velocity, scale, positions));
 				},
 			);
 			this.connections.push(pinchConnection);
@@ -458,7 +458,7 @@ export class GestureManager {
 						this.lastRotation = undefined;
 					}
 
-					rotationWriter.send(new RotationGesture(gestureState, delta, velocity, rotation, positions));
+					rotationWriter.write(new RotationGesture(gestureState, delta, velocity, rotation, positions));
 				},
 			);
 			this.connections.push(rotateConnection);
@@ -490,7 +490,7 @@ export class GestureManager {
 						this.lastPanTranslation = undefined;
 					}
 
-					panWriter.send(new PanGesture(gestureState, delta, velocityVec, translation, positions));
+					panWriter.write(new PanGesture(gestureState, delta, velocityVec, translation, positions));
 				},
 			);
 			this.connections.push(panConnection);
@@ -515,7 +515,7 @@ export class GestureManager {
 						distance <= this.config.doubleTapMaxDistance
 					) {
 						// 检测到双击
-						doubleTapWriter.send(new DoubleTapGesture(currentPosition, timeDelta));
+						doubleTapWriter.write(new DoubleTapGesture(currentPosition, timeDelta));
 						this.lastTapTime = undefined;
 						this.lastTapPosition = undefined;
 
@@ -546,7 +546,7 @@ export class GestureManager {
 					// 如果需要,可以在应用层自行计算
 					const duration = 0;
 
-					longPressWriter.send(new LongPressGesture(gestureState, position, duration, positions));
+					longPressWriter.write(new LongPressGesture(gestureState, position, duration, positions));
 				},
 			);
 			this.connections.push(longPressConnection);

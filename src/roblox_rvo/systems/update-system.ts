@@ -83,7 +83,7 @@ export function updateTransformFromRVO(world: World, context: Context): void {
 			if (hasSignificantVelocityChange(agent.currentVelocity, newVelocity, 0.1)) {
 				// 发送速度变化消息
 				if (velocityMessageWriter) {
-					velocityMessageWriter.send(createVelocityChangedEvent(entity, agent.currentVelocity, newVelocity));
+					velocityMessageWriter.write(createVelocityChangedEvent(entity, agent.currentVelocity, newVelocity));
 				}
 
 				// 检查是否正在避碰
@@ -92,7 +92,7 @@ export function updateTransformFromRVO(world: World, context: Context): void {
 					// 速度与首选速度不同，说明正在避碰
 					const avoidedEntities = getAvoidedEntities(simAgent, simulatorResource);
 					if (collisionMessageWriter && avoidedEntities.size() > 0) {
-						collisionMessageWriter.send(
+						collisionMessageWriter.write(
 							createCollisionAvoidanceEvent(entity, avoidedEntities, prefVelocity, newVelocity),
 						);
 					}
@@ -105,7 +105,7 @@ export function updateTransformFromRVO(world: World, context: Context): void {
 			if (hasReachedGoal(agent, newPosition, 0.5)) {
 				// 发送目标到达消息
 				if (goalMessageWriter) {
-					goalMessageWriter.send(createGoalReachedEvent(entity, agent.goalPosition, newPosition, newVelocity));
+					goalMessageWriter.write(createGoalReachedEvent(entity, agent.goalPosition, newPosition, newVelocity));
 				}
 
 				// 清除目标

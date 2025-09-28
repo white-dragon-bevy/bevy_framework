@@ -159,7 +159,7 @@ export class MessageRegistry {
 	 * 对应 Rust 的 message_update_system
 	 */
 	public updateAll(): void {
-		for (const [_, messages] of this.registry.getIterableEntries()) {
+		for (const [_, messages] of this.registry.entries()) {
 			messages.update();
 		}
 	}
@@ -180,7 +180,7 @@ export class MessageRegistry {
 	 * 移除所有未处理的消息
 	 */
 	public clearAll(): void {
-		for (const [_, messages] of this.registry.getIterableEntries()) {
+		for (const [_, messages] of this.registry.entries()) {
 			messages.clear();
 		}
 	}
@@ -189,9 +189,9 @@ export class MessageRegistry {
 	 * 获取统计信息
 	 * 返回每个消息类型的统计数据
 	 */
-	public getStats(): Record<string, unknown> {
-		const stats: Record<string, unknown> = {};
-		for (const [messageType, messages] of this.registry.getIterableEntries()) {
+	public getStats(): Record<string, { messageCount: number; readerCount: number; oldestMessageCount: number; isEmpty: boolean }> {
+		const stats: Record<string, { messageCount: number; readerCount: number; oldestMessageCount: number; isEmpty: boolean }> = {};
+		for (const [messageType, messages] of this.registry.entries()) {
 			const typeName = tostring(messageType);
 			stats[typeName] = {
 				messageCount: messages.size(),
@@ -222,7 +222,7 @@ export class MessageRegistry {
 	 */
 	public getRegisteredMessages(): Messages<Message>[] {
 		const types: Messages<Message>[] = [];
-		for (const [_, message] of this.registry.getIterableEntries()) {
+		for (const [_, message] of this.registry.entries()) {
 			types.push(message);
 		}
 		return types;
