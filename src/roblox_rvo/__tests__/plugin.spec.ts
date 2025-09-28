@@ -55,9 +55,9 @@ export = () => {
 			app.update(); // Run startup systems
 
 			const context = app.main().getContext();
-			expect(isRVOInitialized(context)).to.equal(true);
+			expect(isRVOInitialized(app.getWorld())).to.equal(true);
 
-			const simulator = getRVOSimulator(context);
+			const simulator = getRVOSimulator(app.getWorld());
 			expect(simulator).to.be.ok();
 		});
 

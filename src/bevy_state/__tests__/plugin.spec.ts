@@ -297,7 +297,7 @@ export = (): void => {
 				const app = App.create();
 
 				// 验证资源系统存在
-				expect(app.context.resources).to.be.ok();
+				expect(app.world().world.resources).to.be.ok();
 			});
 
 			it("应该在 StateTransition 调度中运行", () => {
@@ -469,16 +469,16 @@ export = (): void => {
 		});
 
 		it("应该支持资源插入和检索", () => {
-			expect(app.context.resources).to.be.ok();
+			expect(app.world().world.resources).to.be.ok();
 		});
 
 		it("应该支持消息系统", () => {
-			expect(app.context.messages).to.be.ok();
+			expect(app.world().world.messages).to.be.ok();
 		});
 
 		it("资源管理器应该在多次构建调用中保持一致", () => {
-			const resources1 = app.context.resources;
-			const resources2 = app.context.resources;
+			const resources1 = app.world().world.resources;
+			const resources2 = app.world().world.resources;
 
 			expect(resources1).to.equal(resources2);
 		});

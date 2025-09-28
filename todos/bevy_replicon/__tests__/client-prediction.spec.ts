@@ -12,10 +12,10 @@ export = () => {
 	beforeEach(() => {
 		world = new World();
 		const context = (world as unknown as { context: { resources: Map<string, import("../../bevy_ecs").Resource> } }).context;
-		context.resources = new Map();
+		world.resources = new Map();
 
 		manager = new ClientPredictionManager(60, 0.01);
-		context.resources.set("ClientPredictionManager", manager);
+		world.resources.set("ClientPredictionManager", manager);
 	});
 
 	describe("ClientPredictionManager", () => {

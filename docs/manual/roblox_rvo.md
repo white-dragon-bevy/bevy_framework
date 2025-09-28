@@ -622,7 +622,7 @@ interface Formation {
 
 function formationSystem(world: World, context: Context): void {
 	// 假设我们有一个编队资源
-	const formations = context.resources.getResource<Array<Formation>>();
+	const formations = world.resources.getResource<Array<Formation>>();
 	if (!formations) return;
 
 	for (const formation of formations) {
@@ -682,7 +682,7 @@ function rvoDebugSystem(world: World, context: Context): void {
 	if (!stats) return;
 
 	// 每秒更新一次
-	const frameCount = context.resources.getResource<FrameCount>();
+	const frameCount = world.resources.getResource<FrameCount>();
 	if (frameCount && frameCount.value % 60 === 0) {
 		const debugText = `
 === RVO Performance ===

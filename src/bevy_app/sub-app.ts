@@ -56,9 +56,9 @@ export class SubApp {
 		// Initialize context 
 		this.context = context ?? new AppContext(this._world.getWorld());
 
-		this.resourceManager = this.context.resources;
-		this.commandBuffer = this.context.commands;
-		this.messageRegistry = this.context.messages;
+		this.resourceManager = this.world().world.resources;
+		this.commandBuffer = this.world().world.commands;
+		this.messageRegistry = this.world().world.messages;
 
 
 		this.schedules = new Schedules(this._world.getWorld(), this.context);

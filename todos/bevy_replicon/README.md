@@ -317,7 +317,7 @@ import { ClientPredictionManager } from "bevy_replicon";
 // 输入处理系统
 function clientInputSystem(world: World, deltaTime: number): void {
     const context = world.context as { resources: Map<string, Resource> };
-    const predictionManager = context.resources.get("ClientPredictionManager") as ClientPredictionManager;
+    const predictionManager = world.resources.get("ClientPredictionManager") as ClientPredictionManager;
 
     if (!predictionManager || !predictionManager.isEnabled()) {
         return;

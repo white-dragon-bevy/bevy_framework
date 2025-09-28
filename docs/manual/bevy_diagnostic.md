@@ -212,7 +212,7 @@ store.clear();
 
 ```typescript
 function myDiagnosticSystem(world: World, context: Context): void {
-	const resources = context.resources;
+	const resources = world.resources;
 	const store = resources.getResource<DiagnosticsStore>();
 	if (!store) return;
 
@@ -565,7 +565,7 @@ function setupCustomDiagnostics(): App {
 }
 
 function updateCustomDiagnostics(world: World, context: Context): void {
-	const resources = context.resources;
+	const resources = world.resources;
 	const store = resources.getResource<DiagnosticsStore>();
 	if (!store) return;
 
@@ -647,7 +647,7 @@ function setupPerformanceDashboard(): App {
 }
 
 function updatePerformanceDashboard(world: World, context: Context): void {
-	const resources = context.resources;
+	const resources = world.resources;
 	const store = resources.getResource<DiagnosticsStore>();
 	if (!store) return;
 
@@ -793,7 +793,7 @@ let budgetViolationCounts = {
 };
 
 function checkPerformanceBudget(world: World, context: Context): void {
-	const resources = context.resources;
+	const resources = world.resources;
 	const store = resources.getResource<DiagnosticsStore>();
 	if (!store) return;
 
@@ -997,7 +997,7 @@ const actualFps = fpsDiagnostic?.value(); // 更精确
 ```typescript
 // 在长时间运行后清理历史，避免内存积累
 function periodicCleanup(world: World, context: Context): void {
-	const store = context.resources.getResource<DiagnosticsStore>();
+	const store = world.resources.getResource<DiagnosticsStore>();
 	if (!store) return;
 
 	const currentTime = os.clock();

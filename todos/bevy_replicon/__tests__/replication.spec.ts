@@ -13,7 +13,7 @@ export = () => {
 	beforeEach(() => {
 		world = new World();
 		const context = (world as unknown as { context: { resources: Map<string, import("../../bevy_ecs").Resource> } }).context;
-		context.resources = new Map();
+		world.resources = new Map();
 
 		manager = new ReplicationManager(NetworkRole.Server, {
 			strategy: ReplicationStrategy.Full,
@@ -23,7 +23,7 @@ export = () => {
 			reliable: true,
 		});
 
-		context.resources.set("ReplicationManager", manager);
+		world.resources.set("ReplicationManager", manager);
 	});
 
 	describe("ReplicationManager", () => {

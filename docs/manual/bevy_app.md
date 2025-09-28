@@ -1019,7 +1019,7 @@ tracker.print();
 ```typescript
 function debugSystem(world: World, context: AppContext): void {
 	// 监控资源变化
-	const resources = context.resources;
+	const resources = world.resources;
 	const resourceCount = resources.size();
 
 	print(`Active resources: ${resourceCount}`);

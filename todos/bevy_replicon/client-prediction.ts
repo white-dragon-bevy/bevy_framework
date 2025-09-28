@@ -5,7 +5,7 @@
  */
 
 import { AnyComponent, Entity, World } from "@rbxts/matter";
-import { Resource } from "../bevy_ecs";
+import { Resource } from "../../src/bevy_ecs";
 import { ClientId, NetworkRole, NetworkTime, PredictionRollback } from "./types";
 import { ReplicationManager } from "./replication";
 
@@ -429,7 +429,7 @@ export class ClientPredictionManager implements Resource {
  * @param world - Matter世界实例
  * @param context - 应用上下文
  */
-export function clientPredictionSystem(world: World, appContext: import("../bevy_app").AppContext): void {
+export function clientPredictionSystem(world: World, appContext: import("../../src/bevy_app").AppContext): void {
 	// TODO: 待完善资源管理系统后实现
 	// 需要:
 	// 1. 从 AppContext 获取 ClientPredictionManager 和 ReplicationManager

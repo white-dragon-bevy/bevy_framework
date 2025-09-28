@@ -107,7 +107,7 @@ function myRunner(app: App): AppExit {
  */
 function printSystem(world: BevyWorld, context: AppContext): void {
 	// 通过上下文访问资源扩展
-	const resources = context.resources;
+	const resources = world.resources;
 	const inputResource = resources.getResource<Input>();
 
 	if (inputResource) {
@@ -122,7 +122,7 @@ function printSystem(world: BevyWorld, context: AppContext): void {
  */
 function exitSystem(world: BevyWorld, context: AppContext): void {
 	// 通过上下文访问资源扩展
-	const resources = context.resources;
+	const resources = world.resources;
 	const inputResource = resources.getResource<Input>();
 
 	if (inputResource && inputResource.value === "exit") {

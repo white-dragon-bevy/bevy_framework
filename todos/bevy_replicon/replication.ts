@@ -5,7 +5,7 @@
  */
 
 import { AnyComponent, Entity, World } from "@rbxts/matter";
-import { Resource } from "../bevy_ecs";
+import { Resource } from "../../src/bevy_ecs";
 import { ClientId, EntityAuthority, NetworkMessage, NetworkRole, Replicated, ReplicationConfig, ReplicationRegistry, ReplicationStrategy } from "./types";
 
 /**
@@ -236,7 +236,7 @@ export class ReplicationManager implements Resource {
  * @param world - Matter世界实例
  * @param context - 应用上下文
  */
-export function replicationSystem(world: World, appContext: import("../bevy_app").AppContext): void {
+export function replicationSystem(world: World, appContext: import("../../src/bevy_app").AppContext): void {
 	// TODO: 待完善资源管理系统后实现
 	// 需要:
 	// 1. 从 AppContext 获取 ReplicationManager 资源

@@ -99,10 +99,10 @@ export class StatesPlugin<S extends States> implements Plugin {
 	 * @param app - 应用实例
 	 */
 	public build(app: App): void {
-		const existingResourceManager = app.context.resources
+		const existingResourceManager = app.world().world.resources
 		this.resourceManager = existingResourceManager;
 
-		let existingEventManager = app.context.messages;
+		let existingEventManager = app.world().world.messages;
 		this.messageRegistry = existingEventManager;
 
 		// 设置转换管理器的事件管理器
@@ -110,7 +110,7 @@ export class StatesPlugin<S extends States> implements Plugin {
 
 		// add to resources
 		const stateTransitionManagerTypeDescriptor = getGenericTypeDescriptor<StateTransitionManager<S>>(this.statsTypeDescriptor)
-		app.context.resources.insertResourceByTypeDescriptor(this.transitionManager,stateTransitionManagerTypeDescriptor)
+		app.world().world.resources.insertResourceByTypeDescriptor(this.transitionManager,stateTransitionManagerTypeDescriptor)
 
 		// 注册 StateTransition 调度到主调度顺序（在 PRE_UPDATE 之后，UPDATE 之前）
 		const mainSubApp = app.main();
@@ -205,7 +205,7 @@ export class ComputedStatesPlugin<TSource extends States, TComputed extends Comp
 	 */
 	public build(app: App): void {
 		// 使用 App 上下文中的资源管理器，确保所有插件共享同一实例
-		this.resourceManager = app.context.resources;
+		this.resourceManager = app.world().world.resources;
 
 		// 添加计算状态更新系统 - 在 StateTransition 调度中运行，紧跟在状态转换之后
 		app.addSystems(StateTransition as unknown as string, (worldParam: World) => {
@@ -313,7 +313,7 @@ export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TPar
 	 */
 	public build(app: App): void {
 		// 使用 App 上下文中的资源管理器，确保所有插件共享同一实例
-		this.resourceManager = app.context.resources;
+		this.resourceManager = app.world().world.resources;
 
 		// 添加子状态管理系统
 		app.addSystems(StateTransition as unknown as string, (worldParam: World) => {

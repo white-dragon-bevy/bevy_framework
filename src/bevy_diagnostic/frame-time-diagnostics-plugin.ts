@@ -6,7 +6,7 @@
 import { Plugin } from "../../src/bevy_app/plugin";
 import { App } from "../../src/bevy_app/app";
 import { World } from "@rbxts/matter";
-import { Context } from "../bevy_ecs";
+import { BevyWorld, Context } from "../bevy_ecs";
 import { Update } from "../../src/bevy_app/main-schedule";
 import {
 	Diagnostic,
@@ -111,8 +111,8 @@ export class FrameTimeDiagnosticsPlugin implements Plugin {
 	 * @param world - ECS世界
 	 * @param context - 系统上下文
 	 */
-	static diagnosticSystem(world: World, context: Context): void {
-		const resources = context.resources;
+	static diagnosticSystem(world: BevyWorld, context: Context): void {
+		const resources = world.resources;
 		const diagnosticsStore = resources.getResource<DiagnosticsStore>();
 		const frameCount = resources.getResource<FrameCount>();
 

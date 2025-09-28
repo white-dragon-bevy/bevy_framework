@@ -10,7 +10,7 @@ import { PostUpdate } from "../../src/bevy_app/main-schedule";
 import { Diagnostic, DiagnosticPath, DiagnosticsStore } from "./diagnostic";
 import { padEnd, padStart, numberToFixed } from "../../src/utils/string-polyfills";
 import { Resource } from "../../src/bevy_ecs/resource";
-import { Context } from "../bevy_ecs";
+import { BevyWorld, Context } from "../bevy_ecs";
 
 /**
  * 计时器类 - 用于定时触发
@@ -208,8 +208,8 @@ export class LogDiagnosticsPlugin implements Plugin {
 	 * @param world - ECS世界
 	 * @param context - 系统上下文
 	 */
-	static logDiagnosticsSystem(world: World, context: Context): void {
-		const resources = context.resources;
+	static logDiagnosticsSystem(world: BevyWorld, context: Context): void {
+		const resources = world.resources;
 		const state = resources.getResource<LogDiagnosticsState>();
 		const diagnostics = resources.getResource<DiagnosticsStore>();
 
@@ -228,8 +228,8 @@ export class LogDiagnosticsPlugin implements Plugin {
 	 * @param world - ECS世界
 	 * @param context - 系统上下文
 	 */
-	static logDiagnosticsDebugSystem(world: World, context: Context): void {
-		const resources = context.resources;
+	static logDiagnosticsDebugSystem(world: BevyWorld, context: Context): void {
+		const resources = world.resources;
 		const state = resources.getResource<LogDiagnosticsState>();
 		const diagnostics = resources.getResource<DiagnosticsStore>();
 

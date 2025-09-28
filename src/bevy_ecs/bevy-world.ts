@@ -3,7 +3,11 @@
  * 继承 Matter World 并添加 Bevy 风格的查询方法
  */
 
+import { CommandBuffer } from "./command-buffer";
+import { EventManager, EventPropagator } from "./events";
 import { World } from "./matter-world";
+import { MessageRegistry } from "./message";
+import { ResourceManager } from "./resource";
 
 // 导出 Matter 的 World 类型
 export { World } from "@rbxts/matter";
@@ -13,9 +17,21 @@ export { World } from "@rbxts/matter";
  * 扩展 Matter 的 World，提供额外的查询功能
  */
 export class BevyWorld extends World {
+	resources: ResourceManager;
+	commands: CommandBuffer;
+	messages: MessageRegistry;
+	events: EventManager;
+	eventPropagator: EventPropagator;
 	constructor() {
 		super();
+		this.resources = new ResourceManager();
+		this.commands = new CommandBuffer();
+		this.messages = new MessageRegistry(this);
+		this.events = new EventManager(this);
+		this.eventPropagator = new EventPropagator(this, this.events);
 	}
+
+	
 
 	/**
 	 * 清除内部跟踪器

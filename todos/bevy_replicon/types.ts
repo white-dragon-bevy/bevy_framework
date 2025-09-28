@@ -5,7 +5,7 @@
  */
 
 import { AnyComponent, Entity, World } from "@rbxts/matter";
-import { Resource } from "../bevy_ecs";
+import { Resource } from "../../src/bevy_ecs";
 
 /**
  * 客户端标识符

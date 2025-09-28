@@ -510,7 +510,7 @@ function physicsSystem(world: World, dt: number) {
 function collisionSystem(world: World, dt: number, context: SystemContext) {
 	const commands = context.commands;
 	// 碰撞检测和处理
-	commands.flush(world, context.resources);
+	commands.flush(world, world.resources);
 }
 
 function aiSystem(world: World, dt: number) {
@@ -522,7 +522,7 @@ function renderSystem(world: World, dt: number) {
 }
 
 function uiSystem(world: World, dt: number, context: SystemContext) {
-	const resources = context.resources;
+	const resources = world.resources;
 	resources.withResource<GameState>((state) => {
 		// 更新 UI 显示分数
 	});

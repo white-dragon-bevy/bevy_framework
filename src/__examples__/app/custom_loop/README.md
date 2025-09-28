@@ -57,7 +57,7 @@ class Input  {
 
 ```typescript
 function printSystem(world: BevyWorld, context: AppContext): void {
-    const resources = context.resources;
+    const resources = world.resources;
     const inputResource = resources.getResource<Input>();
 
     if (inputResource) {

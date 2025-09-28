@@ -1420,7 +1420,7 @@ class CooldownManager {
 // 冷却系统
 function cooldownSystem(world: World, context: Context, app: App): void {
 	const delta = app.ext.time.getDelta();
-	const manager = context.resources.get<CooldownManager>();
+	const manager = world.resources.get<CooldownManager>();
 
 	if (manager) {
 		manager.update(delta);
@@ -1429,7 +1429,7 @@ function cooldownSystem(world: World, context: Context, app: App): void {
 
 // 技能系统
 function skillSystem(world: World, context: Context, app: App): void {
-	const manager = context.resources.get<CooldownManager>();
+	const manager = world.resources.get<CooldownManager>();
 	if (!manager) return;
 
 	// 使用技能

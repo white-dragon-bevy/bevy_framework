@@ -15,7 +15,7 @@ import { RVOSimulatorResource } from "../resources/rvo-simulator";
  */
 export function simulateRVO(world: BevyWorld, context: Context): void {
 	// 获取配置资源
-	const config = context.resources.getResource<RVOConfig>();
+	const config = world.resources.getResource<RVOConfig>();
 	if (!config) {
 		return;
 	}
@@ -26,7 +26,7 @@ export function simulateRVO(world: BevyWorld, context: Context): void {
 	}
 
 	// 获取模拟器资源
-	const simulatorResource = context.resources.getResource<RVOSimulatorResource>();
+	const simulatorResource = world.resources.getResource<RVOSimulatorResource>();
 	if (!simulatorResource || !simulatorResource.initialized) {
 		return;
 	}
@@ -66,11 +66,11 @@ function debugPrintStats(simulatorResource: RVOSimulatorResource): void {
 /**
  * 手动执行单步模拟
  * 供需要精确控制模拟时机的场景使用
- * @param context - 系统上下文
+ * @param world - ECS 世界实例
  * @returns 是否成功执行模拟
  */
-export function stepSimulation(context: Context): boolean {
-	const simulatorResource = context.resources.getResource<RVOSimulatorResource>();
+export function stepSimulation(world: BevyWorld): boolean {
+	const simulatorResource = world.resources.getResource<RVOSimulatorResource>();
 	if (!simulatorResource || !simulatorResource.initialized) {
 		return false;
 	}
@@ -85,16 +85,17 @@ export function stepSimulation(context: Context): boolean {
 
 /**
  * 设置模拟时间步长
+ * @param world - ECS 世界实例
  * @param context - 系统上下文
  * @param timeStep - 新的时间步长
  */
-export function setSimulationTimeStep(context: Context, timeStep: number): void {
-	const config = context.resources.getResource<RVOConfig>();
+export function setSimulationTimeStep(world: BevyWorld, context: Context, timeStep: number): void {
+	const config = world.resources.getResource<RVOConfig>();
 	if (config) {
 		config.timeStep = timeStep;
 	}
 
-	const simulatorResource = context.resources.getResource<RVOSimulatorResource>();
+	const simulatorResource = world.resources.getResource<RVOSimulatorResource>();
 	if (simulatorResource && simulatorResource.initialized) {
 		simulatorResource.simulator.setTimeStep(timeStep);
 	}
@@ -105,12 +106,12 @@ export function setSimulationTimeStep(context: Context, timeStep: number): void 
  * @param context - 系统上下文
  * @returns 统计信息
  */
-export function getSimulationStats(context: Context): {
+export function getSimulationStats(world: BevyWorld): {
 	agentCount: number;
 	obstacleCount: number;
 	averageSimulationTime: number;
 } | undefined {
-	const simulatorResource = context.resources.getResource<RVOSimulatorResource>();
+	const simulatorResource = world.resources.getResource<RVOSimulatorResource>();
 	if (!simulatorResource) {
 		return undefined;
 	}

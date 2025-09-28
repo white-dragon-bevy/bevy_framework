@@ -14,7 +14,7 @@ import { RVOSimulatorResource } from "../resources/rvo-simulator";
  */
 export function cleanupRVOSystem(world: BevyWorld, context: Context): void {
 	// 获取模拟器资源
-	const simulatorResource = context.resources.getResource<RVOSimulatorResource>();
+	const simulatorResource = world.resources.getResource<RVOSimulatorResource>();
 	if (!simulatorResource) {
 		return;
 	}

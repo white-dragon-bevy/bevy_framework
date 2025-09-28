@@ -128,7 +128,7 @@ OnTransition(GameState.LOADING, GameState.PLAYING)
 import { NextState } from "@white-dragon-bevy/bevy-framework/bevy_state";
 
 function loadingCompleteSystem(world: World, context: Context): void {
-	const nextState = context.resources.getResource<NextState<typeof GameState.PLAYING>>();
+	const nextState = world.resources.getResource<NextState<typeof GameState.PLAYING>>();
 
 	if (nextState && isLoadingComplete()) {
 		// 设置下一个状态,将在 StateTransition 调度中处理
@@ -473,7 +473,7 @@ app.addSystems(OnEnter(GameState.SPLASH), (world: World, context: Context) => {
 	print("显示启动画面");
 	// 3秒后自动进入菜单
 	task.delay(3, () => {
-		const nextState = context.resources.getResource<NextState<typeof GameState>>();
+		const nextState = world.resources.getResource<NextState<typeof GameState>>();
 		nextState?.set(GameState.MENU);
 	});
 });
@@ -493,7 +493,7 @@ app.addSystems(OnEnter(GameState.LOADING), (world: World, context: Context) => {
 	print("开始加载资源");
 	// 模拟资源加载
 	loadGameAssets().then(() => {
-		const nextState = context.resources.getResource<NextState<typeof GameState>>();
+		const nextState = world.resources.getResource<NextState<typeof GameState>>();
 		nextState?.set(GameState.PLAYING);
 	});
 });
@@ -512,8 +512,8 @@ app.addSystems(OnExit(GameState.PLAYING), (world: World, context: Context) => {
 
 // 4. 添加暂停切换系统
 app.addSystems(BuiltinSchedules.UPDATE, (world: World, context: Context) => {
-	const state = context.resources.getResource<State<typeof GameState>>();
-	const nextState = context.resources.getResource<NextState<typeof GameState>>();
+	const state = world.resources.getResource<State<typeof GameState>>();
+	const nextState = world.resources.getResource<NextState<typeof GameState>>();
 
 	if (UserInputService.IsKeyDown(Enum.KeyCode.Escape)) {
 		if (state?.is(GameState.PLAYING)) {
@@ -624,13 +624,13 @@ app.addSystems(OnEnter(MenuSubState.states.OPTIONS), (world, context) => {
 
 // 在菜单间切换
 function navigateToOptions(context: Context): void {
-	const nextSubState = context.resources.getResource<NextState<typeof MenuSubState>>();
+	const nextSubState = world.resources.getResource<NextState<typeof MenuSubState>>();
 	nextSubState?.set(MenuSubState.states.OPTIONS);
 }
 
 // 退出菜单(子状态自动被移除)
 function exitMenu(context: Context): void {
-	const nextState = context.resources.getResource<NextState<typeof AppState>>();
+	const nextState = world.resources.getResource<NextState<typeof AppState>>();
 	nextState?.set(AppState.GAME);
 	// MenuSubState 会自动被清理,因为父状态不再是 MENU
 }
@@ -777,7 +777,7 @@ app.addSystems(BuiltinSchedules.UPDATE, (world: World, context: Context) => {
 
 // 方式2: 获取最后一次转换
 function checkLastTransition(context: Context): void {
-	const lastTrans = lastTransition<typeof GameState>(context.resources);
+	const lastTrans = lastTransition<typeof GameState>(world.resources);
 
 	if (lastTrans) {
 		print(`最后转换: ${lastTrans.exited?.getStateId()} → ${lastTrans.entered?.getStateId()}`);
@@ -933,7 +933,7 @@ app.addSystems(
 // ❌ 避免在系统内部重复检查状态
 app.addSystems(BuiltinSchedules.UPDATE, (world, context) => {
 	// 不好的做法
-	const state = context.resources.getResource<State<typeof GameState>>();
+	const state = world.resources.getResource<State<typeof GameState>>();
 	if (state?.is(GameState.PLAYING)) {
 		// 应该使用 runIf
 	}
@@ -989,7 +989,7 @@ app.addSystems(
 // ❌ 避免每帧都检查状态
 app.addSystems(BuiltinSchedules.UPDATE, (world, context) => {
 	// 不好的做法 - 每帧都检查
-	const state = context.resources.getResource<State<typeof GameState>>();
+	const state = world.resources.getResource<State<typeof GameState>>();
 	if (state) {
 		// ...
 	}
@@ -1015,7 +1015,7 @@ app.addSystems(BuiltinSchedules.UPDATE, (world, context) => {
 
 // 监控状态作用域实体
 app.addSystems(BuiltinSchedules.UPDATE, (world, context) => {
-	const state = context.resources.getResource<State<typeof GameState>>();
+	const state = world.resources.getResource<State<typeof GameState>>();
 	if (state) {
 		const entities = getEntitiesInState(world, state.get());
 		print(`[StateScoped] ${state.get().getStateId()}: ${entities.size()} entities`);
@@ -1030,13 +1030,13 @@ app.addSystems(BuiltinSchedules.UPDATE, (world, context) => {
 ```typescript
 // ❌ 错误: 直接修改 State 资源
 function startGame(context: Context): void {
-	const state = context.resources.getResource<State<typeof GameState>>();
+	const state = world.resources.getResource<State<typeof GameState>>();
 	state?.setInternal(GameState.PLAYING);  // 不会触发 OnEnter/OnExit!
 }
 
 // ✅ 正确: 使用 NextState
 function startGame(context: Context): void {
-	const nextState = context.resources.getResource<NextState<typeof GameState>>();
+	const nextState = world.resources.getResource<NextState<typeof GameState>>();
 	nextState?.set(GameState.PLAYING);
 }
 ```

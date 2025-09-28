@@ -3,7 +3,7 @@
  */
 
 import { World } from "@rbxts/matter";
-import { AppContext } from "../bevy_app";
+import { AppContext } from "../../src/bevy_app";
 import { ReplicationManager } from "./replication";
 import { RobloxNetworkAdapter } from "./roblox-network";
 

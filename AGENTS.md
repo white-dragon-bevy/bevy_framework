@@ -87,7 +87,7 @@ pnpm install
 
 ## 审计
 - 审计报告保存在 `.audit/` 目录
-- 应该从 context.resources 里读取 manager，而不是尝试在 World 对象上存储属性。
+- 应该从 world.resources 里读取 manager，而不是尝试在 World 对象上存储属性。
 
 ## 单元测试
 

@@ -3,7 +3,7 @@
  * 提供便捷的 API 访问 RVO 系统
  */
 
-import { Context } from "../bevy_ecs/types";
+import { BevyWorld, Context } from "../bevy_ecs/types";
 import { RVOConfig } from "./resources/rvo-config";
 import { RVOSimulatorResource } from "./resources/rvo-simulator";
 import Simulator from "./core/Simulator";
@@ -13,8 +13,8 @@ import Simulator from "./core/Simulator";
  * @param context - 系统上下文
  * @returns 模拟器实例
  */
-export function getRVOSimulator(context: Context): Simulator | undefined {
-	const resource = context.resources.getResource<RVOSimulatorResource>();
+export function getRVOSimulator(world:BevyWorld): Simulator | undefined {
+	const resource = world.resources.getResource<RVOSimulatorResource>();
 	return resource?.simulator;
 }
 
@@ -23,8 +23,8 @@ export function getRVOSimulator(context: Context): Simulator | undefined {
  * @param context - 系统上下文
  * @returns RVO 配置
  */
-export function getRVOConfig(context: Context): RVOConfig | undefined {
-	return context.resources.getResource<RVOConfig>();
+export function getRVOConfig(world:BevyWorld): RVOConfig | undefined {
+	return world.resources.getResource<RVOConfig>();
 }
 
 /**
@@ -33,8 +33,8 @@ export function getRVOConfig(context: Context): RVOConfig | undefined {
  * @param agentId - Agent ID
  * @returns 实体 ID
  */
-export function getAgentEntity(context: Context, agentId: number): number | undefined {
-	const resource = context.resources.getResource<RVOSimulatorResource>();
+export function getAgentEntity(world:BevyWorld, agentId: number): number | undefined {
+	const resource = world.resources.getResource<RVOSimulatorResource>();
 	return resource?.getAgentEntity(agentId);
 }
 
@@ -44,8 +44,8 @@ export function getAgentEntity(context: Context, agentId: number): number | unde
  * @param entity - 实体 ID
  * @returns Agent ID
  */
-export function getEntityAgent(context: Context, entity: number): number | undefined {
-	const resource = context.resources.getResource<RVOSimulatorResource>();
+export function getEntityAgent(world:BevyWorld, entity: number): number | undefined {
+	const resource = world.resources.getResource<RVOSimulatorResource>();
 	return resource?.getEntityAgent(entity);
 }
 
@@ -55,8 +55,8 @@ export function getEntityAgent(context: Context, entity: number): number | undef
  * @param obstacleId - 障碍物 ID
  * @returns 实体 ID
  */
-export function getObstacleEntity(context: Context, obstacleId: number): number | undefined {
-	const resource = context.resources.getResource<RVOSimulatorResource>();
+export function getObstacleEntity(world:BevyWorld, obstacleId: number): number | undefined {
+	const resource = world.resources.getResource<RVOSimulatorResource>();
 	return resource?.getObstacleEntity(obstacleId);
 }
 
@@ -66,8 +66,8 @@ export function getObstacleEntity(context: Context, obstacleId: number): number 
  * @param entity - 实体 ID
  * @returns 障碍物 ID
  */
-export function getEntityObstacle(context: Context, entity: number): number | undefined {
-	const resource = context.resources.getResource<RVOSimulatorResource>();
+export function getEntityObstacle(world:BevyWorld, entity: number): number | undefined {
+	const resource = world.resources.getResource<RVOSimulatorResource>();
 	return resource?.getEntityObstacle(entity);
 }
 
@@ -76,7 +76,7 @@ export function getEntityObstacle(context: Context, entity: number): number | un
  * @param context - 系统上下文
  * @returns 统计信息
  */
-export function getRVOStats(context: Context): {
+export function getRVOStats(world:BevyWorld): {
 	agentCount: number;
 	obstacleCount: number;
 	averageSimulationTime: number;
@@ -84,7 +84,7 @@ export function getRVOStats(context: Context): {
 	totalSimulationTime: number;
 	simulationCount: number;
 } | undefined {
-	const resource = context.resources.getResource<RVOSimulatorResource>();
+	const resource = world.resources.getResource<RVOSimulatorResource>();
 	if (!resource) {
 		return undefined;
 	}
@@ -100,8 +100,8 @@ export function getRVOStats(context: Context): {
  * @param context - 系统上下文
  * @returns 是否已初始化
  */
-export function isRVOInitialized(context: Context): boolean {
-	const resource = context.resources.getResource<RVOSimulatorResource>();
+export function isRVOInitialized(world:BevyWorld): boolean {
+	const resource = world.resources.getResource<RVOSimulatorResource>();
 	return resource?.initialized ?? false;
 }
 
@@ -109,8 +109,8 @@ export function isRVOInitialized(context: Context): boolean {
  * 重置 RVO 系统
  * @param context - 系统上下文
  */
-export function resetRVO(context: Context): void {
-	const resource = context.resources.getResource<RVOSimulatorResource>();
+export function resetRVO(world:BevyWorld): void {
+	const resource = world.resources.getResource<RVOSimulatorResource>();
 	resource?.reset();
 }
 
@@ -119,8 +119,8 @@ export function resetRVO(context: Context): void {
  * @param context - 系统上下文
  * @param enabled - 是否启用调试
  */
-export function setRVODebugMode(context: Context, enabled: boolean): void {
-	const config = context.resources.getResource<RVOConfig>();
+export function setRVODebugMode(world:BevyWorld, enabled: boolean): void {
+	const config = world.resources.getResource<RVOConfig>();
 	if (config) {
 		config.debugDraw = enabled;
 	}
@@ -131,8 +131,8 @@ export function setRVODebugMode(context: Context, enabled: boolean): void {
  * @param context - 系统上下文
  * @param enabled - 是否启用自动模拟
  */
-export function setRVOAutoSimulate(context: Context, enabled: boolean): void {
-	const config = context.resources.getResource<RVOConfig>();
+export function setRVOAutoSimulate(world:BevyWorld, enabled: boolean): void {
+	const config = world.resources.getResource<RVOConfig>();
 	if (config) {
 		config.autoSimulate = enabled;
 	}
@@ -143,8 +143,8 @@ export function setRVOAutoSimulate(context: Context, enabled: boolean): void {
  * @param context - 系统上下文
  * @returns 是否成功执行
  */
-export function stepRVOSimulation(context: Context): boolean {
-	const resource = context.resources.getResource<RVOSimulatorResource>();
+export function stepRVOSimulation(world: BevyWorld): boolean {
+	const resource = world.resources.getResource<RVOSimulatorResource>();
 	if (!resource || !resource.initialized) {
 		return false;
 	}
@@ -155,11 +155,10 @@ export function stepRVOSimulation(context: Context): boolean {
 
 /**
  * 检查所有 Agent 是否到达目标
- * @param context - 系统上下文
  * @returns 是否所有 Agent 都到达目标
  */
-export function allAgentsReachedGoal(context: Context): boolean {
-	const simulator = getRVOSimulator(context);
+export function allAgentsReachedGoal(world: BevyWorld): boolean {
+	const simulator = getRVOSimulator(world);
 	if (!simulator) {
 		return false;
 	}

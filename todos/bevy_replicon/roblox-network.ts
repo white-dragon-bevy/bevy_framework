@@ -6,7 +6,7 @@
 
 import { RunService, Players, ReplicatedStorage } from "@rbxts/services";
 import { World } from "@rbxts/matter";
-import { Resource } from "../bevy_ecs";
+import { Resource } from "../../src/bevy_ecs";
 import { ClientId, createClientId, NetworkMessage, NetworkRole, NetworkStats, NetworkTime } from "./types";
 import { ReplicationManager } from "./replication";
 

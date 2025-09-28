@@ -4,7 +4,7 @@
  * 提供网络复制功能的插件集成
  */
 
-import { BasePlugin, App, BuiltinSchedules } from "../bevy_app";
+import { BasePlugin, App, BuiltinSchedules } from "../../src/bevy_app";
 import { RunService } from "@rbxts/services";
 import {
 	NetworkRole,
@@ -63,13 +63,13 @@ export class RepliconServerPlugin extends BasePlugin {
 
 		// 将资源添加到 app 的 context
 		const world = app.getWorld();
-		const context = (world as unknown as { context: { resources: Map<string, import("../bevy_ecs").Resource> } }).context;
-		if (!context.resources) {
-			context.resources = new Map();
+		const context = (world as unknown as { context: { resources: Map<string, import("../../src/bevy_ecs").Resource> } }).context;
+		if (!world.resources) {
+			world.resources = new Map();
 		}
-		context.resources.set("ReplicationManager", replicationManager);
-		context.resources.set("RobloxNetworkAdapter", networkAdapter);
-		context.resources.set("ServerConfig", this.config);
+		world.resources.set("ReplicationManager", replicationManager);
+		world.resources.set("RobloxNetworkAdapter", networkAdapter);
+		world.resources.set("ServerConfig", this.config);
 
 		// 初始化网络适配器
 		networkAdapter.initialize(NetworkRole.Server);
@@ -177,14 +177,14 @@ export class RepliconClientPlugin extends BasePlugin {
 
 		// 将资源添加到 app 的 context
 		const world = app.getWorld();
-		const context = (world as unknown as { context: { resources: Map<string, import("../bevy_ecs").Resource> } }).context;
-		if (!context.resources) {
-			context.resources = new Map();
+		const context = (world as unknown as { context: { resources: Map<string, import("../../src/bevy_ecs").Resource> } }).context;
+		if (!world.resources) {
+			world.resources = new Map();
 		}
-		context.resources.set("ReplicationManager", replicationManager);
-		context.resources.set("RobloxNetworkAdapter", networkAdapter);
-		context.resources.set("ClientConfig", this.config);
-		context.resources.set("ClientPredictionManager", predictionManager);
+		world.resources.set("ReplicationManager", replicationManager);
+		world.resources.set("RobloxNetworkAdapter", networkAdapter);
+		world.resources.set("ClientConfig", this.config);
+		world.resources.set("ClientPredictionManager", predictionManager);
 
 		// 初始化网络适配器
 		networkAdapter.initialize(NetworkRole.Client);

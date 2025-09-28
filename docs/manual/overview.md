@@ -26,6 +26,7 @@
 Bevy-Roblox 是一个将 Rust 游戏引擎 [Bevy](https://bevyengine.org) 的核心设计理念移植到 Roblox 平台的 TypeScript 框架。它提供了完整的 **实体组件系统 (ECS)** 架构、**模块化插件系统**和**精确的调度管理**,帮助开发者构建大型、可维护的 Roblox 游戏。
 
 **核心特性**:
+
 - 🎯 **ECS 架构**: 基于 @rbxts/matter 实现的高性能实体组件系统
 - 🔌 **插件系统**: 灵活的模块化功能扩展机制
 - ⏱️ **调度系统**: 精确控制系统执行顺序和时机
@@ -36,6 +37,7 @@ Bevy-Roblox 是一个将 Rust 游戏引擎 [Bevy](https://bevyengine.org) 的核
 ### 1.2 为什么选择 Bevy-Roblox
 
 #### 传统 Roblox 开发的挑战
+
 ```lua
 -- 传统方式:代码耦合严重
 local player = game.Players.LocalPlayer
@@ -49,6 +51,7 @@ weapon.Damage.Value = weapon.Damage.Value * 1.5
 ```
 
 #### Bevy-Roblox 的优势
+
 ```typescript
 // ECS 方式:数据驱动,逻辑分离
 function combatSystem(world: World) {
@@ -64,6 +67,7 @@ app.addSystems(Update, combatSystem);
 ```
 
 **关键优势**:
+
 1. **可扩展性**: 通过插件系统轻松添加新功能
 2. **可测试性**: 系统函数纯粹,易于单元测试
 3. **可维护性**: 关注点分离,代码组织清晰
@@ -141,17 +145,18 @@ app.addSystems(Update, combatSystem);
 
 Bevy-Roblox 忠实移植了 Bevy 的核心设计,但针对 Roblox 平台和 TypeScript 语言特性进行了适配:
 
-| 方面 | Rust Bevy | Bevy-Roblox |
-|------|-----------|-------------|
-| **ECS 实现** | 自研 bevy_ecs | 基于 @rbxts/matter |
-| **并发模型** | 多线程并行 | 单线程异步 |
-| **类型系统** | Rust 所有权 | TypeScript 可选类型 |
-| **插件注册** | `add_plugins()` | `addPlugins()` |
-| **系统调度** | 依赖图并行 | 拓扑排序顺序执行 |
-| **资源存储** | World 统一存储 | ResourceManager 独立管理 |
-| **事件系统** | EventReader/Writer | Message + Event 双系统 |
+| 方面               | Rust Bevy          | Bevy-Roblox              |
+| ------------------ | ------------------ | ------------------------ |
+| **ECS 实现** | 自研 bevy_ecs      | 基于 @rbxts/matter       |
+| **并发模型** | 多线程并行         | 单线程异步               |
+| **类型系统** | Rust 所有权        | TypeScript 可选类型      |
+| **插件注册** | `add_plugins()`  | `addPlugins()`         |
+| **系统调度** | 依赖图并行         | 拓扑排序顺序执行         |
+| **资源存储** | World 统一存储     | ResourceManager 独立管理 |
+| **事件系统** | EventReader/Writer | Message + Event 双系统   |
 
 **保留的 Bevy 特性**:
+
 - ✅ ECS 架构和数据驱动设计
 - ✅ 插件系统和模块化
 - ✅ 调度阶段和系统依赖
@@ -159,10 +164,15 @@ Bevy-Roblox 忠实移植了 Bevy 的核心设计,但针对 Roblox 平台和 Type
 - ✅ 命令缓冲和延迟执行
 
 **Roblox 特有创新**:
+
 - 🆕 AppContext 扩展系统 (类型安全的插件通信)
 - 🆕 Message + Event 双事件系统
 - 🆕 RobloxDefaultPlugins (平台适配插件集)
 - 🆕 环境感知系统 (自动区分客户端/服务端)
+
+### 1.5 与 Rust Bevy 的区别
+
+@docs\manual\bevy_matter_diff.md
 
 ---
 
@@ -171,6 +181,7 @@ Bevy-Roblox 忠实移植了 Bevy 的核心设计,但针对 Roblox 平台和 Type
 ### 2.1 环境准备
 
 #### 系统要求
+
 - **Node.js**: >= 18.0.0
 - **pnpm**: >= 8.0.0
 - **Roblox Studio**: 最新版本
@@ -223,6 +234,7 @@ EOF
 ```
 
 在 `package.json` 中添加:
+
 ```json
 {
   "scripts": {
@@ -263,12 +275,14 @@ main();
 ```
 
 编译并运行:
+
 ```bash
 pnpm build
 # 在 Roblox Studio 中打开生成的 .rbxl 文件
 ```
 
 **预期输出**:
+
 ```
 Hello, Bevy-Roblox!
 ```
@@ -382,6 +396,7 @@ app.addSystems(BuiltinSchedules.FIXED_UPDATE, physicsSystem);
 **职责**: 管理应用的创建、配置、运行和清理。
 
 **核心功能**:
+
 - **生命周期管理**: create → addPlugin → finish → run → cleanup
 - **插件协调**: 插件注册、依赖解析、构建序列
 - **调度管理**: 调度创建、编辑、执行
@@ -389,6 +404,7 @@ app.addSystems(BuiltinSchedules.FIXED_UPDATE, physicsSystem);
 - **错误处理**: 统一的错误捕获和处理机制
 
 **典型使用**:
+
 ```typescript
 import { App } from "bevy_app";
 
@@ -406,6 +422,7 @@ const app = App.create()
 **职责**: 提供 ECS 架构的核心功能,基于 @rbxts/matter 封装。
 
 **核心功能**:
+
 - **World**: 实体和组件的容器
 - **Commands**: 延迟执行的结构变更操作
 - **Query**: 高效的实体查询
@@ -414,6 +431,7 @@ const app = App.create()
 - **Events**: 基于观察者的事件系统
 
 **典型使用**:
+
 ```typescript
 import { World } from "@rbxts/matter";
 import { CommandBuffer } from "bevy_ecs";
@@ -438,12 +456,14 @@ function damageSystem(world: World) {
 **职责**: 管理实体的位置、旋转、缩放和父子关系。
 
 **核心功能**:
+
 - **Transform**: 本地变换 (相对父节点)
 - **GlobalTransform**: 全局变换 (世界坐标)
 - **Parent/Children**: 层级关系管理
 - **变换传播**: 自动计算全局变换
 
 **典型使用**:
+
 ```typescript
 import { Transform, Parent } from "bevy_transform";
 
@@ -468,6 +488,7 @@ function setupHierarchy(world: World) {
 **职责**: 实现有限状态机 (FSM) 和状态驱动的系统调度。
 
 **核心功能**:
+
 - **States**: 枚举状态定义
 - **NextState**: 状态转换控制
 - **ComputedStates**: 基于其他状态计算的派生状态
@@ -475,6 +496,7 @@ function setupHierarchy(world: World) {
 - **OnEnter/OnExit**: 状态转换时的回调调度
 
 **典型使用**:
+
 ```typescript
 import { States, NextState, OnEnter, OnExit } from "bevy_state";
 
@@ -503,12 +525,14 @@ function pauseGame(app: App) {
 **职责**: 提供高精度的时间管理和计时功能。
 
 **核心功能**:
+
 - **Time**: 当前时间和 delta time
 - **Timer**: 倒计时和循环计时器
 - **Stopwatch**: 秒表计时器
 - **Fixed Time**: 固定时间步
 
 **典型使用**:
+
 ```typescript
 import { Time, Timer } from "bevy_time";
 
@@ -533,12 +557,14 @@ function respawnSystem(world: World, app: App) {
 **职责**: 统一管理键盘、鼠标、触摸和手柄输入。
 
 **核心功能**:
+
 - **ButtonInput**: 按钮输入状态 (按下、刚按下、刚释放)
 - **Axis**: 轴输入 (鼠标移动、摇杆)
 - **输入映射**: 将硬件输入映射到游戏动作
 - **输入历史**: 记录输入序列用于连招检测
 
 **典型使用**:
+
 ```typescript
 import { KeyCode, ButtonInput } from "bevy_input";
 
@@ -562,12 +588,14 @@ function movementSystem(world: World, app: App) {
 **职责**: 管理 Roblox 实例的可见性和渲染状态。
 
 **核心功能**:
+
 - **Visibility**: 可见性状态 (Visible/Hidden/Inherited)
 - **ViewVisibility**: 最终计算的可见性
 - **RobloxInstance**: 关联 Roblox 对象
 - **可见性传播**: 层级可见性继承
 
 **典型使用**:
+
 ```typescript
 import { Visibility, VisibilityState, RobloxInstance } from "bevy_render";
 
@@ -589,12 +617,14 @@ function setupRendering(world: World) {
 **职责**: 收集和显示性能指标。
 
 **核心功能**:
+
 - **FPS 诊断**: 帧率监控
 - **System Time 诊断**: 系统执行时间
 - **Entity Count 诊断**: 实体数量统计
 - **内存诊断**: 内存使用监控
 
 **典型使用**:
+
 ```typescript
 import { DiagnosticsPlugin } from "bevy_diagnostic";
 
@@ -615,12 +645,14 @@ function displayDiagnostics(app: App) {
 **职责**: 提供结构化日志记录。
 
 **核心功能**:
+
 - **分级日志**: trace/debug/info/warn/error
 - **日志过滤**: 按模块或级别过滤
 - **日志格式化**: 自定义输出格式
 - **日志输出**: 控制台、文件、远程
 
 **典型使用**:
+
 ```typescript
 import { LogPlugin, log, error } from "bevy_log";
 
@@ -640,6 +672,7 @@ function system() {
 **职责**: 提供灵活的输入映射和动作管理系统。
 
 **核心功能**:
+
 - **Input Mapping**: 将多种输入映射到游戏动作
 - **Action States**: 追踪动作状态 (按下、释放、值)
 - **Conflict Detection**: 检测和解决输入冲突
@@ -647,6 +680,7 @@ function system() {
 - **Gamepad Support**: 完整的手柄支持
 
 **典型使用**:
+
 ```typescript
 import { InputMap, ActionState, Actionlike } from "leafwing-input-manager";
 
@@ -676,6 +710,7 @@ function playerInputSystem(world: World) {
 **职责**: 实现 RVO (Reciprocal Velocity Obstacles) 算法用于群体寻路和避障。
 
 **核心功能**:
+
 - **RVO Simulator**: 群体模拟核心
 - **Agent Management**: 代理的添加、更新、移除
 - **Obstacle Support**: 静态和动态障碍物
@@ -683,6 +718,7 @@ function playerInputSystem(world: World) {
 - **Velocity Computation**: 避障速度计算
 
 **典型使用**:
+
 ```typescript
 import { RVOSimulator, Vector2 } from "roblox_rvo";
 
@@ -715,6 +751,7 @@ function rvoUpdateSystem() {
 **职责**: 提供客户端-服务端的自动网络同步。
 
 **规划功能**:
+
 - **组件复制**: 自动同步标记组件
 - **事件复制**: 网络事件传输
 - **权威性管理**: 客户端预测和服务端校正
@@ -727,6 +764,7 @@ function rvoUpdateSystem() {
 **职责**: 提供可视化的 ECS 调试工具。
 
 **核心功能**:
+
 - **实体浏览器**: 查看所有实体和组件
 - **系统监控**: 查看系统执行时间
 - **查询测试**: 实时测试查询表达式
@@ -1216,6 +1254,7 @@ pnpm format
 #### 5.2.2 组件开发工作流
 
 1. **定义组件**
+
 ```typescript
 // src/shared/components/player.ts
 import { component } from "@rbxts/matter";
@@ -1227,6 +1266,7 @@ export const Player = component<{
 ```
 
 2. **创建系统**
+
 ```typescript
 // src/shared/systems/level-up.ts
 import { World } from "@rbxts/matter";
@@ -1240,6 +1280,7 @@ export function levelUpSystem(world: World) {
 ```
 
 3. **注册到插件**
+
 ```typescript
 // src/shared/plugins/gameplay-plugin.ts
 import { BasePlugin } from "bevy_app";
@@ -1255,6 +1296,7 @@ export class GameplayPlugin extends BasePlugin {
 ```
 
 4. **添加到应用**
+
 ```typescript
 // src/main.ts
 import { GameplayPlugin } from "./shared/plugins/gameplay-plugin";
@@ -1289,6 +1331,7 @@ app.addPlugin(new ECSDebuggerPlugin({
 ```
 
 按 F9 打开调试器界面,可以:
+
 - 查看所有实体和组件
 - 监控系统执行时间
 - 实时测试查询
@@ -1665,19 +1708,20 @@ class LazyLoadPlugin extends BasePlugin {
 
 #### 7.1.1 类型映射
 
-| Rust Bevy | Roblox-TS | 说明 |
-|-----------|-----------|------|
-| `Entity` | `Entity (number)` | Matter 使用数字作为实体 ID |
-| `Component` | `component<T>()` | Matter 组件工厂函数 |
-| `Resource` | `object` | 任意对象都可作为资源 |
-| `Query<&T>` | `world.query(T)` | 查询语法略有不同 |
-| `Commands` | `CommandBuffer` | 自定义实现,API 类似 |
-| `EventReader<T>` | `MessageReader<T>` | 基于拉取的消息系统 |
-| `ResMut<T>` | `app.getResource<T>()` | 直接获取可变引用 |
+| Rust Bevy          | Roblox-TS                | 说明                       |
+| ------------------ | ------------------------ | -------------------------- |
+| `Entity`         | `Entity (number)`      | Matter 使用数字作为实体 ID |
+| `Component`      | `component<T>()`       | Matter 组件工厂函数        |
+| `Resource`       | `object`               | 任意对象都可作为资源       |
+| `Query<&T>`      | `world.query(T)`       | 查询语法略有不同           |
+| `Commands`       | `CommandBuffer`        | 自定义实现,API 类似        |
+| `EventReader<T>` | `MessageReader<T>`     | 基于拉取的消息系统         |
+| `ResMut<T>`      | `app.getResource<T>()` | 直接获取可变引用           |
 
 #### 7.1.2 API 对照
 
 **Rust Bevy**:
+
 ```rust
 fn my_system(
     mut commands: Commands,
@@ -1693,6 +1737,7 @@ app.add_systems(Update, my_system);
 ```
 
 **Roblox-TS**:
+
 ```typescript
 function mySystem(world: World, app: App) {
   const commands = new CommandBuffer();
@@ -1713,6 +1758,7 @@ app.addSystems(BuiltinSchedules.UPDATE, mySystem);
 **问题 1: 生命周期和借用检查**
 
 Rust:
+
 ```rust
 fn system(query: Query<&mut Transform>) {
     // 编译器保证不会有数据竞争
@@ -1720,6 +1766,7 @@ fn system(query: Query<&mut Transform>) {
 ```
 
 TypeScript:
+
 ```typescript
 // 需要手动确保不会同时修改同一组件
 function system(world: World) {
@@ -1732,6 +1779,7 @@ function system(world: World) {
 **问题 2: 泛型约束**
 
 Rust:
+
 ```rust
 fn generic_system<T: Component>(query: Query<&T>) {
     // ...
@@ -1739,6 +1787,7 @@ fn generic_system<T: Component>(query: Query<&T>) {
 ```
 
 TypeScript:
+
 ```typescript
 // TypeScript 泛型无法直接用于运行时
 // 解决方案:使用工厂函数
@@ -1756,6 +1805,7 @@ function createGenericSystem<T>(componentType: ComponentType<T>) {
 #### 7.2.1 重构传统代码
 
 **传统 Roblox Lua**:
+
 ```lua
 -- 面向对象+服务模式
 local PlayerService = {}
@@ -1777,6 +1827,7 @@ return PlayerService
 ```
 
 **Bevy-Roblox**:
+
 ```typescript
 // ECS 模式
 
@@ -1821,10 +1872,12 @@ app.addSystems(BuiltinSchedules.UPDATE, deathDetectionSystem, respawnSystem);
 #### 7.2.2 重构指南
 
 **步骤 1: 识别数据和行为**
+
 - 将类的属性转换为组件
 - 将类的方法转换为系统
 
 **步骤 2: 分解大类**
+
 ```typescript
 // 传统:一个大类
 class Player {
@@ -1848,6 +1901,7 @@ function inventorySystem(world: World) { }
 ```
 
 **步骤 3: 使用组合代替继承**
+
 ```typescript
 // 传统:继承
 class Character { }
@@ -1919,6 +1973,7 @@ function playerJoinSystem(world: World, app: App) {
 ### 8.1 文档链接
 
 #### 核心文档
+
 - [bevy_app - 应用系统](./bevy_app.md)
 - [bevy_ecs - ECS 核心](./bevy_ecs.md)
 - [bevy_transform - 变换系统](./bevy_transform.md)
@@ -1927,6 +1982,7 @@ function playerJoinSystem(world: World, app: App) {
 - [bevy_input - 输入系统](./bevy_input.md)
 
 #### 扩展模块
+
 - [leafwing-input-manager - 高级输入](./leafwing-input-manager.md)
 - [roblox_rvo - 群体避障](./roblox_rvo.md)
 - [bevy_render - 渲染系统](./bevy_render.md)
@@ -1934,6 +1990,7 @@ function playerJoinSystem(world: World, app: App) {
 - [bevy_log - 日志系统](./bevy_log.md)
 
 #### 参考
+
 - [架构分析报告](../.audit/architecture-analysis.md)
 - [Rust Bevy 官方文档](https://docs.rs/bevy)
 - [@rbxts/matter 文档](https://matter.lua.org)
@@ -1941,11 +1998,13 @@ function playerJoinSystem(world: World, app: App) {
 ### 8.2 社区资源
 
 #### 学习资源
+
 - **Bevy 官方示例**: [GitHub - bevyengine/bevy/examples](https://github.com/bevyengine/bevy/tree/main/examples)
 - **ECS 设计模式**: [Game Programming Patterns - Component](https://gameprogrammingpatterns.com/component.html)
 - **roblox-ts 指南**: [roblox-ts.com](https://roblox-ts.com)
 
 #### 相关项目
+
 - **Bevy (Rust)**: [bevyengine.org](https://bevyengine.org)
 - **Matter (Lua)**: [matter.lua.org](https://matter.lua.org)
 - **Plasma (Roblox UI)**: [@rbxts/plasma](https://www.npmjs.com/package/@rbxts/plasma)
@@ -1975,6 +2034,7 @@ function playerJoinSystem(world: World, app: App) {
 #### Q6: 如何调试 ECS 系统？
 
 **A**:
+
 1. 使用 bevy_ecs_debugger 插件查看实体和组件
 2. 启用 bevy_log 插件记录系统执行
 3. 使用 bevy_diagnostic 插件监控性能
@@ -2033,6 +2093,7 @@ export = () => {
 #### Q10: 如何贡献代码？
 
 **A**:
+
 1. Fork 项目仓库
 2. 创建功能分支
 3. 编写代码和测试
