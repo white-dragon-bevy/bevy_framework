@@ -51,7 +51,16 @@ function getOrCreateStorage(world: World): InputResourceStorage {
 export function setKeyboardInput(world: World, keyboard: ButtonInput<Enum.KeyCode>): void {
 	const storage = getOrCreateStorage(world);
 	storage.keyboard = keyboard;
+	print(`[ResourceStorage.setKeyboardInput] 💾 Stored keyboard input in world`);
+	// 直接检查各个字段是否存在
+	print(`  - Storage status:`);
+	print(`    • keyboard: ${storage.keyboard !== undefined ? "✅" : "❌"}`);
+	print(`    • mouse: ${storage.mouse !== undefined ? "✅" : "❌"}`);
+	print(`    • key: ${storage.key !== undefined ? "✅" : "❌"}`);
 }
+
+// 添加计数器控制日志频率
+let getKeyboardCallCount = 0;
 
 /**
  * 获取键盘输入资源
@@ -60,7 +69,23 @@ export function setKeyboardInput(world: World, keyboard: ButtonInput<Enum.KeyCod
  */
 export function getKeyboardInput(world: World): ButtonInput<Enum.KeyCode> | undefined {
 	const storage = worldStorageMap.get(world);
-	return storage?.keyboard;
+	const keyboard = storage?.keyboard;
+
+	getKeyboardCallCount++;
+	// 每180帧输出一次（约3秒）
+	if (getKeyboardCallCount % 180 === 1) {
+		print(`[ResourceStorage.getKeyboardInput] 🔍 Looking for keyboard in world: ${keyboard !== undefined ? "✅ Found" : "❌ Not found"}`);
+		if (storage) {
+			print(`  - Storage exists with resources:`);
+			print(`    • keyboard: ${storage.keyboard !== undefined ? "✅" : "❌"}`);
+			print(`    • mouse: ${storage.mouse !== undefined ? "✅" : "❌"}`);
+			print(`    • key: ${storage.key !== undefined ? "✅" : "❌"}`);
+		} else {
+			print(`  - No storage found for this world!`);
+		}
+	}
+
+	return keyboard;
 }
 
 /**
