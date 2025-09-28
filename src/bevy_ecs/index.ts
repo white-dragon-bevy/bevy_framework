@@ -10,6 +10,9 @@ export * from "./command-buffer";
 export * from "./resource";
 export * from "./schedule/index";
 export * from "./bevy-world";
-export * from "./message";  // 使用新的 message 系统
+export * from "./message";
 export * from "./name";
 export * from "./types";
+export * from "./query";
+export * from "./change-detection";
+export * from "./hierarchy";

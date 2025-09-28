@@ -8,12 +8,20 @@ import { component, World, AnyEntity } from "@rbxts/matter";
 
 /**
  * Parent 组件 - 指向父实体
- * 单向关系，不维护反向的 Children 列表
  */
 export const Parent = component<{
 	/** 父实体 ID */
 	entity: number;
 }>("Parent");
+
+/**
+ * Children 组件 - 缓存子实体列表
+ * 用于优化 getChildren 查询性能，从 O(n) 降为 O(1)
+ */
+export const Children = component<{
+	/** 直接子实体 ID 列表 */
+	entities: ReadonlyArray<number>;
+}>("Children");
 
 /**
  * 层次结构工具类
@@ -22,16 +30,11 @@ export const Parent = component<{
 export class HierarchyUtils {
 	/**
 	 * 获取实体的所有直接子实体
-	 * 动态查询，不缓存结果
+	 * O(1) 查询，从 Children 组件读取缓存
 	 */
 	static getChildren(world: World, parentEntity: number): number[] {
-		const children: number[] = [];
-		for (const [entity, parent] of world.query(Parent)) {
-			if (parent.entity === parentEntity) {
-				children.push(entity);
-			}
-		}
-		return children;
+		const children = world.get(parentEntity as AnyEntity, Children);
+		return children ? [...children.entities] : [];
 	}
 
 	/**
@@ -113,9 +116,12 @@ export class HierarchyUtils {
 
 	/**
 	 * 设置实体的父级
-	 * 包含循环检测
+	 * 包含循环检测，同步更新 Children 缓存
 	 */
 	static setParent(world: World, child: number, parent?: number): void {
+		// 获取旧父级，用于清理缓存
+		const oldParent = this.getParent(world, child);
+
 		if (parent !== undefined) {
 			// 检查是否会造成循环
 			if (parent === child) {
@@ -126,15 +132,65 @@ export class HierarchyUtils {
 				error("Cannot set parent: would create a cycle");
 			}
 
+			// 从旧父级的 Children 中移除
+			if (oldParent !== undefined && oldParent !== parent) {
+				this.removeChildFromParent(world, oldParent, child);
+			}
+
+			// 设置新的 Parent 组件
 			world.insert(child as AnyEntity, Parent({ entity: parent }));
+
+			// 添加到新父级的 Children 中
+			this.addChildToParent(world, parent, child);
 		} else {
+			// 移除父级关系
+			if (oldParent !== undefined) {
+				this.removeChildFromParent(world, oldParent, child);
+			}
+
 			world.remove(child as AnyEntity, Parent);
 		}
 	}
 
 	/**
+	 * 内部方法：将子实体添加到父实体的 Children 组件
+	 */
+	private static addChildToParent(world: World, parent: number, child: number): void {
+		const currentChildren = world.get(parent as AnyEntity, Children);
+
+		if (currentChildren) {
+			// 检查是否已存在，避免重复添加
+			if (currentChildren.entities.indexOf(child) === -1) {
+				const updatedEntities = [...currentChildren.entities, child];
+				world.insert(parent as AnyEntity, Children({ entities: updatedEntities }));
+			}
+		} else {
+			// 创建新的 Children 组件
+			world.insert(parent as AnyEntity, Children({ entities: [child] }));
+		}
+	}
+
+	/**
+	 * 内部方法：从父实体的 Children 组件中移除子实体
+	 */
+	private static removeChildFromParent(world: World, parent: number, child: number): void {
+		const currentChildren = world.get(parent as AnyEntity, Children);
+
+		if (currentChildren) {
+			const updatedEntities = currentChildren.entities.filter((entity) => entity !== child);
+
+			if (updatedEntities.size() > 0) {
+				world.insert(parent as AnyEntity, Children({ entities: updatedEntities }));
+			} else {
+				// 如果没有子实体了，移除 Children 组件
+				world.remove(parent as AnyEntity, Children);
+			}
+		}
+	}
+
+	/**
 	 * 移除实体及其所有子孙
-	 * 递归删除整个子树
+	 * 递归删除整个子树，自动清理 Parent 和 Children 组件
 	 */
 	static despawnWithDescendants(world: World, entity: number): void {
 		const children = this.getChildren(world, entity);
@@ -144,7 +200,13 @@ export class HierarchyUtils {
 			this.despawnWithDescendants(world, child);
 		}
 
-		// 最后移除自己
+		// 从父级的 Children 中移除自己
+		const parent = this.getParent(world, entity);
+		if (parent !== undefined) {
+			this.removeChildFromParent(world, parent, entity);
+		}
+
+		// 最后移除自己（会自动删除 Parent 和 Children 组件）
 		world.despawn(entity as AnyEntity);
 	}
 

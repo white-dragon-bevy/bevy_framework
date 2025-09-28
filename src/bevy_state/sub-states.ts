@@ -158,7 +158,7 @@ export class SubStateManager<TParent extends States, TSub extends SubStates<TPar
 		if (initialState === undefined) {
 			// 如果不应该存在，移除子状态
 			if (subStateResource) {
-				resourceManager.removeResourceByDescriptor(this.stateType);
+				resourceManager.removeResourceByTypeDescriptor(this.stateType);
 				// 同时清除 NextState
 				const nextSubState = resourceManager.getResourceByTypeDescriptor<NextState<TSub>>(this.nextStateType);
 				if (nextSubState) {

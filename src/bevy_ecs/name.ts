@@ -14,11 +14,13 @@ import { component, World, Entity } from "@rbxts/matter";
  */
 function hashString(str: string): number {
 	let hash = 0;
-	for (let i = 0; i < str.size(); i++) {
-		const char = str.byte(i)[0];
-		hash = ((hash << 5) - hash + char) | 0;
+	for (let index = 1; index <= str.size(); index++) {
+		const charCode = str.byte(index)[0];
+		if (charCode !== undefined) {
+			hash = ((hash << 5) - hash + charCode) | 0;
+		}
 	}
-	return hash >>> 0; // 确保是无符号整数
+	return hash >>> 0;
 }
 
 /**

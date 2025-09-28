@@ -165,7 +165,7 @@ export = () => {
 
 			condition(world, resourceManager);
 
-			resourceManager.removeResourceByDescriptor(stateTypeDescriptor);
+			resourceManager.removeResourceByTypeDescriptor(stateTypeDescriptor);
 			const result = condition(world, resourceManager);
 
 			expect(result).to.equal(true);

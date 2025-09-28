@@ -1,4 +1,5 @@
 import { AnyEntity, World, AnyComponent } from "@rbxts/matter";
+import { TypeDescriptor } from "../bevy_core";
 
 /**
  * 组件构造函数类型 - 兼容 Matter 的 ComponentCtor
@@ -74,7 +75,8 @@ export interface RemoveComponentCommand extends BaseCommand {
  */
 export interface InsertResourceCommand extends BaseCommand {
 	readonly type: CommandType.InsertResource;
-	readonly resource: Component;
+	readonly resource: object;
+	readonly typeDescriptor: TypeDescriptor;
 }
 
 /**
@@ -82,7 +84,7 @@ export interface InsertResourceCommand extends BaseCommand {
  */
 export interface RemoveResourceCommand extends BaseCommand {
 	readonly type: CommandType.RemoveResource;
-	readonly resourceType: ComponentConstructor;
+	readonly typeDescriptor: TypeDescriptor;
 }
 
 /**
@@ -119,10 +121,13 @@ export interface CommandResult {
  * 提供延迟执行的命令系统，允许在系统中排队结构性变更，
  * 然后在安全的时机批量应用到World中
  */
-// 定义资源管理器接口
+// 导入 ResourceManager 类型
+import type { ResourceManager } from "./resource";
+
+// 定义资源管理器接口（向后兼容）
 interface ResourceManagerLike {
-	insertResource(key: string, resource: unknown): void;
-	removeResource(key: string): void;
+	insertResourceByTypeDescriptor(resource: object, typeDescriptor: TypeDescriptor): void;
+	removeResourceByTypeDescriptor(typeDescriptor: TypeDescriptor): void;
 }
 
 export class CommandBuffer {
@@ -203,11 +208,13 @@ export class CommandBuffer {
 	/**
 	 * 插入全局资源
 	 * @param resource 要插入的资源
+	 * @param typeDescriptor 资源的类型描述符
 	 */
-	public insertResource(resource: Component): void {
+	public insertResource(resource: object, typeDescriptor: TypeDescriptor): void {
 		const command: InsertResourceCommand = {
 			type: CommandType.InsertResource,
 			resource,
+			typeDescriptor,
 		};
 
 		this.commands.push(command);
@@ -215,12 +222,12 @@ export class CommandBuffer {
 
 	/**
 	 * 移除全局资源
-	 * @param resourceType 要移除的资源类型
+	 * @param typeDescriptor 要移除的资源的类型描述符
 	 */
-	public removeResource(resourceType: ComponentConstructor): void {
+	public removeResource(typeDescriptor: TypeDescriptor): void {
 		const command: RemoveResourceCommand = {
 			type: CommandType.RemoveResource,
-			resourceType,
+			typeDescriptor,
 		};
 
 		this.commands.push(command);
@@ -357,21 +364,18 @@ export class CommandBuffer {
 
 			case CommandType.InsertResource: {
 				const cmd = command as InsertResourceCommand;
-				// 使用 SingletonManager 存储资源
+				// 使用 ResourceManager 的 TypeDescriptor 存储资源
 				if (this.resourceManager) {
-					// 将资源作为单例存储
-					const resourceKey = `Resource_${tostring(cmd.resource)}`;
-					this.resourceManager.insertResource(resourceKey, cmd.resource);
+					this.resourceManager.insertResourceByTypeDescriptor(cmd.resource, cmd.typeDescriptor);
 				}
 				return { success: true };
 			}
 
 			case CommandType.RemoveResource: {
 				const cmd = command as RemoveResourceCommand;
-				// 使用 SingletonManager 移除资源
+				// 使用 ResourceManager 的 TypeDescriptor 移除资源
 				if (this.resourceManager) {
-					const resourceKey = `Resource_${tostring(cmd.resourceType)}`;
-					this.resourceManager.removeResource(resourceKey);
+					this.resourceManager.removeResourceByTypeDescriptor(cmd.typeDescriptor);
 				}
 				return { success: true };
 			}

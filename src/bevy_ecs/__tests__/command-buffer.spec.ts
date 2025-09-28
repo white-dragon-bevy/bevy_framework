@@ -184,8 +184,9 @@ export = () => {
 		describe("资源操作命令", () => {
 			it("应该能够创建插入资源命令", () => {
 				const resource = TestComponent({ value: 777, name: "resource test" });
+				const descriptor = {id:"id1",text:"text1"}
 
-				commandBuffer.insertResource(resource);
+				commandBuffer.insertResource(resource,descriptor);
 
 				expect(commandBuffer.getCommandCount()).to.equal(1);
 
@@ -197,9 +198,9 @@ export = () => {
 			});
 
 			it("应该能够创建移除资源命令", () => {
-				const resourceType = TestComponent as ComponentConstructor;
+				const descriptor = {id:"id1",text:"text1"}
 
-				commandBuffer.removeResource(resourceType);
+				commandBuffer.removeResource(descriptor);
 
 				expect(commandBuffer.getCommandCount()).to.equal(1);
 
@@ -207,7 +208,7 @@ export = () => {
 				const removeCommand = commands[0] as RemoveResourceCommand;
 
 				expect(removeCommand.type).to.equal(CommandType.RemoveResource);
-				expect(removeCommand.resourceType).to.equal(resourceType);
+				expect(removeCommand.typeDescriptor).to.equal(descriptor);
 			});
 		});
 
@@ -322,8 +323,9 @@ export = () => {
 
 		describe("资源命令执行", () => {
 			it("资源命令应该成功执行", () => {
+				const descriptor = {id:"id1",text:"text1"}
 				const resource = TestComponent({ value: 123, name: "resource" });
-				commandBuffer.insertResource(resource);
+				commandBuffer.insertResource(resource,descriptor);
 
 				const results = commandBuffer.flush(world);
 

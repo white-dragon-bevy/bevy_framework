@@ -229,16 +229,16 @@ export class ResourceManager {
 	}
 
 	/**
-	 * 移除资源
-	 * 
+	 * 移除资源（通过 TypeDescriptor）
+	 *
 	 * @returns 被移除的资源实例，如果不存在则返回undefined
 	 */
-	public removeResourceByDescriptor(descriptor:TypeDescriptor): object|undefined {
+	public removeResourceByTypeDescriptor(descriptor:TypeDescriptor): object|undefined {
 		if(descriptor===undefined ){
-			
+
 			return undefined
 		}
-		
+
 		const componentId = getComponentIdByDescriptor(descriptor)
 
 		const resource = this.resources.get(componentId);
