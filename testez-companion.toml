@@ -1,2 +1,2 @@
-roots = [ "ReplicatedStorage/rbxts_include/node_modules/@white-dragon-bevy/bevy-framework/bevy_ecs" ]
+roots = [ "ReplicatedStorage/rbxts_include/node_modules/@white-dragon-bevy/bevy-framework/bevy_diagnostic" ]
 verbose = true

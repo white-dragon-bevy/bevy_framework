@@ -6,6 +6,16 @@
  * 在 Last 阶段增加，提供可预测的行为
  */
 
+import { Resource } from "../bevy_ecs/resource";
+
+/**
+ * 帧计数资源包装器
+ */
+export class FrameCountResource implements Resource {
+	readonly __brand = "Resource" as const;
+	constructor(public value: FrameCount) {}
+}
+
 /**
  * 帧计数资源
  *

@@ -84,8 +84,10 @@ pnpm install
 - 使用Matter ECS的查询和组件系统
 - 客户端和服务端代码需要使用RobloxEnvironment区分
 - 如果函数的参数类型为 `Modding.*`, 则说明调用该函数的行将被 transform, 所有的这种类型的参数都不用主动提供.
+- 在系统内监听roblox 事件, 应使用 world.useHook() 接口.
 
 ## 审计
+
 - 审计报告保存在 `.audit/` 目录
 - 应该从 context.resources 里读取 manager，而不是尝试在 World 对象上存储属性。
 

@@ -26,10 +26,10 @@ export interface Real extends TimeContext {
  */
 export interface Virtual extends TimeContext {
 	readonly __brand: "Virtual";
-	paused: boolean;
-	relativeSpeed: number;
-	effectiveSpeed: number;
-	maxDelta: Duration;
+	readonly paused: boolean;
+	readonly relativeSpeed: number;
+	readonly effectiveSpeed: number;
+	readonly maxDelta: Duration;
 }
 
 /**
@@ -215,6 +215,14 @@ export class Time<T extends TimeContext = Empty> {
 	 */
 	protected getContextMut(): T {
 		return this.context;
+	}
+
+	/**
+	 * 设置新的上下文
+	 * @param newContext - 新的上下文
+	 */
+	setContext(newContext: T): void {
+		this.context = newContext;
 	}
 
 	/**
