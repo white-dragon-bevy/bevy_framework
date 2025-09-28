@@ -81,35 +81,37 @@ export class SummarizedActionState<A extends Actionlike> {
 
 		// Capture all action states
 		actionDataMap.forEach((actionData, actionHash) => {
-			// Button state
+			const hasAxisPair = actionData.axisPairX !== 0 || actionData.axisPairY !== 0;
+			const hasValue = actionData.value !== 0;
+
+			// Button state (only if this is actually a button, not an axis)
 			const buttonData = buttonDataMap.get(actionHash);
 			if (buttonData) {
 				buttonStates.set(actionHash, {
 					pressed: actionData.pressed,
 					value: actionData.value,
 				});
+				return;
 			}
 
-			// Axis state (single axis)
-			if (actionData.value !== 0 && actionData.axisPairX === 0 && actionData.axisPairY === 0) {
-				axisStates.set(actionHash, actionData.value);
+			// Triple axis state (3D)
+			if (hasAxisPair && hasValue) {
+				tripleAxisStates.set(
+					actionHash,
+					new Vector3(actionData.axisPairX, actionData.axisPairY, actionData.value),
+				);
+				return;
 			}
 
 			// Dual axis state (2D)
-			if (actionData.axisPairX !== 0 || actionData.axisPairY !== 0) {
+			if (hasAxisPair) {
 				dualAxisStates.set(actionHash, new Vector2(actionData.axisPairX, actionData.axisPairY));
+				return;
 			}
 
-			// Triple axis state (3D) - using axisPairX, axisPairY, and value as Z
-			// This is a simplification; in practice you might need separate Z storage
-			if (actionData.axisPairX !== 0 || actionData.axisPairY !== 0 || actionData.value !== 0) {
-				const hasAxisPair = actionData.axisPairX !== 0 || actionData.axisPairY !== 0;
-				if (hasAxisPair && actionData.value !== 0) {
-					tripleAxisStates.set(
-						actionHash,
-						new Vector3(actionData.axisPairX, actionData.axisPairY, actionData.value),
-					);
-				}
+			// Axis state (single axis)
+			if (hasValue) {
+				axisStates.set(actionHash, actionData.value);
 			}
 		});
 
