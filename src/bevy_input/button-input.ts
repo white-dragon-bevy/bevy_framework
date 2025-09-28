@@ -9,6 +9,9 @@
  * @template T - 输入类型（如 Enum.KeyCode、Enum.UserInputType 等）
  */
 export class ButtonInput<T extends defined> {
+	/** 全局调试开关 - 生产环境设为 false */
+	private static readonly DEBUG_ENABLED = false;
+
 	/** 当前按下的输入集合 */
 	private pressedSet: Set<T>;
 	/** 本帧刚按下的输入集合 */
@@ -23,7 +26,7 @@ export class ButtonInput<T extends defined> {
 		this.justPressedSet = new Set();
 		this.justReleasedSet = new Set();
 		this.debugName = debugName;
-		if (debugName) {
+		if (ButtonInput.DEBUG_ENABLED && debugName) {
 			print(`[ButtonInput<${debugName}>] 🎯 Instance created`);
 		}
 	}
@@ -36,12 +39,12 @@ export class ButtonInput<T extends defined> {
 		if (!this.pressedSet.has(input)) {
 			this.pressedSet.add(input);
 			this.justPressedSet.add(input);
-			if (this.debugName) {
+			if (ButtonInput.DEBUG_ENABLED && this.debugName) {
 				print(`[ButtonInput<${this.debugName}>] ➕ Pressed: ${tostring(input)}`);
 				print(`  - pressedSet size: ${this.pressedSet.size()}`);
 				print(`  - justPressedSet size: ${this.justPressedSet.size()}`);
 			}
-		} else if (this.debugName) {
+		} else if (ButtonInput.DEBUG_ENABLED && this.debugName) {
 			print(`[ButtonInput<${this.debugName}>] 🔁 Already pressed: ${tostring(input)}`);
 		}
 	}
@@ -91,12 +94,12 @@ export class ButtonInput<T extends defined> {
 		if (this.pressedSet.has(input)) {
 			this.pressedSet.delete(input);
 			this.justReleasedSet.add(input);
-			if (this.debugName) {
+			if (ButtonInput.DEBUG_ENABLED && this.debugName) {
 				print(`[ButtonInput<${this.debugName}>] ➖ Released: ${tostring(input)}`);
 				print(`  - pressedSet size: ${this.pressedSet.size()}`);
 				print(`  - justReleasedSet size: ${this.justReleasedSet.size()}`);
 			}
-		} else if (this.debugName) {
+		} else if (ButtonInput.DEBUG_ENABLED && this.debugName) {
 			print(`[ButtonInput<${this.debugName}>] ⚠️ Release called on non-pressed: ${tostring(input)}`);
 		}
 	}
@@ -137,7 +140,7 @@ export class ButtonInput<T extends defined> {
 	/**
 	 * 检查所有输入是否都在本帧刚按下
 	 * @param inputs - 要检查的输入数组
-	 * @returns 如果所有输入都刚按下返回 true
+	 * @returns 如果所有输入都刚按下返回 true (空数组返回 true)
 	 */
 	public allJustPressed(inputs: Array<T>): boolean {
 		for (const input of inputs) {
@@ -145,7 +148,7 @@ export class ButtonInput<T extends defined> {
 				return false;
 			}
 		}
-		return inputs.size() > 0;
+		return true;
 	}
 
 	/**
@@ -183,7 +186,7 @@ export class ButtonInput<T extends defined> {
 	/**
 	 * 检查所有输入是否都在本帧刚释放
 	 * @param inputs - 要检查的输入数组
-	 * @returns 如果所有输入都刚释放返回 true
+	 * @returns 如果所有输入都刚释放返回 true (空数组返回 true)
 	 */
 	public allJustReleased(inputs: Array<T>): boolean {
 		for (const input of inputs) {
@@ -191,7 +194,7 @@ export class ButtonInput<T extends defined> {
 				return false;
 			}
 		}
-		return inputs.size() > 0;
+		return true;
 	}
 
 	/**
@@ -230,7 +233,7 @@ export class ButtonInput<T extends defined> {
 		const justPressedSize = this.justPressedSet.size();
 		const justReleasedSize = this.justReleasedSet.size();
 
-		if (this.debugName && (justPressedSize > 0 || justReleasedSize > 0)) {
+		if (ButtonInput.DEBUG_ENABLED && this.debugName && (justPressedSize > 0 || justReleasedSize > 0)) {
 			print(`[ButtonInput<${this.debugName}>] 🧹 Clearing just_* states:`);
 			print(`  - justPressed cleared: ${justPressedSize} items`);
 			print(`  - justReleased cleared: ${justReleasedSize} items`);

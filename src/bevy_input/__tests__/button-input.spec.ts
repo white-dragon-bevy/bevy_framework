@@ -118,6 +118,10 @@ export = () => {
 					false,
 				);
 			});
+
+			it("should return true for empty array", () => {
+				expect(buttonInput.allJustPressed([])).to.equal(true);
+			});
 		});
 
 		describe("clearJustPressed", () => {
@@ -156,6 +160,10 @@ export = () => {
 				expect(buttonInput.allJustReleased([TestInput.Input1, TestInput.Input2, TestInput.Input3])).to.equal(
 					false,
 				);
+			});
+
+			it("should return true for empty array", () => {
+				expect(buttonInput.allJustReleased([])).to.equal(true);
 			});
 		});
 
