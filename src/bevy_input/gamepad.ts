@@ -348,9 +348,9 @@ export class AxisSettings {
 			error(`Invalid threshold ${threshold}, expected [0.0..=2.0]`);
 		}
 
-		if (livezoneLowerBound > deadzoneLowerBound) {
+		if (livezoneLowerBound >= deadzoneLowerBound) {
 			error(
-				`Invalid parameter values livezone_lowerbound ${livezoneLowerBound} deadzone_lowerbound ${deadzoneLowerBound}, expected livezone_lowerbound <= deadzone_lowerbound`,
+				`Invalid parameter values livezone_lowerbound ${livezoneLowerBound} deadzone_lowerbound ${deadzoneLowerBound}, expected livezone_lowerbound < deadzone_lowerbound`,
 			);
 		}
 

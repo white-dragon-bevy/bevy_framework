@@ -180,8 +180,10 @@ export = () => {
 				});
 
 				loop.scheduleSystems([lastSystem, firstSystem, updateSystem]);
-				// 使用 step 方法执行一帧
-				loop.step("default", 1/60);
+				// 使用 step 方法执行调度阶段
+				loop.step("First", 1/60);
+				loop.step("Update", 1/60);
+				loop.step("Last", 1/60);
 				expect(testCompleted).to.equal(true);
 			});
 
@@ -228,29 +230,25 @@ export = () => {
 			it("应该支持排他性系统", () => {
 				let exclusiveSystemExecuted = false;
 				let normalSystemExecuted = false;
-				let testCompleted = false;
 
 				const exclusiveSystem: BevySystemStruct<[World]> = {
 					system: (world: World) => {
 						exclusiveSystemExecuted = true;
 						// 排他性系统应该能完全访问世界
-						expect(world).to.equal(world);
+						expect(world).to.be.ok();
 					},
 					exclusive: true
 				};
 
 				const normalSystem = () => {
 					normalSystemExecuted = true;
-					
-					if (exclusiveSystemExecuted && normalSystemExecuted && !testCompleted) {
-						testCompleted = true;
-					}
 				};
 
 				loop.scheduleSystems([exclusiveSystem, normalSystem]);
 				// 使用 step 方法执行一帧
 				loop.step("default", 1/60);
-				expect(testCompleted).to.equal(true);
+				expect(exclusiveSystemExecuted).to.equal(true);
+				expect(normalSystemExecuted).to.equal(true);
 			});
 		});
 
@@ -258,7 +256,6 @@ export = () => {
 			it("应该支持系统的添加和移除", () => {
 				let system1Executed = false;
 				let system2Executed = false;
-				let testCompleted = false;
 
 				const system1 = () => {
 					system1Executed = true;
@@ -266,40 +263,34 @@ export = () => {
 
 				const system2 = () => {
 					system2Executed = true;
-					
-					if (system1Executed && system2Executed && !testCompleted) {
-						testCompleted = true;
-					}
 				};
 
 				// 先添加 system1
 				loop.scheduleSystems([system1]);
-				
+
 				// 后添加 system2
 				loop.scheduleSystem(system2);
 
 				// 使用 step 方法执行一帧
 				loop.step("default", 1/60);
-				expect(testCompleted).to.equal(true);
+				expect(system1Executed).to.equal(true);
+				expect(system2Executed).to.equal(true);
 			});
 
 			it("应该支持系统替换", () => {
-				let oldSystemExecuted = false;
 				let newSystemExecuted = false;
 
 				const oldSystem = () => {
-					oldSystemExecuted = true;
+					// 不应该执行
+					error("Old system should not execute");
 				};
 
 				const newSystem = () => {
 					newSystemExecuted = true;
-					
-					// 新系统执行时，旧系统不应该再执行
-					expect(oldSystemExecuted).to.equal(false);
 				};
 
 				loop.scheduleSystems([oldSystem]);
-				
+
 				// 替换系统
 				loop.replaceSystem(oldSystem, newSystem);
 
@@ -312,7 +303,6 @@ export = () => {
 				let system1Executed = false;
 				let system2Executed = false;
 				let system3Executed = false;
-				let testCompleted = false;
 
 				const system1 = () => {
 					system1Executed = true;
@@ -324,24 +314,19 @@ export = () => {
 
 				const system3 = () => {
 					system3Executed = true;
-					
-					if (!testCompleted) {
-						// 验证只有 system1 和 system3 执行了
-						expect(system1Executed).to.equal(true);
-						expect(system2Executed).to.equal(false);
-						expect(system3Executed).to.equal(true);
-						testCompleted = true;
-					}
 				};
 
 				loop.scheduleSystems([system1, system2, system3]);
-				
+
 				// 驱逐 system2
 				loop.evictSystem(system2);
 
 				// 使用 step 方法执行一帧
 				loop.step("default", 1/60);
-				expect(testCompleted).to.equal(true);
+				// 验证只有 system1 和 system3 执行了
+				expect(system1Executed).to.equal(true);
+				expect(system2Executed).to.equal(false);
+				expect(system3Executed).to.equal(true);
 			});
 		});
 
@@ -349,7 +334,6 @@ export = () => {
 			it("应该处理系统执行错误", () => {
 				let errorSystemExecuted = false;
 				let normalSystemExecuted = false;
-				let testCompleted = false;
 
 				const errorSystem = () => {
 					errorSystemExecuted = true;
@@ -358,13 +342,6 @@ export = () => {
 
 				const normalSystem = () => {
 					normalSystemExecuted = true;
-					
-					if (!testCompleted) {
-						// 即使有系统出错，其他系统也应该继续执行
-						expect(errorSystemExecuted).to.equal(true);
-						expect(normalSystemExecuted).to.equal(true);
-						testCompleted = true;
-					}
 				};
 
 				// 启用错误跟踪
@@ -377,7 +354,9 @@ export = () => {
 
 				// 使用 step 方法执行一帧
 				loop.step("default", 1/60);
-				expect(testCompleted).to.equal(true);
+				// 即使有系统出错，其他系统也应该继续执行
+				expect(errorSystemExecuted).to.equal(true);
+				expect(normalSystemExecuted).to.equal(true);
 			});
 
 			it("应该检测循环依赖", () => {

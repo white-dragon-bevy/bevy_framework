@@ -382,7 +382,6 @@ export class MainScheduleOrder {
 	public labels: Array<ScheduleLabel> = [
 		BuiltinSchedules.FIRST,
 		BuiltinSchedules.PRE_UPDATE,
-		BuiltinSchedules.RUN_FIXED_MAIN_LOOP,
 		BuiltinSchedules.UPDATE,
 		BuiltinSchedules.POST_UPDATE,
 		BuiltinSchedules.LAST,
