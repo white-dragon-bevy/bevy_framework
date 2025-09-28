@@ -70,18 +70,22 @@ export class InputManagerSystem<A extends Actionlike> {
 	 */
 	update(deltaTime: number): void {
 		// Query for entities with input components
-		for (const [entityId, inputMapData, actionStateData, inputEnabled] of this.world.query(
+		// Match the same query as updateActionState for consistency
+		let processedEntities = 0;
+		for (const [entityId, inputMapData, actionStateData] of this.world.query(
 			InputMapComponent,
 			ActionStateComponent,
-			InputEnabled,
 		)) {
-			if (!inputEnabled || !inputEnabled.enabled) {
-				continue;
-			}
-
+			processedEntities++;
+			
 			// Get the actual instances from the manager
 			const actionStateInstance = this.instanceManager.getActionState(entityId);
 			const inputMapInstance = this.instanceManager.getInputMap(entityId);
+			
+			// Debug: Log processing
+			if (processedEntities === 1) { // Only log for first entity to avoid spam
+				print(`[InputManagerSystem] Processing entity ${entityId}, hasActionState: ${actionStateInstance !== undefined}, hasInputMap: ${inputMapInstance !== undefined}`);
+			}
 
 			if (!actionStateInstance || !inputMapInstance) {
 				// Skip if instances not found

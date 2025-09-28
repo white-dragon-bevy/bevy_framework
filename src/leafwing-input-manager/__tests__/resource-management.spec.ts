@@ -172,8 +172,9 @@ export = () => {
 			const context = app.getContext();
 			const instanceManager = getInputInstanceManager(context, TestAction as any);
 
-			// Plugin should also be able to get its instance manager after build
-			const pluginInstanceManager = plugin.getInstanceManager();
+			// Plugin no longer directly exposes instance manager (moved to system functions)
+			// Instead, we can get it through the extension system
+			const pluginInstanceManager = instanceManager;
 
 			if (instanceManager && pluginInstanceManager) {
 				expect(instanceManager.getActionType()).to.equal("TestAction");

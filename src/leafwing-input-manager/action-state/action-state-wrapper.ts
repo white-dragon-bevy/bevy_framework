@@ -6,12 +6,6 @@
 import { ActionState } from "./action-state";
 import { Actionlike } from "../actionlike";
 
-interface StateWithMethods<A extends Actionlike> {
-	justPressed?: (action: A) => boolean;
-	justReleased?: (action: A) => boolean;
-	pressed?: (action: A) => boolean;
-}
-
 /**
  * Safely calls justPressed on an ActionState instance
  * @param state - The ActionState instance
@@ -19,15 +13,11 @@ interface StateWithMethods<A extends Actionlike> {
  * @returns True if the action was just pressed
  */
 export function isJustPressed<A extends Actionlike>(state: ActionState<A>, action: A): boolean {
-	try {
-		const stateWithMethods = state as unknown as StateWithMethods<A>;
+	const stateWithMethods = state ;
 		if (stateWithMethods.justPressed && typeOf(stateWithMethods.justPressed) === "function") {
 			return stateWithMethods.justPressed(action);
 		}
 		return false;
-	} catch {
-		return false;
-	}
 }
 
 /**
@@ -38,7 +28,7 @@ export function isJustPressed<A extends Actionlike>(state: ActionState<A>, actio
  */
 export function isJustReleased<A extends Actionlike>(state: ActionState<A>, action: A): boolean {
 	try {
-		const stateWithMethods = state as unknown as StateWithMethods<A>;
+		const stateWithMethods = state;
 		if (stateWithMethods.justReleased && typeOf(stateWithMethods.justReleased) === "function") {
 			return stateWithMethods.justReleased(action);
 		}
@@ -56,7 +46,7 @@ export function isJustReleased<A extends Actionlike>(state: ActionState<A>, acti
  */
 export function isPressed<A extends Actionlike>(state: ActionState<A>, action: A): boolean {
 	try {
-		const stateWithMethods = state as unknown as StateWithMethods<A>;
+		const stateWithMethods = state;
 		if (stateWithMethods.pressed && typeOf(stateWithMethods.pressed) === "function") {
 			return stateWithMethods.pressed(action);
 		}

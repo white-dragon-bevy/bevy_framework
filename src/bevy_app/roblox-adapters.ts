@@ -109,6 +109,7 @@ export class RobloxRunnerPlugin extends BasePlugin {
 		events["default"] = mainEvent;
 		events[BuiltinSchedules.FIRST] = mainEvent;
 		events[BuiltinSchedules.PRE_UPDATE] = mainEvent;
+		events[BuiltinSchedules.RUN_FIXED_MAIN_LOOP] = mainEvent; // 添加固定更新循环调度
 		events[BuiltinSchedules.UPDATE] = mainEvent;
 		events[BuiltinSchedules.POST_UPDATE] = mainEvent;
 		events[BuiltinSchedules.LAST] = mainEvent;

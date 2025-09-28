@@ -25,7 +25,6 @@ import {
 	isJustPressed,
 	isJustReleased,
 } from "../../leafwing-input-manager";
-import { getKeyboardInput, getMouseInput } from "../../bevy_input";
 import { component, type World } from "@rbxts/matter";
 import { getInputInstanceManager } from "../../leafwing-input-manager/plugin/context-helpers";
 import { Context } from "../../bevy_ecs";

@@ -15,6 +15,289 @@ import { Resource, World } from "../../bevy_ecs";
 import { InputInstanceManager } from "./input-instance-manager";
 import { InputInstanceManagerResource } from "./input-instance-manager-resource";
 import { BuiltinSchedules } from "../../bevy_app/main-schedule";
+import { BevyWorld, Context } from "../../bevy_ecs/types";
+
+// =============================================================================
+// 系统函数辅助工具
+// =============================================================================
+
+/**
+ * 从上下文获取InputInstanceManager
+ * @param context - App上下文
+ * @param actionType - Action类型构造函数
+ * @returns InputInstanceManagerResource或undefined
+ */
+function getInstanceManagerFromContext<A extends Actionlike>(
+	context: AppContext, 
+	actionType: (new (...args: any[]) => A) & { name: string }
+): InputInstanceManagerResource<A> | undefined {
+	const extension = getInputManagerExtension(context, actionType);
+	if (!extension) {
+		return undefined;
+	}
+	return extension.getInstanceManager();
+}
+
+/**
+ * 同步bevy_input资源到CentralInputStore
+ * @param world - Bevy世界实例
+ * @param centralStore - 中央输入存储
+ */
+function syncFromBevyInput(world: BevyWorld, centralStore: CentralInputStore): void {
+	// 获取bevy_input资源
+	const keyboardInput = getKeyboardInput(world);
+	const mouseInput = getMouseInput(world);
+	const mouseMotion = getMouseMotion(world);
+	const mouseWheel = getMouseWheel(world);
+
+	// 同步到中央存储
+	centralStore.syncFromBevyInput(
+		keyboardInput,
+		mouseInput,
+		mouseMotion,
+		mouseWheel
+	);
+}
+
+// =============================================================================
+// 系统函数工厂
+// =============================================================================
+
+/**
+ * 创建特定Action类型的系统函数
+ * @param actionType - Action类型构造函数
+ * @returns 系统函数集合
+ */
+function createInputManagerSystems<A extends Actionlike>(
+	actionType: (new (...args: any[]) => A) & { name: string }
+) {
+	/**
+	 * 服务端和客户端的Action State Tick系统
+	 */
+	const tickActionStateSystem = (world: BevyWorld, context: Context): void => {
+		const app = (world as unknown as { __app?: App }).__app;
+		if (!app) {
+			return;
+		}
+
+		const appContext = app.getContext();
+		const instanceManager = getInstanceManagerFromContext(appContext, actionType);
+		
+		if (RunService.IsServer()) {
+			// 服务端模式：直接tick实例管理器中的action states
+			if (instanceManager) {
+				for (const [entity] of world.query(ActionStateComponent)) {
+					const actionState = instanceManager.getActionState(entity);
+					if (actionState) {
+						actionState.tick(1 / 60);
+					}
+				}
+			}
+		} else {
+			// 客户端模式：通过InputSystem来tick
+			const stateResource = world.resources.getResource<InputManagerStateResource<A>>();
+			if (stateResource?.inputSystem) {
+				stateResource.inputSystem.tickAll(1 / 60);
+			}
+		}
+	};
+
+	/**
+	 * 固定时间步长的Action State Tick系统
+	 */
+	const tickActionStateFixedSystem = (world: BevyWorld, context: Context): void => {
+		const fixedDeltaTime = 1 / 50; // 50Hz固定时间步长
+		const app = (world as unknown as { __app?: App }).__app;
+		if (!app) {
+			return;
+		}
+
+		const appContext = app.getContext();
+		const instanceManager = getInstanceManagerFromContext(appContext, actionType);
+		
+		if (RunService.IsServer()) {
+			// 服务端模式
+			if (instanceManager) {
+				for (const [entity] of world.query(ActionStateComponent)) {
+					const actionState = instanceManager.getActionState(entity);
+					if (actionState) {
+						actionState.tickFixed(fixedDeltaTime);
+					}
+				}
+			}
+		} else {
+			// 客户端模式
+			const stateResource = world.resources.getResource<InputManagerStateResource<A>>();
+			if (stateResource?.inputSystem) {
+				stateResource.inputSystem.tickAllFixed(fixedDeltaTime);
+			}
+		}
+	};
+
+	/**
+	 * 客户端Action State更新系统
+	 */
+	const updateActionStateSystem = (world: BevyWorld, context: Context): void => {
+		// 只在客户端运行
+		if (RunService.IsServer()) {
+			return;
+		}
+
+		const app = (world as unknown as { __app?: App }).__app;
+		if (!app) {
+			return;
+		}
+
+		const appContext = app.getContext();
+		const instanceManager = getInstanceManagerFromContext(appContext, actionType);
+		const stateResource = world.resources.getResource<InputManagerStateResource<A>>();
+		
+		if (!instanceManager || !stateResource?.inputSystem || !stateResource?.centralStore) {
+			return;
+		}
+
+		// 同步bevy_input资源
+		syncFromBevyInput(world, stateResource.centralStore);
+
+		// 更新所有带有输入组件的实体的action状态
+		let entityCount = 0;
+		for (const [entity, inputMap, actionState] of world.query(InputMapComponent, ActionStateComponent)) {
+			entityCount++;
+			
+			// 注册实例到管理器
+			if (!instanceManager.getInputMap(entity)) {
+				instanceManager.registerInputMap(entity, inputMap as unknown as InputMap<A>);
+			}
+			if (!instanceManager.getActionState(entity)) {
+				instanceManager.registerActionState(entity, actionState as unknown as ActionState<A>);
+			}
+		}
+
+		// 更新输入系统
+		if (entityCount > 0) {
+			stateResource.inputSystem.update(1 / 60);
+		}
+	};
+
+	/**
+	 * 固定更新的Action State更新系统
+	 */
+	const updateActionStateFixedSystem = (world: BevyWorld, context: Context): void => {
+		// 只在客户端运行
+		if (RunService.IsServer()) {
+			return;
+		}
+
+
+		const instanceManager = getInstanceManagerFromContext(context, actionType);
+		const stateResource = world.resources.getResource<InputManagerStateResource<A>>();
+		
+		if (!instanceManager || !stateResource?.inputSystem || !stateResource?.centralStore) {
+			return;
+		}
+
+		// 同步bevy_input资源
+		syncFromBevyInput(world, stateResource.centralStore);
+
+		// 更新所有带有输入组件的实体
+		let entityCount = 0;
+		for (const [entity, inputMap, actionState] of world.query(InputMapComponent, ActionStateComponent)) {
+			entityCount++;
+			
+			// 注册实例到管理器
+			if (!instanceManager.getInputMap(entity)) {
+				instanceManager.registerInputMap(entity, inputMap as unknown as InputMap<A>);
+			}
+			if (!instanceManager.getActionState(entity)) {
+				instanceManager.registerActionState(entity, actionState as unknown as ActionState<A>);
+			}
+		}
+
+		// 使用固定时间步长更新
+		if (entityCount > 0) {
+			const fixedDeltaTime = 1 / 50;
+			stateResource.inputSystem.updateFixed(fixedDeltaTime);
+		}
+	};
+
+	/**
+	 * InputMap移除时释放Action State系统
+	 */
+	const releaseOnInputMapRemovedSystem = (world: BevyWorld, context: Context): void => {
+		// 实现组件移除时的清理逻辑
+		// 当前为占位符，与Rust版本保持一致
+	};
+
+	/**
+	 * 交换到固定更新状态的系统
+	 */
+	const swapToFixedUpdateSystem = (world: BevyWorld, context: Context): void => {
+		const app = (world as unknown as { __app?: App }).__app;
+		if (!app) {
+			return;
+		}
+
+		const appContext = app.getContext();
+		const instanceManager = getInstanceManagerFromContext(appContext, actionType);
+		if (!instanceManager) {
+			return;
+		}
+
+		// 为所有带有ActionState和InputMap组件的实体交换状态
+		for (const [entity, inputMapData, actionStateData] of world.query(InputMapComponent, ActionStateComponent)) {
+			// 注册实例（如果尚未注册）
+			const inputMap = (inputMapData as unknown as { map?: InputMap<A> }).map || inputMapData;
+			const actionState = (actionStateData as unknown as { state?: ActionState<A> }).state || actionStateData;
+
+			if (!instanceManager.getInputMap(entity)) {
+				instanceManager.registerInputMap(entity, inputMap as unknown as InputMap<A>);
+			}
+			if (!instanceManager.getActionState(entity)) {
+				instanceManager.registerActionState(entity, actionState as unknown as ActionState<A>);
+			}
+
+			// 交换状态
+			const registeredActionState = instanceManager.getActionState(entity);
+			if (registeredActionState) {
+				registeredActionState.swapToFixedUpdateState();
+			}
+		}
+	};
+
+	/**
+	 * 交换回常规更新状态的系统
+	 */
+	const swapToUpdateSystem = (world: BevyWorld, context: Context): void => {
+		const app = (world as unknown as { __app?: App }).__app;
+		if (!app) {
+			return;
+		}
+
+		const appContext = app.getContext();
+		const instanceManager = getInstanceManagerFromContext(appContext, actionType);
+		if (!instanceManager) {
+			return;
+		}
+
+		// 为所有带有ActionState组件的实体交换回常规状态
+		for (const [entity] of world.query(ActionStateComponent)) {
+			const actionState = instanceManager.getActionState(entity);
+			if (actionState) {
+				actionState.swapToUpdateState();
+			}
+		}
+	};
+
+	return {
+		tickActionStateSystem,
+		tickActionStateFixedSystem,
+		updateActionStateSystem,
+		updateActionStateFixedSystem,
+		releaseOnInputMapRemovedSystem,
+		swapToFixedUpdateSystem,
+		swapToUpdateSystem
+	};
+}
 
 /**
  * Configuration for the InputManagerPlugin
@@ -73,6 +356,19 @@ export class InputManagerPluginResource<A extends Actionlike> implements Resourc
 }
 
 /**
+ * Resource to store plugin state for system functions
+ * 存储插件状态供系统函数访问的资源
+ */
+export class InputManagerStateResource<A extends Actionlike> implements Resource {
+	constructor(
+		public config: InputManagerPluginConfig<A>,
+		public centralStore?: CentralInputStore,
+		public inputSystem?: InputManagerSystem<A>,
+		public connections: RBXScriptConnection[] = []
+	) {}
+}
+
+/**
  * Main plugin for the leafwing input manager
  * Integrates with bevy_input for input handling and provides action mapping
  *
@@ -83,11 +379,7 @@ export class InputManagerPluginResource<A extends Actionlike> implements Resourc
  */
 export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 	private config: InputManagerPluginConfig<A>;
-	private world?: World;
-	private centralStore?: CentralInputStore;
-	private inputSystem?: InputManagerSystem<A>;
 	private connections: RBXScriptConnection[] = [];
-	private instanceManagerKey?: string;
 
 	constructor(config: InputManagerPluginConfig<A>) {
 		this.config = config;
@@ -98,12 +390,8 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 	 * @param app - The Bevy App instance
 	 */
 	build(app: App): void {
-		// Initialize internal state
-		this.world = app.getWorld() as unknown as World;
-
 		// Create InputInstanceManager
 		const instanceManager = new InputInstanceManagerResource<A>(this.config.actionType.name);
-		this.instanceManagerKey = this.config.actionType.name;
 
 		// Store the plugin instance as a resource for access by systems
 		app.insertResource<InputManagerPluginResource<A>>(new InputManagerPluginResource(this));
@@ -112,6 +400,9 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 		// This needs to be available on both client and server
 		const context = app.getContext();
 		registerInputManagerExtension(context, this.config.actionType, this, instanceManager);
+
+		// Create system functions for this specific action type
+		const systems = createInputManagerSystems(this.config.actionType);
 
 		const isServer = RunService.IsServer();
 		const isClient = RunService.IsClient();
@@ -122,264 +413,69 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 			// but we also need fixed update support for physics integration
 
 			// PreUpdate: tick action states
-			app.addSystems(MainScheduleLabel.PRE_UPDATE, (world: World) => {
-				this.tickActionState(world, app);
-			});
+			app.addSystems(MainScheduleLabel.PRE_UPDATE, systems.tickActionStateSystem);
 
 			// Fixed Update support for server-side physics
 			// 1. Swap to fixed update state before the fixed main loop
-			app.addSystems(BuiltinSchedules.RUN_FIXED_MAIN_LOOP, (world: World) => {
-				this.swapToFixedUpdate(world);
-			});
+			app.addSystems(BuiltinSchedules.RUN_FIXED_MAIN_LOOP, systems.swapToFixedUpdateSystem);
 
 			// 2. Tick action states during fixed update with fixed timestep
-			app.addSystems(BuiltinSchedules.FIXED_PRE_UPDATE, (world: World) => {
-				this.tickActionStateFixed(world, app);
-			});
+			app.addSystems(BuiltinSchedules.FIXED_PRE_UPDATE, systems.tickActionStateFixedSystem);
 
 			// 3. Swap back to regular update state after fixed update
-			app.addSystems(MainScheduleLabel.PRE_UPDATE, (world: World) => {
-				this.swapToUpdate(world);
-			});
+			app.addSystems(MainScheduleLabel.PRE_UPDATE, systems.swapToUpdateSystem);
 		} else if (isClient) {
 			// Client mode: full input processing
 
 			// Initialize client-only components
-			this.centralStore = new CentralInputStore();
-			const manager = this.getInstanceManagerFromContext(context);
-			if (!manager) {
-				error(`[InputManagerPlugin] Failed to get InputInstanceManager from extension for ${this.config.actionType.name}`);
-			}
-			this.inputSystem = new InputManagerSystem(this.world, this.centralStore, this.config, manager as InputInstanceManagerResource<A>);
+			const centralStore = new CentralInputStore();
+			const world = app.getWorld() as unknown as World;
+			const inputSystem = new InputManagerSystem(world, centralStore, this.config, instanceManager);
 
 			// Initialize gamepad input listeners
-			this.centralStore.initializeGamepadListeners();
+			centralStore.initializeGamepadListeners();
+
+			// Store state resource for system functions to access
+			const stateResource = new InputManagerStateResource(
+				this.config,
+				centralStore,
+				inputSystem,
+				this.connections
+			);
+			app.insertResource<InputManagerStateResource<A>>(stateResource);
 
 			// Register systems with the App scheduler
 			// PreUpdate: tick and update action states
-			app.addSystems(MainScheduleLabel.PRE_UPDATE, (world: World) => {
-				this.tickActionState(world, app);
-			});
-
-			app.addSystems(MainScheduleLabel.PRE_UPDATE, (world: World) => {
-				this.updateActionState(world);
-			});
+			app.addSystems(MainScheduleLabel.PRE_UPDATE, systems.tickActionStateSystem);
+			app.addSystems(MainScheduleLabel.PRE_UPDATE, systems.updateActionStateSystem);
 
 			// PostUpdate: cleanup and finalization
-			app.addSystems(MainScheduleLabel.POST_UPDATE, (world: World) => {
-				this.releaseOnInputMapRemoved(world);
-			});
+			app.addSystems(MainScheduleLabel.POST_UPDATE, systems.releaseOnInputMapRemovedSystem);
 
 			// Fixed Update support: comprehensive fixed timestep input handling
 			// 1. Swap to fixed update state before the fixed main loop
-			app.addSystems(BuiltinSchedules.RUN_FIXED_MAIN_LOOP, (world: World) => {
-				this.swapToFixedUpdate(world);
-			});
+			app.addSystems(BuiltinSchedules.RUN_FIXED_MAIN_LOOP, systems.swapToFixedUpdateSystem);
 
 			// 2. Tick action states during fixed update with fixed timestep
-			app.addSystems(BuiltinSchedules.FIXED_PRE_UPDATE, (world: World) => {
-				this.tickActionStateFixed(world, app);
-			});
+			app.addSystems(BuiltinSchedules.FIXED_PRE_UPDATE, systems.tickActionStateFixedSystem);
 
 			// 3. Update action states during fixed update (maintain input responsiveness)
-			app.addSystems(BuiltinSchedules.FIXED_UPDATE, (world: World) => {
-				this.updateActionStateFixed(world);
-			});
+			app.addSystems(BuiltinSchedules.FIXED_UPDATE, systems.updateActionStateFixedSystem);
 
 			// 4. Swap back to regular update state after fixed update
-			app.addSystems(MainScheduleLabel.PRE_UPDATE, (world: World) => {
-				this.swapToUpdate(world);
-			});
+			app.addSystems(MainScheduleLabel.PRE_UPDATE, systems.swapToUpdateSystem);
 
 			if (this.config.networkSync?.enabled) {
-				this.setupNetworkSync();
+				this.setupNetworkSync(inputSystem);
 			}
 		}
-	}
-
-	/**
-	 * Ticks the action state - clears just_pressed and just_released
-	 * Corresponds to Rust's tick_action_state system
-	 * This runs on both client and server
-	 */
-	private tickActionState(world: World, app: App): void {
-		// On server, we only need to tick the instance manager's action states
-		// On client, we tick through the input system
-		if (RunService.IsServer()) {
-			// Server mode: directly tick action states in instance manager
-			const context = app.getContext();
-			const manager = this.getInstanceManagerFromContext(context);
-			if (manager) {
-				// Tick all registered action states
-				for (const [entity] of world.query(ActionStateComponent)) {
-					const actionState = manager.getActionState(entity);
-					if (actionState) {
-						actionState.tick(1 / 60);
-					}
-				}
-			}
-		} else if (this.inputSystem) {
-			// Client mode: use input system to tick
-			this.inputSystem.tickAll(1 / 60);
-		}
-	}
-
-	/**
-	 * Ticks action states during fixed update with fixed timestep
-	 * This ensures consistent timing for physics-based input processing
-	 * @param world - The Matter World instance
-	 */
-	private tickActionStateFixed(world: World, app: App): void {
-		const fixedDeltaTime = 1 / 50; // 50Hz fixed timestep (20ms)
-
-		if (RunService.IsServer()) {
-			// Server mode: directly tick action states with fixed timestep
-			const context = app.getContext();
-			const manager = this.getInstanceManagerFromContext(context);
-			if (manager) {
-				for (const [entity] of world.query(ActionStateComponent)) {
-					const actionState = manager.getActionState(entity);
-					if (actionState) {
-						actionState.tickFixed(fixedDeltaTime);
-					}
-				}
-			}
-		} else if (this.inputSystem) {
-			// Client mode: use input system to tick with fixed timestep
-			this.inputSystem.tickAllFixed(fixedDeltaTime);
-		}
-	}
-
-	/**
-	 * Updates action states during fixed update schedule
-	 * Maintains input responsiveness during fixed timestep physics
-	 * @param world - The Matter World instance
-	 */
-	private updateActionStateFixed(world: World): void {
-		// Only run on client (server doesn't process inputs directly)
-		if (RunService.IsServer()) {
-			return;
-		}
-
-		if (!this.inputSystem) {
-			return;
-		}
-
-		const app = (world as unknown as { __app?: App }).__app;
-		if (!app) {
-			return;
-		}
-		const context = app.getContext();
-		const instanceManager = this.getInstanceManagerFromContext(context);
-		if (!instanceManager) {
-			return;
-		}
-
-		// Sync input state from bevy_input resources (same as regular update)
-		this.syncFromBevyInput();
-
-		// Update action states for all entities during fixed update
-		let entityCount = 0;
-		for (const [entity, inputMap, actionState] of world.query(InputMapComponent, ActionStateComponent)) {
-			entityCount++;
-
-			// Ensure instances are registered
-			if (!instanceManager.getInputMap(entity)) {
-				instanceManager.registerInputMap(entity, inputMap as unknown as InputMap<A>);
-			}
-			if (!instanceManager.getActionState(entity)) {
-				instanceManager.registerActionState(entity, actionState as unknown as ActionState<A>);
-			}
-		}
-
-		// Update with fixed timestep
-		if (entityCount > 0) {
-			const fixedDeltaTime = 1 / 50; // 50Hz fixed timestep
-			this.inputSystem.updateFixed(fixedDeltaTime);
-		}
-	}
-
-	/**
-	 * Updates the action state based on current inputs
-	 * Corresponds to Rust's update_action_state system
-	 * This only runs on client (server doesn't process inputs)
-	 */
-	private updateActionState(world: World): void {
-		// Server doesn't process inputs, only client does
-		if (RunService.IsServer()) {
-			return;
-		}
-
-		if (!this.inputSystem) {
-			return;
-		}
-
-		const app = (world as unknown as { __app?: App }).__app;
-		if (!app) {
-			return;
-		}
-		const context = app.getContext();
-		const instanceManager = this.getInstanceManagerFromContext(context);
-		if (!instanceManager) {
-			return;
-		}
-
-		// Sync input state from bevy_input resources
-		this.syncFromBevyInput();
-
-		// Update action states for all entities with input components
-		let entityCount = 0;
-		for (const [entity, inputMap, actionState] of world.query(InputMapComponent, ActionStateComponent)) {
-			entityCount++;
-			// Register the actual instances with the manager if not already registered
-			if (!instanceManager.getInputMap(entity)) {
-				instanceManager.registerInputMap(entity, inputMap as unknown as InputMap<A>);
-			}
-			if (!instanceManager.getActionState(entity)) {
-				instanceManager.registerActionState(entity, actionState as unknown as ActionState<A>);
-			}
-		}
-
-		// Update the input system
-		if (entityCount > 0) {
-			this.inputSystem.update(1 / 60);
-		}
-	}
-
-	/**
-	 * Releases action states when input maps are removed
-	 * Corresponds to Rust's release_on_input_map_removed system
-	 */
-	private releaseOnInputMapRemoved(world: World): void {
-		// This will be implemented when we have proper component tracking
-		// For now, it's a placeholder for consistency with Rust version
-	}
-
-	/**
-	 * Syncs input state from bevy_input resources
-	 */
-	private syncFromBevyInput(): void {
-		if (!this.world || !this.centralStore) return;
-
-		// Get bevy_input resources from the world
-		const keyboardInput = getKeyboardInput(this.world);
-		const mouseInput = getMouseInput(this.world);
-		const mouseMotion = getMouseMotion(this.world);
-		const mouseWheel = getMouseWheel(this.world);
-
-		// Sync to central store
-		this.centralStore!.syncFromBevyInput(
-			keyboardInput,
-			mouseInput,
-			mouseMotion,
-			mouseWheel
-		);
 	}
 
 	/**
 	 * Sets up network synchronization
+	 * @param inputSystem - The input system instance
 	 */
-	private setupNetworkSync(): void {
+	private setupNetworkSync(inputSystem: InputManagerSystem<A>): void {
 		const syncRate = this.config.networkSync?.syncRate ?? 30;
 		const syncInterval = 1 / syncRate;
 		let lastSyncTime = 0;
@@ -389,9 +485,7 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 				const currentTime = os.clock();
 				if (currentTime - lastSyncTime >= syncInterval) {
 					lastSyncTime = currentTime;
-					if (this.inputSystem) {
-						this.inputSystem.syncNetwork();
-					}
+					inputSystem.syncNetwork();
 				}
 			}),
 		);
@@ -424,113 +518,10 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 		}
 		this.connections.clear();
 
-		// Clean up gamepad listeners
-		if (this.centralStore) {
-			this.centralStore.cleanupGamepadListeners();
-		}
-
-		// Clear internal state
-		this.world = undefined;
-		this.centralStore = undefined;
-		this.inputSystem = undefined;
-		this.instanceManagerKey = undefined;
-	}
-
-	/**
-	 * Internal getter for instance manager - used by systems
-	 * @internal
-	 */
-	getInstanceManager(): InputInstanceManagerResource<A> | undefined {
-		// Get from extension system
-		if (!this.world) {
-			return undefined;
-		}
-		const app = (this.world as unknown as { __app?: App }).__app;
-		if (!app) {
-			return undefined;
-		}
-		const context = app.getContext();
-		const extension = getInputManagerExtension(context, this.config.actionType);
-		if (!extension) {
-			return undefined;
-		}
-		return extension.getInstanceManager();
-	}
-
-	/**
-	 * Helper to get instance manager from context
-	 * @param context - App context
-	 * @returns InputInstanceManagerResource or undefined
-	 */
-	private getInstanceManagerFromContext(context: AppContext): InputInstanceManagerResource<A> | undefined {
-		const extension = getInputManagerExtension(context, this.config.actionType);
-		if (!extension) {
-			return undefined;
-		}
-		return extension.getInstanceManager();
-	}
-
-	/**
-	 * Swaps all action states to their FixedUpdate variants
-	 * This system runs before the fixed update loop
-	 * @param world - The Matter World instance
-	 */
-	private swapToFixedUpdate(world: World): void {
-		const app = (world as unknown as { __app?: App }).__app;
-		if (!app) {
-			return;
-		}
-		const context = app.getContext();
-		const instanceManager = this.getInstanceManagerFromContext(context);
-		if (!instanceManager) {
-			return;
-		}
-
-		// Register and swap state for all entities with ActionState and InputMap components
-		for (const [entity, inputMapData, actionStateData] of world.query(InputMapComponent, ActionStateComponent)) {
-			// Register instances if not already registered
-			// InputMapComponent can be either the raw InputMap or wrapped in { map: InputMap }
-			const inputMap = (inputMapData as unknown as { map?: InputMap<A> }).map || inputMapData;
-			// ActionStateComponent can be either the raw ActionState or wrapped in { state: ActionState }
-			const actionState = (actionStateData as unknown as { state?: ActionState<A> }).state || actionStateData;
-
-			if (!instanceManager.getInputMap(entity)) {
-				instanceManager.registerInputMap(entity, inputMap as unknown as InputMap<A>);
-			}
-			if (!instanceManager.getActionState(entity)) {
-				instanceManager.registerActionState(entity, actionState as unknown as ActionState<A>);
-			}
-
-			// Swap state
-			const registeredActionState = instanceManager.getActionState(entity);
-			if (registeredActionState) {
-				registeredActionState.swapToFixedUpdateState();
-			}
-		}
-	}
-
-	/**
-	 * Swaps all action states back to their Update variants
-	 * This system runs before the regular update loop
-	 * @param world - The Matter World instance
-	 */
-	private swapToUpdate(world: World): void {
-		const app = (world as unknown as { __app?: App }).__app;
-		if (!app) {
-			return;
-		}
-		const context = app.getContext();
-		const instanceManager = this.getInstanceManagerFromContext(context);
-		if (!instanceManager) {
-			return;
-		}
-
-		// Swap state back for all entities with ActionState components
-		for (const [entity] of world.query(ActionStateComponent)) {
-			const actionState = instanceManager.getActionState(entity);
-			if (actionState) {
-				actionState.swapToUpdateState();
-			}
+		// Clean up gamepad listeners from state resource
+		const stateResource = app.getWorld().resources.getResource<InputManagerStateResource<A>>();
+		if (stateResource?.centralStore) {
+			stateResource.centralStore.cleanupGamepadListeners();
 		}
 	}
 }
