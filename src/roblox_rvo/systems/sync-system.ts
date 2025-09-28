@@ -6,7 +6,7 @@
 import { World } from "../../bevy_ecs/bevy-world";
 import { Context } from "../../bevy_ecs/types";
 import { Transform } from "../../bevy_transform/components/transform";
-import { RVOAgent, setAgentGoal } from "../components/rvo-agent";
+import { RVOAgent, RVOAgentData, setAgentGoal } from "../components/rvo-agent";
 import { RVOObstacle, transformObstacleVertices } from "../components/rvo-obstacle";
 import { RVOSimulatorResource } from "../resources/rvo-simulator";
 
@@ -24,8 +24,11 @@ export function syncTransformToRVO(world: World, context: Context): void {
 
 	const simulator = simulatorResource.simulator;
 
-	// 同步 Agent
-	syncAgents(world, simulatorResource);
+	// 同步 Agent，并获取活跃的实体
+	const activeEntities = syncAgents(world, simulatorResource);
+
+	// 清理已删除的 Agent（使用活跃实体集合）
+	cleanupRemovedAgents(world, simulatorResource, activeEntities);
 
 	// 同步障碍物
 	syncObstacles(world, simulatorResource);
@@ -35,12 +38,15 @@ export function syncTransformToRVO(world: World, context: Context): void {
  * 同步 Agent 实体
  * @param world - Matter 世界实例
  * @param simulatorResource - RVO 模拟器资源
+ * @returns 当前活跃的实体集合
  */
-function syncAgents(world: World, simulatorResource: RVOSimulatorResource): void {
+function syncAgents(world: World, simulatorResource: RVOSimulatorResource): Set<number> {
 	const simulator = simulatorResource.simulator;
+	const activeEntities = new Set<number>();
 
 	// 查询所有带 RVOAgent 和 Transform 的实体
 	for (const [entity, agent, transform] of world.query(RVOAgent, Transform)) {
+		activeEntities.add(entity);
 		if (!agent.enabled) {
 			continue;
 		}
@@ -114,8 +120,7 @@ function syncAgents(world: World, simulatorResource: RVOSimulatorResource): void
 		}
 	}
 
-	// 清理已删除的 Agent
-	cleanupRemovedAgents(world, simulatorResource);
+	return activeEntities;
 }
 
 /**
@@ -178,14 +183,19 @@ function syncObstacles(world: World, simulatorResource: RVOSimulatorResource): v
  * 清理已删除的 Agent
  * @param world - Matter 世界实例
  * @param simulatorResource - RVO 模拟器资源
+ * @param activeEntities - 当前活跃的实体集合
  */
-function cleanupRemovedAgents(world: World, simulatorResource: RVOSimulatorResource): void {
+function cleanupRemovedAgents(
+	world: World,
+	simulatorResource: RVOSimulatorResource,
+	activeEntities: Set<number>,
+): void {
 	const entitiesToRemove: Array<number> = [];
 
 	// 检查所有已注册的 Agent
 	for (const [entity] of simulatorResource.entityAgentMap) {
-		// 如果实体不再有 RVOAgent 组件，移除它
-		if (!world.get(entity, RVOAgent)) {
+		// 如果实体不在活跃集合中，说明它已经没有 RVOAgent 组件了
+		if (!activeEntities.has(entity)) {
 			entitiesToRemove.push(entity);
 		}
 	}
@@ -194,10 +204,44 @@ function cleanupRemovedAgents(world: World, simulatorResource: RVOSimulatorResou
 	for (const entity of entitiesToRemove) {
 		const agentId = simulatorResource.getEntityAgent(entity);
 		if (agentId !== undefined) {
+			// 收集所有需要更新的映射（在删除之前）
+			const entitiesToUpdate: Array<[number, number]> = [];
+			for (const [ent, id] of simulatorResource.entityAgentMap) {
+				if (id > agentId) {
+					entitiesToUpdate.push([ent, id]);
+				}
+			}
+
+			// 从映射中移除，更新统计
+			simulatorResource.agentEntityMap.delete(agentId);
+			simulatorResource.entityAgentMap.delete(entity);
+			simulatorResource.stats.agentCount--;
+
 			// 从模拟器中移除 Agent
-			// 注意：当前 Simulator 实现没有提供移除 Agent 的方法
-			// 需要扩展 Simulator 类或使用其他策略
-			simulatorResource.unregisterAgent(entity);
+			simulatorResource.simulator.removeAgent(agentId);
+
+			// 更新所有受影响的 Agent ID 映射
+			// 当移除 Agent 时，所有 ID > agentId 的 Agent 都会向前移动
+			for (const [ent, oldId] of entitiesToUpdate) {
+				const newId = oldId - 1;
+				simulatorResource.entityAgentMap.set(ent, newId);
+				simulatorResource.agentEntityMap.delete(oldId);
+				simulatorResource.agentEntityMap.set(newId, ent);
+
+				// 更新查询中实体的 Agent ID
+				for (const [queryEntity, agent] of world.query(RVOAgent)) {
+					if (queryEntity === ent && agent.agentId === oldId) {
+						world.insert(
+							queryEntity,
+							RVOAgent({
+								...agent,
+								agentId: newId,
+							}),
+						);
+						break;
+					}
+				}
+			}
 		}
 	}
 }

@@ -541,6 +541,12 @@ export class Schedule {
 	 * @returns 按优先级排序的系统ID列表
 	 */
 	private sortByPriority(systemIds: Array<string>): Array<string> {
+		// 创建一个映射，记录原始拓扑顺序
+		const originalOrder = new Map<string, number>();
+		for (let index = 0; index < systemIds.size(); index++) {
+			originalOrder.set(systemIds[index], index);
+		}
+
 		const sorted = [...systemIds];
 		sorted.sort((idA, idB) => {
 			const systemA = this.systems.get(idA)!;
@@ -549,9 +555,15 @@ export class Schedule {
 			const priorityA = systemA.priority ?? 0;
 			const priorityB = systemB.priority ?? 0;
 
-			if (priorityA < priorityB) return true;
-			if (priorityA > priorityB) return false;
-			return false;
+			// 首先按优先级排序
+			if (priorityA !== priorityB) {
+				return priorityA < priorityB;
+			}
+
+			// 优先级相同时，保持拓扑排序的原始顺序
+			const orderA = originalOrder.get(idA) ?? 0;
+			const orderB = originalOrder.get(idB) ?? 0;
+			return orderA < orderB;
 		});
 		return sorted;
 	}

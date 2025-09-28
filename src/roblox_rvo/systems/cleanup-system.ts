@@ -22,5 +22,5 @@ export function cleanupRVOSystem(world: World, context: Context): void {
 	// 清理资源
 	simulatorResource.cleanup();
 
-	print("[RVO] System cleaned up");
+	// print("[RVO] System cleaned up");
 }

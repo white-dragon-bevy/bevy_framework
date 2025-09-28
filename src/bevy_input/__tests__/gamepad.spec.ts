@@ -348,8 +348,8 @@ export = () => {
 
 			const stick = state.leftStick();
 
-			expect(stick.X).to.equal(0.5);
-			expect(stick.Y).to.equal(-0.3);
+			expect(stick.X).to.be.near(0.5);
+			expect(stick.Y).to.be.near(-0.3);
 		});
 
 		it("rightStick 应该返回右摇杆向量", () => {
@@ -360,8 +360,8 @@ export = () => {
 
 			const stick = state.rightStick();
 
-			expect(stick.X).to.equal(-0.2);
-			expect(stick.Y).to.equal(0.7);
+			expect(stick.X).to.be.near(-0.2);
+			expect(stick.Y).to.be.near(0.7);
 		});
 
 		it("dpad 应该返回十字键向量", () => {

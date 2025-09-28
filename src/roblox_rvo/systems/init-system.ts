@@ -63,5 +63,5 @@ export function initRVOSystem(world: World, context: Context): void {
 	// 标记为已初始化
 	simulatorResource.initialized = true;
 
-	print(`[RVO] System initialized with ${config.maxAgents} max agents, timeStep: ${config.timeStep}`);
+	// print(`[RVO] System initialized with ${config.maxAgents} max agents, timeStep: ${config.timeStep}`);
 }

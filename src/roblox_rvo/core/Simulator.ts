@@ -98,6 +98,35 @@ export default class Simulator {
     return this.agents.size() - 1;
   }
 
+  /**
+   * Remove an agent from the simulation
+   * @param agentId - The ID of the agent to remove
+   */
+  removeAgent(agentId: number): void {
+    if (agentId < 0 || agentId >= this.agents.size()) {
+      return;
+    }
+
+    // Remove agent from arrays by rebuilding them without the removed element
+    const newAgents: Agent[] = [];
+    const newGoals: Vector2[] = [];
+
+    for (let index = 0; index < this.agents.size(); index++) {
+      if (index !== agentId) {
+        newAgents.push(this.agents[index]);
+        newGoals.push(this.goals[index]);
+      }
+    }
+
+    this.agents = newAgents;
+    this.goals = newGoals;
+
+    // Update IDs for agents after the removed one
+    for (let index = agentId; index < this.agents.size(); index++) {
+      this.agents[index].id = index;
+    }
+  }
+
   //  /** float */ neighborDist, /** int */ maxNeighbors, /** float */ timeHorizon, /** float */ timeHorizonObst, /** float */ radius, /** float*/ maxSpeed, /** Vector2 */ velocity)
   setAgentDefaults(neighborDist: number,
     maxNeighbors: number,

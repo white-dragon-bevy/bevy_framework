@@ -293,6 +293,12 @@ export default class KdTree {
       return;
     } else {
       let obstacle1 = node.obstacle;
+
+      // Check if obstacle1 exists before accessing its properties
+      if (!obstacle1) {
+        return;
+      }
+
       let obstacle2 = obstacle1.next;
 
       // Check if obstacle2 exists before using it
@@ -330,6 +336,12 @@ export default class KdTree {
       return true;
     } else {
       let obstacle1 = node.obstacle;
+
+      // Check if obstacle1 exists before accessing its properties
+      if (!obstacle1) {
+        return true;
+      }
+
       let obstacle2 = obstacle1.next;
 
       // Check if obstacle2 exists before using it

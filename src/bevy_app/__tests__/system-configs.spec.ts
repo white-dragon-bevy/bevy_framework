@@ -235,7 +235,6 @@ describe("System Configs API", () => {
 			expect(executionOrder[5]).to.equal("C");
 		});
 
-		// TODO: Fix nested chain with dependencies
 		it("应该支持嵌套配置", () => {
 			const systemA = createSystem("A");
 			const systemB = createSystem("B");
