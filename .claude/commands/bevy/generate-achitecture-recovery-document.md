@@ -15,6 +15,8 @@
 
 # **源代码分析与设计文档 (Source Code Analysis & Design Document)**
 
+**分析代码路径:**
+
 **前言：代码映射索引 (Code-to-Doc Map)**
 * **目的**：建立本文档描述的关键设计概念（如类、模块、模式）与它们在源代码中具体文件位置的精确映射。
 * **内容**：一个表格，列出“设计概念”（如：用户认证控制器 `AuthenticationController`），并指向其“相对项目目录的源文件路径”（如：`/src/controllers/auth.controller.ts`）。
