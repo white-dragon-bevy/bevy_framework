@@ -4,10 +4,10 @@
 
 import { World } from "../../bevy_ecs";
 import { MessageRegistry } from "../../bevy_ecs/message";
-import { KeyboardFocusLost, KeyboardInput, keyboardInputSystem } from "../keyboard";
+import { Key, KeyboardFocusLost, KeyboardInput, keyboardInputSystem } from "../keyboard";
 import { ButtonState } from "../mouse-events";
-import * as ResourceStorage from "../resource-storage";
 import { ButtonInput } from "../button-input";
+import { getKeyboardInput, getKeyInput } from "../plugin";
 
 export = () => {
 	describe("KeyboardInput 事件", () => {
@@ -52,9 +52,9 @@ export = () => {
 
 			// 初始化资源
 			const keyCodeInput = new ButtonInput<Enum.KeyCode>();
-			const keyInput = new ButtonInput<string>();
-			ResourceStorage.setKeyboardInput(world, keyCodeInput);
-			ResourceStorage.setKeyInput(world, keyInput);
+			const keyInput = new ButtonInput<Key>();
+			world.resources.insertResource(keyCodeInput);
+			world.resources.insertResource(keyInput);
 		});
 
 		it("应该处理按键按下事件", () => {
@@ -68,8 +68,8 @@ export = () => {
 
 			keyboardInputSystem(world, keyboardReader, focusReader);
 
-			const keyCodeInput = ResourceStorage.getKeyboardInput(world);
-			const keyInput = ResourceStorage.getKeyInput(world);
+			const keyCodeInput = getKeyboardInput(world);
+			const keyInput = getKeyInput(world);
 
 			expect(keyCodeInput).to.be.ok();
 			expect(keyInput).to.be.ok();
@@ -103,8 +103,8 @@ export = () => {
 			const focusReader2 = messageRegistry.createReader<KeyboardFocusLost>();
 			keyboardInputSystem(world, reader2, focusReader2);
 
-			const keyCodeInput = ResourceStorage.getKeyboardInput(world);
-			const keyInput = ResourceStorage.getKeyInput(world);
+			const keyCodeInput = getKeyboardInput(world);
+			const keyInput = getKeyInput(world);
 
 			expect(keyCodeInput).to.be.ok();
 			expect(keyInput).to.be.ok();
@@ -128,7 +128,7 @@ export = () => {
 			const focusReader = messageRegistry.createReader<KeyboardFocusLost>();
 			keyboardInputSystem(world, keyboardReader, focusReader);
 
-			const keyCodeInput = ResourceStorage.getKeyboardInput(world);
+			const keyCodeInput = getKeyboardInput(world);
 
 			expect(keyCodeInput).to.be.ok();
 
@@ -159,8 +159,8 @@ export = () => {
 			const focusReader2 = messageRegistry.createReader<KeyboardFocusLost>();
 			keyboardInputSystem(world, reader2, focusReader2);
 
-			const keyCodeInput = ResourceStorage.getKeyboardInput(world);
-			const keyInput = ResourceStorage.getKeyInput(world);
+			const keyCodeInput = getKeyboardInput(world);
+			const keyInput = getKeyInput(world);
 
 			expect(keyCodeInput).to.be.ok();
 			expect(keyInput).to.be.ok();
@@ -183,7 +183,7 @@ export = () => {
 			const focusReader1 = messageRegistry.createReader<KeyboardFocusLost>();
 			keyboardInputSystem(world, reader1, focusReader1);
 
-			const keyCodeInput1 = ResourceStorage.getKeyboardInput(world);
+			const keyCodeInput1 = getKeyboardInput(world);
 
 			expect(keyCodeInput1).to.be.ok();
 
@@ -198,7 +198,7 @@ export = () => {
 			const focusReader2 = messageRegistry.createReader<KeyboardFocusLost>();
 			keyboardInputSystem(world, reader2, focusReader2);
 
-			const keyCodeInput2 = ResourceStorage.getKeyboardInput(world);
+			const keyCodeInput2 = getKeyboardInput(world);
 
 			expect(keyCodeInput2).to.be.ok();
 

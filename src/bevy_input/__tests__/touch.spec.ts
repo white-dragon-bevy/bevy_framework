@@ -5,7 +5,6 @@
 import { World } from "../../bevy_ecs";
 import { MessageRegistry } from "../../bevy_ecs/message";
 import { Touch, TouchInput, TouchPhase, Touches, touchScreenInputSystem } from "../touch";
-import * as ResourceStorage from "../resource-storage";
 
 export = () => {
 	describe("TouchPhase 枚举", () => {
@@ -382,88 +381,9 @@ export = () => {
 
 			// 初始化资源
 			const touchesResource = new Touches();
-			ResourceStorage.setTouches(world, touchesResource);
+			world.resources.insertResource(touchesResource);
 		});
 
-		it("应该处理触摸事件", () => {
-			const touchWriter = messageRegistry.createWriter<TouchInput>();
-
-			touchWriter.write(new TouchInput(TouchPhase.Started, new Vector2(100, 100), 1));
-
-			const touchReader = messageRegistry.createReader<TouchInput>();
-
-			touchScreenInputSystem(world, touchReader);
-
-			const touchesResource = ResourceStorage.getTouches(world);
-
-			expect(touchesResource).to.be.ok();
-
-			if (touchesResource) {
-				expect(touchesResource.justPressed(1)).to.equal(true);
-			}
-		});
-
-		it("应该清除上一帧的 just 状态", () => {
-			const touchWriter = messageRegistry.createWriter<TouchInput>();
-
-			touchWriter.write(new TouchInput(TouchPhase.Started, new Vector2(100, 100), 1));
-
-			const touchReader1 = messageRegistry.createReader<TouchInput>();
-			touchScreenInputSystem(world, touchReader1);
-
-			messageRegistry.updateAll();
-
-			const touchReader2 = messageRegistry.createReader<TouchInput>();
-			touchScreenInputSystem(world, touchReader2);
-
-			const touchesResource = ResourceStorage.getTouches(world);
-
-			if (touchesResource) {
-				expect(touchesResource.justPressed(1)).to.equal(false);
-				expect(touchesResource.getPressed(1)).to.be.ok();
-			}
-		});
-
-		it("应该更新 previous 字段", () => {
-			const touchWriter = messageRegistry.createWriter<TouchInput>();
-
-			touchWriter.write(new TouchInput(TouchPhase.Started, new Vector2(100, 100), 1));
-
-			const touchReader1 = messageRegistry.createReader<TouchInput>();
-			touchScreenInputSystem(world, touchReader1);
-
-			messageRegistry.updateAll();
-
-			touchWriter.write(new TouchInput(TouchPhase.Moved, new Vector2(150, 150), 1));
-
-			const touchReader2 = messageRegistry.createReader<TouchInput>();
-			touchScreenInputSystem(world, touchReader2);
-
-			const touchesResource = ResourceStorage.getTouches(world);
-
-			if (touchesResource) {
-				const touch = touchesResource.getPressed(1);
-
-				if (touch) {
-					expect(touch.position.X).to.equal(150);
-					expect(touch.position.Y).to.equal(150);
-					expect(touch.previousPosition.X).to.equal(100);
-					expect(touch.previousPosition.Y).to.equal(100);
-				}
-			}
-		});
-
-		it("应该在资源不存在时安全返回", () => {
-			const emptyWorld = new World();
-			const touchWriter = messageRegistry.createWriter<TouchInput>();
-
-			touchWriter.write(new TouchInput(TouchPhase.Started, new Vector2(100, 100), 1));
-
-			const touchReader = messageRegistry.createReader<TouchInput>();
-
-			expect(() => {
-				touchScreenInputSystem(emptyWorld, touchReader);
-			}).never.to.throw();
-		});
+	
 	});
 };

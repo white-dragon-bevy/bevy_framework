@@ -12,7 +12,6 @@
 import { App, AppExit, AppExitCode, AppContext } from "../../../bevy_app";
 import { BuiltinSchedules } from "../../../bevy_app";
 import { Resource } from "../../../bevy_ecs/resource";
-import { MessageWriter as EventWriter } from "../../../bevy_ecs/message";
 import type { World } from "../../../bevy_ecs";
 
 /**

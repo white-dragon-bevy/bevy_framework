@@ -6,9 +6,8 @@
  * Based on Bevy's gesture input system design, adapted for Roblox platform
  */
 
-import { World } from "@rbxts/matter";
 import { UserInputService } from "@rbxts/services";
-import { MessageWriter as EventWriter } from "../bevy_ecs/message";
+import { MessageWriter  } from "../bevy_ecs/message";
 
 /**
  * 手势状态枚举
@@ -399,11 +398,11 @@ export class GestureManager {
 	 * @param longPressWriter - 长按手势事件写入器
 	 */
 	public setupHandlers(
-		pinchWriter: EventWriter<PinchGesture>,
-		rotationWriter: EventWriter<RotationGesture>,
-		doubleTapWriter: EventWriter<DoubleTapGesture>,
-		panWriter: EventWriter<PanGesture>,
-		longPressWriter: EventWriter<LongPressGesture>,
+		pinchWriter: MessageWriter<PinchGesture>,
+		rotationWriter: MessageWriter<RotationGesture>,
+		doubleTapWriter: MessageWriter<DoubleTapGesture>,
+		panWriter: MessageWriter<PanGesture>,
+		longPressWriter: MessageWriter<LongPressGesture>,
 	): void {
 		// 捏合手势
 		if (this.config.enablePinch) {

@@ -4,7 +4,7 @@ import { InputManagerSystem } from "./input-manager-system";
 import { Actionlike } from "../actionlike";
 import { InputMap } from "../input-map/input-map";
 import { ActionState } from "../action-state/action-state";
-import { getKeyboardInput, getMouseInput, getMouseMotion, getMouseWheel } from "../../bevy_input/resource-storage";
+import { getKeyboardInput, getMouseInput, getMouseMotion, getMouseWheel } from "../../bevy_input/plugin";
 import { Plugin } from "../../bevy_app/plugin";
 import { App } from "../../bevy_app";
 import { MainScheduleLabel } from "../../bevy_app";

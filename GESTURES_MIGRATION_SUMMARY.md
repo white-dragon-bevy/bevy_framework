@@ -69,7 +69,7 @@ Rust Bevy 的 gestures.rs 只定义了简单的消息类型:
 ```typescript
 import { App } from "@white-dragon-bevy/bevy_framework";
 import { InputPlugin, PinchGesture, RotationGesture } from "@white-dragon-bevy/bevy_framework/bevy_input";
-import { MessageReader as EventReader } from "@white-dragon-bevy/bevy_framework/bevy_ecs";
+import { MessageReader  } from "@white-dragon-bevy/bevy_framework/bevy_ecs";
 
 const app = new App();
 app.addPlugin(new InputPlugin());
@@ -127,7 +127,7 @@ npm test -- -p ReplicatedStorage/rbxts_include/node_modules/@white-dragon-bevy/b
 
 2. **事件处理**: 
    - 手势事件通过 Bevy 的事件系统发送
-   - 需要在系统中使用 `EventReader` 读取手势事件
+   - 需要在系统中使用 `MessageReader` 读取手势事件
 
 3. **配置**: 
    - 可通过 `GestureManagerConfig` 自定义手势检测参数

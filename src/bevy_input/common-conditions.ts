@@ -6,7 +6,7 @@
 import { World } from "../bevy_ecs";
 
 import { ButtonInput } from "./button-input";
-import * as ResourceStorage from "./resource-storage";
+import { getKeyboardInput, getMouseInput } from "./plugin";
 
 /**
  * 条件函数类型定义
@@ -32,9 +32,9 @@ export function inputToggleActive<T extends defined>(
 		let buttonInput: ButtonInput<T> | undefined;
 
 		if (resourceKey === "ButtonInput<KeyCode>") {
-			buttonInput = ResourceStorage.getKeyboardInput(world) as unknown as ButtonInput<T> | undefined;
+			buttonInput = getKeyboardInput(world) as unknown as ButtonInput<T> | undefined;
 		} else if (resourceKey === "ButtonInput<MouseButton>") {
-			buttonInput = ResourceStorage.getMouseInput(world) as unknown as ButtonInput<T> | undefined;
+			buttonInput = getMouseInput(world) as unknown as ButtonInput<T> | undefined;
 		}
 
 		if (!buttonInput) {
@@ -63,9 +63,9 @@ export function inputPressed<T extends defined>(
 		let buttonInput: ButtonInput<T> | undefined;
 
 		if (resourceKey === "ButtonInput<KeyCode>") {
-			buttonInput = ResourceStorage.getKeyboardInput(world) as unknown as ButtonInput<T> | undefined;
+			buttonInput = getKeyboardInput(world) as unknown as ButtonInput<T> | undefined;
 		} else if (resourceKey === "ButtonInput<MouseButton>") {
-			buttonInput = ResourceStorage.getMouseInput(world) as unknown as ButtonInput<T> | undefined;
+			buttonInput = getMouseInput(world) as unknown as ButtonInput<T> | undefined;
 		}
 
 		if (!buttonInput) {
@@ -90,9 +90,9 @@ export function inputJustPressed<T extends defined>(
 		let buttonInput: ButtonInput<T> | undefined;
 
 		if (resourceKey === "ButtonInput<KeyCode>") {
-			buttonInput = ResourceStorage.getKeyboardInput(world) as unknown as ButtonInput<T> | undefined;
+			buttonInput = getKeyboardInput(world) as unknown as ButtonInput<T> | undefined;
 		} else if (resourceKey === "ButtonInput<MouseButton>") {
-			buttonInput = ResourceStorage.getMouseInput(world) as unknown as ButtonInput<T> | undefined;
+			buttonInput = getMouseInput(world) as unknown as ButtonInput<T> | undefined;
 		}
 
 		if (!buttonInput) {
@@ -117,9 +117,9 @@ export function inputJustReleased<T extends defined>(
 		let buttonInput: ButtonInput<T> | undefined;
 
 		if (resourceKey === "ButtonInput<KeyCode>") {
-			buttonInput = ResourceStorage.getKeyboardInput(world) as unknown as ButtonInput<T> | undefined;
+			buttonInput = getKeyboardInput(world) as unknown as ButtonInput<T> | undefined;
 		} else if (resourceKey === "ButtonInput<MouseButton>") {
-			buttonInput = ResourceStorage.getMouseInput(world) as unknown as ButtonInput<T> | undefined;
+			buttonInput = getMouseInput(world) as unknown as ButtonInput<T> | undefined;
 		}
 
 		if (!buttonInput) {
@@ -144,9 +144,9 @@ export function anyInputPressed<T extends defined>(
 		let buttonInput: ButtonInput<T> | undefined;
 
 		if (resourceKey === "ButtonInput<KeyCode>") {
-			buttonInput = ResourceStorage.getKeyboardInput(world) as unknown as ButtonInput<T> | undefined;
+			buttonInput = getKeyboardInput(world) as unknown as ButtonInput<T> | undefined;
 		} else if (resourceKey === "ButtonInput<MouseButton>") {
-			buttonInput = ResourceStorage.getMouseInput(world) as unknown as ButtonInput<T> | undefined;
+			buttonInput = getMouseInput(world) as unknown as ButtonInput<T> | undefined;
 		}
 
 		if (!buttonInput) {
@@ -171,9 +171,9 @@ export function allInputPressed<T extends defined>(
 		let buttonInput: ButtonInput<T> | undefined;
 
 		if (resourceKey === "ButtonInput<KeyCode>") {
-			buttonInput = ResourceStorage.getKeyboardInput(world) as unknown as ButtonInput<T> | undefined;
+			buttonInput = getKeyboardInput(world) as unknown as ButtonInput<T> | undefined;
 		} else if (resourceKey === "ButtonInput<MouseButton>") {
-			buttonInput = ResourceStorage.getMouseInput(world) as unknown as ButtonInput<T> | undefined;
+			buttonInput = getMouseInput(world) as unknown as ButtonInput<T> | undefined;
 		}
 
 		if (!buttonInput) {

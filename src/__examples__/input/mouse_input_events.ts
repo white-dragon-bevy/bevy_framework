@@ -4,7 +4,7 @@
  * 
  * 使用者只需要：
  * 1. 添加 DefaultPlugins（已包含 InputPlugin）
- * 2. 添加自己的系统，通过 EventReader 参数读取事件
+ * 2. 添加自己的系统，通过 MessageReader 参数读取事件
  *
  * 对应 Rust Bevy 示例: bevy-origin/examples/input/mouse_input_events.rs
  */
@@ -12,7 +12,7 @@
 import { App } from "../../bevy_app";
 import { MainScheduleLabel } from "../../bevy_app";
 import { DefaultPlugins } from "../../bevy_internal";
-import { MessageReader as EventReader, Message } from "../../bevy_ecs/message";
+import { MessageReader, Message } from "../../bevy_ecs/message";
 import { CursorMoved, MouseButtonInput, MouseMotion, MouseWheel } from "../../bevy_input";
 import type { World } from "@rbxts/matter";
 
@@ -36,11 +36,11 @@ function getButtonName(button: Enum.UserInputType | unknown): string {
 /**
  * 鼠标事件处理系统
  * 
- * 在 Rust Bevy 中，这个系统会接收 EventReader 参数：
- * - EventReader<MouseButtonInput>
- * - EventReader<MouseMotion>
- * - EventReader<CursorMoved>
- * - EventReader<MouseWheel>
+ * 在 Rust Bevy 中，这个系统会接收 MessageReader 参数：
+ * - MessageReader<MouseButtonInput>
+ * - MessageReader<MouseMotion>
+ * - MessageReader<CursorMoved>
+ * - MessageReader<MouseWheel>
  * 
  * 在我们的实现中，我们需要从 world 获取事件管理器来创建读取器
  * 
@@ -50,7 +50,7 @@ function mouseEventsSystem(world: World): void {
 	// 获取事件管理器
 	const context = (world as unknown as { context?: { messages?: unknown } }).context;
 	if (!context?.messages) return;
-	const messageRegistry = context.messages as { createReader: <T extends Message>(type?: any, text?: any) => EventReader<T> };
+	const messageRegistry = context.messages as { createReader: <T extends Message>(type?: any, text?: any) => MessageReader<T> };
 
 	// 创建事件读取器（在 Rust 中这些是系统参数）
 	const buttonReader = messageRegistry.createReader<MouseButtonInput>();

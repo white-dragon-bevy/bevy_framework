@@ -7,8 +7,8 @@
  */
 
 import { World } from "../bevy_ecs";
-import { MessageReader as EventReader } from "../bevy_ecs/message";
-import { getTouches as getResourceTouches } from "./resource-storage";
+import { MessageReader  } from "../bevy_ecs/message";
+import { InputResources } from "./plugin";
 
 /**
  * 触摸输入的阶段
@@ -586,9 +586,9 @@ export class Touches {
  * @param world - World 实例
  * @param touchEvents - 触摸事件读取器
  */
-export function touchScreenInputSystem(world: World, touchEvents: EventReader<TouchInput>): void {
-	// 从 resource storage 获取 Touches
-	const touches = getResourceTouches(world);
+export function touchScreenInputSystem(world: World, touchEvents: MessageReader<TouchInput>): void {
+	// 从 world.resources 获取 Touches
+	const touches = world.resources.getResource<Touches>();
 
 	if (touches === undefined) {
 		return;
@@ -615,6 +615,3 @@ export function touchScreenInputSystem(world: World, touchEvents: EventReader<To
 		}
 	}
 }
-
-// 导出资源存储函数
-export { getTouches, setTouches } from "./resource-storage";

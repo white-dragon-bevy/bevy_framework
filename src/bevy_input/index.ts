@@ -51,8 +51,6 @@ export {
 	TouchInput,
 	TouchPhase,
 	Touches,
-	getTouches,
-	setTouches,
 	touchScreenInputSystem,
 } from "./touch";
 

@@ -12,10 +12,9 @@ import { Plugin } from "../bevy_app/plugin";
 import { MainScheduleLabel } from "../bevy_app/main-schedule";
 import { ButtonInput } from "./button-input";
 import { AccumulatedMouseMotion, AccumulatedMouseWheel, MouseButton, MousePosition } from "./mouse";
-import * as ResourceStorage from "./resource-storage";
 import { RobloxContext, isMatchRobloxContext } from "../utils/roblox-utils";
 import { RunService } from "@rbxts/services";
-import { MessageWriter as EventWriter } from "../bevy_ecs/message";
+import { MessageWriter , MessageReader  } from "../bevy_ecs/message";
 import { ButtonState, CursorMoved, MouseButtonInput, MouseMotion, MouseWheel } from "./mouse-events";
 import { Key, KeyboardFocusLost, KeyboardInput } from "./keyboard";
 import {
@@ -38,6 +37,7 @@ import {
 	PinchGesture,
 	RotationGesture,
 } from "./gestures";
+import { TouchInput, Touches, touchScreenInputSystem } from "./touch";
 
 /**
  * 输入资源键名常量
@@ -51,6 +51,7 @@ export const InputResources = {
 	MouseMotion: "AccumulatedMouseMotion",
 	MousePosition: "MousePosition",
 	MouseWheel: "AccumulatedMouseWheel",
+	Touch: "Touches",
 } as const;
 
 /**
@@ -148,18 +149,20 @@ export class InputPlugin implements Plugin {
 		const mouseMotion = new AccumulatedMouseMotion();
 		const mouseWheel = new AccumulatedMouseWheel();
 		const mousePosition = new MousePosition();
+		const touches = new Touches();
 		print("[InputPlugin] ✅ Input resources created");
 
-		// 存储资源到 World
-		print("[InputPlugin] 💾 Storing resources to World...");
-		ResourceStorage.setGamepadManager(world, gamepadManager);
-		ResourceStorage.setGestureManager(world, gestureManager);
-		ResourceStorage.setKeyInput(world, keyInputValue);
-		ResourceStorage.setKeyboardInput(world, keyboard);
-		ResourceStorage.setMouseInput(world, mouse);
-		ResourceStorage.setMouseMotion(world, mouseMotion);
-		ResourceStorage.setMouseWheel(world, mouseWheel);
-		ResourceStorage.setMousePosition(world, mousePosition);
+		// 存储资源到 world.resources
+		print("[InputPlugin] 💾 Storing resources to world.resources...");
+		world.resources.insertResource<GamepadManager>(gamepadManager);
+		world.resources.insertResource<GestureManager>(gestureManager);
+		world.resources.insertResource<ButtonInput<Key>>(keyInputValue);
+		world.resources.insertResource<ButtonInput<Enum.KeyCode>>(keyboard);
+		world.resources.insertResource<ButtonInput<Enum.UserInputType>>(mouse);
+		world.resources.insertResource<AccumulatedMouseMotion>(mouseMotion);
+		world.resources.insertResource<MousePosition>(mousePosition);
+		world.resources.insertResource<AccumulatedMouseWheel>(mouseWheel);
+		world.resources.insertResource<Touches>(touches);
 		print("[InputPlugin] ✅ Resources stored");
 
 		// 添加输入处理系统
@@ -174,15 +177,19 @@ export class InputPlugin implements Plugin {
 		// 添加手势处理系统
 		app.addSystems(MainScheduleLabel.PRE_UPDATE, this.createGestureSystem());
 
+		// 添加触摸输入处理系统
+		app.addSystems(MainScheduleLabel.PRE_UPDATE, this.createTouchSystem());
+
 		print("[InputPlugin] ✅ Input systems added");
 
 		// 添加帧清理系统 - 在 PostUpdate 阶段清理当前帧的状态
 		print("[InputPlugin] 🔄 Adding frame cleanup system...");
 		app.addSystems(MainScheduleLabel.POST_UPDATE, (worldParam: World) => {
-			const gamepadResource = ResourceStorage.getGamepadManager(worldParam);
-			const keyInputResource = ResourceStorage.getKeyInput(worldParam);
-			const keyboardResource = ResourceStorage.getKeyboardInput(worldParam);
-			const mouseResource = ResourceStorage.getMouseInput(worldParam);
+			const gamepadResource = worldParam.resources.getResource<GamepadManager>();
+			const keyInputResource = worldParam.resources.getResource<ButtonInput<Key>>() ;
+			const keyboardResource = worldParam.resources.getResource<ButtonInput<Enum.KeyCode>>() ;
+			const mouseResource = worldParam.resources.getResource<ButtonInput<Enum.UserInputType>>() ;
+			const touchesResource = worldParam.resources.getResource<Touches>() ;
 
 			if (gamepadResource) {
 				gamepadResource.clearAll();
@@ -200,6 +207,10 @@ export class InputPlugin implements Plugin {
 			if (mouseResource) {
 				mouseResource.clear();
 			}
+
+			if (touchesResource) {
+				touchesResource.clear();
+			}
 		});
 		print("[InputPlugin] ✅ Frame cleanup system added");
 		print("[InputPlugin] 🎉 InputPlugin build complete!");
@@ -213,14 +224,14 @@ export class InputPlugin implements Plugin {
 		let initialized = false;
 
 		return (world: World) => {
-			const gamepadManager = ResourceStorage.getGamepadManager(world);
+			const gamepadManager = world.resources.getResource<GamepadManager>() ;
 			if (!gamepadManager) return;
 
 			const context = (world as unknown as { context?: { messages?: unknown } }).context;
 			if (!context?.messages) return;
 			const messageRegistry = context.messages as { createWriter: (type: unknown) => unknown };
 
-			const connectionWriter = messageRegistry.createWriter(GamepadConnectionEvent) as EventWriter<GamepadConnectionEvent>;
+			const connectionWriter = messageRegistry.createWriter(GamepadConnectionEvent) as MessageWriter<GamepadConnectionEvent>;
 
 			// 初次运行时检查已连接的游戏手柄
 			if (!initialized) {
@@ -255,20 +266,40 @@ export class InputPlugin implements Plugin {
 	 */
 	private createGestureSystem(): (world: World) => void {
 		return (world: World) => {
-			const gestureManager = ResourceStorage.getGestureManager(world);
+			const gestureManager = world.resources.getResource<GestureManager>() ;
 			if (!gestureManager) return;
 
 			const context = (world as unknown as { context?: { messages?: unknown } }).context;
 			if (!context?.messages) return;
 			const messageRegistry = context.messages as { createWriter: (type: unknown) => unknown };
 
-			const pinchWriter = messageRegistry.createWriter(PinchGesture) as EventWriter<PinchGesture>;
-			const rotationWriter = messageRegistry.createWriter(RotationGesture) as EventWriter<RotationGesture>;
-			const doubleTapWriter = messageRegistry.createWriter(DoubleTapGesture) as EventWriter<DoubleTapGesture>;
-			const panWriter = messageRegistry.createWriter(PanGesture) as EventWriter<PanGesture>;
-			const longPressWriter = messageRegistry.createWriter(LongPressGesture) as EventWriter<LongPressGesture>;
+			const pinchWriter = messageRegistry.createWriter(PinchGesture) as MessageWriter<PinchGesture>;
+			const rotationWriter = messageRegistry.createWriter(RotationGesture) as MessageWriter<RotationGesture>;
+			const doubleTapWriter = messageRegistry.createWriter(DoubleTapGesture) as MessageWriter<DoubleTapGesture>;
+			const panWriter = messageRegistry.createWriter(PanGesture) as MessageWriter<PanGesture>;
+			const longPressWriter = messageRegistry.createWriter(LongPressGesture) as MessageWriter<LongPressGesture>;
 
 			gestureManager.setupHandlers(pinchWriter, rotationWriter, doubleTapWriter, panWriter, longPressWriter);
+		};
+	}
+
+	/**
+	 * 创建触摸处理系统
+	 * @returns 触摸处理系统函数
+	 */
+	private createTouchSystem(): (world: World) => void {
+		return (world: World) => {
+			const touches = world.resources.getResource<Touches>() ;
+			if (!touches) return;
+
+			const context = (world as unknown as { context?: { messages?: unknown } }).context;
+			if (!context?.messages) return;
+			const messageRegistry = context.messages as { createReader: (type: unknown) => unknown };
+
+			const touchReader = messageRegistry.createReader(TouchInput) as MessageReader<TouchInput>;
+
+			// 调用触摸屏输入系统处理触摸事件
+			touchScreenInputSystem(world, touchReader);
 		};
 	}
 
@@ -285,33 +316,31 @@ export class InputPlugin implements Plugin {
 			}
 
 			// 获取资源
-			const gamepadManager = ResourceStorage.getGamepadManager(world);
-			const keyInputValue = ResourceStorage.getKeyInput(world);
-			const keyboard = ResourceStorage.getKeyboardInput(world);
-			const mouse = ResourceStorage.getMouseInput(world);
-			const mouseMotion = ResourceStorage.getMouseMotion(world);
-			const mouseWheel = ResourceStorage.getMouseWheel(world);
-			const mousePosition = ResourceStorage.getMousePosition(world);
+			const gamepadManager = world.resources.getResource<GamepadManager>() ;
+			const keyInputValue = world.resources.getResource<ButtonInput<Key>>() ;
+			const keyboard = world.resources.getResource<ButtonInput<Enum.KeyCode>>() ;
+			const mouse = world.resources.getResource<ButtonInput<Enum.UserInputType>>() ;
+			const mouseMotion = world.resources.getResource<AccumulatedMouseMotion>() ;
+			const mouseWheel = world.resources.getResource<AccumulatedMouseWheel>() ;
+			const mousePosition = world.resources.getResource<MousePosition>() ;
 
 			if (!keyboard || !mouse) return;
 
 			// 获取消息注册表
-			const context = (world as unknown as { context?: { messages?: unknown } }).context;
-			if (!context?.messages) return;
-			const messageRegistry = context.messages as { createWriter: (type: unknown) => unknown };
+			const messageRegistry = world.messages;
 
 			// 创建事件写入器
-			const cursorMovedWriter = messageRegistry.createWriter(CursorMoved) as EventWriter<CursorMoved>;
-			const gamepadAxisChangedWriter = messageRegistry.createWriter(GamepadAxisChangedEvent) as EventWriter<GamepadAxisChangedEvent>;
-			const gamepadButtonChangedWriter = messageRegistry.createWriter(GamepadButtonChangedEvent) as EventWriter<GamepadButtonChangedEvent>;
-			const gamepadButtonStateChangedWriter = messageRegistry.createWriter(GamepadButtonStateChangedEvent) as EventWriter<GamepadButtonStateChangedEvent>;
-			const keyboardInputWriter = messageRegistry.createWriter(KeyboardInput) as EventWriter<KeyboardInput>;
-			const keyboardFocusLostWriter = messageRegistry.createWriter(KeyboardFocusLost) as EventWriter<KeyboardFocusLost>;
-			const mouseButtonWriter = messageRegistry.createWriter(MouseButtonInput) as EventWriter<MouseButtonInput>;
-			const mouseMotionWriter = messageRegistry.createWriter(MouseMotion) as EventWriter<MouseMotion>;
-			const mouseWheelWriter = messageRegistry.createWriter(MouseWheel) as EventWriter<MouseWheel>;
-			const rawGamepadAxisChangedWriter = messageRegistry.createWriter(RawGamepadAxisChangedEvent) as EventWriter<RawGamepadAxisChangedEvent>;
-			const rawGamepadButtonChangedWriter = messageRegistry.createWriter(RawGamepadButtonChangedEvent) as EventWriter<RawGamepadButtonChangedEvent>;
+			const cursorMovedWriter = messageRegistry.createWriter<CursorMoved>() as MessageWriter<CursorMoved>;
+			const gamepadAxisChangedWriter = messageRegistry.createWriter<GamepadAxisChangedEvent>() as MessageWriter<GamepadAxisChangedEvent>;
+			const gamepadButtonChangedWriter = messageRegistry.createWriter<GamepadButtonChangedEvent>() as MessageWriter<GamepadButtonChangedEvent>;
+			const gamepadButtonStateChangedWriter = messageRegistry.createWriter<GamepadButtonStateChangedEvent>() as	 MessageWriter<GamepadButtonStateChangedEvent>;
+			const keyboardInputWriter = messageRegistry.createWriter<KeyboardInput>() as MessageWriter<KeyboardInput>;
+			const keyboardFocusLostWriter = messageRegistry.createWriter<KeyboardFocusLost>() as MessageWriter<KeyboardFocusLost>;
+			const mouseButtonWriter = messageRegistry.createWriter<MouseButtonInput>() as MessageWriter<MouseButtonInput>;
+			const mouseMotionWriter = messageRegistry.createWriter<MouseMotion>() as MessageWriter<MouseMotion>;
+			const mouseWheelWriter = messageRegistry.createWriter<MouseWheel>() as MessageWriter<MouseWheel>;
+			const rawGamepadAxisChangedWriter = messageRegistry.createWriter<RawGamepadAxisChangedEvent>() as MessageWriter<RawGamepadAxisChangedEvent>;
+			const rawGamepadButtonChangedWriter = messageRegistry.createWriter<RawGamepadButtonChangedEvent>() as MessageWriter<RawGamepadButtonChangedEvent>;
 
 			this.processInputEvents(
 				gamepadManager,
@@ -347,17 +376,17 @@ export class InputPlugin implements Plugin {
 		mouseMotion: AccumulatedMouseMotion | undefined,
 		mouseWheel: AccumulatedMouseWheel | undefined,
 		mousePosition: MousePosition | undefined,
-		cursorMovedWriter: EventWriter<CursorMoved>,
-		gamepadAxisChangedWriter: EventWriter<GamepadAxisChangedEvent>,
-		gamepadButtonChangedWriter: EventWriter<GamepadButtonChangedEvent>,
-		gamepadButtonStateChangedWriter: EventWriter<GamepadButtonStateChangedEvent>,
-		keyboardInputWriter: EventWriter<KeyboardInput>,
-		keyboardFocusLostWriter: EventWriter<KeyboardFocusLost>,
-		mouseButtonWriter: EventWriter<MouseButtonInput>,
-		mouseMotionWriter: EventWriter<MouseMotion>,
-		mouseWheelWriter: EventWriter<MouseWheel>,
-		rawGamepadAxisChangedWriter: EventWriter<RawGamepadAxisChangedEvent>,
-		rawGamepadButtonChangedWriter: EventWriter<RawGamepadButtonChangedEvent>,
+		cursorMovedWriter: MessageWriter<CursorMoved>,
+		gamepadAxisChangedWriter: MessageWriter<GamepadAxisChangedEvent>,
+		gamepadButtonChangedWriter: MessageWriter<GamepadButtonChangedEvent>,
+		gamepadButtonStateChangedWriter: MessageWriter<GamepadButtonStateChangedEvent>,
+		keyboardInputWriter: MessageWriter<KeyboardInput>,
+		keyboardFocusLostWriter: MessageWriter<KeyboardFocusLost>,
+		mouseButtonWriter: MessageWriter<MouseButtonInput>,
+		mouseMotionWriter: MessageWriter<MouseMotion>,
+		mouseWheelWriter: MessageWriter<MouseWheel>,
+		rawGamepadAxisChangedWriter: MessageWriter<RawGamepadAxisChangedEvent>,
+		rawGamepadButtonChangedWriter: MessageWriter<RawGamepadButtonChangedEvent>,
 	): void {
 		// 调试: 记录每次函数调用
 		let inputBeganCount = 0;
@@ -663,14 +692,39 @@ export class InputPlugin implements Plugin {
 	}
 }
 
-// 重新导出 ResourceStorage 中的辅助函数
-export {
-	getGamepadManager,
-	getGestureManager,
-	getKeyInput,
-	getKeyboardInput,
-	getMouseInput,
-	getMouseMotion,
-	getMousePosition,
-	getMouseWheel,
-} from "./resource-storage";
+// 辅助函数：从 world.resources 获取输入资源
+export function getGamepadManager(world: World): GamepadManager | undefined {
+	return world.resources.getResource<GamepadManager>() ;
+}
+
+export function getGestureManager(world: World): GestureManager | undefined {
+	return world.resources.getResource<GestureManager>() ;
+}
+
+export function getKeyInput(world: World): ButtonInput<Key> | undefined {
+	return world.resources.getResource<ButtonInput<Key>>() ;
+}
+
+export function getKeyboardInput(world: World): ButtonInput<Enum.KeyCode> | undefined {
+	return world.resources.getResource<ButtonInput<Enum.KeyCode>>() ;
+}
+
+export function getMouseInput(world: World): ButtonInput<Enum.UserInputType> | undefined {
+	return world.resources.getResource<ButtonInput<Enum.UserInputType>>() ;
+}
+
+export function getMouseMotion(world: World): AccumulatedMouseMotion | undefined {
+	return world.resources.getResource<AccumulatedMouseMotion>() ;
+}
+
+export function getMousePosition(world: World): MousePosition | undefined {
+	return world.resources.getResource<MousePosition>() ;
+}
+
+export function getMouseWheel(world: World): AccumulatedMouseWheel | undefined {
+	return world.resources.getResource<AccumulatedMouseWheel>() ;
+}
+
+export function getTouches(world: World): Touches | undefined {
+	return world.resources.getResource<Touches>() ;
+}

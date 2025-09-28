@@ -10,7 +10,6 @@ import type { Message, MessageReader } from "../bevy_ecs/message";
 import type { World } from "../bevy_ecs";
 import { ButtonInput } from "./button-input";
 import { ButtonState } from "./mouse-events";
-import * as ResourceStorage from "./resource-storage";
 
 /**
  * Key 类型 - 表示逻辑键（字符键）
@@ -75,8 +74,8 @@ export function keyboardInputSystem(
 	keyboardEvents: MessageReader<KeyboardInput>,
 	focusLostEvents: MessageReader<KeyboardFocusLost>,
 ): void {
-	const keyCodeInput = ResourceStorage.getKeyboardInput(world);
-	const keyInput = ResourceStorage.getKeyInput(world);
+	const keyCodeInput = world.resources.getResource<ButtonInput<Enum.KeyCode>>();
+	const keyInput = world.resources.getResource<ButtonInput<Key>>();
 
 	if (!keyCodeInput || !keyInput) {
 		return;
