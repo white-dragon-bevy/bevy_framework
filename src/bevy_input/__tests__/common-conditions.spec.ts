@@ -26,7 +26,7 @@ export = () => {
 			world = new World();
 
 			const keyboardInput = new ButtonInput<Enum.KeyCode>();
-			
+			world.resources.insertResource(keyboardInput);
 		});
 
 		it("应该在按键按下时返回 true", () => {
@@ -62,7 +62,7 @@ export = () => {
 			world = new World();
 
 			const keyboardInput = new ButtonInput<Enum.KeyCode>();
-			
+			world.resources.insertResource(keyboardInput);
 		});
 
 		it("应该在按键刚按下时返回 true", () => {
@@ -105,7 +105,7 @@ export = () => {
 			world = new World();
 
 			const keyboardInput = new ButtonInput<Enum.KeyCode>();
-			
+			world.resources.insertResource(keyboardInput);
 		});
 
 		it("应该在按键刚释放时返回 true", () => {
@@ -148,7 +148,7 @@ export = () => {
 			world = new World();
 
 			const keyboardInput = new ButtonInput<Enum.KeyCode>();
-			
+			world.resources.insertResource(keyboardInput);
 		});
 
 		it("应该在任意按键按下时返回 true", () => {
@@ -184,7 +184,7 @@ export = () => {
 			world = new World();
 
 			const keyboardInput = new ButtonInput<Enum.KeyCode>();
-			
+			world.resources.insertResource(keyboardInput);
 		});
 
 		it("应该在所有按键按下时返回 true", () => {
@@ -233,7 +233,7 @@ export = () => {
 			world = new World();
 
 			const keyboardInput = new ButtonInput<Enum.KeyCode>();
-			
+			world.resources.insertResource(keyboardInput);
 		});
 
 		it("应该在所有条件满足时返回 true", () => {
@@ -281,7 +281,7 @@ export = () => {
 			world = new World();
 
 			const keyboardInput = new ButtonInput<Enum.KeyCode>();
-			
+			world.resources.insertResource(keyboardInput);
 		});
 
 		it("应该在任意条件满足时返回 true", () => {
@@ -322,7 +322,7 @@ export = () => {
 			world = new World();
 
 			const keyboardInput = new ButtonInput<Enum.KeyCode>();
-			
+			world.resources.insertResource(keyboardInput);
 		});
 
 		it("应该反转条件结果为 false", () => {
@@ -351,7 +351,7 @@ export = () => {
 			world = new World();
 
 			const keyboardInput = new ButtonInput<Enum.KeyCode>();
-			
+			world.resources.insertResource(keyboardInput);
 		});
 
 		it("应该在按键按下时切换状态", () => {
@@ -421,7 +421,7 @@ export = () => {
 			world = new World();
 
 			const keyboardInput = new ButtonInput<Enum.KeyCode>();
-			
+			world.resources.insertResource(keyboardInput);
 		});
 
 		it("应该支持复杂的 AND/OR/NOT 组合", () => {
