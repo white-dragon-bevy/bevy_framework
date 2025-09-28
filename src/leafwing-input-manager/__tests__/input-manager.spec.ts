@@ -124,6 +124,34 @@ export = () => {
 			expect(inputMap.getInputs(TestAction.Jump)).to.be.ok();
 			expect(inputMap.getInputs(TestAction.Attack)).to.be.ok();
 		});
+
+		it("should clear gamepad when merging different gamepads", () => {
+			const player1Map = new InputMap<TestAction>(1);
+			const player2Map = new InputMap<TestAction>(2);
+
+			player1Map.insert(TestAction.Jump, KeyCode.Space);
+			player2Map.insert(TestAction.Attack, KeyCode.E);
+
+			expect(player1Map.getGamepad()).to.equal(1);
+
+			player1Map.merge(player2Map);
+
+			expect(player1Map.getGamepad()).to.equal(undefined);
+			expect(player1Map.getInputs(TestAction.Jump)).to.be.ok();
+			expect(player1Map.getInputs(TestAction.Attack)).to.be.ok();
+		});
+
+		it("should preserve gamepad when merging same gamepads", () => {
+			const map1 = new InputMap<TestAction>(1);
+			const map2 = new InputMap<TestAction>(1);
+
+			map1.insert(TestAction.Jump, KeyCode.Space);
+			map2.insert(TestAction.Attack, KeyCode.E);
+
+			map1.merge(map2);
+
+			expect(map1.getGamepad()).to.equal(1);
+		});
 	});
 
 	describe("ActionState", () => {

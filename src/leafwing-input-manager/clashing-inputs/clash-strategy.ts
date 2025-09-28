@@ -33,3 +33,10 @@ export enum ClashStrategy {
  * Default clash strategy used when not specified
  */
 export const DEFAULT_CLASH_STRATEGY = ClashStrategy.PrioritizeLargest;
+
+/**
+ * Resource wrapper for ClashStrategy to store in Bevy ECS
+ */
+export class ClashStrategyResource {
+	constructor(public strategy: ClashStrategy = DEFAULT_CLASH_STRATEGY) {}
+}

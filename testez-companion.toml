@@ -1,2 +1,2 @@
-roots = [ "ReplicatedStorage/rbxts_include/node_modules/@white-dragon-bevy/bevy-framework/bevy_input" ]
+roots = [ "ReplicatedStorage/rbxts_include/node_modules/@white-dragon-bevy/bevy-framework/leafwing-input-manager/__tests__" ]
 verbose = true
