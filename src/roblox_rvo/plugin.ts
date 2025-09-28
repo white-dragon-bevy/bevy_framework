@@ -57,7 +57,7 @@ export class RVOPlugin implements Plugin {
 		// 3. 添加系统
 		this.addSystems(app);
 
-		print("[RVOPlugin] Built successfully");
+		// print("[RVOPlugin] Built successfully");
 	}
 
 	/**
@@ -66,7 +66,7 @@ export class RVOPlugin implements Plugin {
 	 */
 	finish(app: App): void {
 		// 插件初始化完成后的操作
-		print("[RVOPlugin] Finished initialization");
+		// print("[RVOPlugin] Finished initialization");
 	}
 
 	/**
@@ -78,7 +78,7 @@ export class RVOPlugin implements Plugin {
 		const world = app.getWorld();
 		const context = app.main().getContext();
 		cleanupRVOSystem(world, context);
-		print("[RVOPlugin] Cleaned up");
+		// print("[RVOPlugin] Cleaned up");
 	}
 
 	/**
@@ -102,15 +102,18 @@ export class RVOPlugin implements Plugin {
 	 * @param app - 应用实例
 	 */
 	private registerResources(app: App): void {
-		// 注册配置资源
-		const rvoConfig = new RVOConfig(this.config);
-		app.insertResource(rvoConfig);
+		// 检查是否已有配置资源，如果没有则创建新的
+		let rvoConfig = app.getResource<RVOConfig>();
+		if (!rvoConfig) {
+			rvoConfig = new RVOConfig(this.config);
+			app.insertResource(rvoConfig);
+		}
 
 		// 注册模拟器资源
 		const simulatorResource = new RVOSimulatorResource();
 		app.insertResource(simulatorResource);
 
-		print(`[RVOPlugin] Resources registered - maxAgents: ${rvoConfig.maxAgents}, timeStep: ${rvoConfig.timeStep}`);
+		// print(`[RVOPlugin] Resources registered - maxAgents: ${rvoConfig.maxAgents}, timeStep: ${rvoConfig.timeStep}`);
 	}
 
 	/**
@@ -132,7 +135,7 @@ export class RVOPlugin implements Plugin {
 		// 注册速度变化事件
 		// app.addEvent<VelocityChangedEvent>();
 
-		print("[RVOPlugin] Events system not yet implemented");
+		// print("[RVOPlugin] Events system not yet implemented");
 	}
 
 	/**
@@ -172,7 +175,7 @@ export class RVOPlugin implements Plugin {
 			});
 		});
 
-		print("[RVOPlugin] Systems added to schedules");
+		// print("[RVOPlugin] Systems added to schedules");
 	}
 
 	/**

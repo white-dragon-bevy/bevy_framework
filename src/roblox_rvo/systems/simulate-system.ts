@@ -53,14 +53,14 @@ function debugPrintStats(simulatorResource: RVOSimulatorResource): void {
 	const stats = simulatorResource.stats;
 	const avgTime = simulatorResource.getAverageSimulationTime();
 
-	// 每 60 帧打印一次
-	if (stats.simulationCount % 60 === 0) {
-		print(
-			`[RVO Debug] Agents: ${stats.agentCount}, Obstacles: ${stats.obstacleCount}, ` +
-				`Last: ${string.format("%.2f", stats.lastSimulationTime * 1000)}ms, ` +
-				`Avg: ${string.format("%.2f", avgTime)}ms`,
-		);
-	}
+	// 调试日志（已禁用）
+	// if (stats.simulationCount % 60 === 0) {
+	// 	print(
+	// 		`[RVO Debug] Agents: ${stats.agentCount}, Obstacles: ${stats.obstacleCount}, ` +
+	// 			`Last: ${string.format("%.2f", stats.lastSimulationTime * 1000)}ms, ` +
+	// 			`Avg: ${string.format("%.2f", avgTime)}ms`,
+	// 	);
+	// }
 }
 
 /**
