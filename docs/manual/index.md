@@ -54,7 +54,7 @@ weapon.Damage.Value = weapon.Damage.Value * 1.5
 
 ```typescript
 // ECS 方式:数据驱动,逻辑分离
-function combatSystem(world: World) {
+function combatSystem(world: World, context: Context) {
   for (const [entity, health, weapon] of world.query(Health, Weapon)) {
     if (health.value <= 0) {
       world.despawn(entity);
@@ -172,7 +172,9 @@ Bevy-Roblox 忠实移植了 Bevy 的核心设计,但针对 Roblox 平台和 Type
 
 ### 1.5 与 Rust Bevy 的区别
 
-@docs\manual\bevy_matter_diff.md
+- world主体为 matter world, 提供 `resource`,`messages`,`events`, `commands` 访问支持.
+- system: wb 的系统不能动态注入参数, 固定为 foo(world,context)
+- context: wb 的独有概念, 用来替代 system params, 可以访问所有对象, 可以由其他插件注入快捷访问方式 (扩展).
 
 ---
 
@@ -257,7 +259,7 @@ import { BuiltinSchedules } from "@white-dragon-bevy/bevy_framework/bevy_app/mai
  * Hello World 系统
  * 在控制台输出消息
  */
-function helloWorldSystem() {
+function helloWorldSystem(world: World, context: Context) {
   print("Hello, Bevy-Roblox!");
 }
 
@@ -308,7 +310,7 @@ app.run();                  // 运行应用
 ```typescript
 import { World } from "@rbxts/matter";
 
-function spawnSystem(world: World) {
+function spawnSystem(world: World, context: Context) {
   // 创建实体
   const playerId = world.spawn(
     Position({ x: 0, y: 0, z: 0 }),
@@ -357,7 +359,7 @@ import { World } from "@rbxts/matter";
 /**
  * 移动系统 - 根据速度更新位置
  */
-function movementSystem(world: World) {
+function movementSystem(world: World, context: Context) {
   // 查询所有具有 Position 和 Velocity 的实体
   for (const [entity, position, velocity] of world.query(Position, Velocity)) {
     // 更新位置
@@ -436,7 +438,7 @@ const app = App.create()
 import { World } from "@rbxts/matter";
 import { CommandBuffer } from "bevy_ecs";
 
-function damageSystem(world: World) {
+function damageSystem(world: World, context: Context) {
   const commands = new CommandBuffer();
 
   for (const [entity, health] of world.query(Health)) {
@@ -467,7 +469,7 @@ function damageSystem(world: World) {
 ```typescript
 import { Transform, Parent } from "bevy_transform";
 
-function setupHierarchy(world: World) {
+function setupHierarchy(world: World, context: Context) {
   // 创建父节点
   const parent = world.spawn(
     Transform({ translation: new Vector3(10, 0, 0) })
@@ -513,8 +515,8 @@ app.addSystems(OnEnter(GameState.Playing), startGame);
 app.addSystems(Update, gameplaySystem.runIf(inState(GameState.Playing)));
 
 // 切换状态
-function pauseGame(app: App) {
-  app.insertResource(NextState({ state: GameState.Paused }));
+function pauseGame(world: World, context: Context) {
+  context.app.insertResource(NextState({ state: GameState.Paused }));
 }
 ```
 
@@ -536,8 +538,8 @@ function pauseGame(app: App) {
 ```typescript
 import { Time, Timer } from "bevy_time";
 
-function respawnSystem(world: World, app: App) {
-  const time = app.getResource(Time);
+function respawnSystem(world: World, context: Context) {
+  const time = context.app.getResource(Time);
   const deltaSeconds = time.deltaSeconds();
 
   for (const [entity, respawnTimer] of world.query(RespawnTimer)) {
@@ -568,8 +570,8 @@ function respawnSystem(world: World, app: App) {
 ```typescript
 import { KeyCode, ButtonInput } from "bevy_input";
 
-function movementSystem(world: World, app: App) {
-  const keyboard = app.getResource(ButtonInput.ofKeyCode());
+function movementSystem(world: World, context: Context) {
+  const keyboard = context.app.getResource(ButtonInput.ofKeyCode());
 
   if (keyboard.pressed(KeyCode.W)) {
     // 向前移动
@@ -599,7 +601,7 @@ function movementSystem(world: World, app: App) {
 ```typescript
 import { Visibility, VisibilityState, RobloxInstance } from "bevy_render";
 
-function setupRendering(world: World) {
+function setupRendering(world: World, context: Context) {
   const part = new Instance("Part");
   part.Parent = Workspace;
 
@@ -630,8 +632,8 @@ import { DiagnosticsPlugin } from "bevy_diagnostic";
 
 app.addPlugin(new DiagnosticsPlugin());
 
-function displayDiagnostics(app: App) {
-  const diagnostics = app.context.get("diagnostics");
+function displayDiagnostics(world: World, context: Context) {
+  const diagnostics = context.app.context.get("diagnostics");
   const fps = diagnostics.getDiagnostic("fps")?.value;
 
   print(`FPS: ${fps}`);
@@ -658,7 +660,7 @@ import { LogPlugin, log, error } from "bevy_log";
 
 app.addPlugin(new LogPlugin({ level: LogLevel.Info }));
 
-function system() {
+function system(world: World, context: Context) {
   log.info("System executing");
   log.debug("Debug information");
   log.error("An error occurred");
@@ -694,7 +696,7 @@ const inputMap = new InputMap<PlayerAction>();
 inputMap.insert(PlayerAction.Jump, KeyCode.Space);
 inputMap.insert(PlayerAction.Attack, MouseButton.Left);
 
-function playerInputSystem(world: World) {
+function playerInputSystem(world: World, context: Context) {
   for (const [entity, actionState] of world.query(ActionState.of<PlayerAction>())) {
     if (actionState.justPressed(PlayerAction.Jump)) {
       // 跳跃逻辑
@@ -735,7 +737,7 @@ const agentId = simulator.addAgent(
 );
 
 // 每帧更新
-function rvoUpdateSystem() {
+function rvoUpdateSystem(world: World, context: Context) {
   simulator.setAgentPrefVelocity(agentId, new Vector2(1, 0));
   simulator.doStep(1/60);
 
@@ -820,7 +822,7 @@ const PartRef = component<{
 /**
  * 启动系统 - 创建玩家实体
  */
-function setupPlayer(world: World) {
+function setupPlayer(world: World, context: Context) {
   // 创建 Roblox Part
   const part = new Instance("Part");
   part.Name = "Player";
@@ -846,8 +848,8 @@ function setupPlayer(world: World) {
 /**
  * 输入处理系统 - 将键盘输入转换为速度
  */
-function playerInputSystem(world: World, app: App) {
-  const keyboard = app.getResource(ButtonInput.ofKeyCode());
+function playerInputSystem(world: World, context: Context) {
+  const keyboard = context.app.getResource(ButtonInput.ofKeyCode());
   if (keyboard === undefined) return;
 
   for (const [entity, player] of world.query(Player)) {
@@ -875,8 +877,8 @@ function playerInputSystem(world: World, app: App) {
 /**
  * 移动系统 - 根据速度更新位置
  */
-function movementSystem(world: World, app: App) {
-  const time = app.getResource(Time);
+function movementSystem(world: World, context: Context) {
+  const time = context.app.getResource(Time);
   if (time === undefined) return;
 
   const deltaSeconds = time.deltaSeconds();
@@ -896,7 +898,7 @@ function movementSystem(world: World, app: App) {
 /**
  * 同步系统 - 将 ECS 位置同步到 Roblox Part
  */
-function syncToRobloxSystem(world: World) {
+function syncToRobloxSystem(world: World, context: Context) {
   for (const [entity, position, partRef] of world.query(Position, PartRef)) {
     const part = partRef.part;
     if (part && part.Parent !== undefined) {
@@ -952,7 +954,7 @@ enum GameState {
 /**
  * 进入菜单状态
  */
-function enterMenuState(world: World) {
+function enterMenuState(world: World, context: Context) {
   print("=== MENU ===");
   print("Press ENTER to start");
 }
@@ -960,7 +962,7 @@ function enterMenuState(world: World) {
 /**
  * 进入游戏状态
  */
-function enterPlayingState(world: World) {
+function enterPlayingState(world: World, context: Context) {
   print("=== GAME STARTED ===");
   print("WASD to move, ESC to pause");
 }
@@ -968,7 +970,7 @@ function enterPlayingState(world: World) {
 /**
  * 进入暂停状态
  */
-function enterPausedState(world: World) {
+function enterPausedState(world: World, context: Context) {
   print("=== PAUSED ===");
   print("Press ESC to resume");
 }
@@ -976,29 +978,29 @@ function enterPausedState(world: World) {
 /**
  * 状态切换系统
  */
-function stateControlSystem(world: World, app: App) {
-  const keyboard = app.getResource(ButtonInput.ofKeyCode());
+function stateControlSystem(world: World, context: Context) {
+  const keyboard = context.app.getResource(ButtonInput.ofKeyCode());
   if (keyboard === undefined) return;
 
-  const currentState = app.getResource(State.of<GameState>());
+  const currentState = context.app.getResource(State.of<GameState>());
   if (currentState === undefined) return;
 
   switch (currentState.get()) {
     case GameState.Menu:
       if (keyboard.justPressed(KeyCode.Return)) {
-        app.insertResource(NextState({ state: GameState.Playing }));
+        context.app.insertResource(NextState({ state: GameState.Playing }));
       }
       break;
 
     case GameState.Playing:
       if (keyboard.justPressed(KeyCode.Escape)) {
-        app.insertResource(NextState({ state: GameState.Paused }));
+        context.app.insertResource(NextState({ state: GameState.Paused }));
       }
       break;
 
     case GameState.Paused:
       if (keyboard.justPressed(KeyCode.Escape)) {
-        app.insertResource(NextState({ state: GameState.Playing }));
+        context.app.insertResource(NextState({ state: GameState.Playing }));
       }
       break;
   }
@@ -1071,9 +1073,9 @@ const Enemy = component<{
 /**
  * 攻击系统
  */
-function attackSystem(world: World, app: App) {
-  const time = app.getResource(Time);
-  const keyboard = app.getResource(ButtonInput.ofKeyCode());
+function attackSystem(world: World, context: Context) {
+  const time = context.app.getResource(Time);
+  const keyboard = context.app.getResource(ButtonInput.ofKeyCode());
   if (time === undefined || keyboard === undefined) return;
 
   const currentTime = time.elapsedSeconds();
@@ -1119,7 +1121,7 @@ function attackSystem(world: World, app: App) {
 /**
  * 死亡系统
  */
-function deathSystem(world: World) {
+function deathSystem(world: World, context: Context) {
   const commands = new CommandBuffer();
 
   for (const [entity, health, partRef] of world.query(Health, PartRef)) {
@@ -1141,7 +1143,7 @@ function deathSystem(world: World) {
 /**
  * 生成敌人
  */
-function spawnEnemy(world: World, position: Vector3) {
+function spawnEnemy(world: World, context: Context, position: Vector3) {
   const part = new Instance("Part");
   part.Name = "Enemy";
   part.Size = new Vector3(2, 4, 2);
@@ -1165,8 +1167,8 @@ function spawnEnemy(world: World, position: Vector3) {
 /**
  * 敌人生成系统
  */
-function enemySpawnerSystem(world: World, app: App) {
-  const time = app.getResource(Time);
+function enemySpawnerSystem(world: World, context: Context) {
+  const time = context.app.getResource(Time);
   if (time === undefined) return;
 
   // 每5秒生成一个敌人
@@ -1177,7 +1179,7 @@ function enemySpawnerSystem(world: World, app: App) {
     const x = math.cos(angle) * distance;
     const z = math.sin(angle) * distance;
 
-    spawnEnemy(world, new Vector3(x, 10, z));
+    spawnEnemy(world, context, new Vector3(x, 10, z));
   }
 }
 ```
@@ -1272,7 +1274,7 @@ export const Player = component<{
 import { World } from "@rbxts/matter";
 import { Player } from "../components/player";
 
-export function levelUpSystem(world: World) {
+export function levelUpSystem(world: World, context: Context) {
   for (const [entity, player] of world.query(Player)) {
     // 升级逻辑
   }
@@ -1344,8 +1346,8 @@ import { DiagnosticsPlugin, FrameTimeDiagnosticsPlugin } from "bevy_diagnostic";
 app.addPlugin(new DiagnosticsPlugin());
 app.addPlugin(new FrameTimeDiagnosticsPlugin());
 
-function displayPerf(app: App) {
-  const diagnostics = app.context.get("diagnostics");
+function displayPerf(world: World, context: Context) {
+  const diagnostics = context.app.context.get("diagnostics");
 
   const fps = diagnostics.getDiagnostic("fps")?.value ?? 0;
   const frameTime = diagnostics.getDiagnostic("frame_time")?.value ?? 0;
@@ -1359,7 +1361,7 @@ app.addSystems(BuiltinSchedules.UPDATE, displayPerf);
 #### 5.3.4 条件断点调试
 
 ```typescript
-function debugSystem(world: World) {
+function debugSystem(world: World, context: Context) {
   for (const [entity, player] of world.query(Player)) {
     if (player.level > 10) {
       // 在这里设置断点,只在 level > 10 时触发
@@ -1375,14 +1377,14 @@ function debugSystem(world: World) {
 
 ```typescript
 // ❌ 低效:每次都遍历所有实体
-function badSystem(world: World) {
+function badSystem(world: World, context: Context) {
   for (const [entity, transform] of world.query(Transform)) {
     updateTransform(transform);
   }
 }
 
 // ✅ 高效:只处理变更的实体
-function goodSystem(world: World) {
+function goodSystem(world: World, context: Context) {
   for (const [entity, transform] of world.queryChanged(Transform)) {
     updateTransform(transform);
   }
@@ -1392,7 +1394,7 @@ function goodSystem(world: World) {
 #### 5.4.2 批量执行 Commands
 
 ```typescript
-function spawnManyEntities(world: World) {
+function spawnManyEntities(world: World, context: Context) {
   const commands = new CommandBuffer();
 
   // 批量添加实体
@@ -1412,16 +1414,16 @@ function spawnManyEntities(world: World) {
 
 ```typescript
 // ❌ 每次都获取
-function badSystem(world: World, app: App) {
+function badSystem(world: World, context: Context) {
   for (const [entity] of world.query(Enemy)) {
-    const config = app.getResource(GameConfig);
+    const config = context.app.getResource(GameConfig);
     // 使用 config
   }
 }
 
 // ✅ 缓存到系统外
-function goodSystem(world: World, app: App) {
-  const config = app.getResource(GameConfig);
+function goodSystem(world: World, context: Context) {
+  const config = context.app.getResource(GameConfig);
   if (config === undefined) return;
 
   for (const [entity] of world.query(Enemy)) {
@@ -1434,7 +1436,7 @@ function goodSystem(world: World, app: App) {
 
 ```typescript
 // 只在有敌人时运行 AI 系统
-function hasEnemies(world: World) {
+function hasEnemies(world: World, context: Context) {
   for (const _ of world.query(Enemy)) {
     return true;
   }
@@ -1524,8 +1526,8 @@ export class CustomPlugin extends BasePlugin {
 }
 
 // 使用
-function someSystem(world: World, app: App) {
-  const custom = app.context.get("custom"); // 完整类型提示
+function someSystem(world: World, context: Context) {
+  const custom = context.app.context.get("custom"); // 完整类型提示
   custom.setValue(42);
 }
 ```
@@ -1617,9 +1619,9 @@ world.spawn(
 #### 6.3.2 客户端预测
 
 ```typescript
-function clientPredictionSystem(world: World, app: App) {
+function clientPredictionSystem(world: World, context: Context) {
   // 客户端:立即应用输入
-  if (app.getResource(RobloxContext) === RobloxContext.Client) {
+  if (context.app.getResource(RobloxContext) === RobloxContext.Client) {
     for (const [entity, input, position] of world.query(Input, Position)) {
       // 预测新位置
       const predictedPos = calculateNewPosition(position, input);
@@ -1628,7 +1630,7 @@ function clientPredictionSystem(world: World, app: App) {
   }
 
   // 服务端:权威计算
-  if (app.getResource(RobloxContext) === RobloxContext.Server) {
+  if (context.app.getResource(RobloxContext) === RobloxContext.Server) {
     for (const [entity, input, position] of world.query(Input, Position)) {
       const authorativePos = calculateNewPosition(position, input);
       world.insert(entity, authorativePos);
@@ -1662,8 +1664,8 @@ class SpatialIndex {
 }
 
 // 在系统中使用
-function nearbyQuerySystem(world: World, app: App) {
-  const spatial = app.getResource(SpatialIndex);
+function nearbyQuerySystem(world: World, context: Context) {
+  const spatial = context.app.getResource(SpatialIndex);
 
   for (const [entity, position] of world.query(Player, Position)) {
     const nearby = spatial.queryNearby(position, 10);
@@ -1683,10 +1685,10 @@ class LazyLoadPlugin extends BasePlugin {
     app.addSystems(BuiltinSchedules.UPDATE, this.checkLoadCondition);
   }
 
-  private checkLoadCondition = (world: World, app: App) => {
+  private checkLoadCondition = (world: World, context: Context) => {
     if (this.shouldLoad() && !this.loaded) {
       // 动态加载重量级系统
-      app.addSystems(BuiltinSchedules.UPDATE, heavySystem);
+      context.app.addSystems(BuiltinSchedules.UPDATE, heavySystem);
       this.loaded = true;
     }
   };
@@ -1739,9 +1741,9 @@ app.add_systems(Update, my_system);
 **Roblox-TS**:
 
 ```typescript
-function mySystem(world: World, app: App) {
+function mySystem(world: World, context: Context) {
   const commands = new CommandBuffer();
-  const time = app.getResource(Time);
+  const time = context.app.getResource(Time);
 
   for (const [entity, transform] of world.query(Transform, Player)) {
     // 逻辑
@@ -1769,7 +1771,7 @@ TypeScript:
 
 ```typescript
 // 需要手动确保不会同时修改同一组件
-function system(world: World) {
+function system(world: World, context: Context) {
   // 使用约定:在迭代中只读,使用 Commands 延迟写入
 }
 ```
@@ -1792,7 +1794,7 @@ TypeScript:
 // TypeScript 泛型无法直接用于运行时
 // 解决方案:使用工厂函数
 function createGenericSystem<T>(componentType: ComponentType<T>) {
-  return (world: World) => {
+  return (world: World, context: Context) => {
     for (const [entity, component] of world.query(componentType)) {
       // ...
     }
@@ -1843,7 +1845,7 @@ const Health = component<{
 }>("Health");
 
 // 系统
-function deathDetectionSystem(world: World) {
+function deathDetectionSystem(world: World, context: Context) {
   for (const [entity, char, health] of world.query(PlayerCharacter, Health)) {
     if (char.humanoid.Health <= 0 && health.current > 0) {
       // 标记为死亡
@@ -1852,7 +1854,7 @@ function deathDetectionSystem(world: World) {
   }
 }
 
-function respawnSystem(world: World, app: App) {
+function respawnSystem(world: World, context: Context) {
   const commands = new CommandBuffer();
 
   for (const [entity, health] of world.query(Health)) {
@@ -1895,9 +1897,9 @@ const Health = component<{ current: number }>();
 const Position = component<{ x: number, y: number, z: number }>();
 const Inventory = component<{ items: Item[] }>();
 
-function movementSystem(world: World) { }
-function combatSystem(world: World) { }
-function inventorySystem(world: World) { }
+function movementSystem(world: World, context: Context) { }
+function combatSystem(world: World, context: Context) { }
+function inventorySystem(world: World, context: Context) { }
 ```
 
 **步骤 3: 使用组合代替继承**
@@ -1938,8 +1940,8 @@ class GameConfig {
 
 app.insertResource(new GameConfig());
 
-function useConfig(app: App) {
-  const config = app.getResource(GameConfig);
+function useConfig(world: World, context: Context) {
+  const config = context.app.getResource(GameConfig);
 }
 ```
 
@@ -1957,8 +1959,8 @@ class PlayerJoinedEvent {
   constructor(public player: Player) {}
 }
 
-function playerJoinSystem(world: World, app: App) {
-  const reader = app.getResource(MessageReader.of<PlayerJoinedEvent>());
+function playerJoinSystem(world: World, context: Context) {
+  const reader = context.app.getResource(MessageReader.of<PlayerJoinedEvent>());
 
   for (const event of reader.read()) {
     print(`${event.player.Name} joined`);
@@ -2046,7 +2048,7 @@ function playerJoinSystem(world: World, app: App) {
 
 ```typescript
 // 服务端
-function serverSystem(world: World) {
+function serverSystem(world: World, context: Context) {
   const event = new Instance("RemoteEvent");
 
   for (const [entity, data] of world.query(NeedSync)) {
@@ -2055,7 +2057,7 @@ function serverSystem(world: World) {
 }
 
 // 客户端
-function clientSystem(world: World) {
+function clientSystem(world: World, context: Context) {
   event.OnClientEvent.Connect((entity, data) => {
     world.insert(entity, data);
   });
@@ -2082,7 +2084,8 @@ export = () => {
       Velocity({ x: 1, y: 0 })
     );
 
-    movementSystem(world);
+    const context = { app: mockApp }; // 模拟 context
+    movementSystem(world, context);
 
     const position = world.get(entity, Position);
     expect(position.x).to.equal(1);
