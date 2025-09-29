@@ -1,3 +1,5 @@
+// 从 matter 源代码搬运而来 ,方便修改
+
 import { Modding } from "@flamework/core";
 import { None } from "./immutable";
 
