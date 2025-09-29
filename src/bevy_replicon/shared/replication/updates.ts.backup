@@ -1,0 +1,319 @@
+/**
+ * @fileoverview 更新消息结构
+ *
+ * 管理当前 tick 的实体更新数据。
+ * 数据手动序列化并以范围形式存储在 SerializedData 中。
+ *
+ * 参考 Rust 实现:
+ * bevy-origin-packages/bevy_replicon/src/server/replication_messages/updates.rs
+ */
+
+import { Entity } from "@rbxts/matter";
+import type { Range } from "./serialized-data";
+import { createRange, rangeLength, SerializedData } from "./serialized-data";
+import type { Uint8Array } from "./types";
+import { UpdateMessageFlags, addFlag, getLastFlag, getSetFlags, hasFlag } from "./update-message-flags";
+
+/**
+ * 更新消息
+ *
+ * 包含当前 tick 的实体更新数据。
+ * 数据序列化后存储在 SerializedData 中,通过范围引用。
+ *
+ * ## 数据段顺序
+ * 1. MAPPINGS: 客户端预生成实体映射
+ * 2. DESPAWNS: 实体销毁
+ * 3. REMOVALS: 组件移除
+ * 4. CHANGES: 组件变更
+ *
+ * 映射段必须最先处理,确保后续实体引用正确。
+ */
+export class Updates {
+	/**
+	 * 映射段: 客户端预生成实体映射
+	 * 格式: 连续的实体对 [(server, client), ...]
+	 */
+	private mappings: Range;
+
+	/** 映射对数量 */
+	private mappingsLength: number;
+
+	/**
+	 * 构造函数
+	 */
+	constructor() {
+		this.mappings = createRange(0, 0);
+		this.mappingsLength = 0;
+	}
+
+	/**
+	 * 设置映射段
+	 * @param range - 映射数据在缓冲区中的范围
+	 * @param length - 映射对数量
+	 */
+	public setMappings(range: Range, length: number): void {
+		this.mappings = range;
+		this.mappingsLength = length;
+	}
+
+	/**
+	 * 获取映射段范围
+	 * @returns 映射数据范围
+	 */
+	public getMappingsRange(): Range {
+		return this.mappings;
+	}
+
+	/**
+	 * 获取映射对数量
+	 * @returns 映射数量
+	 */
+	public getMappingsLength(): number {
+		return this.mappingsLength;
+	}
+
+	/**
+	 * 检查是否为空(无任何更新)
+	 * @returns 是否为空
+	 */
+	public isEmpty(): boolean {
+		return rangeLength(this.mappings) === 0;
+	}
+
+	/**
+	 * 获取消息标志位
+	 * @returns 标志位
+	 */
+	public getFlags(): number {
+		let flags = UpdateMessageFlags.NONE;
+
+		if (rangeLength(this.mappings) > 0) {
+			flags = addFlag(flags, UpdateMessageFlags.MAPPINGS);
+		}
+
+		return flags;
+	}
+
+	/**
+	 * 序列化为消息
+	 *
+	 * 消息格式:
+	 * 1. 标志位 (u8)
+	 * 2. Tick (varint)
+	 * 3. [可选] MAPPINGS 段:
+	 *    - 映射数量 (varint, 如果不是最后一个段)
+	 *    - 映射数据 (连续的实体对)
+	 *
+	 * @param serializedData - 序列化数据缓冲区
+	 * @param serverTickRange - 服务器 tick 在缓冲区中的范围
+	 * @returns 序列化后的消息数据
+	 */
+	public serialize(serializedData: SerializedData, serverTickRange: Range): Uint8Array {
+		const flags = this.getFlags();
+		const lastFlag = getLastFlag(flags);
+		const setFlags = getSetFlags(flags);
+
+		// 计算消息大小
+		let messageSize = 1 + rangeLength(serverTickRange); // 标志位 + tick
+
+		for (const flag of setFlags) {
+			if (flag === UpdateMessageFlags.MAPPINGS) {
+				// MAPPINGS 段
+				if (flag !== lastFlag) {
+					// 需要写入长度
+					messageSize += this.calculateVarintSize(this.mappingsLength);
+				}
+				messageSize += rangeLength(this.mappings);
+			}
+		}
+
+		// 创建消息缓冲区
+		const message: Array<number> = [];
+
+		// 1. 写入标志位
+		message.push(flags & 0xff);
+
+		// 2. 写入 tick
+		const tickData = serializedData.getRange(serverTickRange);
+		for (let index = 0; index < tickData.size(); index++) {
+			message.push(tickData[index]);
+		}
+
+		// 3. 写入各个数据段
+		for (const flag of setFlags) {
+			if (flag === UpdateMessageFlags.MAPPINGS) {
+				// 写入 MAPPINGS 段
+				if (flag !== lastFlag) {
+					// 写入长度
+					this.writeVarint(message, this.mappingsLength);
+				}
+
+				// 写入数据
+				const mappingsData = serializedData.getRange(this.mappings);
+				for (let index = 0; index < mappingsData.size(); index++) {
+					message.push(mappingsData[index]);
+				}
+			}
+		}
+
+		return message;
+	}
+
+	/**
+	 * 从消息反序列化
+	 * @param messageData - 消息数据
+	 * @returns 反序列化结果
+	 */
+	public static deserialize(messageData: Uint8Array): {
+		readonly flags: number;
+		readonly tick: number;
+		readonly mappings: Array<[Entity, Entity]>;
+	} {
+		let offset = 0;
+
+		// 1. 读取标志位
+		const flags = messageData[offset];
+		offset += 1;
+
+		// 2. 读取 tick
+		const [tick, tickBytesRead] = SerializedData.readTickAt(messageData, offset);
+		offset += tickBytesRead;
+
+		// 3. 读取各个数据段
+		const mappings: Array<[Entity, Entity]> = [];
+
+		const lastFlag = getLastFlag(flags);
+		const setFlags = getSetFlags(flags);
+
+		for (const flag of setFlags) {
+			if (flag === UpdateMessageFlags.MAPPINGS) {
+				// 读取 MAPPINGS 段
+				let mappingsCount: number;
+
+				if (flag !== lastFlag) {
+					// 读取长度
+					const [count, countBytesRead] = SerializedData.readU32At(messageData, offset);
+					mappingsCount = count;
+					offset += countBytesRead;
+				} else {
+					// 最后一个段，通过解析数据计算映射对数
+					// 我们需要读取所有剩余字节并计算实际映射数量
+					mappingsCount = 0;
+					let tempOffset = offset;
+					while (tempOffset < messageData.size()) {
+						// 尝试读取一对实体
+						const [serverEntity, serverBytes] = SerializedData.readEntityAt(messageData, tempOffset);
+						tempOffset += serverBytes;
+
+						if (tempOffset >= messageData.size()) {
+							break;
+						}
+
+						const [clientEntity, clientBytes] = SerializedData.readEntityAt(messageData, tempOffset);
+						tempOffset += clientBytes;
+
+						mappingsCount += 1;
+					}
+				}
+
+				// 读取映射数据
+				const mappingsSlice: Array<number> = [];
+				for (let index = offset; index < messageData.size(); index++) {
+					mappingsSlice.push(messageData[index]);
+				}
+
+				const parsedMappings = SerializedData.readMappings(mappingsSlice, mappingsCount);
+				for (const mapping of parsedMappings) {
+					mappings.push(mapping);
+				}
+
+				// 更新偏移(假设已读取所有映射数据)
+				offset = messageData.size();
+			}
+		}
+
+		return {
+			flags,
+			tick,
+			mappings,
+		};
+	}
+
+	/**
+	 * 清空所有数据(保留内存)
+	 */
+	public clear(): void {
+		this.mappings = createRange(0, 0);
+		this.mappingsLength = 0;
+	}
+
+	/**
+	 * 计算 varint 编码大小
+	 * @param value - 要编码的值
+	 * @returns 字节数
+	 */
+	private calculateVarintSize(value: number): number {
+		let size = 0;
+		let remaining = value;
+
+		while (remaining >= 0x80) {
+			size += 1;
+			remaining = remaining >>> 7;
+		}
+
+		size += 1; // 最后一个字节
+		return size;
+	}
+
+	/**
+	 * 写入 varint
+	 * @param buffer - 目标缓冲区
+	 * @param value - 要写入的值
+	 */
+	private writeVarint(buffer: Array<number>, value: number): void {
+		let remaining = value;
+
+		while (remaining >= 0x80) {
+			buffer.push((remaining & 0x7f) | 0x80);
+			remaining = remaining >>> 7;
+		}
+
+		buffer.push(remaining & 0x7f);
+	}
+}
+
+/**
+ * 从 ClientEntityMap 收集映射
+ *
+ * 遍历所有客户端连接的 ClientEntityMap,收集待发送的映射。
+ *
+ * @param mappingsArray - 映射数组 (来自各个客户端)
+ * @returns 合并后的映射数组
+ */
+export function collectMappingsFromClients(
+	mappingsArray: ReadonlyArray<ReadonlyArray<readonly [Entity, Entity]>>,
+): Array<[Entity, Entity]> {
+	const allMappings: Array<[Entity, Entity]> = [];
+
+	for (const clientMappings of mappingsArray) {
+		for (const mapping of clientMappings) {
+			allMappings.push([mapping[0], mapping[1]]);
+		}
+	}
+
+	return allMappings;
+}
+
+/**
+ * 序列化映射到缓冲区
+ * @param serializedData - 序列化数据缓冲区
+ * @param mappings - 映射数组
+ * @returns [范围, 映射数量]
+ */
+export function serializeMappings(
+	serializedData: SerializedData,
+	mappings: ReadonlyArray<readonly [Entity, Entity]>,
+): [Range, number] {
+	const range = serializedData.writeMappings(mappings);
+	return [range, mappings.size()];
+}
