@@ -138,13 +138,13 @@ export class ClientPredictionManager implements Resource {
 
 		const entityStates = new Map<Entity, Map<string, AnyComponent>>();
 
-		// 保存所有预测实体的状态
-		for (const entity of this.predictedEntities) {
-			const components = world.get(entity);
-			if (components) {
+		// 遍历world获取所有实体和其组件
+		for (const [entity, components] of world) {
+			// 只保存预测实体的状态
+			if (this.predictedEntities.has(entity)) {
 				const componentMap = new Map<string, AnyComponent>();
-				for (const component of components) {
-					const componentName = tostring(getmetatable(component));
+				for (const [componentCtor, component] of components) {
+					const componentName = tostring(componentCtor);
 					componentMap.set(componentName, this.cloneComponent(component));
 				}
 				entityStates.set(entity, componentMap);

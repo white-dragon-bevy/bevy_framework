@@ -13,6 +13,7 @@ import type { Range } from "./serialized-data";
 import { createRange, rangeLength, SerializedData } from "./serialized-data";
 import type { Uint8Array } from "./types";
 import { UpdateMessageFlags, addFlag, getLastFlag, getSetFlags, hasFlag } from "./update-message-flags";
+import { compactEntitySerializer } from "./compact-entity";
 
 /**
  * 组件移除范围
@@ -480,44 +481,15 @@ export class Updates {
 		for (const flag of setFlags) {
 			if (flag === UpdateMessageFlags.MAPPINGS) {
 				// 读取 MAPPINGS 段
-				let mappingsCount: number;
+				// 映射数据使用 CompactEntitySerializer 批量序列化格式
+				// 格式: [count, server1, client1, server2, client2, ...]
+				const [deserializedMappings, bytesRead] = compactEntitySerializer.deserializeMappings(messageData, offset);
 
-				if (flag !== lastFlag) {
-					// 读取长度
-					const [count, countBytesRead] = SerializedData.readU32At(messageData, offset);
-					mappingsCount = count;
-					offset += countBytesRead;
-				} else {
-					// 最后一个段,通过解析数据计算映射对数
-					mappingsCount = 0;
-					let tempOffset = offset;
-
-					while (tempOffset < messageData.size()) {
-						// 尝试读取一对实体
-						const [serverEntity, serverBytes] = SerializedData.readEntityAt(messageData, tempOffset);
-						tempOffset += serverBytes;
-
-						if (tempOffset >= messageData.size()) {
-							break;
-						}
-
-						const [clientEntity, clientBytes] = SerializedData.readEntityAt(messageData, tempOffset);
-						tempOffset += clientBytes;
-
-						mappingsCount += 1;
-					}
+				for (const mapping of deserializedMappings) {
+					mappings.push(mapping);
 				}
 
-				// 读取映射数据
-				for (let index = 0; index < mappingsCount; index++) {
-					const [serverEntity, serverBytes] = SerializedData.readEntityAt(messageData, offset);
-					offset += serverBytes;
-
-					const [clientEntity, clientBytes] = SerializedData.readEntityAt(messageData, offset);
-					offset += clientBytes;
-
-					mappings.push([serverEntity, clientEntity]);
-				}
+				offset += bytesRead;
 			} else if (flag === UpdateMessageFlags.DESPAWNS) {
 				// 读取 DESPAWNS 段
 				let despawnsCount: number;
