@@ -55,35 +55,7 @@ export class RobloxRunnerPlugin extends BasePlugin {
 		app.finish();
 		app.cleanup();
 
-		// 手动执行启动调度（只执行一次）
-		const mainApp = app.main();
-		const world = mainApp.world();
-		const schedules = mainApp.getSchedules();
-
-		// 执行启动序列
-		const startupSchedules = [BuiltinSchedules.PRE_STARTUP, BuiltinSchedules.STARTUP, BuiltinSchedules.POST_STARTUP];
-		for (const scheduleLabel of startupSchedules) {
-			const schedule = schedules.getSchedule(scheduleLabel);
-			if (schedule) {
-				const compiledSystems = schedule.compile();
-				for (const systemStruct of compiledSystems) {
-					try {
-						systemStruct.system(world.getWorld(), mainApp.getContext());
-					} catch (err) {
-						const errorHandler = mainApp.getErrorHandler();
-						if (errorHandler) {
-							errorHandler(err);
-						} else {
-							throw err;
-						}
-					}
-				}
-			}
-		}
-
-		// 执行命令缓冲和事件清理
-		mainApp.getCommandBuffer().flush(world.getWorld());
-		mainApp.getEventManager().cleanup();
+		// 启动调度将通过 Loop 执行（在 startMainLoop 中处理）
 	}
 
 	/**
@@ -105,8 +77,12 @@ export class RobloxRunnerPlugin extends BasePlugin {
 			mainEvent = RunService.Heartbeat;
 		}
 
-		// 只映射主循环调度（不包含 STARTUP）
+		// 映射所有调度（包括启动调度和主循环调度）
+		// 启动调度会被 Loop 自动识别为 once: true，只执行一次
 		events["default"] = mainEvent;
+		events[BuiltinSchedules.PRE_STARTUP] = mainEvent;
+		events[BuiltinSchedules.STARTUP] = mainEvent;
+		events[BuiltinSchedules.POST_STARTUP] = mainEvent;
 		events[BuiltinSchedules.FIRST] = mainEvent;
 		events[BuiltinSchedules.PRE_UPDATE] = mainEvent;
 		events[BuiltinSchedules.RUN_FIXED_MAIN_LOOP] = mainEvent; // 添加固定更新循环调度
@@ -115,10 +91,7 @@ export class RobloxRunnerPlugin extends BasePlugin {
 		events[BuiltinSchedules.LAST] = mainEvent;
 		events[BuiltinSchedules.MAIN] = mainEvent;
 
-		// 先运行一次启动调度
-		mainApp.runStartupSchedule();
-
-		// 启动 Loop（只包含常规调度）
+		// 启动 Loop（包含所有调度）
 		mainApp.startLoop(events);
 	}
 }

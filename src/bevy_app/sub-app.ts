@@ -9,7 +9,7 @@ import { WorldContainer, createWorldContainer, World, Context } from "../bevy_ec
 import { ResourceManager, Resource } from "../bevy_ecs/resource";
 import { CommandBuffer } from "../bevy_ecs/command-buffer";
 import { MessageRegistry } from "../bevy_ecs/message";
-import { MainScheduleOrder, FixedMainScheduleOrder, runMainSchedule, runFixedMainSchedule, BuiltinSchedules } from "./main-schedule";
+import { MainScheduleOrder, FixedMainScheduleOrder, BuiltinSchedules } from "./main-schedule";
 import { App } from "./app";
 import { Schedule } from "../bevy_ecs/schedule/schedule";
 import { Schedules } from "../bevy_ecs/schedule/schedules";
@@ -48,7 +48,6 @@ export class SubApp {
 	private context: Context;
 	private loopConnections?: { [scheduleLabel: string]: RBXScriptConnection };
 	private isLoopRunning = false;
-	private hasRunStartup = false; // 跟踪启动调度是否已经运行
 
 	constructor(context?:Context) {
 		this._world = createWorldContainer();
@@ -179,42 +178,6 @@ export class SubApp {
 		}
 	}
 
-	/**
-	 * 运行启动调度
-	 * 只应该在应用启动时调用一次
-	 * 对应 Rust Main::run_main 中的启动逻辑
-	 */
-	runStartupSchedule(): void {
-		if (this.hasRunStartup) {
-			return; // 已经运行过，不再重复运行
-		}
-		this.hasRunStartup = true;
-
-		// 运行启动调度序列
-		for (const label of this.scheduleOrder.startupLabels) {
-			const schedule = this.schedules.getSchedule(label);
-			if (schedule) {
-				const compiledSystems = schedule.compile();
-				for (const systemStruct of compiledSystems) {
-					try {
-						systemStruct.system(this._world.getWorld(), this.context);
-					} catch (err) {
-						if (this.errorHandler) {
-							this.errorHandler(err);
-						} else {
-							throw err;
-						}
-					}
-				}
-			}
-		}
-
-		// 执行命令缓冲
-		this.commandBuffer.flush(this._world.getWorld());
-
-		// 清理事件
-		this.messageRegistry.cleanup();
-	}
 
 	/**
 	 * 更新SubApp
@@ -234,55 +197,28 @@ export class SubApp {
 			return;
 		}
 
-		// 向后兼容：如果 Loop 没有运行，使用旧的直接执行方式
-		// 使用已初始化的 context
+		// 手动模式：使用 Loop.step() 执行系统
+		// 这确保 Matter hooks 正常工作，并且 once 属性被正确处理
+
+		// 确保所有调度都已编译并注册到 Loop
+		this.schedules.compile();
+		const loop = this.schedules.getLoop();
 
 		// 特殊处理 Main 调度
-		// 在 Rust Bevy 中，Main 调度包含 run_main 系统，负责运行启动（仅第一次）和常规调度
+		// 在 Rust Bevy 中，Main 调度包含 run_main 系统，负责运行启动和常规调度
 		if (this.updateSchedule === "Main") {
-			// Main 调度的特殊处理：先运行启动调度（只在第一次），然后运行常规调度
-			if (!this.hasRunStartup) {
-				this.runStartupSchedule();
+			// 首先执行启动调度（Loop 会确保只执行一次）
+			for (const label of this.scheduleOrder.startupLabels) {
+				loop.step(label, 1/60);
 			}
 
-			// 运行常规调度序列
-			runMainSchedule(this._world.getWorld(), this.scheduleOrder, (label) => {
-				// 执行指定调度中的所有系统
-				const schedule = this.schedules.getSchedule(label);
-				if (schedule) {
-					const compiledSystems = schedule.compile();
-					for (const systemStruct of compiledSystems) {
-						try {
-							systemStruct.system(this._world.getWorld(), this.context);
-						} catch (err) {
-							// 如果有错误处理器，调用它；否则抛出错误
-							if (this.errorHandler) {
-								this.errorHandler(err);
-							} else {
-								throw err;
-							}
-						}
-					}
-				}
-			});
+			// 然后执行常规调度序列
+			for (const label of this.scheduleOrder.labels) {
+				loop.step(label, 1/60);
+			}
 		} else if (this.updateSchedule) {
 			// 运行单个调度
-			const schedule = this.schedules.getSchedule(this.updateSchedule);
-			if (schedule) {
-				const compiledSystems = schedule.compile();
-				for (const systemStruct of compiledSystems) {
-					try {
-						systemStruct.system(this._world.getWorld(), this.context);
-					} catch (err) {
-						// 如果有错误处理器，调用它；否则抛出错误
-						if (this.errorHandler) {
-							this.errorHandler(err);
-						} else {
-							throw err;
-						}
-					}
-				}
-			}
+			loop.step(this.updateSchedule, 1/60);
 		}
 
 		// 执行命令缓冲
@@ -318,15 +254,19 @@ export class SubApp {
 	 * @param label - 调度标签
 	 */
 	runSchedule(label: ScheduleLabel): void {
+		// 确保所有调度都已编译并注册到 Loop
+		this.schedules.compile();
+		const loop = this.schedules.getLoop();
+
 		// 特殊处理 FixedMain 调度
 		if (label === BuiltinSchedules.FIXED_MAIN) {
 			// 运行固定调度序列
-			runFixedMainSchedule(this._world.getWorld(), this.fixedScheduleOrder, (scheduleLabel) => {
-				this.executeSchedule(scheduleLabel);
-			});
+			for (const scheduleLabel of this.fixedScheduleOrder.labels) {
+				loop.step(scheduleLabel, 1/60);
+			}
 		} else {
 			// 运行单个调度
-			this.executeSchedule(label);
+			loop.step(label, 1/60);
 		}
 
 		// 执行命令缓冲

@@ -285,6 +285,9 @@ export class Schedule {
 		// 生成系统的显示名称 - 只使用系统名称或函数名
 		const systemDisplayName = system.name || this.getFunctionName(originalSystem);
 
+		// 判断是否是启动调度（只运行一次）
+		const isStartupSchedule = this.label === "PreStartup" || this.label === "Startup" || this.label === "PostStartup";
+
 		return {
 			...system.loopSystem,
 			system: wrappedSystem,
@@ -297,6 +300,8 @@ export class Schedule {
 			// 清除 after 依赖，因为 Schedule 已经通过拓扑排序处理了依赖关系
 			// 如果保留 after，Loop 会重新计算优先级，破坏我们的排序
 			after: undefined,
+			// 如果是启动调度，设置 once 属性
+			once: isStartupSchedule,
 		};
 	}
 
