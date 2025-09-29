@@ -375,16 +375,22 @@ export = () => {
 
 		it("应该正确处理带有 textValue 的键盘输入事件", () => {
 			const keyboardWriter = messageRegistry.createWriter<KeyboardInput>();
-			const focusWriter = messageRegistry.createWriter<KeyboardFocusLost>();
+			const keyboardReader = messageRegistry.createReader<KeyboardInput>();
+			const focusReader = messageRegistry.createReader<KeyboardFocusLost>();
 
 			// 创建一个带有 textValue 的键盘输入事件（模拟文本输入）
 			const aKey = characterKey("a");
 			keyboardWriter.write(new KeyboardInput(Enum.KeyCode.A, aKey, ButtonState.Pressed, "a"));
 
-			const keyboardReader = messageRegistry.createReader<KeyboardInput>();
-			const focusReader = messageRegistry.createReader<KeyboardFocusLost>();
+			// 先读取事件以验证 textValue
+			const events = keyboardReader.read();
+			expect(events.size() > 0).to.equal(true);
 
-			keyboardInputSystem(world, keyboardReader, focusReader);
+			// 创建新的 reader 来处理系统
+			const systemReader = messageRegistry.createReader<KeyboardInput>();
+			const systemFocusReader = messageRegistry.createReader<KeyboardFocusLost>();
+
+			keyboardInputSystem(world, systemReader, systemFocusReader);
 
 			const keyCodeInput = getKeyboardInput(world);
 			const keyInput = getKeyInput(world);
@@ -398,10 +404,6 @@ export = () => {
 				expect(keyInput.isPressed(aKey)).to.equal(true);
 				expect(keyInput.justPressed(aKey)).to.equal(true);
 			}
-
-			// 验证事件的 textValue 属性
-			const events = keyboardReader.read();
-			expect(events.size() > 0).to.equal(true);
 
 			// 查找带有 textValue 的事件
 			let foundTextEvent = false;
@@ -429,10 +431,14 @@ export = () => {
 			const keyboardReader = messageRegistry.createReader<KeyboardInput>();
 			const focusReader = messageRegistry.createReader<KeyboardFocusLost>();
 
-			keyboardInputSystem(world, keyboardReader, focusReader);
-
-			// 验证事件的 textValue 属性
+			// 先读取事件以验证 textValue
 			const events = keyboardReader.read();
+
+			// 创建新的 reader 来处理系统
+			const systemReader = messageRegistry.createReader<KeyboardInput>();
+			const systemFocusReader = messageRegistry.createReader<KeyboardFocusLost>();
+			keyboardInputSystem(world, systemReader, systemFocusReader);
+
 			let foundSpecialCharEvent = false;
 			for (const event of events) {
 				if (event.textValue === "!") {
@@ -471,17 +477,21 @@ export = () => {
 
 		it("应该处理多字符文本输入", () => {
 			const keyboardWriter = messageRegistry.createWriter<KeyboardInput>();
+			const keyboardReader = messageRegistry.createReader<KeyboardInput>();
+			const focusReader = messageRegistry.createReader<KeyboardFocusLost>();
 
 			// 测试多字符输入（如某些语言的复合字符）
 			const multiCharText = "你好";
 			keyboardWriter.write(new KeyboardInput(Enum.KeyCode.Unknown, characterKey(multiCharText), ButtonState.Pressed, multiCharText));
 
-			const keyboardReader = messageRegistry.createReader<KeyboardInput>();
-			const focusReader = messageRegistry.createReader<KeyboardFocusLost>();
-
-			keyboardInputSystem(world, keyboardReader, focusReader);
-
+			// 先读取事件以验证
 			const events = keyboardReader.read();
+
+			// 创建新的 reader 来处理系统
+			const systemReader = messageRegistry.createReader<KeyboardInput>();
+			const systemFocusReader = messageRegistry.createReader<KeyboardFocusLost>();
+			keyboardInputSystem(world, systemReader, systemFocusReader);
+
 			let foundMultiCharEvent = false;
 			for (const event of events) {
 				if (event.textValue === multiCharText) {
