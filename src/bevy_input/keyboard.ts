@@ -215,7 +215,8 @@ export function characterKey(character: string): Key {
  * @returns 死键对象
  */
 export function deadKey(character?: string): Key {
-	return { Dead: character };
+	// 使用空字符串作为标记值，而不是 undefined
+	return { Dead: character ?? "" };
 }
 
 /**
@@ -233,7 +234,10 @@ export function isCharacterKey(key: Key): key is { Character: string } {
  * @returns 是否为死键
  */
 export function isDeadKey(key: Key): key is { Dead: string | undefined } {
-	return typeIs(key, "table") && "Dead" in (key as object);
+	// Check if it's a table and has the "Dead" property
+	// Using rawget to check if the property exists, even if it's ""
+	if (!typeIs(key, "table")) return false;
+	return (rawget(key as any, "Dead") !== undefined);
 }
 
 /**
@@ -256,7 +260,8 @@ export function getKeyDisplayString(key: Key): string {
 	}
 
 	if (isDeadKey(key)) {
-		return key.Dead !== undefined ? `Dead(${key.Dead})` : "Dead";
+		// Empty string means no specific dead character
+		return key.Dead !== "" ? `Dead(${key.Dead})` : "Dead";
 	}
 
 	if (isNamedKey(key)) {

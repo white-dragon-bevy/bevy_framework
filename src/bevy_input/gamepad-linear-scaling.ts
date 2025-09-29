@@ -28,29 +28,41 @@ export function applyDeadzoneAndScaling(value: number, settings: {
 		return 0.0;
 	}
 
-	// 正向活动区 (右/上)
+	// 正向值 (右/上)
 	if (value > deadzoneU) {
+		// 如果值在活动区上限或之外，钳制到 1.0
+		if (value >= livezoneU) {
+			return 1.0;
+		}
+
+		// 在死区和活动区之间，线性重映射到 [0, 1]
 		const range = livezoneU - deadzoneU;
 
 		if (range === 0) {
-			return 1.0; // 防止除零
+			return 0.0; // 防止除零
 		}
 
 		const normalized = (value - deadzoneU) / range;
 
-		return math.min(math.max(normalized, 0.0), 1.0);
+		return normalized;
 	}
 
-	// 负向活动区 (左/下)
+	// 负向值 (左/下)
+	// 如果值在活动区下限或之外，钳制到 -1.0
+	if (value <= livezoneL) {
+		return -1.0;
+	}
+
+	// 在死区和活动区之间，线性重映射到 [-1, 0]
 	const range = deadzoneL - livezoneL;
 
 	if (range === 0) {
-		return -1.0; // 防止除零
+		return 0.0; // 防止除零
 	}
 
 	const normalized = (value - deadzoneL) / range;
 
-	return math.min(math.max(normalized, -1.0), 0.0);
+	return normalized;
 }
 
 /**

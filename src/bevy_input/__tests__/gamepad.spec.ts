@@ -219,7 +219,8 @@ export = () => {
 
 			expect(settings.filter(0.05)).to.equal(0);
 			expect(settings.filter(-0.05)).to.equal(0);
-			expect(settings.filter(0.11)).to.equal(0.11);
+			// 0.11 在死区外，应该被缩放: (0.11 - 0.1) / (0.95 - 0.1) = 0.01 / 0.85
+			expect(settings.filter(0.11)).to.be.near(0.01176, 0.001);
 		});
 
 		it("filter 应该应用活动区限制", () => {
@@ -235,7 +236,8 @@ export = () => {
 			const settings = new AxisSettings(-0.1, 0.1, -0.95, 0.95, 0.05);
 
 			expect(settings.filter(0.2, 0.19)).to.equal(undefined);
-			expect(settings.filter(0.2, 0.1)).to.equal(0.2);
+			// 0.2 在死区外，应该被缩放: (0.2 - 0.1) / (0.95 - 0.1) = 0.1 / 0.85
+			expect(settings.filter(0.2, 0.1)).to.be.near(0.11765, 0.001);
 		});
 	});
 
