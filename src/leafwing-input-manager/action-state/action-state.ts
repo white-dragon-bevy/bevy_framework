@@ -330,6 +330,39 @@ export class ActionState<Action extends Actionlike> {
 	}
 
 	/**
+	 * Releases all currently pressed actions
+	 * This is useful when the window loses focus to prevent inputs from being "stuck"
+	 */
+	public releaseAll(): void {
+		this.actionData.forEach((data, hash) => {
+			if (data.pressed) {
+				const wasPressed = data.pressed;
+				data.pressed = false;
+				data.value = 0;
+				data.axisPairX = 0;
+				data.axisPairY = 0;
+
+				// Update button data to reflect the release
+				const buttonData = this.buttonData.get(hash);
+				if (buttonData) {
+					buttonData.update(false, wasPressed);
+				}
+			}
+		});
+	}
+
+	/**
+	 * Clears all action states completely
+	 * This removes all action data and resets the state to empty
+	 */
+	public clear(): void {
+		this.actionData.clear();
+		this.buttonData.clear();
+		this.hashToAction.clear();
+		this.disabledActions.clear();
+	}
+
+	/**
 	 * Disables the specified action
 	 * Disabled actions will not be updated from input
 	 * @param action - The action to disable
@@ -506,6 +539,22 @@ export class ActionState<Action extends Actionlike> {
 	}
 
 	/**
+	 * Gets the button data Map for internal use
+	 * @returns The button data map
+	 */
+	public getButtonDataMap(): Map<string, ButtonData> {
+		return this.buttonData;
+	}
+
+	/**
+	 * Gets the hash to action Map for internal use
+	 * @returns The hash to action map
+	 */
+	public getHashToActionMap(): Map<string, Action> {
+		return this.hashToAction;
+	}
+
+	/**
 	 * Swaps all action and button states to their FixedUpdate variants
 	 * This is called when transitioning from Update to FixedUpdate schedule
 	 */
@@ -598,6 +647,103 @@ export class ActionState<Action extends Actionlike> {
 		}
 
 		return buttonData;
+	}
+
+	/**
+	 * Applies an ActionDiff to update this ActionState
+	 * Used for network synchronization to apply received action changes
+	 * @param diff - The action diff to apply
+	 */
+	public applyDiff(diff: import("../action-diff").ActionDiff<Action>): void {
+		if (this.disabled) {
+			return;
+		}
+
+		switch (diff.type) {
+			case "Pressed": {
+				const actionHash = diff.action.hash();
+				if (this.disabledActions.has(actionHash)) {
+					return;
+				}
+
+				const actionData = this.actionData.get(actionHash) || ActionData.default();
+				const buttonData = this.buttonData.get(actionHash) || ButtonData.default();
+				const wasPressed = actionData.pressed;
+
+				actionData.pressed = true;
+				actionData.value = diff.value;
+				buttonData.update(true, wasPressed);
+
+				this.actionData.set(actionHash, actionData);
+				this.buttonData.set(actionHash, buttonData);
+				this.hashToAction.set(actionHash, diff.action);
+				break;
+			}
+
+			case "Released": {
+				const actionHash = diff.action.hash();
+				if (this.disabledActions.has(actionHash)) {
+					return;
+				}
+
+				const actionData = this.actionData.get(actionHash) || ActionData.default();
+				const buttonData = this.buttonData.get(actionHash) || ButtonData.default();
+				const wasPressed = actionData.pressed;
+
+				actionData.pressed = false;
+				actionData.value = 0;
+				buttonData.update(false, wasPressed);
+
+				this.actionData.set(actionHash, actionData);
+				this.buttonData.set(actionHash, buttonData);
+				break;
+			}
+
+			case "AxisChanged": {
+				const actionHash = diff.action.hash();
+				if (this.disabledActions.has(actionHash)) {
+					return;
+				}
+
+				const actionData = this.actionData.get(actionHash) || ActionData.default();
+				actionData.value = diff.value;
+
+				this.actionData.set(actionHash, actionData);
+				this.hashToAction.set(actionHash, diff.action);
+				break;
+			}
+
+			case "DualAxisChanged": {
+				const actionHash = diff.action.hash();
+				if (this.disabledActions.has(actionHash)) {
+					return;
+				}
+
+				const actionData = this.actionData.get(actionHash) || ActionData.default();
+				actionData.axisPairX = diff.axisPair.X;
+				actionData.axisPairY = diff.axisPair.Y;
+
+				this.actionData.set(actionHash, actionData);
+				this.hashToAction.set(actionHash, diff.action);
+				break;
+			}
+
+			case "TripleAxisChanged": {
+				const actionHash = diff.action.hash();
+				if (this.disabledActions.has(actionHash)) {
+					return;
+				}
+
+				const actionData = this.actionData.get(actionHash) || ActionData.default();
+				actionData.axisPairX = diff.axisTriple.X;
+				actionData.axisPairY = diff.axisTriple.Y;
+				actionData.value = diff.axisTriple.Z;
+
+				this.actionData.set(actionHash, actionData);
+				this.hashToAction.set(actionHash, diff.action);
+				break;
+			}
+		}
 	}
 }
 

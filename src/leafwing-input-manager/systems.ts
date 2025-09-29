@@ -4,11 +4,44 @@
 
 import { ActionState } from "./action-state/action-state";
 import { ClashStrategy } from "./clashing-inputs/clash-strategy";
-import { InputMap } from "./input-map/input-map";
+import { InputMap, ProcessedActionState } from "./input-map/input-map";
 import { Actionlike } from "./actionlike";
 import { CentralInputStore } from "./user-input/central-input-store";
 import { ActionDiff } from "./action-diff";
 import { World } from "@rbxts/matter";
+import { ActionData } from "./action-state/action-data";
+import { Instant } from "./instant";
+import type { UpdatedActions } from "./action-state/action-state";
+import { SummarizedActionState } from "./summarized-action-state";
+
+/**
+ * Converts ProcessedActionState to ActionData for ActionState updates
+ * @param processedActions - The processed actions from InputMap
+ * @returns UpdatedActions compatible with ActionState
+ */
+function convertToUpdatedActions<A extends Actionlike>(
+	processedActions: { actionData: Map<string, ProcessedActionState>; consumedInputs: Set<string> },
+): UpdatedActions<A> {
+	const actionData = new Map<string, ActionData>();
+
+	processedActions.actionData.forEach((processed, hash) => {
+		const data = new ActionData();
+		data.pressed = processed.pressed;
+		data.value = processed.value;
+
+		if (processed.axisPair) {
+			data.axisPairX = processed.axisPair.X;
+			data.axisPairY = processed.axisPair.Y;
+		}
+
+		actionData.set(hash, data);
+	});
+
+	return {
+		actionData,
+		consumedInputs: processedActions.consumedInputs,
+	};
+}
 
 /**
  * We are about to enter the Main schedule, so we:
@@ -61,18 +94,27 @@ export function tickActionState<A extends Actionlike>(
 	currentTime: number,
 	previousTime: number,
 ): void {
+	const currentInstant = Instant.fromTimestamp(currentTime);
+	const previousInstant = Instant.fromTimestamp(previousTime);
+
 	// Only tick the ActionState resource if it exists
 	if (resourceActionState) {
-		// Calculate fixed delta time from the provided timestamps
-		const fixedDeltaTime = currentTime - previousTime;
-		resourceActionState.tick(fixedDeltaTime);
+		resourceActionState.tickWithInstants(currentInstant, previousInstant);
 	}
 
 	// Only tick the ActionState components if they exist
 	for (const entity of query) {
-		const fixedDeltaTime = currentTime - previousTime;
-		entity.actionState.tick(fixedDeltaTime);
+		entity.actionState.tickWithInstants(currentInstant, previousInstant);
 	}
+}
+
+/**
+ * Clears the CentralInputStore to prevent input from carrying over between frames
+ *
+ * This should be called at the end of each frame after all systems have processed input
+ */
+export function clearCentralInputStore(inputStore: CentralInputStore): void {
+	inputStore.clear();
 }
 
 /**
@@ -89,20 +131,16 @@ export function updateActionState<A extends Actionlike>(
 ): void {
 	// Handle resource-level action state and input map
 	if (resourceActionState && resourceInputMap) {
-		const processedActions = resourceInputMap.processActions(
-			inputStore,
-		);
-		// TODO: Implement update method in ActionState
-		// resourceActionState.update(processedActions);
+		const processedActions = resourceInputMap.processActions(inputStore);
+		const updatedActions = convertToUpdatedActions<A>(processedActions);
+		resourceActionState.updateFromUpdatedActions(updatedActions);
 	}
 
 	// Handle entity-level action states and input maps
 	for (const entity of query) {
-		const processedActions = entity.inputMap.processActions(
-			inputStore,
-		);
-		// TODO: Implement update method in ActionState
-		// entity.actionState.update(processedActions);
+		const processedActions = entity.inputMap.processActions(inputStore);
+		const updatedActions = convertToUpdatedActions<A>(processedActions);
+		entity.actionState.updateFromUpdatedActions(updatedActions);
 	}
 }
 
@@ -118,13 +156,11 @@ export function releaseOnWindowFocusLost<A extends Actionlike>(
 ): void {
 	if (!windowFocused) {
 		if (resourceActionState) {
-			// TODO: Implement releaseAll method in ActionState
-			// resourceActionState.releaseAll();
+			resourceActionState.releaseAll();
 		}
 
 		for (const entity of query) {
-			// TODO: Implement releaseAll method in ActionState
-			// entity.actionState.releaseAll();
+			entity.actionState.releaseAll();
 		}
 	}
 }
@@ -134,27 +170,59 @@ export function releaseOnWindowFocusLost<A extends Actionlike>(
  *
  * This system captures the differences in action states and prepares them
  * for transmission over the network.
+ *
+ * @param world - The Matter world
+ * @param query - Query results containing entities with ActionState
+ * @param resourceActionState - Optional resource-level ActionState
+ * @param previousSnapshot - Previous frame's state snapshot (from useHook or resource)
+ * @returns Object containing diffs and updated snapshot
  */
 export function generateActionDiffs<A extends Actionlike>(
-	query: Array<{ entity: unknown; actionState: ActionState<A> }>,
-	resourceActionState?: ActionState<A>,
-): Array<ActionDiff<A>> {
+	world: World,
+	query: Array<{ entity: number; actionState: ActionState<A> }>,
+	resourceActionState: ActionState<A> | undefined,
+	previousSnapshot: import("./summarized-action-state").SummarizedActionState<A> | undefined,
+): {
+	diffs: Array<ActionDiff<A>>;
+	currentSnapshot: import("./summarized-action-state").SummarizedActionState<A>;
+} {
+	// Build hash to action map for reverse lookup
+	const hashToAction = new Map<string, A>();
+	if (resourceActionState) {
+		const resourceHashMap = resourceActionState.getHashToActionMap();
+		resourceHashMap.forEach((action: A, hash: string) => hashToAction.set(hash, action));
+	}
+	for (const { actionState } of query) {
+		const entityHashMap = actionState.getHashToActionMap();
+		entityHashMap.forEach((action: A, hash: string) => hashToAction.set(hash, action));
+	}
+
+	// Create entity states array with string IDs
+	const entityStates = query.map(({ entity, actionState }) => ({
+		entityId: tostring(entity),
+		actionState,
+	}));
+
+	// Summarize current frame state
+	const currentSnapshot = SummarizedActionState.summarize<A>(resourceActionState, entityStates);
+
 	const diffs: Array<ActionDiff<A>> = [];
 
-	// TODO: Implement generateDiffs method in ActionState
-	// Generate diffs for resource-level action state
-	// if (resourceActionState) {
-	//     const resourceDiffs = resourceActionState.generateDiffs();
-	//     diffs.push(...resourceDiffs);
-	// }
+	// If no previous snapshot, return empty diffs (first frame)
+	if (!previousSnapshot) {
+		return { diffs, currentSnapshot };
+	}
 
-	// Generate diffs for entity-level action states
-	// for (const entity of query) {
-	//     const entityDiffs = entity.actionState.generateDiffs();
-	//     diffs.push(...entityDiffs);
-	// }
+	// Generate diffs for all entities
+	const allEntities = currentSnapshot.allEntities();
+	allEntities.forEach((entityId) => {
+		const entityDiffs = currentSnapshot.entityDiffs(entityId, previousSnapshot, hashToAction);
+		for (const diff of entityDiffs) {
+			diffs.push(diff);
+		}
+	});
 
-	return diffs;
+	return { diffs, currentSnapshot };
 }
 
 /**
@@ -162,26 +230,40 @@ export function generateActionDiffs<A extends Actionlike>(
  *
  * This system processes incoming network messages to synchronize action states
  * across clients.
+ *
+ * @param diffs - Array of action diffs to apply
+ * @param query - Query results containing entities with ActionState
+ * @param resourceActionState - Optional resource-level ActionState
+ * @param entityOwnerMap - Optional map from diff owner ID to entity ID
  */
 export function applyActionDiffs<A extends Actionlike>(
-	diffs: Array<ActionDiff<A>>,
-	query: Array<{ entity: unknown; actionState: ActionState<A> }>,
+	diffs: Array<{ entityId?: string; diff: ActionDiff<A> }>,
+	query: Array<{ entity: number; actionState: ActionState<A> }>,
 	resourceActionState?: ActionState<A>,
+	entityOwnerMap?: Map<string, number>,
 ): void {
-	for (const diff of diffs) {
-		// Apply to resource-level action state if no owner specified
-		// TODO: Implement applyDiff method in ActionState
-		// if (!diff.owner && resourceActionState) {
-		//     resourceActionState.applyDiff(diff);
-		// }
+	// Build entity lookup map
+	const entityMap = new Map<string, ActionState<A>>();
+	for (const { entity, actionState } of query) {
+		entityMap.set(tostring(entity), actionState);
+	}
 
-		// Apply to entity-level action states
-		// TODO: Implement applyDiff method in ActionState
-		// for (const entity of query) {
-		//     if (entity.entity === diff.owner) {
-		//         entity.actionState.applyDiff(diff);
-		//     }
-		// }
+	// Apply each diff
+	for (const { entityId, diff } of diffs) {
+		if (!entityId || entityId === "resource") {
+			// Apply to resource-level action state
+			if (resourceActionState) {
+				resourceActionState.applyDiff(diff);
+			}
+		} else {
+			// Map owner ID to entity ID if needed
+			const targetEntityId = entityOwnerMap?.get(entityId) || entityId;
+			const targetActionState = entityMap.get(tostring(targetEntityId));
+
+			if (targetActionState) {
+				targetActionState.applyDiff(diff);
+			}
+		}
 	}
 }
 
@@ -194,49 +276,11 @@ export function clearActionStates<A extends Actionlike>(
 	query: Array<{ actionState: ActionState<A> }>,
 	resourceActionState?: ActionState<A>,
 ): void {
-	// TODO: Implement clear method in ActionState
-	// if (resourceActionState) {
-	//     resourceActionState.clear();
-	// }
-	//
-	// for (const entity of query) {
-	//     entity.actionState.clear();
-	// }
-}
+	if (resourceActionState) {
+		resourceActionState.clear();
+	}
 
-/**
- * Consume all inputs that have been captured by action states
- *
- * This prevents input events from propagating to other systems after being handled.
- */
-export function consumeCapturedInputs<A extends Actionlike>(
-	inputStore: CentralInputStore,
-	query: Array<{ actionState: ActionState<A>; inputMap: InputMap<A> }>,
-	resourceActionState?: ActionState<A>,
-	resourceInputMap?: InputMap<A>,
-): void {
-	const consumedInputs = new Set<string>();
-
-	// TODO: Implement getConsumedInputs method in InputMap
-	// Collect consumed inputs from resource-level
-	// if (resourceActionState && resourceInputMap) {
-	//     const inputs = resourceInputMap.getConsumedInputs(resourceActionState);
-	//     for (const input of inputs) {
-	//         consumedInputs.add(input);
-	//     }
-	// }
-	//
-	// // Collect consumed inputs from entities
-	// for (const entity of query) {
-	//     const inputs = entity.inputMap.getConsumedInputs(entity.actionState);
-	//     for (const input of inputs) {
-	//         consumedInputs.add(input);
-	//     }
-	// }
-
-	// Mark inputs as consumed in the central store
-	// TODO: Implement markConsumed in CentralInputStore if needed
-	// for (const input of consumedInputs) {
-	//     inputStore.markConsumed(input);
-	// }
+	for (const entity of query) {
+		entity.actionState.clear();
+	}
 }

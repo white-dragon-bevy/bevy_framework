@@ -164,11 +164,14 @@ export class ResourceManager {
 	 * */
 	public insertResource<T extends object>(resource:T, id?: Modding.Generic<T, "id">, text?: Modding.Generic<T,"text">) {
 		if(id===undefined || text===undefined){
-			error(`insertResource: can't get type descriptor for ${id} ${text}`)
+			error(`insertResource: can't get type descriptor for id=${id} text=${text}. This is likely a macro issue - make sure you're calling insertResource correctly.`)
 		}
-		const descriptor = getTypeDescriptor(id,text)!
+		const descriptor = getTypeDescriptor(id,text)
+		if(!descriptor || descriptor.id === undefined){
+			error(`insertResource: getTypeDescriptor returned invalid descriptor. id=${id} text=${text} descriptor=${descriptor}`)
+		}
 		this.insertResourceByTypeDescriptor(resource,descriptor)
-		
+
 	}
 
 	/**

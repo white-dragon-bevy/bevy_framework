@@ -21,8 +21,9 @@ export interface ProcessedActionState {
 
 /**
  * Represents the updated state of all actions after processing
+ * Note: This returns ProcessedActionState which will be converted to ActionData by the system
  */
-export interface UpdatedActions<Action extends Actionlike> {
+export interface ProcessedActions<Action extends Actionlike> {
 	readonly actionData: Map<string, ProcessedActionState>;
 	readonly consumedInputs: Set<string>;
 }
@@ -157,6 +158,7 @@ export class InputMap<Action extends Actionlike> {
 	 */
 	clear(): void {
 		this.actionToInputs.clear();
+		this.inputToActions.clear();
 	}
 
 	/**
@@ -207,8 +209,8 @@ export class InputMap<Action extends Actionlike> {
 	 */
 	processActions(
 		inputStore: CentralInputStore,
-		previousActions?: Map<string, ProcessedActionState>
-	): UpdatedActions<Action> {
+		previousActions?: Map<string, ProcessedActionState>,
+	): ProcessedActions<Action> {
 		const actionData: Map<string, ProcessedActionState> = new Map();
 		const consumedInputs: Set<string> = new Set();
 
@@ -319,12 +321,24 @@ export class InputMap<Action extends Actionlike> {
 		return this.gamepadAssociation;
 	}
 
+	/**
+	 * Clears the gamepad association from this InputMap
+	 * This makes the InputMap generic and not specific to any gamepad
+	 */
+	private clearGamepad(): void {
+		(this as unknown as { gamepadAssociation: number | undefined }).gamepadAssociation = undefined;
+	}
 
 	/**
 	 * Merges another InputMap into this one
+	 * If the gamepad associations don't match, this InputMap's gamepad association will be cleared
 	 * @param other - The InputMap to merge from
 	 */
 	merge(other: InputMap<Action>): void {
+		if (this.gamepadAssociation !== other.gamepadAssociation) {
+			this.clearGamepad();
+		}
+
 		other.actionToInputs.forEach((inputs, actionKey) => {
 			for (const input of inputs) {
 				// We need to reconstruct the action from the hash

@@ -15,7 +15,8 @@
       "Read(//d/projects/white-dragon-bevy/**)",
       "Bash(npm run build:*)",
       "Bash(npm test:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "mcp__mcp-sequentialthinking-tools__sequentialthinking_tools"
     ]
   },
   "enableAllProjectMcpServers": true,

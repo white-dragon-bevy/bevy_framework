@@ -11,6 +11,7 @@ export * from "./action-diff";
 export * from "./common-conditions";
 export * from "./systems";
 export * from "./input-control-kind";
+export * from "./summarized-action-state";
 
 // User input traits
 export * from "./user-input/traits/user-input";

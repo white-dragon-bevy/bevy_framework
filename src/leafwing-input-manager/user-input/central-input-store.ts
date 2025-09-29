@@ -369,6 +369,24 @@ export class CentralInputStore {
 	}
 
 	/**
+	 * 模拟键盘按键输入（用于测试）
+	 * @param keyCode - 键盘键码
+	 * @param pressed - 是否按下
+	 */
+	simulateKeyPress(keyCode: Enum.KeyCode, pressed: boolean): void {
+		this.updateKeyboardKey(keyCode, pressed);
+	}
+
+	/**
+	 * 模拟鼠标按键输入（用于测试）
+	 * @param button - 鼠标按钮类型
+	 * @param pressed - 是否按下
+	 */
+	simulateMousePress(button: Enum.UserInputType, pressed: boolean): void {
+		this.updateMouseButton(button, pressed);
+	}
+
+	/**
 	 * Synchronizes input state from bevy_input resources
 	 * @param keyboardInput - The keyboard ButtonInput resource
 	 * @param mouseInput - The mouse ButtonInput resource

@@ -374,6 +374,7 @@ export const DEFAULT_GESTURE_CONFIG: GestureManagerConfig = {
 export class GestureManager {
 	private readonly config: GestureManagerConfig;
 	private readonly connections: Array<RBXScriptConnection> = [];
+	private isSetup = false; // 防止重复设置
 
 	// 双击检测状态
 	private lastTapTime?: number;
@@ -404,6 +405,11 @@ export class GestureManager {
 		panWriter: MessageWriter<PanGesture>,
 		longPressWriter: MessageWriter<LongPressGesture>,
 	): void {
+		// 防御性检查: 如果已设置,先清理
+		if (this.isSetup) {
+			warn("[GestureManager] setupHandlers called multiple times! Cleaning up old connections...");
+			this.cleanup();
+		}
 		// 捏合手势
 		if (this.config.enablePinch) {
 			const pinchConnection = UserInputService.TouchPinch.Connect(
@@ -551,6 +557,8 @@ export class GestureManager {
 			);
 			this.connections.push(longPressConnection);
 		}
+
+		this.isSetup = true; // 标记已设置
 	}
 
 	/**
@@ -564,11 +572,20 @@ export class GestureManager {
 		this.connections.clear();
 
 		// 重置状态
+		this.isSetup = false;
 		this.lastTapTime = undefined;
 		this.lastTapPosition = undefined;
 		this.lastPinchScale = undefined;
 		this.lastRotation = undefined;
 		this.lastPanTranslation = undefined;
+	}
+
+	/**
+	 * 析构函数,确保资源释放
+	 * Destructor to ensure resource cleanup
+	 */
+	public destructor(): void {
+		this.cleanup();
 	}
 
 	/**
