@@ -71,19 +71,34 @@ import { TypeDescriptor } from "./reflect";
  * - 迭代操作基于扁平化 Map，性能更优
  */
 export class TypeMap<T> {
-	private map = new Map<string, Map<string, Map<string, T>>>();
-	// 扁平化的 Map，用于支持迭代，key 是 "id|text|genericId" 的组合，直接存储值
-	private flatMap = new Map<string, T>();
+	private map: Map<string, Map<string, Map<string, T>>>;
+	private flatMap: Map<string, T>;
+
+	constructor() {
+		this.map = new Map();
+		this.flatMap = new Map();
+	}
 
 	private getOrCreatePath(id: string, text: string): Map<string, T> {
-		if (!this.map.has(id)) {
-			this.map.set(id, new Map());
+		// 处理 undefined/nil 值
+		const normalizedId = id ?? "";
+		const normalizedText = text ?? "";
+
+		let idMap = this.map.get(normalizedId);
+
+		if (idMap === undefined) {
+			idMap = new Map();
+			this.map.set(normalizedId, idMap);
 		}
-		const textMap = this.map.get(id)!;
-		if (!textMap.has(text)) {
-			textMap.set(text, new Map());
+
+		let textMap = idMap.get(normalizedText);
+
+		if (textMap === undefined) {
+			textMap = new Map();
+			idMap.set(normalizedText, textMap);
 		}
-		return textMap.get(text)!;
+
+		return textMap;
 	}
 
 	// 生成扁平化键的辅助方法

@@ -6,6 +6,7 @@
 import type { Message } from "../bevy_ecs/message";
 import { ButtonInput } from "./button-input";
 import { ButtonState } from "./mouse-events";
+import { applyDeadzoneAndScaling } from "./gamepad-linear-scaling";
 
 /**
  * 游戏手柄按钮枚举
@@ -362,7 +363,7 @@ export class AxisSettings {
 	}
 
 	/**
-	 * 过滤轴值（应用死区和活动区）
+	 * 过滤轴值（应用死区和线性缩放）
 	 * @param newValue - 新值
 	 * @param oldValue - 旧值（可选）
 	 * @returns 过滤后的值，如果不应触发事件则返回 undefined
@@ -377,21 +378,13 @@ export class AxisSettings {
 			}
 		}
 
-		// 应用死区
-		if (newValue <= this.deadzoneUpperBound && newValue >= this.deadzoneLowerBound) {
-			return 0;
-		}
-
-		// 应用活动区限制
-		if (newValue > this.livezoneUpperBound) {
-			return 1;
-		}
-
-		if (newValue < this.livezoneLowerBound) {
-			return -1;
-		}
-
-		return newValue;
+		// 应用死区和线性缩放
+		return applyDeadzoneAndScaling(newValue, {
+			deadzoneLowerbound: this.deadzoneLowerBound,
+			deadzoneUpperbound: this.deadzoneUpperBound,
+			livezoneLowerbound: this.livezoneLowerBound,
+			livezoneUpperbound: this.livezoneUpperBound,
+		});
 	}
 }
 

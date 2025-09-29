@@ -69,8 +69,12 @@ const Player = component<{}>("Player");
  * 描述如何将玩家输入转换为游戏动作
  */
 function spawnPlayer(world: World, context: Context): void {
+	print("🎯 [spawnPlayer] STARTUP 系统开始执行");
+	print(`🎯 [spawnPlayer] 运行环境 - IsServer: ${RunService.IsServer()}, IsClient: ${RunService.IsClient()}`);
+
 	// 服务端不需要处理本地输入
 	if (RunService.IsServer()) {
+		print("🎯 [spawnPlayer] 服务端环境，跳过输入处理");
 		return;
 	}
 
@@ -108,6 +112,26 @@ function spawnPlayer(world: World, context: Context): void {
 		instanceManager.registerInputMap(entity, inputMap);
 		instanceManager.registerActionState(entity, actionState);
 		print(`[spawnPlayer] ✅ Manually registered instances for entity ${entity}`);
+
+		// 🔥 验证注册是否成功
+		const verifyInputMap = instanceManager.getInputMap(entity);
+		const verifyActionState = instanceManager.getActionState(entity);
+		print(`[spawnPlayer] 🔍 验证注册 - InputMap: ${verifyInputMap !== undefined}, ActionState: ${verifyActionState !== undefined}`);
+
+		if (verifyActionState) {
+			const jumpAction = verifyActionState.getActionByHash(Action.Jump.hash());
+			print(`[spawnPlayer] 🔍 Jump 动作已注册: ${jumpAction !== undefined}`);
+
+			// 测试初始状态
+			const initialPressed = verifyActionState.pressed(Action.Jump);
+			const initialJustPressed = verifyActionState.justPressed(Action.Jump);
+			print(`[spawnPlayer] 🔍 初始状态 - pressed: ${initialPressed}, justPressed: ${initialJustPressed}`);
+		}
+
+		// 🔥 检查 InstanceManager 的内部状态
+		const managerRecord = instanceManager as unknown as Record<string, unknown>;
+		print(`[spawnPlayer] 🔍 InstanceManager 属性: ${Object.keys(managerRecord).join(", ")}`);
+
 	} else {
 		print(`[spawnPlayer] ❌ Could not get InputInstanceManager`);
 	}
@@ -125,6 +149,11 @@ function spawnPlayer(world: World, context: Context): void {
 function debugInstanceRegistration(world: World, context: Context): void {
 	if (RunService.IsServer()) {
 		return;
+	}
+
+	// 每10秒打印一次基本状态
+	if (tick() % 600 === 0) {
+		print("🔍 [debugInstanceRegistration] POST_UPDATE 系统运行中");
 	}
 
 	const instanceManager = getInputInstanceManager(context, Action);
@@ -201,47 +230,100 @@ function jump2(world: World, context: Context): void {
 		return;
 	}
 
+	// 防抖：只在特定时刻打印调试信息
+	const currentTick = tick();
+	const shouldLogDebug = currentTick % 60 === 0; // 每60帧（约1秒）打印一次
 
+	// 每10秒打印一次基本状态
+	if (currentTick % 600 === 0) {
+		print("⚡ [jump2] UPDATE 系统运行中");
+	}
 
 	// 获取实例管理器
 	const instanceManager = getInputInstanceManager(context, Action);
 	if (!instanceManager) {
+		if (shouldLogDebug) {
+			print("[jump] ❌ 无法获取 InputInstanceManager");
+		}
 		return;
 	}
 
+	let totalPlayerEntities = 0;
+	let entitiesWithRegisteredState = 0;
+
 	// 查询带有 Player 组件的实体
 	for (const [entity, player, inputMap, actionState, inputEnabled] of world.query(Player, InputMapComponent, ActionStateComponent, InputEnabled)) {
+		totalPlayerEntities++;
+
 		// 从实例管理器获取真实的 ActionState 实例
 		const registeredActionState = instanceManager.getActionState(entity);
 		if (!registeredActionState) {
+			if (shouldLogDebug) {
+				print(`[jump] ❌ Entity ${entity} 没有注册的 ActionState`);
+			}
 			continue;
 		}
+
+		entitiesWithRegisteredState++;
 
 		// 详细调试 ActionState 状态
 		const directPressed = registeredActionState.pressed(Action.Jump);
 		const directJustPressed = registeredActionState.justPressed(Action.Jump);
 		const directJustReleased = registeredActionState.justReleased(Action.Jump);
 		const wrapperJustPressed = isJustPressed(registeredActionState, Action.Jump);
-		
-		// 只在有任何状态变化时打印调试信息
-		if (directPressed || directJustPressed || directJustReleased || wrapperJustPressed) {
-			print(`[jump] ActionState status - pressed: ${directPressed}, justPressed: ${directJustPressed}, justReleased: ${directJustReleased}`);
-			print(`[jump] Wrapper justPressed: ${wrapperJustPressed}`);
+
+		// 🔥 关键调试：检查 InputManager 的更新状态
+		const inputManagerRecord = instanceManager as unknown as Record<string, unknown>;
+		if (shouldLogDebug) {
+			print(`[jump] InputManager 属性: ${Object.keys(inputManagerRecord).join(", ")}`);
 		}
-		
-		// 每隔120帧（约2秒）输出一次状态检查，看看 ActionState 是否一直为 false
-		if (tick() % 120 === 0) {
-			print(`[jump] System running - pressed: ${directPressed}, justPressed: ${directJustPressed}`);
+
+		// 🔥 检查 UserInputService 状态
+		const UserInputService = game.GetService("UserInputService");
+		const keysPressed = UserInputService.GetKeysPressed();
+		const spacePressed = keysPressed.some(key => key.KeyCode === Enum.KeyCode.Space);
+
+		if (shouldLogDebug) {
+			print(`[jump] Roblox UserInputService - Space pressed: ${spacePressed}`);
+			print(`[jump] Total keys pressed: ${keysPressed.size()}`);
 		}
-		
+
+		// 🔥 检查 ActionState 的内部状态
+		const actionStateRecord = registeredActionState as unknown as Record<string, unknown>;
+		if (shouldLogDebug) {
+			print(`[jump] ActionState 内部属性: ${Object.keys(actionStateRecord).join(", ")}`);
+		}
+
+		// 任何输入状态变化都要打印
+		if (directPressed || directJustPressed || directJustReleased || wrapperJustPressed || spacePressed) {
+			print(`[jump] 🎯 输入检测 - Roblox Space: ${spacePressed}, ActionState pressed: ${directPressed}, justPressed: ${directJustPressed}, justReleased: ${directJustReleased}`);
+			print(`[jump] 🎯 Wrapper justPressed: ${wrapperJustPressed}`);
+		}
+
+		// 每秒显示系统运行状态
+		if (shouldLogDebug) {
+			print(`[jump] 📊 系统状态 - 实体: ${entity}, 输入启用: ${inputEnabled.enabled}`);
+			print(`[jump] 📊 ActionState 状态 - pressed: ${directPressed}, justPressed: ${directJustPressed}`);
+		}
+
 		// 检查任何输入状态变化
 		if (directJustPressed || wrapperJustPressed) {
-			print(`I'm jumping! (direct: ${directJustPressed}, wrapper: ${wrapperJustPressed})`);
+			print(`🚀 I'm jumping! (direct: ${directJustPressed}, wrapper: ${wrapperJustPressed})`);
 		}
-		
+
 		if (directJustReleased) {
-			print(`Jump released! (direct: ${directJustReleased})`);
+			print(`⬇️ Jump released! (direct: ${directJustReleased})`);
 		}
+
+		// 🔥 检查 Roblox 原生输入但 ActionState 没响应的情况
+		if (spacePressed && !directPressed && !directJustPressed) {
+			print(`🚨 警告：Roblox 检测到空格键但 ActionState 没有响应！`);
+		}
+	}
+
+	// 防抖的总体调试信息
+	if (shouldLogDebug) {
+		print(`[jump] 📈 总览 - 玩家实体: ${totalPlayerEntities}, 有注册状态: ${entitiesWithRegisteredState}`);
 	}
 }
 
@@ -249,6 +331,8 @@ function jump2(world: World, context: Context): void {
  * 主函数 - 对应 Rust 版本的 main 函数
  */
 export function main(): App {
+	print("🚀 [main] 开始创建 App");
+
 	const app = App.create()
 		// 添加默认插件
 		.addPlugins(...DefaultPlugins.create().build().getPlugins())
@@ -264,9 +348,13 @@ export function main(): App {
 		// 使用查询在你的系统中读取 ActionState！
 		.addClientSystems(MainScheduleLabel.UPDATE, jump2);
 
+	print("🚀 [main] App 创建完成，准备运行");
 	return app;
 }
 
 // 创建并运行应用
+print("🎬 [main] 开始运行应用");
 const app = main();
+print("🎬 [main] 调用 app.run()");
 app.run();
+print("🎬 [main] app.run() 执行完毕");

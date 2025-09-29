@@ -103,3 +103,4 @@ pnpm install
   - 比如, 我们需要测试 `src/roblox_rvo`目录, 根据其转换后地址, 我们需要运行 `npm test -- -p  ReplicatedStorage/rbxts_include/node_modules/@white-dragon-bevy/bevy-framework/roblox_rvo`,
   - `src/<name>` 对应地址 `ReplicatedStorage/.../bevy-framework/<name>`
 - 也可以使用测试用例名称, 进行单个测试, 格式为 `npm test -- -n "some name"`
+  - 测试的超时时间为 30秒, 请耐心等待

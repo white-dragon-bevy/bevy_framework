@@ -15,6 +15,7 @@ import { ClashStrategy, ClashStrategyResource } from "../clashing-inputs/clash-s
 import { InputMapComponent, ActionStateComponent } from "./components";
 import * as Systems from "../systems";
 import { Instant } from "../instant";
+import { getInputInstanceManager } from "./context-helpers";
 
 /**
  * Creates an adapter for the tickActionState system
@@ -30,11 +31,36 @@ export function createTickActionStateAdapter<A extends Actionlike>(
 			ActionState as any,
 		);
 
-		// Query for all entities with ActionState components
+		// 🔥 FIX: Use InputInstanceManager to get real ActionState instances
+		const instanceManager = getInputInstanceManager(context, actionType);
+
+		if (!instanceManager) {
+			// Fallback to original behavior if no instance manager
+			const query: Array<{ actionState: ActionState<A> }> = [];
+			for (const [entity, actionStateData] of world.query(ActionStateComponent)) {
+				const actionState = actionStateData as unknown as ActionState<A>;
+				query.push({ actionState });
+			}
+
+			const currentTime = os.clock();
+			const contextData = context as unknown as { __previousTickTime?: number };
+			const previousTime = contextData.__previousTickTime ?? currentTime;
+			contextData.__previousTickTime = currentTime;
+
+			Systems.tickActionState(world, query, resourceActionState, currentTime, previousTime);
+			return;
+		}
+
+		// Build query using real ActionState instances from InputInstanceManager
 		const query: Array<{ actionState: ActionState<A> }> = [];
 		for (const [entity, actionStateData] of world.query(ActionStateComponent)) {
-			const actionState = actionStateData as unknown as ActionState<A>;
-			query.push({ actionState });
+			// Get real ActionState instance from InputInstanceManager
+			const realActionState = instanceManager.getActionState(entity);
+
+			// Only process entities that have real ActionState instances registered
+			if (realActionState) {
+				query.push({ actionState: realActionState });
+			}
 		}
 
 		// Get current and previous time
@@ -44,7 +70,7 @@ export function createTickActionStateAdapter<A extends Actionlike>(
 		const previousTime = contextData.__previousTickTime ?? currentTime;
 		contextData.__previousTickTime = currentTime;
 
-		// Call the Rust-style system function
+		// Call the Rust-style system function with real instances
 		Systems.tickActionState(world, query, resourceActionState, currentTime, previousTime);
 	};
 }
@@ -72,18 +98,44 @@ export function createUpdateActionStateAdapter<A extends Actionlike>(
 		);
 		const resourceInputMap = world.resources.getResource<InputMap<A>>(InputMap as any);
 
-		// Query for all entities with both ActionState and InputMap components
+		// 🔥 FIX: Use InputInstanceManager to get real instances instead of placeholder components
+		const instanceManager = getInputInstanceManager(context, actionType);
+
+		if (!instanceManager) {
+			// Fallback to original behavior if no instance manager
+			const query: Array<{ actionState: ActionState<A>; inputMap: InputMap<A> }> = [];
+			for (const [entity, actionStateData, inputMapData] of world.query(
+				ActionStateComponent,
+				InputMapComponent,
+			)) {
+				const actionState = actionStateData as unknown as ActionState<A>;
+				const inputMap = inputMapData as unknown as InputMap<A>;
+				query.push({ actionState, inputMap });
+			}
+			Systems.updateActionState(inputStore, clashStrategy, query, resourceActionState, resourceInputMap);
+			return;
+		}
+
+		// Build query using real instances from InputInstanceManager
 		const query: Array<{ actionState: ActionState<A>; inputMap: InputMap<A> }> = [];
 		for (const [entity, actionStateData, inputMapData] of world.query(
 			ActionStateComponent,
 			InputMapComponent,
 		)) {
-			const actionState = actionStateData as unknown as ActionState<A>;
-			const inputMap = inputMapData as unknown as InputMap<A>;
-			query.push({ actionState, inputMap });
+			// Get real instances from InputInstanceManager
+			const realActionState = instanceManager.getActionState(entity);
+			const realInputMap = instanceManager.getInputMap(entity);
+
+			// Only process entities that have both real instances registered
+			if (realActionState && realInputMap) {
+				query.push({
+					actionState: realActionState,
+					inputMap: realInputMap
+				});
+			}
 		}
 
-		// Call the Rust-style system function
+		// Call the Rust-style system function with real instances
 		Systems.updateActionState(inputStore, clashStrategy, query, resourceActionState, resourceInputMap);
 	};
 }
@@ -101,10 +153,30 @@ export function createSwapToUpdateAdapter<A extends Actionlike>(
 			ActionState as any,
 		);
 
+		// 🔥 FIX: Use InputInstanceManager to get real ActionState instances
+		const instanceManager = getInputInstanceManager(context, actionType);
+
+		if (!instanceManager) {
+			// Fallback to original behavior if no instance manager
+			const query: Array<{ actionState: ActionState<A> }> = [];
+			for (const [entity, actionStateData] of world.query(ActionStateComponent)) {
+				const actionState = actionStateData as unknown as ActionState<A>;
+				query.push({ actionState });
+			}
+			Systems.swapToUpdate(world, query, resourceActionState);
+			return;
+		}
+
+		// Build query using real ActionState instances from InputInstanceManager
 		const query: Array<{ actionState: ActionState<A> }> = [];
 		for (const [entity, actionStateData] of world.query(ActionStateComponent)) {
-			const actionState = actionStateData as unknown as ActionState<A>;
-			query.push({ actionState });
+			// Get real ActionState instance from InputInstanceManager
+			const realActionState = instanceManager.getActionState(entity);
+
+			// Only process entities that have real ActionState instances registered
+			if (realActionState) {
+				query.push({ actionState: realActionState });
+			}
 		}
 
 		Systems.swapToUpdate(world, query, resourceActionState);
@@ -124,10 +196,30 @@ export function createSwapToFixedUpdateAdapter<A extends Actionlike>(
 			ActionState as any,
 		);
 
+		// 🔥 FIX: Use InputInstanceManager to get real ActionState instances
+		const instanceManager = getInputInstanceManager(context, actionType);
+
+		if (!instanceManager) {
+			// Fallback to original behavior if no instance manager
+			const query: Array<{ actionState: ActionState<A> }> = [];
+			for (const [entity, actionStateData] of world.query(ActionStateComponent)) {
+				const actionState = actionStateData as unknown as ActionState<A>;
+				query.push({ actionState });
+			}
+			Systems.swapToFixedUpdate(world, query, resourceActionState);
+			return;
+		}
+
+		// Build query using real ActionState instances from InputInstanceManager
 		const query: Array<{ actionState: ActionState<A> }> = [];
 		for (const [entity, actionStateData] of world.query(ActionStateComponent)) {
-			const actionState = actionStateData as unknown as ActionState<A>;
-			query.push({ actionState });
+			// Get real ActionState instance from InputInstanceManager
+			const realActionState = instanceManager.getActionState(entity);
+
+			// Only process entities that have real ActionState instances registered
+			if (realActionState) {
+				query.push({ actionState: realActionState });
+			}
 		}
 
 		Systems.swapToFixedUpdate(world, query, resourceActionState);
@@ -160,10 +252,32 @@ export function createReleaseOnWindowFocusLostAdapter<A extends Actionlike>(
 			ActionState as any,
 		);
 
+		// 🔥 FIX: Use InputInstanceManager to get real ActionState instances
+		const instanceManager = getInputInstanceManager(context, actionType);
+
+		if (!instanceManager) {
+			// Fallback to original behavior if no instance manager
+			const query: Array<{ actionState: ActionState<A> }> = [];
+			for (const [entity, actionStateData] of world.query(ActionStateComponent)) {
+				const actionState = actionStateData as unknown as ActionState<A>;
+				query.push({ actionState });
+			}
+
+			const windowFocused = true;
+			Systems.releaseOnWindowFocusLost(query, resourceActionState, windowFocused);
+			return;
+		}
+
+		// Build query using real ActionState instances from InputInstanceManager
 		const query: Array<{ actionState: ActionState<A> }> = [];
 		for (const [entity, actionStateData] of world.query(ActionStateComponent)) {
-			const actionState = actionStateData as unknown as ActionState<A>;
-			query.push({ actionState });
+			// Get real ActionState instance from InputInstanceManager
+			const realActionState = instanceManager.getActionState(entity);
+
+			// Only process entities that have real ActionState instances registered
+			if (realActionState) {
+				query.push({ actionState: realActionState });
+			}
 		}
 
 		// In Roblox, we consider the window always focused

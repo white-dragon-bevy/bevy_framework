@@ -13,6 +13,21 @@ import {
 	PinchGesture,
 	RotationGesture,
 } from "../gestures";
+import { MessageWriter, Message } from "../../bevy_ecs/message";
+
+// 创建模拟的 MessageWriter
+function createMockWriter<T extends Message>(): MessageWriter<T> {
+	return {
+		write: () => {},
+		send: () => {},
+		writeBatch: () => {},
+		writeDefault: () => {},
+		getMessages: () => [],
+		clear: () => {},
+		isEmpty: () => true,
+		len: () => 0,
+	} as unknown as MessageWriter<T>;
+}
 
 export = () => {
 	describe("GestureState", () => {
@@ -129,6 +144,77 @@ export = () => {
 			expect(() => {
 				manager.cleanup();
 			}).never.to.throw();
+		});
+
+		// ✅ 内存泄漏防止测试
+		it("should prevent duplicate connection setup", () => {
+			const manager = new GestureManager();
+			const pinchWriter = createMockWriter<PinchGesture>();
+			const rotationWriter = createMockWriter<RotationGesture>();
+			const doubleTapWriter = createMockWriter<DoubleTapGesture>();
+			const panWriter = createMockWriter<PanGesture>();
+			const longPressWriter = createMockWriter<LongPressGesture>();
+
+			// 第一次调用 setupHandlers
+			manager.setupHandlers(pinchWriter, rotationWriter, doubleTapWriter, panWriter, longPressWriter);
+
+			// 第二次调用应该清理旧连接并设置新连接
+			expect(() => {
+				manager.setupHandlers(pinchWriter, rotationWriter, doubleTapWriter, panWriter, longPressWriter);
+			}).never.to.throw();
+
+			// 清理测试
+			manager.cleanup();
+		});
+
+		// ✅ 清理功能测试
+		it("should reset setup flag after cleanup", () => {
+			const manager = new GestureManager();
+			const pinchWriter = createMockWriter<PinchGesture>();
+			const rotationWriter = createMockWriter<RotationGesture>();
+			const doubleTapWriter = createMockWriter<DoubleTapGesture>();
+			const panWriter = createMockWriter<PanGesture>();
+			const longPressWriter = createMockWriter<LongPressGesture>();
+
+			// 设置一次
+			manager.setupHandlers(pinchWriter, rotationWriter, doubleTapWriter, panWriter, longPressWriter);
+
+			// 清理
+			manager.cleanup();
+
+			// 清理后应该能再次设置而不显示警告
+			expect(() => {
+				manager.setupHandlers(pinchWriter, rotationWriter, doubleTapWriter, panWriter, longPressWriter);
+			}).never.to.throw();
+
+			// 再次清理
+			manager.cleanup();
+		});
+
+		// ✅ 析构函数测试
+		it("should cleanup on destructor call", () => {
+			const manager = new GestureManager();
+			const pinchWriter = createMockWriter<PinchGesture>();
+			const rotationWriter = createMockWriter<RotationGesture>();
+			const doubleTapWriter = createMockWriter<DoubleTapGesture>();
+			const panWriter = createMockWriter<PanGesture>();
+			const longPressWriter = createMockWriter<LongPressGesture>();
+
+			// 设置一些连接
+			manager.setupHandlers(pinchWriter, rotationWriter, doubleTapWriter, panWriter, longPressWriter);
+
+			// 调用析构函数
+			expect(() => {
+				manager.destructor();
+			}).never.to.throw();
+
+			// 析构后应该能再次设置
+			expect(() => {
+				manager.setupHandlers(pinchWriter, rotationWriter, doubleTapWriter, panWriter, longPressWriter);
+			}).never.to.throw();
+
+			// 最终清理
+			manager.cleanup();
 		});
 	});
 };

@@ -49,16 +49,14 @@ export function ___getTypeDescriptor<T>(id?:Modding.Generic<T, "id">, text?: Mod
 export function getTypeDescriptor(
     id?: string,
     text?: string,
-):ParameterDescriptor|undefined { 
-    id = id!
-    text = text!
-
+):ParameterDescriptor|undefined {
     if(id===undefined || id==="$p:never"){
         return undefined
     }
 
     return {
-        id,text
+        id,
+        text: text ?? ""
     }
  }
 
