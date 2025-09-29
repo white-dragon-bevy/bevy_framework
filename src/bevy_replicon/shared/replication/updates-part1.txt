@@ -1,0 +1,75 @@
+/**
+ * @fileoverview 更新消息结构
+ *
+ * 管理当前 tick 的实体更新数据。
+ * 数据手动序列化并以范围形式存储在 SerializedData 中。
+ *
+ * 参考 Rust 实现:
+ * bevy-origin-packages/bevy_replicon/src/server/replication_messages/updates.rs
+ */
+
+import { Entity } from "@rbxts/matter";
+import type { Range } from "./serialized-data";
+import { createRange, rangeLength, SerializedData } from "./serialized-data";
+import type { Uint8Array } from "./types";
+import { UpdateMessageFlags, addFlag, getLastFlag, getSetFlags } from "./update-message-flags";
+
+/**
+ * 组件移除范围
+ */
+export interface RemovalRanges {
+	/** 实体数据在缓冲区中的范围 */
+	readonly entity: Range;
+	/** 移除的组件ID数量 */
+	readonly idsLength: number;
+	/** FnsId 数组在缓冲区中的范围 */
+	readonly fnIds: Range;
+}
+
+/**
+ * 组件变更范围
+ */
+export class ChangeRanges {
+	/** 实体数据在缓冲区中的范围 */
+	public readonly entity: Range;
+	/** 组件数量 */
+	public componentsLength: number;
+	/** 组件数据范围列表 */
+	public components: Array<Range>;
+
+	constructor(entity: Range) {
+		this.entity = entity;
+		this.componentsLength = 0;
+		this.components = [];
+	}
+
+	/**
+	 * 添加组件范围 (自动合并相邻范围)
+	 * @param component - 组件数据范围
+	 */
+	public addComponent(component: Range): void {
+		this.componentsLength += 1;
+
+		const lastComponent = this.components[this.components.size() - 1];
+
+		// 如果与上一个范围相邻,则合并
+		if (lastComponent !== undefined && lastComponent.end === component.start) {
+			// 修改最后一个范围的结束位置
+			this.components[this.components.size() - 1] = createRange(lastComponent.start, component.end);
+		} else {
+			this.components.push(component);
+		}
+	}
+
+	/**
+	 * 扩展另一个 ChangeRanges
+	 * @param other - 另一个 ChangeRanges
+	 */
+	public extend(other: ChangeRanges): void {
+		for (const component of other.components) {
+			this.addComponent(component);
+		}
+	}
+}
+
+// ... continuing in next command
