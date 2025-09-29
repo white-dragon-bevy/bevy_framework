@@ -79,7 +79,7 @@ export = () => {
 			app.addPlugin(new TimePlugin());
 
 			// Add input manager plugin
-			const plugin = new InputManagerPlugin<TestAction>({
+			const plugin = InputManagerPlugin.create({
 				actionType: TestAction as any,
 			});
 			app.addPlugin(plugin);
@@ -162,7 +162,7 @@ export = () => {
 
 			// Manually register the components with the instance manager
 			const context = app.getContext();
-			const instanceManager = getInputInstanceManager(context, TestAction as any);
+			const instanceManager = getInputInstanceManager(context, TestAction);
 			if (instanceManager) {
 				instanceManager.registerInputMap(entity, inputMap);
 				instanceManager.registerActionState(entity, actionState);

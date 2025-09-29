@@ -7,7 +7,7 @@
 
 import Signal from "@rbxts/rbx-better-signal";
 import { World, Entity, type AnyComponent } from "@rbxts/matter";
-import { ComponentId } from "./component";
+import { ComponentId } from "./component/component-id";
 
 /**
  * 事件基础接口

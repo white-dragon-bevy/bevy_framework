@@ -16,3 +16,4 @@ export * from "./types";
 export * from "./query";
 export * from "./change-detection";
 export * from "./hierarchy";
+export * from "./component"

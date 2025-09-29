@@ -13,6 +13,7 @@ import { ActionData } from "./action-state/action-data";
 import { Instant } from "./instant";
 import type { UpdatedActions } from "./action-state/action-state";
 import { SummarizedActionState } from "./summarized-action-state";
+import { usePrintDebounce } from "../utils";
 
 /**
  * Converts ProcessedActionState to ActionData for ActionState updates
@@ -129,6 +130,12 @@ export function updateActionState<A extends Actionlike>(
 	resourceActionState?: ActionState<A>,
 	resourceInputMap?: InputMap<A>,
 ): void {
+	// 使用防抖打印检查空格键状态
+	const spaceButtonValue = inputStore.getButtonValue("keyboard_Space");
+	if (spaceButtonValue && spaceButtonValue.pressed) {
+		usePrintDebounce(`[updateActionState] 🎯 检测到空格键输入！pressed: ${spaceButtonValue.pressed}, value: ${spaceButtonValue.value}`, 2);
+	}
+
 	// Handle resource-level action state and input map
 	if (resourceActionState && resourceInputMap) {
 		const processedActions = resourceInputMap.processActions(inputStore);
@@ -136,10 +143,25 @@ export function updateActionState<A extends Actionlike>(
 		resourceActionState.updateFromUpdatedActions(updatedActions);
 	}
 
+	// 调试：打印查询大小
+	usePrintDebounce(`[updateActionState] 🔍 开始处理 ${query.size()} 个实体`, 5);
+
 	// Handle entity-level action states and input maps
 	for (const entity of query) {
 		const processedActions = entity.inputMap.processActions(inputStore);
 		const updatedActions = convertToUpdatedActions<A>(processedActions);
+
+		// 使用防抖打印检查处理结果
+		if (spaceButtonValue && spaceButtonValue.pressed && updatedActions.actionData.size() > 0) {
+			usePrintDebounce(`[updateActionState] 📦 为实体处理了 ${updatedActions.actionData.size()} 个动作更新`, 2);
+		}
+
+		// 调试：记录更新前的动作数量
+		const actionCount = updatedActions.actionData.size();
+		if (actionCount > 0 && spaceButtonValue && spaceButtonValue.pressed) {
+			usePrintDebounce(`[updateActionState] 🔄 实体将更新 ${actionCount} 个动作`, 2);
+		}
+
 		entity.actionState.updateFromUpdatedActions(updatedActions);
 	}
 }

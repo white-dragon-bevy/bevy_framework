@@ -3,6 +3,7 @@ import { ButtonValue } from "./traits/buttonlike";
 import { ButtonInput } from "../../bevy_input/button-input";
 import { AccumulatedMouseMotion, AccumulatedMouseWheel, MouseButton } from "../../bevy_input/mouse";
 import { UserInputService } from "@rbxts/services";
+import { Resource } from "../../bevy_ecs";
 
 /**
  * An overarching store for all user inputs
@@ -26,7 +27,7 @@ const DEFAULT_GAMEPAD_CONFIG: GamepadConfig = {
 	sensitivity: 1.0,
 };
 
-export class CentralInputStore {
+export class CentralInputStore implements Resource {
 	private buttonStates: Map<string, ButtonValue> = new Map();
 	private axisValues: Map<string, number> = new Map();
 	private dualAxisValues: Map<string, Vector2> = new Map();

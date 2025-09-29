@@ -45,8 +45,8 @@ export class MessageRegistry {
 		id?: Modding.Generic<M, "id">,
 		text?: Modding.Generic<M, "text">
 	): void {
-		if (!this.registry.has(id,text)) {
-			this.registry.set( new Messages<M>(),id,text);
+		if (!this.registry.has(id as string,text as string)) {
+			this.registry.set( new Messages<M>(),id as string,text as string);
 		}
 	}
 
@@ -76,7 +76,7 @@ export class MessageRegistry {
 		id?: Modding.Generic<M, "id">,
 		text?: Modding.Generic<M, "text">
 	): Messages<M> | undefined {
-		return this.registry.get(id,text) as Messages<M> | undefined;
+		return this.registry.get(id as string,text as string) as Messages<M> | undefined;
 	}
 
 	/**
@@ -90,10 +90,10 @@ export class MessageRegistry {
 	public getOrCreateMessages<M extends Message>(
 		id?: Modding.Generic<M, "id">,
 		text?: Modding.Generic<M, "text">): Messages<M> {
-		if (!this.registry.has(id,text)) {
+		if (!this.registry.has(id as string,text as string)) {
 			this.register<M>(id,text);
 		}
-		return this.registry.get(id,text) as Messages<M>;
+		return this.registry.get(id as string,text as string) as Messages<M>;
 	}
 
 	/**
@@ -130,8 +130,8 @@ export class MessageRegistry {
 	): MessageReader<M> {
 		const messages = this.getOrCreateMessages<M>(id,text);
 		// 更新读取器计数
-		const currentCount = this.readerCounts.get(id,text) ?? 0;
-		this.readerCounts.set(currentCount + 1,id,text);
+		const currentCount = this.readerCounts.get(id as string,text as string) ?? 0;
+		this.readerCounts.set(currentCount + 1,id as string,text as string);
 		return new MessageReader<M>(messages);
 	}
 
@@ -214,7 +214,7 @@ export class MessageRegistry {
 		id?: Modding.Generic<M, "id">,
 		text?: Modding.Generic<M, "text">
 	): boolean {
-		return this.registry.has(id,text);
+		return this.registry.has(id as string,text as string);
 	}
 
 	/**

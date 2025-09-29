@@ -1,3 +1,10 @@
-const t1 = {}
+import { bevyComponent } from "./bevy_ecs/component/component";
 
-print(Object.keys(t1))
+
+interface A<T>{
+    id:11
+}
+
+bevyComponent<A<number>>()
+bevyComponent<A<number>>()
+bevyComponent<A<string>>()

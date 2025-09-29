@@ -57,8 +57,8 @@ export = () => {
 
 		it("should store InputInstanceManagerResource in extension system", () => {
 			// Add input manager plugin
-			const plugin = new InputManagerPlugin<TestAction>({
-				actionType: TestAction as any,
+			const plugin = InputManagerPlugin.create({
+				actionType: TestAction ,
 			});
 			app.addPlugin(plugin);
 
@@ -66,7 +66,7 @@ export = () => {
 			const context = app.getContext();
 
 			// Should be able to get instance manager from extension
-			const instanceManager = getInputInstanceManager(context, TestAction as any);
+			const instanceManager = getInputInstanceManager(context, TestAction );
 			// Check that instance manager is created (may be undefined in test environment)
 			if (instanceManager) {
 				expect(instanceManager.getActionType()).to.equal("TestAction");
@@ -78,16 +78,16 @@ export = () => {
 
 		it("should retrieve InputInstanceManagerResource consistently", () => {
 			// Add input manager plugin
-			const plugin = new InputManagerPlugin<TestAction>({
-				actionType: TestAction as any,
+			const plugin = InputManagerPlugin.create({
+				actionType: TestAction ,
 			});
 			app.addPlugin(plugin);
 
 			const context = app.getContext();
 
 			// Get instance manager multiple times
-			const manager1 = getInputInstanceManager(context, TestAction as any);
-			const manager2 = getInputInstanceManager(context, TestAction as any);
+			const manager1 = getInputInstanceManager(context, TestAction );
+			const manager2 = getInputInstanceManager(context, TestAction );
 
 			// Should return the same instance if available
 			if (manager1 && manager2) {
@@ -134,17 +134,17 @@ export = () => {
 			}
 
 			// Add plugins for both action types
-			app.addPlugin(new InputManagerPlugin<TestAction>({
-				actionType: TestAction as any,
+			app.addPlugin(InputManagerPlugin.create({
+				actionType: TestAction ,
 			}));
-			app.addPlugin(new InputManagerPlugin<MenuAction>({
+			app.addPlugin(InputManagerPlugin.create({
 				actionType: MenuAction as any,
 			}));
 
 			const context = app.getContext();
 
 			// Get managers for both types
-			const testManager = getInputInstanceManager(context, TestAction as any);
+			const testManager = getInputInstanceManager(context, TestAction );
 			const menuManager = getInputInstanceManager(context, MenuAction as any);
 
 			// Check managers if available
@@ -163,14 +163,14 @@ export = () => {
 
 		it("should allow plugin to retrieve its own instance manager", () => {
 			// Add input manager plugin
-			const plugin = new InputManagerPlugin<TestAction>({
-				actionType: TestAction as any,
+			const plugin = InputManagerPlugin.create({
+				actionType: TestAction ,
 			});
 			app.addPlugin(plugin);
 
 			// Get instance manager through context helper
 			const context = app.getContext();
-			const instanceManager = getInputInstanceManager(context, TestAction as any);
+			const instanceManager = getInputInstanceManager(context, TestAction );
 
 			// Plugin no longer directly exposes instance manager (moved to system functions)
 			// Instead, we can get it through the extension system
@@ -189,15 +189,15 @@ export = () => {
 
 		it("should maintain instance manager through app updates", () => {
 			// Add input manager plugin
-			const plugin = new InputManagerPlugin<TestAction>({
-				actionType: TestAction as any,
+			const plugin = InputManagerPlugin.create({
+				actionType: TestAction,
 			});
 			app.addPlugin(plugin);
 
 			const context = app.getContext();
 
 			// Get instance manager before update
-			const managerBefore = getInputInstanceManager(context, TestAction as any);
+			const managerBefore = getInputInstanceManager(context, TestAction );
 
 			// Run some updates
 			app.update();
@@ -205,7 +205,7 @@ export = () => {
 			app.update();
 
 			// Get instance manager after updates
-			const managerAfter = getInputInstanceManager(context, TestAction as any);
+			const managerAfter = getInputInstanceManager(context, TestAction );
 
 			if (managerBefore && managerAfter) {
 				// Should be the same instance

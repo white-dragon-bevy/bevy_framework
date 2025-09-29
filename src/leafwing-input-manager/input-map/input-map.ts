@@ -5,6 +5,7 @@ import { Buttonlike } from "../user-input/traits/buttonlike";
 import { Axislike } from "../user-input/traits/axislike";
 import { DualAxislike } from "../user-input/traits/dual-axislike";
 import { CentralInputStore } from "../user-input/central-input-store";
+import { usePrintDebounce } from "../../utils";
 
 import { component } from "@rbxts/matter";
 
@@ -219,6 +220,11 @@ export class InputMap<Action extends Actionlike> {
 			let value = 0;
 			let axisPair: Vector2 | undefined;
 
+			// 调试: 检查jump动作
+			if (actionKey.find("jump")[0]) {
+				usePrintDebounce(`[InputMap.processActions] 🌟 处理 jump 动作 - 输入数量: ${inputs.size()}`, 3);
+			}
+
 			// Process all inputs for this action
 			for (const input of inputs) {
 				const inputHash = input.hash();
@@ -233,6 +239,11 @@ export class InputMap<Action extends Actionlike> {
 				if (controlKind === InputControlKind.Button && this.isButtonlike(input)) {
 					const buttonPressed = input.pressed(inputStore, this.gamepadAssociation);
 					const buttonValue = input.value(inputStore, this.gamepadAssociation);
+
+					// 调试: 检查空格键
+					if (inputHash.find("Space")[0] && actionKey.find("jump")[0]) {
+						usePrintDebounce(`[InputMap] 🎮 空格键状态 - pressed: ${buttonPressed}, value: ${buttonValue}, hash: ${inputHash}`, 2);
+					}
 
 					if (buttonPressed) {
 						pressed = true;
@@ -263,6 +274,11 @@ export class InputMap<Action extends Actionlike> {
 			const previousState = previousActions?.get(actionKey);
 			const justPressed = pressed && !(previousState?.pressed ?? false);
 			const justReleased = !pressed && (previousState?.pressed ?? false);
+
+			// 调试: 记录jump动作状态
+			if (actionKey.find("jump")[0] && (pressed || justPressed || justReleased)) {
+				usePrintDebounce(`[InputMap] 🎯 jump 最终状态 - pressed: ${pressed}, justPressed: ${justPressed}, value: ${value}`, 2);
+			}
 
 			actionData.set(actionKey, {
 				pressed,

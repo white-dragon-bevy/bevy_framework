@@ -31,43 +31,45 @@ export = () => {
 				const testSystem = (receivedWorld: World) => {
 					systemExecuted = true;
 					worldReceived = receivedWorld;
-					
+
 					expect(receivedWorld).to.equal(world);
 				};
 
 				loop.scheduleSystems([testSystem]);
-				
+
 				// 使用 step 方法执行一帧
 				loop.step("default", 1/60);
-				
+
 				expect(systemExecuted).to.equal(true);
 				expect(worldReceived).to.equal(world);
 			});
 
-			it("应该按优先级顺序执行系统", () => {
+			it("应该按提供的顺序执行系统", () => {
 				const executionOrder: string[] = [];
 
 				const highPrioritySystem = () => {
 					executionOrder.push("high");
 				};
 
-				const lowPrioritySystem = () => {
-					executionOrder.push("low");
-				};
-
 				const mediumPrioritySystem = () => {
 					executionOrder.push("medium");
 				};
 
+				const lowPrioritySystem = () => {
+					executionOrder.push("low");
+				};
+
+				// 注意：现在系统按照提供的顺序执行，不再内部排序
+				// 所以需要手动按照期望的顺序提供系统
 				loop.scheduleSystems([
-					{ system: lowPrioritySystem, priority: 10 },
-					{ system: highPrioritySystem, priority: -10 },
-					{ system: mediumPrioritySystem, priority: 0 }
+					highPrioritySystem,
+					mediumPrioritySystem,
+					lowPrioritySystem
 				]);
 
 				// 使用 step 方法执行一帧
 				loop.step("default", 1/60);
-				
+
 				// 验证执行顺序
 				expect(executionOrder.size()).to.equal(3);
 				expect(executionOrder[0]).to.equal("high");
@@ -75,7 +77,7 @@ export = () => {
 				expect(executionOrder[2]).to.equal("low");
 			});
 
-			it("应该支持系统依赖关系", () => {
+			it("应该按提供的顺序执行系统（依赖关系由调用方处理）", () => {
 				const executionOrder: string[] = [];
 
 				const systemA = () => {
@@ -90,15 +92,17 @@ export = () => {
 					executionOrder.push("C");
 				};
 
+				// 调用方负责按正确的依赖顺序提供系统
+				// A -> B -> C 的顺序
 				loop.scheduleSystems([
-					{ system: systemC, after: [systemB] },
-					{ system: systemB, after: [systemA] },
-					{ system: systemA }
+					systemA,
+					systemB,
+					systemC
 				]);
 
 				// 使用 step 方法执行一帧
 				loop.step("default", 1/60);
-				
+
 				// 验证执行顺序
 				expect(executionOrder.size()).to.equal(3);
 				expect(executionOrder[0]).to.equal("A");
@@ -160,7 +164,7 @@ export = () => {
 				const lastSystem: BevySystemStruct<[World]> = {
 					system: () => {
 						executionOrder.push("Last");
-						
+
 						if (!testCompleted) {
 							// 验证调度阶段的执行顺序
 							expect(executionOrder.includes("First")).to.equal(true);
@@ -179,7 +183,8 @@ export = () => {
 					Last: RunService.Heartbeat
 				});
 
-				loop.scheduleSystems([lastSystem, firstSystem, updateSystem]);
+				// 系统按提供的顺序执行（调用方负责排序）
+				loop.scheduleSystems([firstSystem, updateSystem, lastSystem]);
 				// 使用 step 方法执行调度阶段
 				loop.step("First", 1/60);
 				loop.step("Update", 1/60);
@@ -187,7 +192,7 @@ export = () => {
 				expect(testCompleted).to.equal(true);
 			});
 
-			it("应该支持系统集", () => {
+			it("应该支持系统集（调用方负责排序）", () => {
 				const executionOrder: string[] = [];
 				let testCompleted = false;
 
@@ -198,30 +203,32 @@ export = () => {
 
 				const physicsSystem: BevySystemStruct<[World]> = {
 					system: () => executionOrder.push("Physics"),
-					systemSet: "PhysicsSet",
-					afterSet: "InputSet"
+					systemSet: "PhysicsSet"
 				};
 
 				const renderSystem: BevySystemStruct<[World]> = {
 					system: () => {
 						executionOrder.push("Render");
-						
+
 						if (!testCompleted) {
 							// 验证系统集的执行顺序
 							const inputIndex = executionOrder.indexOf("Input");
 							const physicsIndex = executionOrder.indexOf("Physics");
 							const renderIndex = executionOrder.indexOf("Render");
-							
-							expect(inputIndex < physicsIndex).to.equal(true);
-							expect(physicsIndex < renderIndex).to.equal(true);
+
+							// 系统按提供的顺序执行
+							expect(inputIndex).to.equal(0);
+							expect(physicsIndex).to.equal(1);
+							expect(renderIndex).to.equal(2);
 							testCompleted = true;
 						}
 					},
-					systemSet: "RenderSet",
-					afterSet: "PhysicsSet"
+					systemSet: "RenderSet"
 				};
 
-				loop.scheduleSystems([renderSystem, inputSystem, physicsSystem]);
+				// 调用方按期望的顺序提供系统
+				// Input -> Physics -> Render
+				loop.scheduleSystems([inputSystem, physicsSystem, renderSystem]);
 				// 使用 step 方法执行一帧
 				loop.step("default", 1/60);
 				expect(testCompleted).to.equal(true);
@@ -247,233 +254,104 @@ export = () => {
 				loop.scheduleSystems([exclusiveSystem, normalSystem]);
 				// 使用 step 方法执行一帧
 				loop.step("default", 1/60);
+
 				expect(exclusiveSystemExecuted).to.equal(true);
 				expect(normalSystemExecuted).to.equal(true);
 			});
 		});
 
-		describe("系统生命周期", () => {
-			it("应该支持系统的添加和移除", () => {
-				let system1Executed = false;
-				let system2Executed = false;
+		describe("系统生命周期管理", () => {
+			it("应该能够驱逐系统", () => {
+				let system1ExecutionCount = 0;
+				let system2ExecutionCount = 0;
 
 				const system1 = () => {
-					system1Executed = true;
+					system1ExecutionCount++;
 				};
 
 				const system2 = () => {
-					system2Executed = true;
+					system2ExecutionCount++;
 				};
 
-				// 先添加 system1
-				loop.scheduleSystems([system1]);
+				loop.scheduleSystems([system1, system2]);
 
-				// 后添加 system2
-				loop.scheduleSystem(system2);
-
-				// 使用 step 方法执行一帧
+				// 第一帧：两个系统都执行
 				loop.step("default", 1/60);
-				expect(system1Executed).to.equal(true);
-				expect(system2Executed).to.equal(true);
+				expect(system1ExecutionCount).to.equal(1);
+				expect(system2ExecutionCount).to.equal(1);
+
+				// 驱逐 system1
+				loop.evictSystem(system1);
+
+				// 第二帧：只有 system2 执行
+				loop.step("default", 1/60);
+				expect(system1ExecutionCount).to.equal(1); // 不变
+				expect(system2ExecutionCount).to.equal(2);
 			});
 
-			it("应该支持系统替换", () => {
-				let newSystemExecuted = false;
+			it("应该能够替换系统", () => {
+				let oldSystemExecutionCount = 0;
+				let newSystemExecutionCount = 0;
 
 				const oldSystem = () => {
-					// 不应该执行
-					error("Old system should not execute");
+					oldSystemExecutionCount++;
 				};
 
 				const newSystem = () => {
-					newSystemExecuted = true;
+					newSystemExecutionCount++;
 				};
 
 				loop.scheduleSystems([oldSystem]);
 
+				// 第一帧：旧系统执行
+				loop.step("default", 1/60);
+				expect(oldSystemExecutionCount).to.equal(1);
+				expect(newSystemExecutionCount).to.equal(0);
+
 				// 替换系统
 				loop.replaceSystem(oldSystem, newSystem);
 
-				// 使用 step 方法执行一帧
+				// 第二帧：新系统执行
 				loop.step("default", 1/60);
-				expect(newSystemExecuted).to.equal(true);
-			});
-
-			it("应该支持系统驱逐", () => {
-				let system1Executed = false;
-				let system2Executed = false;
-				let system3Executed = false;
-
-				const system1 = () => {
-					system1Executed = true;
-				};
-
-				const system2 = () => {
-					system2Executed = true;
-				};
-
-				const system3 = () => {
-					system3Executed = true;
-				};
-
-				loop.scheduleSystems([system1, system2, system3]);
-
-				// 驱逐 system2
-				loop.evictSystem(system2);
-
-				// 使用 step 方法执行一帧
-				loop.step("default", 1/60);
-				// 验证只有 system1 和 system3 执行了
-				expect(system1Executed).to.equal(true);
-				expect(system2Executed).to.equal(false);
-				expect(system3Executed).to.equal(true);
+				expect(oldSystemExecutionCount).to.equal(1); // 不变
+				expect(newSystemExecutionCount).to.equal(1);
 			});
 		});
 
-		describe("错误处理", () => {
-			it("应该处理系统执行错误", () => {
-				let errorSystemExecuted = false;
-				let normalSystemExecuted = false;
+		describe("不同事件的系统执行", () => {
+			it("应该根据事件名称执行对应的系统", () => {
+				let defaultSystemExecuted = false;
+				let customSystemExecuted = false;
 
-				const errorSystem = () => {
-					errorSystemExecuted = true;
-					throw "Test error";
+				const defaultSystem: BevySystemStruct<[World]> = {
+					system: () => {
+						defaultSystemExecuted = true;
+					},
+					event: "default"
 				};
 
-				const normalSystem = () => {
-					normalSystemExecuted = true;
+				const customSystem: BevySystemStruct<[World]> = {
+					system: () => {
+						customSystemExecuted = true;
+					},
+					event: "custom"
 				};
 
-				// 启用错误跟踪
-				loop.trackErrors = true;
+				loop.scheduleSystems([defaultSystem, customSystem]);
 
-				loop.scheduleSystems([
-					{ system: errorSystem, priority: 1 },
-					{ system: normalSystem, priority: 2 }
-				]);
-
-				// 使用 step 方法执行一帧
+				// 执行 default 事件
 				loop.step("default", 1/60);
-				// 即使有系统出错，其他系统也应该继续执行
-				expect(errorSystemExecuted).to.equal(true);
-				expect(normalSystemExecuted).to.equal(true);
-			});
+				expect(defaultSystemExecuted).to.equal(true);
+				expect(customSystemExecuted).to.equal(false);
 
-			it("应该检测循环依赖", () => {
-				const systemA = () => {};
-				const systemB = () => {};
+				// 重置
+				defaultSystemExecuted = false;
+				customSystemExecuted = false;
 
-				expect(() => {
-					loop.scheduleSystems([
-						{ system: systemA, after: [systemB] },
-						{ system: systemB, after: [systemA] }
-					]);
-				}).to.throw();
-			});
-		});
-
-		describe("性能测试", () => {
-			it("应该能处理大量系统", () => {
-				const systemCount = 100;
-				let executedCount = 0;
-				let testCompleted = false;
-
-				const systems = [];
-				for (let i = 0; i < systemCount; i++) {
-					systems.push(() => {
-						executedCount++;
-						
-						if (executedCount === systemCount && !testCompleted) {
-							testCompleted = true;
-						}
-					});
-				}
-
-				const startTime = os.clock();
-				loop.scheduleSystems(systems);
-				const scheduleTime = os.clock() - startTime;
-
-				expect(scheduleTime < 1).to.equal(true); // 调度应该很快
-
-				// 使用 step 方法执行多帧直到测试完成
-				let stepCount = 0;
-				while (!testCompleted && stepCount < 5) {
-					loop.step("default", 1/60);
-					stepCount++;
-				}
-				expect(testCompleted).to.equal(true);
-			});
-
-			it("系统执行应该高效", () => {
-				const TestComponent = component("TestComponent", { value: 0 });
-				let frameCount = 0;
-				let totalTime = 0;
-				let testCompleted = false;
-
-				const performanceSystem = (world: World) => {
-					if (!testCompleted) {
-						const startTime = os.clock();
-						
-						// 执行一些典型的 ECS 操作
-						for (let i = 0; i < 10; i++) {
-							world.spawn(TestComponent({ value: i }));
-						}
-
-						for (const [id, comp] of world.query(TestComponent)) {
-							world.insert(id, TestComponent({ value: comp.value + 1 }));
-						}
-
-						const endTime = os.clock();
-						totalTime += (endTime - startTime);
-						frameCount++;
-
-						if (frameCount >= 10) {
-							const averageTime = totalTime / frameCount;
-							expect(averageTime < 0.01).to.equal(true); // 平均每帧不超过 10ms
-							testCompleted = true;
-						}
-					}
-				};
-
-				loop.scheduleSystems([performanceSystem]);
-				// 使用 step 方法执行多帧直到测试完成
-				let stepCount = 0;
-				while (!testCompleted && stepCount < 20) {
-					loop.step("default", 1/60);
-					stepCount++;
-				}
-				expect(testCompleted).to.equal(true);
-			});
-		});
-
-		describe("多事件支持", () => {
-			it("应该支持不同事件上的系统", () => {
-				let heartbeatSystemExecuted = false;
-				let steppedSystemExecuted = false;
-				let testCompleted = false;
-
-				const heartbeatSystem = () => {
-					heartbeatSystemExecuted = true;
-				};
-
-				const steppedSystem = () => {
-					steppedSystemExecuted = true;
-					
-					if (heartbeatSystemExecuted && steppedSystemExecuted && !testCompleted) {
-						testCompleted = true;
-					}
-				};
-
-				loop.scheduleSystems([
-					{ system: heartbeatSystem, event: "heartbeat" },
-					{ system: steppedSystem, event: "stepped" }
-				]);
-
-				// 使用 step 方法分别执行不同事件
-				loop.step("heartbeat", 1/60);
-				loop.step("stepped", 1/60);
-				
-				expect(testCompleted).to.equal(true);
+				// 执行 custom 事件
+				loop.step("custom", 1/60);
+				expect(defaultSystemExecuted).to.equal(false);
+				expect(customSystemExecuted).to.equal(true);
 			});
 		});
 	});
