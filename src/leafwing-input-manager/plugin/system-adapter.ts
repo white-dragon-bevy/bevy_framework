@@ -18,6 +18,8 @@ import { Instant } from "../instant";
 import { getInputInstanceManager } from "./context-helpers";
 import { usePrintDebounce } from "../../utils";
 import { InputInstanceManagerResource } from "./input-instance-manager-resource";
+import { TypeDescriptor } from "../../bevy_core/reflect";
+import { InputManagerStateResource } from "./input-manager-plugin";
 
 /**
  * Creates an adapter for the tickActionState system
@@ -25,37 +27,39 @@ import { InputInstanceManagerResource } from "./input-instance-manager-resource"
  * @returns A Matter-compatible system function
  */
 export function createTickActionStateAdapter<A extends Actionlike>(
-	instanceManager: InputInstanceManagerResource<A>,
+	instanceManagerDescriptor: TypeDescriptor<InputInstanceManagerResource<A>>,
+	inputManagerStateDescriptor: TypeDescriptor<InputManagerStateResource<A>>,
 ) {
-	return (world: BevyWorld, context: Context): void => {
-		// Get resource-level ActionState if it exists
-		const resourceActionState = world.resources.getResource<ActionState<A>>(
-			ActionState as any,
-		);
+	
+	// return (world: BevyWorld, context: Context): void => {
+	// 	// Get resource-level ActionState if it exists
+	// 	const resourceActionState = world.resources.getResource<ActionState<A>>(
+	// 		ActionState as any,
+	// 	);
 
 
-		// Build query using real ActionState instances from InputInstanceManager
-		const query: Array<{ actionState: ActionState<A> }> = [];
-		for (const [entity, actionStateData] of world.query(ActionStateComponent)) {
-			// Get real ActionState instance from InputInstanceManager
-			const realActionState = instanceManager.getActionState(entity);
+	// 	// Build query using real ActionState instances from InputInstanceManager
+	// 	const query: Array<{ actionState: ActionState<A> }> = [];
+	// 	for (const [entity, actionStateData] of world.query(ActionStateComponent)) {
+	// 		// Get real ActionState instance from InputInstanceManager
+	// 		const realActionState = instanceManager.getActionState(entity);
 
-			// Only process entities that have real ActionState instances registered
-			if (realActionState) {
-				query.push({ actionState: realActionState });
-			}
-		}
+	// 		// Only process entities that have real ActionState instances registered
+	// 		if (realActionState) {
+	// 			query.push({ actionState: realActionState });
+	// 		}
+	// 	}
 
-		// Get current and previous time
-		const currentTime = os.clock();
-		// Use a closure variable to store previous time across calls
-		const contextData = context as unknown as { __previousTickTime?: number };
-		const previousTime = contextData.__previousTickTime ?? currentTime;
-		contextData.__previousTickTime = currentTime;
+	// 	// Get current and previous time
+	// 	const currentTime = os.clock();
+	// 	// Use a closure variable to store previous time across calls
+	// 	const contextData = context as unknown as { __previousTickTime?: number };
+	// 	const previousTime = contextData.__previousTickTime ?? currentTime;
+	// 	contextData.__previousTickTime = currentTime;
 
-		// Call the Rust-style system function with real instances
-		Systems.tickActionState(world, query, resourceActionState, currentTime, previousTime);
-	};
+	// 	// Call the Rust-style system function with real instances
+	// 	Systems.tickActionState(world, query, resourceActionState, currentTime, previousTime);
+	// };
 }
 
 /**

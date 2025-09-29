@@ -22,6 +22,25 @@ export type BoxedLayer = Layer;
  */
 export type BoxedFmtLayer = Layer;
 
+import type { ExtensionFactory } from "../bevy_app/app";
+import type { World } from "../bevy_ecs";
+import type { AppContext } from "../bevy_app/context";
+
+/**
+ * LogPlugin 扩展工厂接口
+ */
+export interface LogPluginExtensionFactories {
+	/**
+	 * 获取日志管理器工厂
+	 */
+	getLogManager: ExtensionFactory<() => LogSubscriber | undefined>;
+	
+	/**
+	 * 获取当前日志级别工厂
+	 */
+	getLogLevel: ExtensionFactory<() => Level>;
+}
+
 /**
  * LogPlugin - 日志插件
  * 对应 Rust LogPlugin struct
@@ -54,6 +73,9 @@ export class LogPlugin extends BasePlugin {
 
 	/** 覆盖默认的格式化层 */
 	fmtLayer?: (app: App) => BoxedFmtLayer | undefined;
+	
+	/** 插件扩展工厂 */
+	extension: LogPluginExtensionFactories;
 
 	constructor(config?: Partial<LogPlugin>) {
 		super();
@@ -61,6 +83,20 @@ export class LogPlugin extends BasePlugin {
 		this.level = config?.level ?? Level.INFO;
 		this.customLayer = config?.customLayer;
 		this.fmtLayer = config?.fmtLayer;
+		
+		// 初始化扩展工厂
+		this.extension = {
+			getLogManager: (world: World, context: AppContext, plugin: LogPlugin) => {
+				// 返回获取日志管理器的函数，使用 plugin 参数而不是 this
+				return () => LogSubscriber.getGlobal();
+			},
+			getLogLevel: (world: World, context: AppContext, plugin: LogPlugin) => {
+				// 使用 plugin 参数获取 level 值，避免 this 指针问题
+				const currentLevel = plugin.level;
+				// 返回获取日志级别的函数
+				return () => currentLevel;
+			},
+		};
 	}
 
 	build(app: App): void {

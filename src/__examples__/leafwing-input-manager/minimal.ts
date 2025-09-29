@@ -322,7 +322,7 @@ export function main(): App {
 		.addPlugins(...DefaultPlugins.create().build().getPlugins())
 		// 这个插件将输入映射到与输入类型无关的动作状态
 		// 我们需要为它提供一个枚举，该枚举存储玩家可能采取的所有可能动作
-		.addPlugin(new InputManagerPlugin<Action>({
+		.addPlugin(InputManagerPlugin.create({
 			actionType: Action,
 		}))
 		// InputMap 和 ActionState 组件将被添加到任何具有 Player 组件的实体

@@ -8,7 +8,6 @@ import { App } from "../../bevy_app";
 import { MainScheduleLabel } from "../../bevy_app";
 import { DefaultPlugins } from "../../bevy_internal";
 import { RobloxRunnerPlugin } from "../../bevy_app";
-import { listInputManagers } from "../../leafwing-input-manager/plugin/context-helpers";
 import { RunService } from "@rbxts/services";
 import {
 	InputMap,
@@ -172,14 +171,7 @@ function handlePlayerActions(world: World,context:Context): void {
 
 	debugCounter++
 
-	// 每60帧（约1秒）输出一次调试信息
-	if (debugCounter % 60 === 0) {
-		print(`[handlePlayerActions] ======== Debug Info (${isServer ? "SERVER" : "CLIENT"}) ========`);
 
-		// 列出所有 InputManager
-		const inputManagers = listInputManagers(context);
-		print(`[handlePlayerActions] Registered InputManagers: ${inputManagers.join(", ") || "NONE"}`);
-	}
 
 	// 使用 helper 函数获取 InputInstanceManager
 	const instanceManager = getInputInstanceManager(context, PlayerAction);
@@ -250,7 +242,7 @@ export function main(): App {
 
 	// 添加 InputManagerPlugin - 像 Rust 版本一样简洁
 	app.addPlugin(
-		new InputManagerPlugin<PlayerAction>({
+		InputManagerPlugin.create({
 			actionType: PlayerAction,
 		}),
 	);

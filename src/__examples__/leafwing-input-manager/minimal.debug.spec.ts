@@ -67,7 +67,7 @@ export = () => {
 		// 创建应用
 		app = App.create()
 			.addPlugins(...DefaultPlugins.create().build().getPlugins())
-			.addPlugin(new InputManagerPlugin<TestAction>({
+			.addPlugin(InputManagerPlugin.create({
 				actionType: TestAction,
 			}));
 

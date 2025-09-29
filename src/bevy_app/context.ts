@@ -3,7 +3,6 @@
  * 管理和提供插件扩展的访问接口
  */
 
-import { World, Entity } from "@rbxts/matter";
 import { ContextBase } from "./context-base";
 import { CommandBuffer } from "../bevy_ecs/command-buffer";
 import { Resource, ResourceManager } from "../bevy_ecs/resource";
@@ -20,6 +19,7 @@ import {
 	EventKey
 } from "../bevy_ecs/events";
 import { Modding } from "@flamework/core";
+import { World } from "../bevy_ecs";
 
 /**
  * App 上下文类

@@ -17,6 +17,57 @@ import { AppContext } from "./context";
 import { RunService } from "@rbxts/services";
 import { isMatchRobloxContext, RobloxContext } from "../utils/roblox-utils";
 import { MessageReader, MessageWriter } from "../bevy_ecs/message";
+import { TypeDescriptor } from "../bevy_core/reflect";
+
+/**
+ * 扩展工厂函数类型
+ * 接受 (world, context, plugin) 参数，返回实际的扩展函数
+ * 第三个参数是插件实例，避免 roblox-ts 的 this 指针问题
+ */
+export type ExtensionFactory<T extends (...args: any[]) => any> = (world: World, context: AppContext, plugin: any) => T;
+
+/**
+ * 插件扩展工厂接口
+ * 所有扩展成员都是工厂函数
+ */
+export interface PluginExtensionFactories {
+	// 插件可以在这里添加扩展工厂方法
+	// 例如: getLogManager: ExtensionFactory<() => LogSubscriber | undefined>;
+}
+
+/**
+ * 从工厂类型提取实际扩展类型
+ */
+export type ExtractExtensionTypes<F> = {
+	[K in keyof F]: F[K] extends ExtensionFactory<infer T> ? T : never;
+};
+
+/**
+ * 从插件类型中提取扩展工厂类型
+ */
+export type ExtractPluginExtensions<P> = P extends { extension: infer E } ? E : {};
+
+/**
+ * 从插件数组中提取所有扩展类型
+ */
+export type ExtractAllPluginExtensions<P extends readonly (Plugin | PluginGroup)[]> = 
+	P extends readonly [infer First, ...infer Rest]
+		? ExtractExtensionTypes<ExtractPluginExtensions<First>> & 
+		  ExtractAllPluginExtensions<Rest extends readonly (Plugin | PluginGroup)[] ? Rest : []>
+		: {};
+
+/**
+ * 带扩展的Context类型
+ */
+export type ContextWithExtensions<E = {}> = AppContext & ExtractExtensionTypes<ExtractPluginExtensions<E>>;
+
+/**
+ * 获取带扩展的Context的辅助函数
+ * 现在可以直接传入插件类型，例如: getContextWithExtensions<LogPlugin>(app)
+ */
+export function getContextWithExtensions<E = {}>(app: App): ContextWithExtensions<E> {
+	return app.context as ContextWithExtensions<E>;
+}
 
 /**
  * Bevy App主类
@@ -26,7 +77,7 @@ export class App<T extends AppContext = AppContext> {
 	private subApps: SubApps;
 	private runner: (app: App) => AppExit;
 	private defaultErrorHandler?: ErrorHandler;
-	readonly context: AppContext;
+	readonly context: T;
 	private appExitEventReader?: MessageReader<AppExit>;
 
 	/**
@@ -39,7 +90,7 @@ export class App<T extends AppContext = AppContext> {
 		// 设置主SubApp的App引用
 		this.subApps.main().setAppReference(this);
 
-		this.context = this.subApps.main().getContext()
+		this.context = this.subApps.main().getContext() as T;
 
 		// 初始化主应用
 		this.initializeMainApp();
@@ -212,19 +263,19 @@ export class App<T extends AppContext = AppContext> {
 	 * 添加插件
 	 * 对应 Rust App::add_plugins
 	 */
-	addPlugin(plugin: Plugin): this {
+	addPlugin<P extends Plugin>(plugin: P): App<T & ExtractExtensionTypes<ExtractPluginExtensions<P>>> {
 		if (this.getPluginState() === PluginState.Cleaned || this.getPluginState() === PluginState.Finished) {
 			error("Plugins cannot be added after App.cleanup() or App.finish() has been called.");
 		}
 
 		this.addBoxedPlugin(plugin);
-		return this;
+		return this as any;
 	}
 
 	/**
 	 * 添加多个插件
 	 */
-	addPlugins(...plugins: (Plugin | PluginGroup)[]): this {
+	addPlugins<P extends readonly (Plugin | PluginGroup)[]>(...plugins: P): App<T & ExtractAllPluginExtensions<P>> {
 		for (const plugin of plugins) {
 			if (isPluginGroup(plugin)) {
 				// 是PluginGroup
@@ -235,7 +286,7 @@ export class App<T extends AppContext = AppContext> {
 				this.addPlugin(plugin as Plugin);
 			}
 		}
-		return this;
+		return this as any;
 	}
 
 	/**
@@ -253,6 +304,22 @@ export class App<T extends AppContext = AppContext> {
 		if (isMatchRobloxContext(plugin.robloxContext)) {
 			// 添加到插件注册表
 			mainApp.addPlugin(plugin);
+			
+			// 如果插件有扩展工厂，将其转换为实际函数并添加到 context 上
+			if ('extension' in plugin && plugin.extension) {
+				const extensionFactories = plugin.extension as Record<string, ExtensionFactory<any>>;
+				const contextInstance = this.context as unknown as Record<string, unknown>;
+				const world = this.getWorld();
+				
+				// 将扩展工厂转换为实际函数并复制到 context 上
+				for (const [key, factory] of pairs(extensionFactories)) {
+					if (typeOf(factory) === "function") {
+						// 调用工厂函数，传入 world, context 和 plugin 实例，获得实际的扩展函数
+						const actualFunction = factory(world, this.context, plugin);
+						contextInstance[key] = actualFunction;
+					}
+				}
+			}
 		}
 	}
 
@@ -340,6 +407,17 @@ export class App<T extends AppContext = AppContext> {
 	}
 
 	/** 
+	 * 插入资源
+	 * 
+	 * 
+	 * */
+	public insertResourceByTypeDescriptor<T extends object>(resource:T, typeDescriptor:TypeDescriptor) {
+		this.subApps.main().getResourceManager().insertResourceByTypeDescriptor(resource, typeDescriptor);
+		return this
+	}
+	
+
+	/** 
 	 * 获取资源
 	 * 
 	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
@@ -349,6 +427,17 @@ export class App<T extends AppContext = AppContext> {
 	public getResource<T extends defined>( id?: Modding.Generic<T, "id">, text?: Modding.Generic<T,"text">): T | undefined {
 		return this.subApps.main().getResource<T>(id, text);
 	}
+
+	
+	/** 
+	 * 获取资源
+	 * 
+	 * 
+	 * */
+	public getResourceByTypeDescriptor<T extends defined>( typeDescriptor:TypeDescriptor): T | undefined {
+		return this.subApps.main().getResourceManager().getResourceByTypeDescriptor<T>(typeDescriptor);
+	}
+
 
 	/**
 	 * 获取World容器

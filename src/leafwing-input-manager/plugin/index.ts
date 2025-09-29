@@ -1,4 +1,4 @@
-export { InputManagerPlugin, InputManagerPluginResource, InputManagerPluginConfig, InputManagerComponents } from "./input-manager-plugin";
+export { InputManagerPlugin, InputManagerPluginConfig, InputManagerComponents } from "./input-manager-plugin";
 export { InputInstanceManager } from "./input-instance-manager";
 
 // Export components
@@ -13,12 +13,6 @@ export {
 
 // Export context helper functions
 export {
-	getInputManagerExtensionKey,
-	getInputManagerExtension,
 	getInputManagerPlugin,
 	getInputInstanceManager,
-	registerInputManagerExtension,
-	hasInputManager,
-	listInputManagers,
-	debugInputManagers,
 } from "./context-helpers";

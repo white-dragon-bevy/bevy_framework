@@ -1993,6 +1993,8 @@ function playerJoinSystem(world: World, context: Context) {
 
 #### 参考
 
+- [插件扩展系统](../plugin-extensions.md) - 详细的插件扩展开发指南
+- [插件扩展快速开始](../plugin-extensions-quickstart.md) - 5分钟学会插件扩展
 - [架构分析报告](../.audit/architecture-analysis.md)
 - [Rust Bevy 官方文档](https://docs.rs/bevy)
 - [@rbxts/matter 文档](https://matter.lua.org)

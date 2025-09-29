@@ -8,14 +8,15 @@ import { Plugin } from "../../bevy_app/plugin";
 import { App } from "../../bevy_app";
 import { MainScheduleLabel } from "../../bevy_app";
 import { AppContext } from "../../bevy_app/context";
-import { registerInputManagerExtension } from "./context-helpers";
-import { InputMapComponent, ActionStateComponent } from "./components";
 import { Resource } from "../../bevy_ecs";
 import { InputInstanceManagerResource } from "./input-instance-manager-resource";
 import { BuiltinSchedules } from "../../bevy_app/main-schedule";
 import { BevyWorld, Context } from "../../bevy_ecs/types";
 import { createSystemAdapters } from "./system-adapter";
 import { ClashStrategy, ClashStrategyResource } from "../clashing-inputs/clash-strategy";
+import { Modding } from "@flamework/core";
+import { getTypeDescriptor, TypeDescriptor } from "../../bevy_core/reflect";
+import { INPUT_INSTANCE_MANAGER_RESOURCE_ID, INPUT_MANAGER_STATE_RESOURCE_ID } from "./const";
 
 // =============================================================================
 // 辅助工具
@@ -130,13 +131,6 @@ export interface InputManagerComponents<A extends Actionlike> {
 }
 
 /**
- * Resource to store the InputManagerPlugin instance in the App
- */
-export class InputManagerPluginResource<A extends Actionlike> implements Resource {
-	constructor(public plugin: InputManagerPlugin<A>) {}
-}
-
-/**
  * Resource to store plugin state for system functions
  * 存储插件状态供系统函数访问的资源
  */
@@ -160,29 +154,56 @@ export class InputManagerStateResource<A extends Actionlike> implements Resource
 export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 	private config: InputManagerPluginConfig<A>;
 	private connections: RBXScriptConnection[] = [];
+	typeDescriptor:TypeDescriptor = undefined as unknown as TypeDescriptor;
 
-	constructor(config: InputManagerPluginConfig<A>) {
+	private constructor(
+		config: InputManagerPluginConfig<A>,
+		private inputManagerStateDescriptor:TypeDescriptor<InputManagerStateResource<A>>,
+		private instanceManagerDescriptor:TypeDescriptor<InputInstanceManagerResource<A>>,
+
+	
+	) {
 		this.config = config;
+	}
+
+
+	/**
+	 * craete
+	 * 
+	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
+	 * 
+	 */
+	public static create<T extends Actionlike >(
+		config: InputManagerPluginConfig<T>,
+		id?: Modding.Generic<T, "id">, 
+		text?: Modding.Generic<T,"text">
+	) {
+
+		const result = new InputManagerPlugin(
+			config,
+			getTypeDescriptor(id as string,text,INPUT_INSTANCE_MANAGER_RESOURCE_ID)!,
+			getTypeDescriptor(id as string,text,INPUT_MANAGER_STATE_RESOURCE_ID)!,
+		);
+
+		return result;
 	}
 
 	/**
 	 * Builds the plugin and registers systems with the App
+	 * 
+	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
+	 * 
 	 * @param app - The Bevy App instance
 	 */
 	build(app: App): void {
 		// Create InputInstanceManager
+		let instanceManagerDescripter = table.clone(this.typeDescriptor)
+		instanceManagerDescripter.genericId = INPUT_INSTANCE_MANAGER_RESOURCE_ID;
 		const instanceManager = new InputInstanceManagerResource<A>(this.config.actionType.name);
+		app.insertResourceByTypeDescriptor(instanceManager,instanceManagerDescripter);
 
-		// Store the plugin instance as a resource for access by systems
-		app.insertResource<InputManagerPluginResource<A>>(new InputManagerPluginResource(this));
-
-		// 🔥 FIX: Also store InputInstanceManager as a resource so it can be retrieved
-		app.insertResource<InputInstanceManagerResource<A>>(instanceManager);
-
-		// Register extension to AppContext using dynamic key with instanceManager
-		// This needs to be available on both client and server
-		const context = app.getContext();
-		registerInputManagerExtension(context, this.config.actionType, this, instanceManager);
 
 		// Create system adapters that bridge Rust-style functions with Matter ECS
 		const systems = createSystemAdapters(this.config.actionType);
@@ -194,18 +215,18 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 			// Server mode: Only tick action states
 			// Matches Rust implementation (server does not process input)
 
-			// PreUpdate: tick action states
-			app.addSystems(MainScheduleLabel.PRE_UPDATE, systems.tickActionState);
+			// // PreUpdate: tick action states
+			// app.addSystems(MainScheduleLabel.PRE_UPDATE, systems.tickActionState);
 
-			// Fixed Update support for server-side physics
-			// 1. Swap to fixed update state before the fixed main loop
-			app.addSystems(BuiltinSchedules.RUN_FIXED_MAIN_LOOP, systems.swapToFixedUpdate);
+			// // Fixed Update support for server-side physics
+			// // 1. Swap to fixed update state before the fixed main loop
+			// app.addSystems(BuiltinSchedules.RUN_FIXED_MAIN_LOOP, systems.swapToFixedUpdate);
 
-			// 2. Tick action states during fixed update with fixed timestep
-			app.addSystems(BuiltinSchedules.FIXED_PRE_UPDATE, systems.tickActionState);
+			// // 2. Tick action states during fixed update with fixed timestep
+			// app.addSystems(BuiltinSchedules.FIXED_PRE_UPDATE, systems.tickActionState);
 
-			// 3. Swap back to regular update state after fixed update
-			app.addSystems(MainScheduleLabel.PRE_UPDATE, systems.swapToUpdate);
+			// // 3. Swap back to regular update state after fixed update
+			// app.addSystems(MainScheduleLabel.PRE_UPDATE, systems.swapToUpdate);
 		} else if (isClient) {
 			// Client mode: full input processing
 
@@ -222,29 +243,29 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 			// PreUpdate: tick, sync input, clear store, update action states
 			const syncBevyInput = createSyncBevyInputSystem();
 
-			app.addSystems(MainScheduleLabel.PRE_UPDATE, systems.tickActionState);
-			app.addSystems(MainScheduleLabel.PRE_UPDATE, syncBevyInput);
-			app.addSystems(MainScheduleLabel.PRE_UPDATE, systems.updateActionState);
+			// app.addSystems(MainScheduleLabel.PRE_UPDATE, systems.tickActionState);
+			// app.addSystems(MainScheduleLabel.PRE_UPDATE, syncBevyInput);
+			// app.addSystems(MainScheduleLabel.PRE_UPDATE, systems.updateActionState);
 
-			// Last: clear input store for next frame
-			app.addSystems(MainScheduleLabel.LAST, systems.clearCentralInputStore);
+			// // Last: clear input store for next frame
+			// app.addSystems(MainScheduleLabel.LAST, systems.clearCentralInputStore);
 
-			// PostUpdate: cleanup and finalization
-			app.addSystems(MainScheduleLabel.POST_UPDATE, systems.releaseOnWindowFocusLost);
+			// // PostUpdate: cleanup and finalization
+			// app.addSystems(MainScheduleLabel.POST_UPDATE, systems.releaseOnWindowFocusLost);
 
-			// Fixed Update support: comprehensive fixed timestep input handling
-			// 1. Swap to fixed update state before the fixed main loop
-			app.addSystems(BuiltinSchedules.RUN_FIXED_MAIN_LOOP, systems.swapToFixedUpdate);
+			// // Fixed Update support: comprehensive fixed timestep input handling
+			// // 1. Swap to fixed update state before the fixed main loop
+			// app.addSystems(BuiltinSchedules.RUN_FIXED_MAIN_LOOP, systems.swapToFixedUpdate);
 
-			// 2. Tick action states during fixed update with fixed timestep
-			app.addSystems(BuiltinSchedules.FIXED_PRE_UPDATE, systems.tickActionState);
+			// // 2. Tick action states during fixed update with fixed timestep
+			// app.addSystems(BuiltinSchedules.FIXED_PRE_UPDATE, systems.tickActionState);
 
-			// 3. Sync and update action states during fixed update
-			app.addSystems(BuiltinSchedules.FIXED_UPDATE, syncBevyInput);
-			app.addSystems(BuiltinSchedules.FIXED_UPDATE, systems.updateActionState);
+			// // 3. Sync and update action states during fixed update
+			// app.addSystems(BuiltinSchedules.FIXED_UPDATE, syncBevyInput);
+			// app.addSystems(BuiltinSchedules.FIXED_UPDATE, systems.updateActionState);
 
-			// 4. Swap back to regular update state after fixed update
-			app.addSystems(MainScheduleLabel.PRE_UPDATE, systems.swapToUpdate);
+			// // 4. Swap back to regular update state after fixed update
+			// app.addSystems(MainScheduleLabel.PRE_UPDATE, systems.swapToUpdate);
 
 			// Store connections for cleanup
 			const stateResource = new InputManagerStateResource(

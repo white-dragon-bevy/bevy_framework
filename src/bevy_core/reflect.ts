@@ -49,6 +49,7 @@ export function ___getTypeDescriptor<T>(id?:Modding.Generic<T, "id">, text?: Mod
 export function getTypeDescriptor(
     id?: string,
     text?: string,
+    genericId?: string,
 ):ParameterDescriptor|undefined {
     if(id===undefined || id==="$p:never"){
         return undefined
@@ -56,9 +57,13 @@ export function getTypeDescriptor(
 
     return {
         id,
-        text: text ?? ""
+        text: text ?? "",
+        genericId: genericId ?? ""
+
     }
  }
+
+
 
  /**
   * 提取泛型类型的外层和内层类型信息

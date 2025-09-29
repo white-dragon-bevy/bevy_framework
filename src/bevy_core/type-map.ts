@@ -136,21 +136,21 @@ export class TypeMap<T> {
 	 * @param id typeDescriptorId
 	 * @param text typeDescriptorText
 	 */
-	public get(id: string|undefined, text: string|undefined): T | undefined;
+	public get(id: string, text: string|undefined): T | undefined;
 	/**
 	 * 
 	 * @param id typeDescriptorId
 	 * @param text typeDescriptorText
 	 * @param genericId typeDescriptorGenericId
 	 */
-	public get(id: string|undefined, text: string|undefined, genericId: string|undefined): T | undefined;
+	public get(id: string, text: string|undefined, genericId: string|undefined): T | undefined;
 	/**
 	 * 
 	 * @param typeDescriptor typeDescriptor
 	 */
 	public get(typeDescriptor: TypeDescriptor): T | undefined;
 	public get(
-		idOrTypeDescriptor: (string|undefined) | TypeDescriptor, 
+		idOrTypeDescriptor: (string) | TypeDescriptor, 
 		text?: string, 
 		genericId?: string
 	): T | undefined {
@@ -181,21 +181,21 @@ export class TypeMap<T> {
 	 * @param id typeDescriptorId
 	 * @param text typeDescriptorText
 	 */
-	public has(id: string|undefined, text: string|undefined): boolean;
+	public has(id: string, text: string): boolean;
 	/**
 	 * 
 	 * @param id typeDescriptorId
 	 * @param text typeDescriptorText
 	 * @param genericId typeDescriptorGenericId
 	 */
-	public has(id: string|undefined, text: string|undefined, genericId: string): boolean;
+	public has(id: string, text: string, genericId: string): boolean;
 	/**
 	 * 
 	 * @param typeDescriptor typeDescriptor
 	 */
 	public has(typeDescriptor: TypeDescriptor): boolean;
 	public has(
-		idOrTypeDescriptor: (string|undefined) | TypeDescriptor, 
+		idOrTypeDescriptor: (string) | TypeDescriptor, 
 		text?: string, 
 		genericId?: string
 	): boolean {
@@ -231,7 +231,7 @@ export class TypeMap<T> {
 	 * @param text typeDescriptorText
 	 * @param genericId typeDescriptorGenericId
 	 */
-	public set(value: T, id: string|undefined, text?: string|undefined, genericId?: string|undefined): void;
+	public set(value: T, id: string, text: string, genericId?: string|undefined): void;
 	/**
 	 * 
 	 * @param value 要设置的值
@@ -240,7 +240,7 @@ export class TypeMap<T> {
 	public set(value: T, typeDescriptor: TypeDescriptor): void;
 	public set(
 		value: T,
-		idOrTypeDescriptor: (string|undefined) | TypeDescriptor, 
+		idOrTypeDescriptor: (string) | TypeDescriptor, 
 		textOrValue?: string | T, 
 		genericIdOrUndefined?: string, 
 	): void {

@@ -79,7 +79,7 @@ export = () => {
 			app.addPlugin(new TimePlugin());
 
 			// Add input manager plugin
-			const plugin = new InputManagerPlugin<TestAction>({
+			const plugin = InputManagerPlugin.create({
 				actionType: TestAction as any,
 			});
 			app.addPlugin(plugin);

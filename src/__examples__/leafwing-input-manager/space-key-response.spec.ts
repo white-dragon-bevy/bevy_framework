@@ -60,7 +60,7 @@ export = () => {
 
 			// 添加必要的插件
 			app.addPlugin(new InputPlugin())
-				.addPlugin(new InputManagerPlugin({ actionType: TestAction }));
+				.addPlugin(InputManagerPlugin.create({ actionType: TestAction }));
 			app.update();
 		});
 

@@ -1,4 +1,3 @@
-import { Resource } from "../../bevy_ecs";
 import { InputMap } from "../input-map/input-map";
 import { ActionState } from "../action-state/action-state";
 import { Actionlike } from "../actionlike";
@@ -7,7 +6,7 @@ import { Actionlike } from "../actionlike";
  * Resource wrapper for InputInstanceManager
  * Allows proper storage and retrieval from the ECS resource system
  */
-export class InputInstanceManagerResource<A extends Actionlike> implements Resource {
+export class InputInstanceManagerResource<A extends Actionlike>  {
 	private readonly inputMaps: Map<number, InputMap<A>> = new Map();
 	private readonly actionStates: Map<number, ActionState<A>> = new Map();
 	private readonly actionType: string;

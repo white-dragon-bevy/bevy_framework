@@ -21,25 +21,43 @@ export type ComponentId = number
  * @returns 组件或者资源的ComponentId
  */
 export function getComponentIdByDescriptor<T>(descriptor:TypeDescriptor):ComponentId{
-    assert(descriptor !== undefined, "descriptor is undefined in getComponentIdByDescriptor");
-    assert(descriptor.id !== undefined, `descriptor.id is undefined. descriptor=${descriptor}`);
-
-    // 如果有 genericId，使用它和原始 id 的组合作为唯一键
-    const text = descriptor.text ?? "";
-
-    if (descriptor.genericId) {
-        const combinedId = `${descriptor.genericId}<${descriptor.id}>`;
-        return getComponentId(combinedId, text);
-    }
-    return getComponentId(descriptor.id, text)
-}
-
-export function getComponentId(id:string, text:string):ComponentId{
-    const normalizedText = text ?? "";
-    let componentId = typeMap.get(id, normalizedText)
+    let componentId = typeMap.get(descriptor)
     if(componentId===undefined){
         componentId = componentIdCounter++
-        typeMap.set(componentId, id, normalizedText)
+        typeMap.set(componentId,descriptor)
     }
     return componentId
 }
+
+/**
+ * 获取组件或者资源的ComponentId
+ * @param id id
+ * @param text 
+ * @returns ComponentId
+ */
+/**
+ * 重载1：通过 TypeDescriptor 获取 ComponentId
+ */
+export function getComponentId(descriptor: TypeDescriptor): ComponentId;
+/**
+ * 重载2：通过 id, text, genericId 获取 ComponentId
+ */
+export function getComponentId(id: string, text: string, genericId?: string): ComponentId;
+/**
+ * 实现
+ */
+export function getComponentId(
+    idOrTypeDescriptor: string | TypeDescriptor,
+    text?: string,
+    genericId?: string
+): ComponentId {
+    let componentId: ComponentId | undefined;
+    // 通过字符串id, text, genericId
+    componentId = typeMap.get(idOrTypeDescriptor as string, text, genericId);
+    if (componentId === undefined) {
+        componentId = componentIdCounter++;
+        typeMap.set(componentId, idOrTypeDescriptor as string, text!, genericId);
+    }
+    return componentId;
+}
+   
