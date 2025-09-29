@@ -42,7 +42,7 @@ export class ReplicationManager implements Resource {
 		this.connectedClients = new Set();
 		this.entityVisibility = new Map();
 		this.updateQueue = [];
-		this.lastUpdateTime = os.clock();
+		this.lastUpdateTime = -1; // 初始化为-1，确保首次调用shouldUpdate返回true
 		this.registry = {
 			__brand: "Resource",
 			registeredComponents: new Set(),

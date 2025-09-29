@@ -481,6 +481,12 @@ export class Updates {
 		for (const flag of setFlags) {
 			if (flag === UpdateMessageFlags.MAPPINGS) {
 				// 读取 MAPPINGS 段
+				if (flag !== lastFlag) {
+					// 跳过长度前缀（已由CompactEntitySerializer内部处理）
+					const [mappingsLen, mappingsLenBytes] = SerializedData.readU32At(messageData, offset);
+					offset += mappingsLenBytes;
+				}
+
 				// 映射数据使用 CompactEntitySerializer 批量序列化格式
 				// 格式: [count, server1, client1, server2, client2, ...]
 				const [deserializedMappings, bytesRead] = compactEntitySerializer.deserializeMappings(messageData, offset);
