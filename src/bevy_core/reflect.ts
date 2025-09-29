@@ -57,8 +57,8 @@ export function getTypeDescriptor(
 
     return {
         id,
-        text: text ?? "",
-        genericId: genericId ?? ""
+        text: text! ,
+        genericId: genericId!
 
     }
  }
