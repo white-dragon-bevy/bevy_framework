@@ -1,6 +1,6 @@
 import { Modding } from "@flamework/core";
 import { getTypeDescriptor, TypeDescriptor } from "../bevy_core";
-import { ComponentId, getComponentId, getComponentIdByDescriptor } from "./commponent/component-id";
+import { ComponentId, getComponentId, getComponentIdByDescriptor } from "./component/component-id";
 
 /**
  * 资源标识符 - 用于唯一标识资源类型
