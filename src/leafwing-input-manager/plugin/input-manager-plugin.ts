@@ -33,6 +33,13 @@ function syncFromBevyInput(world: BevyWorld, centralStore: CentralInputStore): v
 	const mouseMotion = getMouseMotion(world);
 	const mouseWheel = getMouseWheel(world);
 
+	// Debug: 检查键盘输入资源
+	if (!keyboardInput) {
+		if (tick() % 600 === 0) {
+			print(`[syncFromBevyInput] ⚠️ keyboardInput 资源为 undefined`);
+		}
+	}
+
 	// 同步到中央存储
 	centralStore.syncFromBevyInput(
 		keyboardInput,
@@ -47,9 +54,28 @@ function syncFromBevyInput(world: BevyWorld, centralStore: CentralInputStore): v
  */
 function createSyncBevyInputSystem() {
 	return (world: BevyWorld, context: Context): void => {
-		const centralStore = world.resources.getResource<CentralInputStore>(CentralInputStore as any);
+		const centralStore = world.resources.getResource<CentralInputStore>();
 		if (centralStore) {
+			// Debug: 检查键盘输入
+			const UserInputService = game.GetService("UserInputService");
+			const keysPressed = UserInputService.GetKeysPressed();
+			const spacePressed = keysPressed.some(key => key.KeyCode === Enum.KeyCode.Space);
+
+			if (spacePressed) {
+				print(`[syncBevyInput] 🎮 检测到空格键！准备同步到 CentralInputStore`);
+			}
+
 			syncFromBevyInput(world, centralStore);
+
+			// Debug: 验证同步后的状态
+			if (spacePressed) {
+				const spaceValue = centralStore.getButtonValue("keyboard_Space");
+				print(`[syncBevyInput] ✅ 同步后 Space 键状态: pressed=${spaceValue?.pressed}, value=${spaceValue?.value}`);
+			}
+		} else {
+			if (tick() % 600 === 0) {
+				print(`[syncBevyInput] ❌ 无法获取 CentralInputStore`);
+			}
 		}
 	};
 }
@@ -149,6 +175,9 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 
 		// Store the plugin instance as a resource for access by systems
 		app.insertResource<InputManagerPluginResource<A>>(new InputManagerPluginResource(this));
+
+		// 🔥 FIX: Also store InputInstanceManager as a resource so it can be retrieved
+		app.insertResource<InputInstanceManagerResource<A>>(instanceManager);
 
 		// Register extension to AppContext using dynamic key with instanceManager
 		// This needs to be available on both client and server

@@ -104,4 +104,4 @@ pnpm install
   - `src/<name>` 对应地址 `ReplicatedStorage/.../bevy-framework/<name>`
 - 也可以使用测试用例名称, 进行单个测试, 格式为 `npm test -- -n "some name"`
   - 测试的超时时间为 30秒, 请耐心等待
-- 在系统内部使用防抖打印 `hook-debug-print()`, 防止每帧输出刷屏.
+- 在系统内部使用**防抖打印** `hook-debug-print(message)`, 防止每帧输出刷屏.

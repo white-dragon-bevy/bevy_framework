@@ -5,7 +5,7 @@ if not RunService:IsRunMode() then
 end
 
 -- 测试目标目录
-local targetDir = ReplicatedStorage.rbxts_include.node_modules["@white-dragon-bevy"]["bevy-framework"].utils
+local targetDir = ReplicatedStorage.rbxts_include.node_modules["@white-dragon-bevy"]["bevy-framework"].__examples__
 
 
 -- 引入 testez 运行单元测试

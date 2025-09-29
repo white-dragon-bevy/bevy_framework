@@ -26,6 +26,7 @@ import { getInputInstanceManager } from "../../leafwing-input-manager/plugin/con
 import { component, type World } from "@rbxts/matter";
 import { RunService } from "@rbxts/services";
 import { Context } from "../../bevy_ecs";
+import { usePrintDebounce } from "../../utils";
 
 /**
  * 简单动作枚举 - 对应 Rust 版本的 Action enum
@@ -69,12 +70,12 @@ const Player = component<{}>("Player");
  * 描述如何将玩家输入转换为游戏动作
  */
 function spawnPlayer(world: World, context: Context): void {
-	print("🎯 [spawnPlayer] STARTUP 系统开始执行");
-	print(`🎯 [spawnPlayer] 运行环境 - IsServer: ${RunService.IsServer()}, IsClient: ${RunService.IsClient()}`);
+	usePrintDebounce("🎯 [spawnPlayer] STARTUP 系统开始执行", 10);
+	usePrintDebounce(`🎯 [spawnPlayer] 运行环境 - IsServer: ${RunService.IsServer()}, IsClient: ${RunService.IsClient()}`, 10);
 
 	// 服务端不需要处理本地输入
 	if (RunService.IsServer()) {
-		print("🎯 [spawnPlayer] 服务端环境，跳过输入处理");
+		usePrintDebounce("🎯 [spawnPlayer] 服务端环境，跳过输入处理", 10);
 		return;
 	}
 
@@ -92,10 +93,10 @@ function spawnPlayer(world: World, context: Context): void {
 	actionState.registerAction(Action.Jump);
 
 	// 调试：检查创建的实例
-	print(`[spawnPlayer] InputMap type: ${typeOf(inputMap)}, has insert: ${"insert" in (inputMap as unknown as Record<string, unknown>)}`);
-	print(`[spawnPlayer] ActionState type: ${typeOf(actionState)}, has justPressed: ${"justPressed" in (actionState as unknown as Record<string, unknown>)}`);
-	print(`[spawnPlayer] InputMap is valid: ${inputMap !== undefined}`);
-	print(`[spawnPlayer] ActionState is valid: ${actionState !== undefined}`);
+	usePrintDebounce(`[spawnPlayer] InputMap type: ${typeOf(inputMap)}, has insert: ${"insert" in (inputMap as unknown as Record<string, unknown>)}`, 10);
+	usePrintDebounce(`[spawnPlayer] ActionState type: ${typeOf(actionState)}, has justPressed: ${"justPressed" in (actionState as unknown as Record<string, unknown>)}`, 10);
+	usePrintDebounce(`[spawnPlayer] InputMap is valid: ${inputMap !== undefined}`, 10);
+	usePrintDebounce(`[spawnPlayer] ActionState is valid: ${actionState !== undefined}`, 10);
 
 	// 生成玩家实体 - 使用占位符，真实实例通过 InstanceManager 管理
 	const entity = world.spawn(
@@ -111,36 +112,36 @@ function spawnPlayer(world: World, context: Context): void {
 	if (instanceManager) {
 		instanceManager.registerInputMap(entity, inputMap);
 		instanceManager.registerActionState(entity, actionState);
-		print(`[spawnPlayer] ✅ Manually registered instances for entity ${entity}`);
+		usePrintDebounce(`[spawnPlayer] ✅ Manually registered instances for entity ${entity}`, 10);
 
 		// 🔥 验证注册是否成功
 		const verifyInputMap = instanceManager.getInputMap(entity);
 		const verifyActionState = instanceManager.getActionState(entity);
-		print(`[spawnPlayer] 🔍 验证注册 - InputMap: ${verifyInputMap !== undefined}, ActionState: ${verifyActionState !== undefined}`);
+		usePrintDebounce(`[spawnPlayer] 🔍 验证注册 - InputMap: ${verifyInputMap !== undefined}, ActionState: ${verifyActionState !== undefined}`, 10);
 
 		if (verifyActionState) {
 			const jumpAction = verifyActionState.getActionByHash(Action.Jump.hash());
-			print(`[spawnPlayer] 🔍 Jump 动作已注册: ${jumpAction !== undefined}`);
+			usePrintDebounce(`[spawnPlayer] 🔍 Jump 动作已注册: ${jumpAction !== undefined}`, 10);
 
 			// 测试初始状态
 			const initialPressed = verifyActionState.pressed(Action.Jump);
 			const initialJustPressed = verifyActionState.justPressed(Action.Jump);
-			print(`[spawnPlayer] 🔍 初始状态 - pressed: ${initialPressed}, justPressed: ${initialJustPressed}`);
+			usePrintDebounce(`[spawnPlayer] 🔍 初始状态 - pressed: ${initialPressed}, justPressed: ${initialJustPressed}`, 10);
 		}
 
 		// 🔥 检查 InstanceManager 的内部状态
 		const managerRecord = instanceManager as unknown as Record<string, unknown>;
-		print(`[spawnPlayer] 🔍 InstanceManager 属性: ${Object.keys(managerRecord).join(", ")}`);
+		usePrintDebounce(`[spawnPlayer] 🔍 InstanceManager 属性: ${Object.keys(managerRecord).join(", ")}`, 10);
 
 	} else {
-		print(`[spawnPlayer] ❌ Could not get InputInstanceManager`);
+		usePrintDebounce(`[spawnPlayer] ❌ Could not get InputInstanceManager`, 10);
 	}
 
-	print("========================================");
-	print("Minimal Input Manager Example");
-	print("Controls:");
-	print("  Space - Jump");
-	print("========================================");
+	usePrintDebounce("========================================", 10);
+	usePrintDebounce("Minimal Input Manager Example", 10);
+	usePrintDebounce("Controls:", 10);
+	usePrintDebounce("  Space - Jump", 10);
+	usePrintDebounce("========================================", 10);
 }
 
 /**
@@ -152,69 +153,67 @@ function debugInstanceRegistration(world: World, context: Context): void {
 	}
 
 	// 每10秒打印一次基本状态
-	if (tick() % 600 === 0) {
-		print("🔍 [debugInstanceRegistration] POST_UPDATE 系统运行中");
-	}
+	usePrintDebounce("🔍 [debugInstanceRegistration] POST_UPDATE 系统运行中", 10);
 
 	const instanceManager = getInputInstanceManager(context, Action);
 	if (!instanceManager) {
-		print("[debug] ERROR: Could not get InputInstanceManager");
+		usePrintDebounce("[debug] ERROR: Could not get InputInstanceManager", 2);
 		return;
 	}
 
 	// 检查 InputManagerPlugin.updateActionState 使用的查询条件
-	print("[debug] === Checking entities with InputMapComponent + ActionStateComponent ===");
+	usePrintDebounce("[debug] === Checking entities with InputMapComponent + ActionStateComponent ===", 10);
 	let foundWithoutInputEnabled = 0;
 	for (const [entity, inputMap, actionState] of world.query(InputMapComponent, ActionStateComponent)) {
 		foundWithoutInputEnabled++;
-		print(`[debug] Entity ${entity}: Found in updateActionState query`);
-		
+		usePrintDebounce(`[debug] Entity ${entity}: Found in updateActionState query`, 5);
+
 		// 检查组件内容
-		print(`[debug] Entity ${entity}: InputMap type=${typeOf(inputMap)}, ActionState type=${typeOf(actionState)}`);
+		usePrintDebounce(`[debug] Entity ${entity}: InputMap type=${typeOf(inputMap)}, ActionState type=${typeOf(actionState)}`, 5);
 		
 		// 检查是否是真实的实例
 		const isRealInputMap = inputMap && typeOf(inputMap) === "table" && "insert" in (inputMap as unknown as Record<string, unknown>);
 		const isRealActionState = actionState && typeOf(actionState) === "table" && "justPressed" in (actionState as unknown as Record<string, unknown>);
-		print(`[debug] Entity ${entity}: RealInputMap=${isRealInputMap}, RealActionState=${isRealActionState}`);
+		usePrintDebounce(`[debug] Entity ${entity}: RealInputMap=${isRealInputMap}, RealActionState=${isRealActionState}`, 5);
 		
 		// 更详细的调试信息
 		if (inputMap && typeOf(inputMap) === "table") {
 			const inputMapRecord = inputMap as unknown as Record<string, unknown>;
 			const keys = Object.keys(inputMapRecord);
-			print(`[debug] Entity ${entity}: InputMap keys: ${keys.size() > 0 ? keys.join(", ") : "EMPTY"}`);
+			usePrintDebounce(`[debug] Entity ${entity}: InputMap keys: ${keys.size() > 0 ? keys.join(", ") : "EMPTY"}`, 5);
 		} else {
-			print(`[debug] Entity ${entity}: InputMap is nil or not a table`);
+			usePrintDebounce(`[debug] Entity ${entity}: InputMap is nil or not a table`, 5);
 		}
 		
 		if (actionState && typeOf(actionState) === "table") {
 			const actionStateRecord = actionState as unknown as Record<string, unknown>;
 			const keys = Object.keys(actionStateRecord);
-			print(`[debug] Entity ${entity}: ActionState keys: ${keys.size() > 0 ? keys.join(", ") : "EMPTY"}`);
+			usePrintDebounce(`[debug] Entity ${entity}: ActionState keys: ${keys.size() > 0 ? keys.join(", ") : "EMPTY"}`, 5);
 		} else {
-			print(`[debug] Entity ${entity}: ActionState is nil or not a table`);
+			usePrintDebounce(`[debug] Entity ${entity}: ActionState is nil or not a table`, 5);
 		}
 	}
-	print(`[debug] Total entities found by updateActionState query: ${foundWithoutInputEnabled}`);
+	usePrintDebounce(`[debug] Total entities found by updateActionState query: ${foundWithoutInputEnabled}`, 10);
 
 	// 检查我们调试系统使用的查询条件
-	print("[debug] === Checking entities with full components ===");
+	usePrintDebounce("[debug] === Checking entities with full components ===", 10);
 	for (const [entity, inputMap, actionState, inputEnabled] of world.query(InputMapComponent, ActionStateComponent, InputEnabled)) {
-		print(`[debug] Entity ${entity}: InputEnabled=${inputEnabled.enabled}`);
-		
+		usePrintDebounce(`[debug] Entity ${entity}: InputEnabled=${inputEnabled.enabled}`, 5);
+
 		const registeredInputMap = instanceManager.getInputMap(entity);
 		const registeredActionState = instanceManager.getActionState(entity);
-		
-		print(`[debug] Entity ${entity}: RegisteredInputMap=${registeredInputMap !== undefined}, RegisteredActionState=${registeredActionState !== undefined}`);
+
+		usePrintDebounce(`[debug] Entity ${entity}: RegisteredInputMap=${registeredInputMap !== undefined}, RegisteredActionState=${registeredActionState !== undefined}`, 5);
 		
 		if (registeredActionState) {
 			// 检查 ActionState 是否有注册的动作
 			const hasJumpAction = registeredActionState.getActionByHash(Action.Jump.hash());
-			print(`[debug] Entity ${entity}: HasJumpAction=${hasJumpAction !== undefined}`);
-			
+			usePrintDebounce(`[debug] Entity ${entity}: HasJumpAction=${hasJumpAction !== undefined}`, 5);
+
 			if (hasJumpAction) {
 				const isPressed = registeredActionState.pressed(Action.Jump);
 				const justPressed = registeredActionState.justPressed(Action.Jump);
-				print(`[debug] Entity ${entity}: Jump - pressed=${isPressed}, justPressed=${justPressed}`);
+				usePrintDebounce(`[debug] Entity ${entity}: Jump - pressed=${isPressed}, justPressed=${justPressed}`, 3);
 			}
 		}
 	}
@@ -230,21 +229,13 @@ function jump2(world: World, context: Context): void {
 		return;
 	}
 
-	// 防抖：只在特定时刻打印调试信息
-	const currentTick = tick();
-	const shouldLogDebug = currentTick % 60 === 0; // 每60帧（约1秒）打印一次
-
-	// 每10秒打印一次基本状态
-	if (currentTick % 600 === 0) {
-		print("⚡ [jump2] UPDATE 系统运行中");
-	}
+	// 使用防抖打印
+	usePrintDebounce("⚡ [jump2] UPDATE 系统运行中", 10);
 
 	// 获取实例管理器
 	const instanceManager = getInputInstanceManager(context, Action);
 	if (!instanceManager) {
-		if (shouldLogDebug) {
-			print("[jump] ❌ 无法获取 InputInstanceManager");
-		}
+		usePrintDebounce("[jump] ❌ 无法获取 InputInstanceManager", 2);
 		return;
 	}
 
@@ -258,9 +249,7 @@ function jump2(world: World, context: Context): void {
 		// 从实例管理器获取真实的 ActionState 实例
 		const registeredActionState = instanceManager.getActionState(entity);
 		if (!registeredActionState) {
-			if (shouldLogDebug) {
-				print(`[jump] ❌ Entity ${entity} 没有注册的 ActionState`);
-			}
+			usePrintDebounce(`[jump] ❌ Entity ${entity} 没有注册的 ActionState`, 2);
 			continue;
 		}
 
@@ -274,37 +263,34 @@ function jump2(world: World, context: Context): void {
 
 		// 🔥 关键调试：检查 InputManager 的更新状态
 		const inputManagerRecord = instanceManager as unknown as Record<string, unknown>;
-		if (shouldLogDebug) {
-			print(`[jump] InputManager 属性: ${Object.keys(inputManagerRecord).join(", ")}`);
-		}
+		usePrintDebounce(`[jump] InputManager 属性: ${Object.keys(inputManagerRecord).join(", ")}`, 5);
 
 		// 🔥 检查 UserInputService 状态
 		const UserInputService = game.GetService("UserInputService");
 		const keysPressed = UserInputService.GetKeysPressed();
 		const spacePressed = keysPressed.some(key => key.KeyCode === Enum.KeyCode.Space);
 
-		if (shouldLogDebug) {
-			print(`[jump] Roblox UserInputService - Space pressed: ${spacePressed}`);
-			print(`[jump] Total keys pressed: ${keysPressed.size()}`);
+		// 当有按键时立即打印
+		if (spacePressed) {
+			print(`🔴 [jump] 检测到空格键！Roblox UserInputService - Space pressed: true`);
+		}
+		if (keysPressed.size() > 0) {
+			usePrintDebounce(`[jump] 当前按下的键数量: ${keysPressed.size()}`, 1);
 		}
 
 		// 🔥 检查 ActionState 的内部状态
 		const actionStateRecord = registeredActionState as unknown as Record<string, unknown>;
-		if (shouldLogDebug) {
-			print(`[jump] ActionState 内部属性: ${Object.keys(actionStateRecord).join(", ")}`);
-		}
+		usePrintDebounce(`[jump] ActionState 内部属性: ${Object.keys(actionStateRecord).join(", ")}`, 5);
 
-		// 任何输入状态变化都要打印
+		// 任何输入状态变化都要打印（保持立即打印，因为这是关键调试信息）
 		if (directPressed || directJustPressed || directJustReleased || wrapperJustPressed || spacePressed) {
 			print(`[jump] 🎯 输入检测 - Roblox Space: ${spacePressed}, ActionState pressed: ${directPressed}, justPressed: ${directJustPressed}, justReleased: ${directJustReleased}`);
 			print(`[jump] 🎯 Wrapper justPressed: ${wrapperJustPressed}`);
 		}
 
-		// 每秒显示系统运行状态
-		if (shouldLogDebug) {
-			print(`[jump] 📊 系统状态 - 实体: ${entity}, 输入启用: ${inputEnabled.enabled}`);
-			print(`[jump] 📊 ActionState 状态 - pressed: ${directPressed}, justPressed: ${directJustPressed}`);
-		}
+		// 定期显示系统运行状态
+		usePrintDebounce(`[jump] 📊 系统状态 - 实体: ${entity}, 输入启用: ${inputEnabled.enabled}`, 3);
+		usePrintDebounce(`[jump] 📊 ActionState 状态 - pressed: ${directPressed}, justPressed: ${directJustPressed}`, 3);
 
 		// 检查任何输入状态变化
 		if (directJustPressed || wrapperJustPressed) {
@@ -322,16 +308,14 @@ function jump2(world: World, context: Context): void {
 	}
 
 	// 防抖的总体调试信息
-	if (shouldLogDebug) {
-		print(`[jump] 📈 总览 - 玩家实体: ${totalPlayerEntities}, 有注册状态: ${entitiesWithRegisteredState}`);
-	}
+	usePrintDebounce(`[jump] 📈 总览 - 玩家实体: ${totalPlayerEntities}, 有注册状态: ${entitiesWithRegisteredState}`, 5);
 }
 
 /**
  * 主函数 - 对应 Rust 版本的 main 函数
  */
 export function main(): App {
-	print("🚀 [main] 开始创建 App");
+	print("🚀 [main] 开始创建 App", 10);
 
 	const app = App.create()
 		// 添加默认插件
@@ -348,13 +332,13 @@ export function main(): App {
 		// 使用查询在你的系统中读取 ActionState！
 		.addClientSystems(MainScheduleLabel.UPDATE, jump2);
 
-	print("🚀 [main] App 创建完成，准备运行");
+		print("🚀 [main] App 创建完成，准备运行", 10);
 	return app;
 }
 
 // 创建并运行应用
-print("🎬 [main] 开始运行应用");
+print("🎬 [main] 开始运行应用", 10);
 const app = main();
-print("🎬 [main] 调用 app.run()");
+print("🎬 [main] 调用 app.run()", 10);
 app.run();
-print("🎬 [main] app.run() 执行完毕");
+print("🎬 [main] app.run() 执行完毕", 10);

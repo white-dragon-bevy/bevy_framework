@@ -16,6 +16,8 @@ import { InputMapComponent, ActionStateComponent } from "./components";
 import * as Systems from "../systems";
 import { Instant } from "../instant";
 import { getInputInstanceManager } from "./context-helpers";
+import { usePrintDebounce } from "../../utils";
+import { InputInstanceManagerResource } from "./input-instance-manager-resource";
 
 /**
  * Creates an adapter for the tickActionState system
@@ -23,7 +25,7 @@ import { getInputInstanceManager } from "./context-helpers";
  * @returns A Matter-compatible system function
  */
 export function createTickActionStateAdapter<A extends Actionlike>(
-	actionType: (new (...args: any[]) => A) & { name: string },
+	instanceManager: InputInstanceManagerResource<A>,
 ) {
 	return (world: BevyWorld, context: Context): void => {
 		// Get resource-level ActionState if it exists
@@ -31,25 +33,6 @@ export function createTickActionStateAdapter<A extends Actionlike>(
 			ActionState as any,
 		);
 
-		// 🔥 FIX: Use InputInstanceManager to get real ActionState instances
-		const instanceManager = getInputInstanceManager(context, actionType);
-
-		if (!instanceManager) {
-			// Fallback to original behavior if no instance manager
-			const query: Array<{ actionState: ActionState<A> }> = [];
-			for (const [entity, actionStateData] of world.query(ActionStateComponent)) {
-				const actionState = actionStateData as unknown as ActionState<A>;
-				query.push({ actionState });
-			}
-
-			const currentTime = os.clock();
-			const contextData = context as unknown as { __previousTickTime?: number };
-			const previousTime = contextData.__previousTickTime ?? currentTime;
-			contextData.__previousTickTime = currentTime;
-
-			Systems.tickActionState(world, query, resourceActionState, currentTime, previousTime);
-			return;
-		}
 
 		// Build query using real ActionState instances from InputInstanceManager
 		const query: Array<{ actionState: ActionState<A> }> = [];
@@ -84,9 +67,13 @@ export function createUpdateActionStateAdapter<A extends Actionlike>(
 	actionType: (new (...args: any[]) => A) & { name: string },
 ) {
 	return (world: BevyWorld, context: Context): void => {
+		// 使用防抖打印
+		usePrintDebounce(`[updateActionState] 📍 系统执行中 - Action类型: ${actionType.name}`, 10);
+
 		// Get required resources
-		const inputStore = world.resources.getResource<CentralInputStore>(CentralInputStore as any);
+		const inputStore = world.resources.getResource<CentralInputStore>();
 		if (!inputStore) {
+			usePrintDebounce(`[updateActionState] ❌ 无法获取 CentralInputStore 资源`, 10);
 			return;
 		}
 
@@ -100,6 +87,23 @@ export function createUpdateActionStateAdapter<A extends Actionlike>(
 
 		// 🔥 FIX: Use InputInstanceManager to get real instances instead of placeholder components
 		const instanceManager = getInputInstanceManager(context, actionType);
+
+		// 调试: 检查 InstanceManager 状态
+		usePrintDebounce(`[updateActionState] 🔍 InstanceManager 存在: ${instanceManager !== undefined}`, 10);
+		if (instanceManager) {
+			const managerDebug = instanceManager as unknown as {
+				getActionType(): string;
+				inputMaps?: Map<number, unknown>;
+				actionStates?: Map<number, unknown>;
+			};
+			usePrintDebounce(`[updateActionState] 🔍 ActionType: ${managerDebug.getActionType()}`, 10);
+			if (managerDebug.inputMaps) {
+				usePrintDebounce(`[updateActionState] 🔍 已注册 InputMaps: ${managerDebug.inputMaps.size()}`, 10);
+			}
+			if (managerDebug.actionStates) {
+				usePrintDebounce(`[updateActionState] 🔍 已注册 ActionStates: ${managerDebug.actionStates.size()}`, 10);
+			}
+		}
 
 		if (!instanceManager) {
 			// Fallback to original behavior if no instance manager
@@ -118,21 +122,51 @@ export function createUpdateActionStateAdapter<A extends Actionlike>(
 
 		// Build query using real instances from InputInstanceManager
 		const query: Array<{ actionState: ActionState<A>; inputMap: InputMap<A> }> = [];
+		let foundEntities = 0;
+		let registeredEntities = 0;
+
 		for (const [entity, actionStateData, inputMapData] of world.query(
 			ActionStateComponent,
 			InputMapComponent,
 		)) {
+			foundEntities++;
+
 			// Get real instances from InputInstanceManager
 			const realActionState = instanceManager.getActionState(entity);
 			const realInputMap = instanceManager.getInputMap(entity);
 
+			// 调试：详细打印实体实例状态
+			if (foundEntities === 1) {
+				usePrintDebounce(`[updateActionState] 🔍 实体 ${entity} 检查:`, 5);
+				usePrintDebounce(`[updateActionState]   - ActionState 存在: ${realActionState !== undefined}`, 5);
+				usePrintDebounce(`[updateActionState]   - InputMap 存在: ${realInputMap !== undefined}`, 5);
+
+				if (realActionState) {
+					const jumpRegistered = realActionState.getActionByHash("Action_Jump") !== undefined;
+					usePrintDebounce(`[updateActionState]   - Jump 动作已注册: ${jumpRegistered}`, 5);
+				}
+
+				if (!realActionState || !realInputMap) {
+					usePrintDebounce(`[updateActionState] ⚠️ 实体 ${entity} 缺少实例`, 5);
+				}
+			}
+
 			// Only process entities that have both real instances registered
 			if (realActionState && realInputMap) {
+				registeredEntities++;
 				query.push({
 					actionState: realActionState,
 					inputMap: realInputMap
 				});
 			}
+		}
+
+		// 使用防抖打印报告实体状态
+		usePrintDebounce(`[updateActionState] 📊 找到实体: ${foundEntities}, 已注册: ${registeredEntities}`, 10);
+
+		// 调试：打印查询状态
+		if (query.size() === 0) {
+			usePrintDebounce(`[updateActionState] ⚠️ 查询为空，没有有效的实体进行处理`, 5);
 		}
 
 		// Call the Rust-style system function with real instances
@@ -232,7 +266,7 @@ export function createSwapToFixedUpdateAdapter<A extends Actionlike>(
  */
 export function createClearCentralInputStoreAdapter() {
 	return (world: BevyWorld, context: Context): void => {
-		const inputStore = world.resources.getResource<CentralInputStore>(CentralInputStore as any);
+		const inputStore = world.resources.getResource<CentralInputStore>();
 		if (inputStore) {
 			Systems.clearCentralInputStore(inputStore);
 		}
@@ -297,11 +331,11 @@ export function createSystemAdapters<A extends Actionlike>(
 	actionType: (new (...args: any[]) => A) & { name: string },
 ) {
 	return {
-		tickActionState: createTickActionStateAdapter(actionType),
-		updateActionState: createUpdateActionStateAdapter(actionType),
-		swapToUpdate: createSwapToUpdateAdapter(actionType),
-		swapToFixedUpdate: createSwapToFixedUpdateAdapter(actionType),
-		clearCentralInputStore: createClearCentralInputStoreAdapter(),
-		releaseOnWindowFocusLost: createReleaseOnWindowFocusLostAdapter(actionType),
+		tickActionState: createTickActionStateAdapter,
+		updateActionState: createUpdateActionStateAdapter,
+		swapToUpdate: createSwapToUpdateAdapter	,
+		swapToFixedUpdate: createSwapToFixedUpdateAdapter,
+		clearCentralInputStore: createClearCentralInputStoreAdapter,
+		releaseOnWindowFocusLost: createReleaseOnWindowFocusLostAdapter,
 	};
 }

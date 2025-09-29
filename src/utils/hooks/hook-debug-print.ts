@@ -1,6 +1,6 @@
 import { useHookState } from "@rbxts/matter"
 
-const DEBOUNCE_TIME = 10
+const DEBOUNCE_TIME = 30
 
  function cleanup(storage: {lastPrintTime?: number}){
 	return os.clock() < storage.lastPrintTime! + DEBOUNCE_TIME*2
@@ -11,7 +11,7 @@ const DEBOUNCE_TIME = 10
 	lastPrintTime?: number
  }
 /**
- * 防抖调试打印钩子
+ * 防抖打印
  * 每次打印后10秒内不再打印
  * @param message - 要打印的消息
  * @param debounceTime - 防抖时间, 默认 10秒

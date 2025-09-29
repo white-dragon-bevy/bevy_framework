@@ -204,8 +204,14 @@ export class ActionState<Action extends Actionlike> {
 				return;
 			}
 
-			const currentActionData = this.actionData.get(actionHash) || ActionData.default();
-			const currentButtonData = this.buttonData.get(actionHash) || ButtonData.default();
+			// 确保 action被注册
+			if (!this.actionData.has(actionHash)) {
+				this.actionData.set(actionHash, ActionData.default());
+				this.buttonData.set(actionHash, ButtonData.default());
+			}
+
+			const currentActionData = this.actionData.get(actionHash)!;
+			const currentButtonData = this.buttonData.get(actionHash)!;
 			const wasPressed = currentActionData.pressed;
 
 			// Update action data
@@ -218,6 +224,12 @@ export class ActionState<Action extends Actionlike> {
 
 			// Update button data
 			currentButtonData.update(newActionData.pressed, wasPressed);
+
+			// 调试：记录更新
+			if (actionHash.find("jump")[0] && newActionData.pressed) {
+				print(`[ActionState.updateFromUpdatedActions] 🔄 更新 Jump - pressed: ${newActionData.pressed}, value: ${newActionData.value}`);
+				print(`[ActionState.updateFromUpdatedActions] 🔄 当前状态 - pressed: ${currentActionData.pressed}, justPressed: ${currentButtonData.justPressed}`);
+			}
 
 			this.actionData.set(actionHash, currentActionData);
 			this.buttonData.set(actionHash, currentButtonData);
@@ -303,6 +315,11 @@ export class ActionState<Action extends Actionlike> {
 		const hash = action.hash();
 		if (!this.hashToAction.has(hash)) {
 			this.hashToAction.set(hash, action);
+			// 确保 actionData 和 buttonData 被初始化
+			if (!this.actionData.has(hash)) {
+				this.actionData.set(hash, ActionData.default());
+				this.buttonData.set(hash, ButtonData.default());
+			}
 		}
 	}
 
