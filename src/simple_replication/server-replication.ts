@@ -87,8 +87,11 @@ export function serverReplicationSystem(
 			}
 		}
 
-		debugLog("Setting initial replication", playerId, player.Name, playerPayload);
-		changes.set(tostring(player.UserId), playerPayload);
+		// Only set the payload if there's actually data to send
+		if (next(playerPayload)[0] !== undefined) {
+			debugLog("Setting initial replication", playerId, player.Name, playerPayload);
+			changes.set(tostring(player.UserId), playerPayload);
+		}
 	}
 
 	// 处理需要复制到所有玩家的组件变化

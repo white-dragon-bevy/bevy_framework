@@ -3,6 +3,7 @@
  */
 
 import { World, component } from "@rbxts/matter";
+import { Loop } from "../../bevy_ecs/schedule/loop";
 import { serverReplicationSystem } from "../server-replication";
 import { MockNetworkAdapter } from "../network";
 import { SimpleContext, SimpleState, ClientComponent } from "../types";
@@ -61,8 +62,13 @@ export = () => {
 			// 创建一个带有复制组件的实体
 			const entity = world.spawn(ReplicatedComponent({ data: "test" }));
 
-			// 运行系统
-			serverReplicationSystem(world, state, context, mockAdapter);
+			// 使用 bevy_ecs 的 Loop
+			const loop = new Loop(world);
+			const wrappedSystem = (w: World) => serverReplicationSystem(w, state, context, mockAdapter);
+			loop.scheduleSystems([wrappedSystem]);
+
+			// 使用 step 方法执行一帧
+			loop.step("default", 1/60);
 
 			// 验证没有发送消息
 			expect(mockAdapter.sentMessages.size()).to.equal(0);
@@ -75,17 +81,22 @@ export = () => {
 			const entity1 = world.spawn(ReplicatedComponent({ data: "entity1" }));
 			const entity2 = world.spawn(ReplicatedComponent({ data: "entity2" }));
 
+			// 使用 bevy_ecs 的 Loop
+			const loop = new Loop(world);
+			const wrappedSystem = (w: World) => serverReplicationSystem(w, state, context, mockAdapter);
+			loop.scheduleSystems([wrappedSystem]);
+
+			// 先运行一帧，让 Loop 记录初始状态
+			loop.step("default", 1/60);
+
 			// 创建一个客户端
 			const player = { Name: "TestPlayer", UserId: 123 } as Player;
 			const clientEntity = world.spawn(
 				ClientComponentCtor({ player: player, loaded: true } as any),
 			);
 
-			// 标记客户端组件为新建
-			world.insert(clientEntity, ClientComponentCtor({ player: player, loaded: true } as any));
-
-			// 运行系统
-			serverReplicationSystem(world, state, context, mockAdapter);
+			// 再运行一帧，此时 queryChanged 能检测到新客户端
+			loop.step("default", 1/60);
 
 			// 验证发送了初始状态
 			expect(mockAdapter.sentMessages.size() > 0).to.equal(true);
@@ -115,8 +126,13 @@ export = () => {
 			// 修改组件以触发变更检测
 			world.insert(entity, ReplicatedComponent({ data: "modified" }));
 
-			// 运行系统
-			serverReplicationSystem(world, state, context, mockAdapter);
+			// 使用 bevy_ecs 的 Loop
+			const loop = new Loop(world);
+			const wrappedSystem = (w: World) => serverReplicationSystem(w, state, context, mockAdapter);
+			loop.scheduleSystems([wrappedSystem]);
+
+			// 使用 step 方法执行一帧
+			loop.step("default", 1/60);
 
 			// 验证向两个玩家都发送了数据
 			const sentToPlayer1 = mockAdapter.sentMessages.filter(
@@ -151,8 +167,13 @@ export = () => {
 			// 给 client1 添加 SelfOnly 组件
 			world.insert(client1, SelfOnlyComponent({ personal: true }));
 
-			// 运行系统
-			serverReplicationSystem(world, state, context, mockAdapter);
+			// 使用 bevy_ecs 的 Loop
+			const loop = new Loop(world);
+			const wrappedSystem = (w: World) => serverReplicationSystem(w, state, context, mockAdapter);
+			loop.scheduleSystems([wrappedSystem]);
+
+			// 使用 step 方法执行一帧
+			loop.step("default", 1/60);
 
 			// 验证只向 player1 发送了数据
 			const sentToPlayer1 = mockAdapter.sentMessages.filter(
@@ -180,8 +201,13 @@ export = () => {
 			// 创建一个带有复制组件的实体
 			const entity = world.spawn(ReplicatedComponent({ data: "test" }));
 
-			// 运行系统
-			serverReplicationSystem(world, state, context, mockAdapter);
+			// 使用 bevy_ecs 的 Loop
+			const loop = new Loop(world);
+			const wrappedSystem = (w: World) => serverReplicationSystem(w, state, context, mockAdapter);
+			loop.scheduleSystems([wrappedSystem]);
+
+			// 使用 step 方法执行一帧
+			loop.step("default", 1/60);
 
 			// 验证没有向未加载的客户端发送数据
 			expect(mockAdapter.sentMessages.size()).to.equal(0);
@@ -202,8 +228,13 @@ export = () => {
 			const entity = world.spawn(ReplicatedComponent({ data: "temporary" }));
 			world.despawn(entity);
 
-			// 运行系统
-			serverReplicationSystem(world, state, context, mockAdapter);
+			// 使用 bevy_ecs 的 Loop
+			const loop = new Loop(world);
+			const wrappedSystem = (w: World) => serverReplicationSystem(w, state, context, mockAdapter);
+			loop.scheduleSystems([wrappedSystem]);
+
+			// 使用 step 方法执行一帧
+			loop.step("default", 1/60);
 
 			// 系统应该正常运行，不会因为实体不存在而出错
 			expect(mockAdapter.sentMessages.size()).to.be.ok();
@@ -226,8 +257,13 @@ export = () => {
 			);
 			const entity = world.spawn(ReplicatedComponent({ data: "debug" }));
 
-			// 运行系统
-			serverReplicationSystem(world, state, context, mockAdapter);
+			// 使用 bevy_ecs 的 Loop
+			const loop = new Loop(world);
+			const wrappedSystem = (w: World) => serverReplicationSystem(w, state, context, mockAdapter);
+			loop.scheduleSystems([wrappedSystem]);
+
+			// 使用 step 方法执行一帧
+			loop.step("default", 1/60);
 
 			// 验证数据被发送 (当 debugEnabled 为 true 时，系统会调用 print)
 			const sentMessages = mockAdapter.sentMessages.filter(

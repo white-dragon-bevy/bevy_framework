@@ -9,6 +9,7 @@ import { World, component } from "@rbxts/matter";
 import { SimpleReplicationPlugin } from "../plugin";
 import { MockNetworkAdapter } from "../network";
 import { ComponentCtor } from "../types";
+import { TypeDescriptor } from "../../bevy_core/reflect";
 
 export = () => {
 	describe("SimpleReplicationPlugin Integration", () => {
@@ -49,15 +50,35 @@ export = () => {
 			app.finish();
 
 			// 获取注入的网络适配器资源
-			const injectedAdapter = app.getResource(MockNetworkAdapter as any);
+			const adapterDescriptor: TypeDescriptor = {
+				id: "SimpleReplicationPlugin.NetworkAdapter",
+				text: "NetworkAdapter",
+			};
+			const injectedAdapter = app.getResourceByTypeDescriptor(adapterDescriptor);
 
 			// 验证适配器被正确注入
 			expect(injectedAdapter).to.equal(mockAdapter);
 		});
 
 		it("should allow simulating network data reception", () => {
+			// 创建客户端模式的应用来测试数据接收
+			const clientApp = App.create();
+			const clientPlugin = new SimpleReplicationPlugin(
+				mockAdapter,
+				{
+					debugEnabled: false,
+					updateRate: 60,
+					forceMode: "client", // 强制客户端模式
+				},
+				{
+					toAllPlayers: new Set([PositionComponent as any, HealthComponent as any]),
+					toSelfOnly: new Set([PlayerComponent as any]),
+				},
+			);
+			clientApp.addPlugin(clientPlugin);
+
 			// 完成应用设置
-			app.finish();
+			clientApp.finish();
 
 			// 模拟接收网络数据
 			const testData = new Map([
@@ -73,7 +94,7 @@ export = () => {
 			mockAdapter.simulateReceive(testData);
 
 			// 运行一帧以处理数据
-			app.update();
+			clientApp.update();
 
 			// 验证数据被处理（通过检查 getPendingData 是否被清空）
 			const pendingData = mockAdapter.getPendingData();
@@ -177,7 +198,11 @@ export = () => {
 				customApp.finish();
 
 				// 验证插件被正确配置
-				const injectedAdapter = customApp.getResource(MockNetworkAdapter as any);
+				const adapterDescriptor: TypeDescriptor = {
+					id: "SimpleReplicationPlugin.NetworkAdapter",
+					text: "NetworkAdapter",
+				};
+				const injectedAdapter = customApp.getResourceByTypeDescriptor(adapterDescriptor);
 				expect(injectedAdapter).to.equal(mockAdapter);
 			});
 
@@ -195,7 +220,17 @@ export = () => {
 
 		describe("Data Flow Testing", () => {
 			it("should simulate complete client-server data flow", () => {
-				app.finish();
+				// 创建客户端模式的应用
+				const clientApp = App.create();
+				const clientPlugin = new SimpleReplicationPlugin(
+					mockAdapter,
+					{ debugEnabled: false, forceMode: "client" },
+					{
+						toAllPlayers: new Set([PositionComponent as any]),
+					},
+				);
+				clientApp.addPlugin(clientPlugin);
+				clientApp.finish();
 
 				// Step 1: 模拟服务器发送数据
 				const serverData = new Map([
@@ -211,7 +246,7 @@ export = () => {
 				mockAdapter.simulateReceive(serverData);
 
 				// Step 3: 运行客户端系统处理数据
-				app.update();
+				clientApp.update();
 
 				// Step 4: 验证数据已被处理
 				const remaining = mockAdapter.getPendingData();
@@ -220,13 +255,20 @@ export = () => {
 			});
 
 			it("should handle empty data gracefully", () => {
-				app.finish();
+				// 创建客户端模式的应用
+				const clientApp = App.create();
+				const clientPlugin = new SimpleReplicationPlugin(
+					mockAdapter,
+					{ debugEnabled: false, forceMode: "client" },
+				);
+				clientApp.addPlugin(clientPlugin);
+				clientApp.finish();
 
 				// 模拟接收空数据
 				mockAdapter.simulateReceive(new Map());
 
 				// 运行系统
-				app.update();
+				clientApp.update();
 
 				// 系统应该正常运行
 				const pending = mockAdapter.getPendingData();

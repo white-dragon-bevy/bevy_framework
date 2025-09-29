@@ -6,7 +6,7 @@
 
 import { BasePlugin, App, BuiltinSchedules } from "../bevy_app";
 import { RunService } from "@rbxts/services";
-import { World, AnyEntity, AnyComponent } from "@rbxts/matter";
+import { World, AnyEntity, AnyComponent, component } from "@rbxts/matter";
 import {
 	ComponentCtor,
 	SimpleReplicationConfig,
@@ -16,6 +16,7 @@ import {
 import { serverReplicationSystem } from "./server-replication";
 import { clientReceiveSystem, createClientReceiveSystem } from "./client-receive";
 import { INetworkAdapter, DefaultNetworkAdapter } from "./network";
+import { TypeDescriptor } from "../bevy_core/reflect";
 
 /**
  * 简单复制插件
@@ -95,10 +96,20 @@ export class SimpleReplicationPlugin extends BasePlugin {
 		// 将上下文、状态和网络适配器存储为资源
 		app.insertResource(context);
 		app.insertResource(state);
-		app.insertResource(this.networkAdapter);
+
+		// 使用 TypeDescriptor 存储网络适配器
+		const adapterDescriptor: TypeDescriptor = {
+			id: "SimpleReplicationPlugin.NetworkAdapter",
+			text: "NetworkAdapter",
+		};
+		app.insertResourceByTypeDescriptor(this.networkAdapter, adapterDescriptor);
 
 		// 根据运行环境添加相应的系统
-		if (RunService.IsServer()) {
+		const isServer = this.config.forceMode
+			? this.config.forceMode === "server"
+			: RunService.IsServer();
+
+		if (isServer) {
 			this.setupServer(app, context, state);
 		} else {
 			this.setupClient(app, context, state);
@@ -114,9 +125,13 @@ export class SimpleReplicationPlugin extends BasePlugin {
 		// 获取或创建组件映射
 		const components = this.getComponentsMap(app);
 
+		const isServer = this.config.forceMode
+			? this.config.forceMode === "server"
+			: RunService.IsServer();
+
 		return {
-			IsEcsServer: RunService.IsServer(),
-			IsClient: RunService.IsClient(),
+			IsEcsServer: isServer,
+			IsClient: !isServer,
 			Replicated: {
 				ToAllPlayers: this.replicatedComponents.toAllPlayers,
 				ToSelfOnly: this.replicatedComponents.toSelfOnly,
@@ -153,15 +168,28 @@ export class SimpleReplicationPlugin extends BasePlugin {
 	 * @returns 组件映射
 	 */
 	private getComponentsMap(app: App): Record<string, ComponentCtor> {
-		// 这里应该从应用中获取已注册的组件
-		// 暂时返回空对象，实际使用时需要注册组件
-		const components: Record<string, ComponentCtor> = {};
+		// 创建默认的客户端组件
+		const ClientComponent = component<{
+			player: Player;
+			loaded: boolean;
+		}>("Client");
 
-		// 如果应用有组件注册表，从中获取
-		const world = app.getWorld();
-		if (world !== undefined) {
-			// 这里需要实现组件注册逻辑
-			// 例如: components = app.getRegisteredComponents();
+		const components: Record<string, ComponentCtor> = {
+			Client: ClientComponent as any,
+		};
+
+		// 添加需要复制的组件到映射
+		for (const comp of this.replicatedComponents.toAllPlayers) {
+			// 使用组件的调试名称作为键
+			const compWithName = comp as unknown as { debugName?: string };
+			const name = compWithName.debugName || tostring(comp);
+			components[name] = comp;
+		}
+
+		for (const comp of this.replicatedComponents.toSelfOnly) {
+			const compWithName = comp as unknown as { debugName?: string };
+			const name = compWithName.debugName || tostring(comp);
+			components[name] = comp;
 		}
 
 		return components;

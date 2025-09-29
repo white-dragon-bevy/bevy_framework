@@ -36,6 +36,9 @@ export interface SimpleReplicationConfig {
 
 	/** 最大包大小 */
 	maxPacketSize?: number;
+
+	/** 强制运行模式（主要用于测试） */
+	forceMode?: "server" | "client";
 }
 
 /**
