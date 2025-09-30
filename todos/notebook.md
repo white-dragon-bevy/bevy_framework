@@ -26,12 +26,15 @@
   - 向服务端同步
 - bevy-replicon
   - 测试
+- 状态机或行为树(实体的)
 
 ## 项目目标
 
 - 移植技能系统
 - 移植buff系统
 - 移植简单例子
+- ai
+  - https://github.com/zkat/big-brain
 - 拯救弥豆子框架
 
 ## 完整的开源游戏项目

@@ -13,6 +13,7 @@
 | **资源池系统**   | src/pool.rs               | 定义资源池trait和消耗管理                         |
 | **预制资源池**   | src/premade_pools.rs      | 提供生命值、法力值等预制资源池实现                |
 | **插件架构**     | src/plugin.rs             | 集成Bevy的插件系统                                |
+|                        |                           |                                                   |
 | **系统调度**     | src/systems.rs            | 定义ECS系统的运行逻辑                             |
 | **过程宏**       | macros/src/abilitylike.rs | 自动派生Abilitylike trait                         |
 
