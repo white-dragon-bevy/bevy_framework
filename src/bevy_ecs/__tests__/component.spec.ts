@@ -275,6 +275,414 @@ export = () => {
 		});
 	});
 
+	describe("__value__ 存储和对象访问测试", () => {
+		it("应该正确存储数据在 __value__ 字段", () => {
+			const TestComponent = newComponent<TestComponentData>("TestComponent");
+			const instance = TestComponent({ value: 42, name: "test" });
+
+			// 使用 unknown 类型替代 any
+			const instanceWithValue = instance as unknown as { __value__: TestComponentData };
+			expect(instanceWithValue.__value__).to.be.ok();
+			expect(instanceWithValue.__value__.value).to.equal(42);
+			expect(instanceWithValue.__value__.name).to.equal("test");
+		});
+
+		it("应该通过 __index 元方法正确访问属性", () => {
+			const TestComponent = newComponent<{ prop1: string; prop2: number }>("TestComponent");
+			const instance = TestComponent({ prop1: "value1", prop2: 42 });
+
+			expect(instance.prop1).to.equal("value1");
+			expect(instance.prop2).to.equal(42);
+			// 不存在的属性应该返回 undefined
+			const instanceWithExtra = instance as unknown as { nonExistent?: string };
+			expect(instanceWithExtra.nonExistent).to.equal(undefined);
+		});
+
+		it("应该正确处理嵌套对象", () => {
+			interface NestedData {
+				position: { x: number; y: number; z: number };
+				config: {
+					name: string;
+					settings: {
+						enabled: boolean;
+						level: number;
+					};
+				};
+			}
+
+			const TestComponent = newComponent<NestedData>("TestComponent");
+			const instance = TestComponent({
+				position: { x: 10, y: 20, z: 30 },
+				config: {
+					name: "test",
+					settings: {
+						enabled: true,
+						level: 5,
+					},
+				},
+			});
+
+			expect(instance.position.x).to.equal(10);
+			expect(instance.position.y).to.equal(20);
+			expect(instance.position.z).to.equal(30);
+			expect(instance.config.name).to.equal("test");
+			expect(instance.config.settings.enabled).to.equal(true);
+			expect(instance.config.settings.level).to.equal(5);
+		});
+
+		it("应该正确处理带方法的对象", () => {
+			interface ObjectWithMethods {
+				value: number;
+				getValue(): number;
+				setValue(newValue: number): ObjectWithMethods;
+				multiplyValue(multiplier: number): number;
+			}
+
+			const objectWithMethods: ObjectWithMethods = {
+				value: 10,
+				getValue() {
+					return this.value;
+				},
+				setValue(newValue: number) {
+					this.value = newValue;
+					return this;
+				},
+				multiplyValue(multiplier: number) {
+					return this.value * multiplier;
+				},
+			};
+
+			const TestComponent = newComponent<{ myObject: ObjectWithMethods; otherData: string }>("TestComponent");
+			const instance = TestComponent({
+				myObject: objectWithMethods,
+				otherData: "test",
+			});
+
+			expect(instance.myObject).to.be.ok();
+			expect(instance.myObject.value).to.equal(10);
+			expect(typeIs(instance.myObject.getValue, "function")).to.equal(true);
+
+			// 测试方法调用
+			expect(instance.myObject.getValue()).to.equal(10);
+			expect(instance.myObject.multiplyValue(3)).to.equal(30);
+		});
+
+		it("应该正确处理带元表的对象", () => {
+			// 创建一个简单的类
+			class MyClass {
+				value: number;
+
+				constructor(value: number) {
+					this.value = value;
+				}
+
+				getValue(): number {
+					return this.value;
+				}
+
+				doubleValue(): number {
+					return this.value * 2;
+				}
+			}
+
+			const TestComponent = newComponent<{ object: MyClass; name: string }>("TestComponent");
+			const myInstance = new MyClass(42);
+			const componentInstance = TestComponent({
+				object: myInstance,
+				name: "test",
+			});
+
+			expect(componentInstance.object).to.be.ok();
+			expect(componentInstance.object.value).to.equal(42);
+			expect(componentInstance.object.getValue()).to.equal(42);
+			expect(componentInstance.object.doubleValue()).to.equal(84);
+		});
+
+		it("应该正确处理数组数据", () => {
+			interface ArrayData {
+				items: string[];
+				numbers: number[];
+			}
+
+			const TestComponent = newComponent<ArrayData>("TestComponent");
+			const instance = TestComponent({
+				items: ["item1", "item2", "item3"],
+				numbers: [10, 20, 30, 40],
+			});
+
+			expect(instance.items[0]).to.equal("item1");
+			expect(instance.items[1]).to.equal("item2");
+			expect(instance.items[2]).to.equal("item3");
+			expect(instance.items.size()).to.equal(3);
+
+			expect(instance.numbers[3]).to.equal(40);
+			expect(instance.numbers.size()).to.equal(4);
+		});
+
+		it("应该处理函数作为组件数据", () => {
+			interface FunctionData {
+				calculator: (x: number, y: number) => number;
+				multiplier: (x: number, y: number) => number;
+			}
+
+			const TestComponent = newComponent<FunctionData>("TestComponent");
+			const instance = TestComponent({
+				calculator: (x: number, y: number) => x + y,
+				multiplier: (x: number, y: number) => x * y,
+			});
+
+			expect(instance.calculator).to.be.a("function");
+			expect(instance.calculator(2, 3)).to.equal(5);
+			expect(instance.multiplier(4, 5)).to.equal(20);
+		});
+
+		it("数据字段名与组件方法名冲突时的行为", () => {
+			interface ConflictData {
+				patch: string;
+				new: number;
+			}
+
+			const TestComponent = newComponent<ConflictData>("TestComponent");
+			const instance = TestComponent({
+				patch: "my data",
+				new: 42,
+			});
+
+			// 当数据字段名与方法名冲突时，方法优先
+			// 数据仍然存储在 __value__ 中
+			const instanceWithValue = instance as unknown as { __value__: ConflictData };
+			expect(instanceWithValue.__value__.patch).to.equal("my data");
+			expect(instanceWithValue.__value__.new).to.equal(42);
+
+			// 由于 patch 是方法名，通过 instance.patch 访问的是方法而非数据
+			// 创建一个没有冲突的组件来验证 patch 方法正常工作
+			const NormalComponent = newComponent<{ data: string }>("NormalComponent");
+			const normalInstance = NormalComponent({ data: "test" });
+			const patched = normalInstance.patch({ data: "updated" });
+			expect(patched.data).to.equal("updated");
+			expect(normalInstance.data).to.equal("test");
+		});
+	});
+
+	describe("patch 方法高级测试", () => {
+		it("应该正确 patch 带方法的对象", () => {
+			interface Counter {
+				value: number;
+				increment(): number;
+				reset(): void;
+			}
+
+			const counter: Counter = {
+				value: 0,
+				increment() {
+					this.value = this.value + 1;
+					return this.value;
+				},
+				reset() {
+					this.value = 0;
+				},
+			};
+
+			const TestComponent = newComponent<{ counter: Counter; name: string }>("TestComponent");
+			const original = TestComponent({
+				counter: counter,
+				name: "original",
+			});
+
+			// 创建新的 counter 对象
+			interface ExtendedCounter extends Counter {
+				decrement?(): number;
+			}
+
+			const newCounter: ExtendedCounter = {
+				value: 100,
+				increment() {
+					this.value = this.value + 10;
+					return this.value;
+				},
+				reset() {
+					this.value = 0;
+				},
+				decrement() {
+					this.value = this.value - 1;
+					return this.value;
+				},
+			};
+
+			const patched = original.patch({
+				counter: newCounter as Counter,
+				name: "patched",
+			});
+
+			// 原始对象应该不变
+			expect(original.counter.value).to.equal(0);
+			expect(original.name).to.equal("original");
+
+			// patch 后的对象应该有新的值和方法
+			expect(patched.counter.value).to.equal(100);
+			expect(patched.counter.increment()).to.equal(110);
+			expect(patched.name).to.equal("patched");
+		});
+
+		it("应该正确 patch 嵌套对象", () => {
+			interface ConfigData {
+				config: {
+					level: number;
+					settings: {
+						difficulty: string;
+						sound: boolean;
+						music?: boolean;
+					};
+				};
+			}
+
+			const TestComponent = newComponent<ConfigData>("TestComponent");
+			const original = TestComponent({
+				config: {
+					level: 1,
+					settings: {
+						difficulty: "easy",
+						sound: true,
+					},
+				},
+			});
+
+			const patched = original.patch({
+				config: {
+					level: 2,
+					settings: {
+						difficulty: "hard",
+						sound: false,
+						music: true,
+					},
+				},
+			});
+
+			expect(patched.config.level).to.equal(2);
+			expect(patched.config.settings.difficulty).to.equal("hard");
+			expect(patched.config.settings.sound).to.equal(false);
+			expect(patched.config.settings.music).to.equal(true);
+		});
+
+		it("应该在 patch 后返回冻结的实例", () => {
+			const TestComponent = newComponent<TestComponentData>("TestComponent");
+			const original = TestComponent({ value: 1, name: "test" });
+			const patched = original.patch({ value: 2 });
+
+			expect(table.isfrozen(patched)).to.equal(true);
+
+			expect(() => {
+				(patched as any).value = 3;
+			}).to.throw();
+		});
+
+		it("应该在 patch 后保持组件元表", () => {
+			const TestComponent = newComponent<TestComponentData>("TestComponent");
+			const original = TestComponent({ value: 1, name: "test" });
+			const patched = original.patch({ value: 2 });
+
+			expect(getmetatable(patched)).to.equal(getmetatable(original));
+			expect(getmetatable(patched)).to.equal(TestComponent);
+		});
+
+		it("应该能够添加新字段通过 patch", () => {
+			interface ExtensibleData {
+				field1: string;
+				field2?: string;
+				field3?: number;
+			}
+
+			const TestComponent = newComponent<ExtensibleData>("TestComponent");
+			const original = TestComponent({ field1: "value1" });
+
+			const patched = original.patch({
+				field2: "value2",
+				field3: 42,
+			});
+
+			expect(patched.field1).to.equal("value1");
+			expect(patched.field2).to.equal("value2");
+			expect(patched.field3).to.equal(42);
+		});
+
+		it("应该处理大型对象的 patch 操作", () => {
+			interface LargeData {
+				[key: string]: number;
+			}
+
+			const largeData: LargeData = {};
+			for (let i = 1; i <= 100; i++) {
+				largeData["field" + i] = i * 10;
+			}
+
+			const TestComponent = newComponent<LargeData>("TestComponent");
+			const instance = TestComponent(largeData);
+
+			expect(instance.field1).to.equal(10);
+			expect(instance.field50).to.equal(500);
+			expect(instance.field100).to.equal(1000);
+
+			const patched = instance.patch({
+				field50: 9999,
+				newField: 12345,
+			});
+
+			expect(patched.field50).to.equal(9999);
+			expect(patched.field100).to.equal(1000);
+			expect(patched.newField).to.equal(12345);
+		});
+	});
+
+	describe("边缘情况测试", () => {
+		it("应该处理空组件数据", () => {
+			const TestComponent = newComponent<{}>("EmptyComponent");
+			const instance = TestComponent();
+
+			const instanceWithValue = instance as unknown as { __value__: {} };
+			expect(instanceWithValue.__value__).to.be.ok();
+			// 检查是否为空表 - 使用 next 函数正确判断
+			const [firstKey] = next(instanceWithValue.__value__);
+			const isEmpty = firstKey === undefined;
+			expect(isEmpty).to.equal(true);
+		});
+
+		it("应该处理循环引用", () => {
+			interface CircularData {
+				value: number;
+				self?: CircularData;
+			}
+
+			const data: CircularData = { value: 1 };
+			data.self = data; // 循环引用
+
+			const TestComponent = newComponent<{ circular: CircularData; normal: string }>("TestComponent");
+			const instance = TestComponent({
+				circular: data,
+				normal: "test",
+			});
+
+			expect(instance.circular.value).to.equal(1);
+			expect(instance.circular.self).to.equal(data);
+			expect(instance.circular.self!.value).to.equal(1);
+		});
+
+		it("bevyComponent 应该支持类信息", () => {
+			// bevyComponent 主要用于宏展开，这里仅测试基本功能
+			const BevyTestComponent = bevyComponent<TestComponentData>(
+				{ value: 10, name: "default" }
+			);
+
+			const instance = BevyTestComponent({ value: 20, name: "custom" });
+			expect(instance.value).to.equal(20);
+			expect(instance.name).to.equal("custom");
+
+			// bevyComponent 也应该支持 patch
+			const patched = instance.patch({ value: 30 });
+			expect(patched.value).to.equal(30);
+			expect(patched.name).to.equal("custom");
+		});
+	});
+
 	describe("性能和内存测试", () => {
 		it("应该能够高效创建大量组件实例", () => {
 			const TestComponent = newComponent<SimpleComponentData>("TestComponent");
