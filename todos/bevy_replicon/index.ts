@@ -41,6 +41,12 @@ export { ClientPredictionManager, clientPredictionSystem } from "./client-predic
 // 导出网络适配器
 export { RobloxNetworkAdapter } from "./roblox-network";
 
+// 导出事件系统
+export * from "./shared/event";
+
+// 导出后端通道配置
+export { Channel, ServerChannel, ClientChannel } from "./shared/backend/channels";
+
 // 导出插件
 export {
 	RepliconPlugin,

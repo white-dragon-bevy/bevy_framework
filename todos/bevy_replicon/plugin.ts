@@ -17,6 +17,16 @@ import { ReplicationManager, replicationSystem } from "./replication";
 import { ClientPredictionManager, clientPredictionSystem } from "./client-prediction";
 import { RobloxNetworkAdapter } from "./roblox-network";
 import { processOutgoingMessagesSystem } from "./systems";
+import { ServerMessages } from "./shared/backend/server-messages";
+import { ClientMessages } from "./shared/backend/client-messages";
+import { RepliconChannels } from "./shared/backend/channels";
+import { RemoteEventRegistry } from "./shared/event";
+import { replicateIntoUpdateSystem } from "./server/replicate-into-update";
+import { applyReplicationSystem } from "./client/apply-replication";
+import { ServerTick, ServerUpdateTick } from "./server/server-tick";
+import { ClientVisibility } from "./server/client-visibility";
+import { ReplicationRegistry } from "./shared/replication/registry";
+import { ServerEntityMap } from "./shared/replication/server-entity-map";
 
 /**
  * Replicon 服务器插件
@@ -57,19 +67,30 @@ export class RepliconServerPlugin extends BasePlugin {
 			return;
 		}
 
-		// 创建并注册资源
+		// 创建资源实例
 		const replicationManager = new ReplicationManager(NetworkRole.Server, this.replicationConfig);
 		const networkAdapter = new RobloxNetworkAdapter();
+		const serverMessages = new ServerMessages();
+		const repliconChannels = new RepliconChannels();
+		const eventRegistry = new RemoteEventRegistry();
+		const serverTick = new ServerTick();
+		const clientVisibility = new ClientVisibility();
+		const replicationRegistry = new ReplicationRegistry();
 
-		// 将资源添加到 app 的 context
-		const world = app.getWorld();
-		const context = (world as unknown as { context: { resources: Map<string, import("../../src/bevy_ecs").Resource> } }).context;
-		if (!world.resources) {
-			world.resources = new Map();
-		}
-		world.resources.set("ReplicationManager", replicationManager);
-		world.resources.set("RobloxNetworkAdapter", networkAdapter);
-		world.resources.set("ServerConfig", this.config);
+		// 设置通道数量
+		serverMessages.setupServerChannels(repliconChannels.getServerChannelCount());
+		serverMessages.setupClientChannels(repliconChannels.getClientChannelCount());
+
+		// 注册资源到应用
+		app.insertResource(serverMessages);
+		app.insertResource(repliconChannels);
+		app.insertResource(replicationManager);
+		app.insertResource(networkAdapter);
+		app.insertResource(this.config);
+		app.insertResource(eventRegistry);
+		app.insertResource(serverTick);
+		app.insertResource(clientVisibility);
+		app.insertResource(replicationRegistry);
 
 		// 初始化网络适配器
 		networkAdapter.initialize(NetworkRole.Server);
@@ -79,6 +100,7 @@ export class RepliconServerPlugin extends BasePlugin {
 
 		// 添加系统
 		app.addSystems(BuiltinSchedules.PRE_UPDATE, replicationSystem);
+		app.addSystems(BuiltinSchedules.POST_UPDATE, replicateIntoUpdateSystem);
 
 		// 添加清理处理
 		app.addSystems(BuiltinSchedules.POST_UPDATE, processOutgoingMessagesSystem);
@@ -170,21 +192,32 @@ export class RepliconClientPlugin extends BasePlugin {
 			return;
 		}
 
-		// 创建并注册资源
+		// 创建资源实例
 		const replicationManager = new ReplicationManager(NetworkRole.Client, this.replicationConfig);
 		const networkAdapter = new RobloxNetworkAdapter();
 		const predictionManager = new ClientPredictionManager();
+		const clientMessages = new ClientMessages();
+		const repliconChannels = new RepliconChannels();
+		const eventRegistry = new RemoteEventRegistry();
+		const serverUpdateTick = new ServerUpdateTick();
+		const serverEntityMap = new ServerEntityMap();
+		const replicationRegistry = new ReplicationRegistry();
 
-		// 将资源添加到 app 的 context
-		const world = app.getWorld();
-		const context = (world as unknown as { context: { resources: Map<string, import("../../src/bevy_ecs").Resource> } }).context;
-		if (!world.resources) {
-			world.resources = new Map();
-		}
-		world.resources.set("ReplicationManager", replicationManager);
-		world.resources.set("RobloxNetworkAdapter", networkAdapter);
-		world.resources.set("ClientConfig", this.config);
-		world.resources.set("ClientPredictionManager", predictionManager);
+		// 设置通道数量
+		clientMessages.setupServerChannels(repliconChannels.getServerChannelCount());
+		clientMessages.setupClientChannels(repliconChannels.getClientChannelCount());
+
+		// 注册资源到应用
+		app.insertResource(clientMessages);
+		app.insertResource(repliconChannels);
+		app.insertResource(replicationManager);
+		app.insertResource(networkAdapter);
+		app.insertResource(this.config);
+		app.insertResource(predictionManager);
+		app.insertResource(eventRegistry);
+		app.insertResource(serverUpdateTick);
+		app.insertResource(serverEntityMap);
+		app.insertResource(replicationRegistry);
 
 		// 初始化网络适配器
 		networkAdapter.initialize(NetworkRole.Client);
@@ -193,6 +226,7 @@ export class RepliconClientPlugin extends BasePlugin {
 		this.setupClientMessageHandlers(networkAdapter, replicationManager, predictionManager);
 
 		// 添加系统
+		app.addSystems(BuiltinSchedules.PRE_UPDATE, applyReplicationSystem);
 		app.addSystems(BuiltinSchedules.PRE_UPDATE, replicationSystem);
 
 		if (this.enablePrediction) {

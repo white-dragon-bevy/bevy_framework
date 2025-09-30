@@ -4,9 +4,20 @@
  */
 
 import { BasePlugin } from "../../src/bevy_app/plugin";
-import { App } from "../../src/bevy_app/app";
+import { App, ExtensionFactory } from "../../src/bevy_app/app";
 import { Diagnostic, DiagnosticPath, DiagnosticsStore, installDiagnosticSystem } from "./diagnostic";
-import type { DiagnosticConfig, DiagnosticExtension } from "./extensions";
+import type { World } from "../../src/bevy_ecs";
+import type { AppContext } from "../../src/bevy_app/context";
+
+/**
+ * 简化的诊断项接口
+ */
+export interface DiagnosticConfig {
+	id: string;
+	name?: string;
+	value?: number;
+	maxHistory?: number;
+}
 
 /**
  * 诊断渲染器
@@ -60,10 +71,36 @@ class DiagnosticsRenderer {
 }
 
 /**
+ * 诊断扩展工厂接口
+ */
+export interface DiagnosticPluginExtensionFactories {
+	getStore: ExtensionFactory<() => DiagnosticsStore>;
+	registerDiagnostic: ExtensionFactory<(config: DiagnosticConfig | Diagnostic) => void>;
+	getDiagnostic: ExtensionFactory<(id: string) => Diagnostic | undefined>;
+	clearDiagnostics: ExtensionFactory<() => void>;
+	updateDiagnostic: ExtensionFactory<(id: string, value: number) => void>;
+	getAllDiagnostics: ExtensionFactory<() => ReadonlyArray<Diagnostic>>;
+	getDiagnosticsCount: ExtensionFactory<() => number>;
+	renderToConsole: ExtensionFactory<() => void>;
+	renderToUI: ExtensionFactory<() => void>;
+	setRenderFormat: ExtensionFactory<(format: "json" | "text" | "table") => void>;
+	getRenderFormat: ExtensionFactory<() => "json" | "text" | "table">;
+}
+
+/**
  * 向应用添加核心诊断资源
  * 对应 Rust DiagnosticsPlugin
  */
 export class DiagnosticsPlugin extends BasePlugin {
+	/** 插件扩展工厂 */
+	extension: DiagnosticPluginExtensionFactories;
+
+	constructor() {
+		super();
+		// 扩展工厂将在 build() 中初始化
+		this.extension = {} as DiagnosticPluginExtensionFactories;
+	}
+
 	/**
 	 * 配置应用
 	 * @param app - 应用实例
@@ -77,87 +114,76 @@ export class DiagnosticsPlugin extends BasePlugin {
 		const renderer = new DiagnosticsRenderer(store);
 
 		// 插入资源
-		app.insertResource( store);
+		app.insertResource(store);
 
-		// 注册统一的诊断扩展
-		this.registerExtensions(app, {
-			diagnostic: {
-				extension: {
-					// 核心存储对象
-					store: store,
-
-					// 诊断管理功能
-					registerDiagnostic(config: DiagnosticConfig | Diagnostic) {
-						if ("getPath" in config) {
-							// 是完整的 Diagnostic 对象
-							store.add(config as Diagnostic);
-						} else {
-							// 是 DiagnosticConfig
-							const path = new DiagnosticPath(config.id);
-							const diagnostic = new Diagnostic(path);
-							if (config.name) diagnostic.withSuffix(config.name);
-							if (config.maxHistory) diagnostic.withMaxHistoryLength(config.maxHistory);
-							if (config.value !== undefined) {
-								diagnostic.addMeasurement({
-									time: os.clock(),
-									value: config.value,
-								});
-							}
-							store.add(diagnostic);
-						}
-					},
-
-					getDiagnostic(id: string) {
-						const path = new DiagnosticPath(id);
-						return store.get(path);
-					},
-
-					clearDiagnostics() {
-						store.clear();
-					},
-
-					updateDiagnostic(id: string, value: number) {
-						const path = new DiagnosticPath(id);
-						const diagnostic = store.get(path);
-						if (diagnostic) {
+		// 初始化扩展工厂
+		this.extension = {
+			getStore: (world: World, context: AppContext, plugin: DiagnosticsPlugin) => {
+				return () => store;
+			},
+			registerDiagnostic: (world: World, context: AppContext, plugin: DiagnosticsPlugin) => {
+				return (config: DiagnosticConfig | Diagnostic) => {
+					if ("getPath" in config) {
+						store.add(config as Diagnostic);
+					} else {
+						const path = new DiagnosticPath(config.id);
+						const diagnostic = new Diagnostic(path);
+						if (config.name) diagnostic.withSuffix(config.name);
+						if (config.maxHistory) diagnostic.withMaxHistoryLength(config.maxHistory);
+						if (config.value !== undefined) {
 							diagnostic.addMeasurement({
 								time: os.clock(),
-								value: value,
+								value: config.value,
 							});
 						}
-					},
-
-					getAllDiagnostics() {
-						return store.getAll();
-					},
-
-					getDiagnosticsCount() {
-						return store.getAll().size();
-					},
-
-					// 渲染功能
-					renderToConsole() {
-						renderer.renderToConsole();
-					},
-
-					renderToUI() {
-						renderer.renderToUI();
-					},
-
-					setRenderFormat(format) {
-						renderer.setFormat(format);
-					},
-
-					getRenderFormat() {
-						return renderer.getFormat();
-					},
-				} satisfies DiagnosticExtension,
-				metadata: {
-					description: "Unified diagnostics system for registering, managing and rendering diagnostic metrics",
-					version: "0.1.0",
-				},
+						store.add(diagnostic);
+					}
+				};
 			},
-		});
+			getDiagnostic: (world: World, context: AppContext, plugin: DiagnosticsPlugin) => {
+				return (id: string) => {
+					const path = new DiagnosticPath(id);
+					return store.get(path);
+				};
+			},
+			clearDiagnostics: (world: World, context: AppContext, plugin: DiagnosticsPlugin) => {
+				return () => {
+					store.clear();
+				};
+			},
+			updateDiagnostic: (world: World, context: AppContext, plugin: DiagnosticsPlugin) => {
+				return (id: string, value: number) => {
+					const path = new DiagnosticPath(id);
+					const diagnostic = store.get(path);
+					if (diagnostic) {
+						diagnostic.addMeasurement({
+							time: os.clock(),
+							value: value,
+						});
+					}
+				};
+			},
+			getAllDiagnostics: (world: World, context: AppContext, plugin: DiagnosticsPlugin) => {
+				return () => store.getAll();
+			},
+			getDiagnosticsCount: (world: World, context: AppContext, plugin: DiagnosticsPlugin) => {
+				return () => store.getAll().size();
+			},
+			renderToConsole: (world: World, context: AppContext, plugin: DiagnosticsPlugin) => {
+				return () => renderer.renderToConsole();
+			},
+			renderToUI: (world: World, context: AppContext, plugin: DiagnosticsPlugin) => {
+				return () => renderer.renderToUI();
+			},
+			setRenderFormat: (world: World, context: AppContext, plugin: DiagnosticsPlugin) => {
+				return (format: "json" | "text" | "table") => {
+					renderer.setFormat(format);
+				};
+			},
+			getRenderFormat: (world: World, context: AppContext, plugin: DiagnosticsPlugin) => {
+				return () => renderer.getFormat();
+			},
+		};
 	}
 
 	/**

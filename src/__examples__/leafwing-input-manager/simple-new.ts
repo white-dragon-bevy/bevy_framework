@@ -23,6 +23,7 @@ import {
 	Actionlike,
 	spawnWithInput,
 	queryInputEntities,
+	InputManagerExtension,
 } from "../../leafwing-input-manager";
 
 // =====================================
@@ -47,6 +48,15 @@ class PlayerActionlike implements Actionlike {
 
 	toString(): string {
 		return PlayerAction[this.action];
+	}
+}
+
+// =====================================
+// 类型扩展声明 - 让 IDE 识别 context.playerInput
+// =====================================
+declare module "../../bevy_app/context" {
+	interface AppContext {
+		playerInput: InputManagerExtension<PlayerActionlike>;
 	}
 }
 
@@ -144,22 +154,35 @@ function handlePlayerActions(world: BevyWorld, context: Context): void {
 // 应用程序设置
 // =====================================
 
-export function createApp(): App {
+export function createApp() {
 	const app = new App();
 
 	// 添加默认插件组
-	app.addPlugins(...DefaultPlugins.create().build().getPlugins())
-	   .addPlugin( new InputManagerPlugin<PlayerActionlike>({
-		actionTypeName: "PlayerAction",
-	}))
+	app.addPlugins(...DefaultPlugins.create().build().getPlugins());
 
-	
+	// 创建并添加 InputManagerPlugin
+	inputPlugin = new InputManagerPlugin<PlayerActionlike, "playerInput">(
+		{
+			actionTypeName: "PlayerAction",
+		},
+		"playerInput",
+	);
+
+	// 添加 InputManagerPlugin - 链式调用保持类型
+	const typedApp = app.addPlugin(inputPlugin);
+
+
+	// ✅ 现在 typedApp.context.playerInput 有完整的类型提示
+	typedApp.context.playerInput.getComponents()
+
 
 	// 添加系统
-	app.addSystems(MainScheduleLabel.STARTUP, spawnPlayer);
-	app.addSystems(MainScheduleLabel.UPDATE, handlePlayerActions);
+	typedApp.addSystems(MainScheduleLabel.STARTUP, spawnPlayer);
+	typedApp.addSystems(MainScheduleLabel.UPDATE, handlePlayerActions);
 
-	return app;
+	typedApp.context.playerInput.getComponents()
+
+	return typedApp;
 }
 
 // =====================================

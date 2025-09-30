@@ -8,6 +8,8 @@ import { AnyComponent, Component, Entity, World } from "@rbxts/matter";
 import { Resource } from "../../../bevy_ecs";
 import { ComponentFns, ComponentSerializeFn, ComponentDeserializeFn } from "./component-fns";
 import { ReplicationRule, ComponentRule } from "./rules";
+import type { Uint8Array } from "./types";
+import { createUint8Array } from "./types";
 
 /**
  * 组件信息
@@ -156,6 +158,7 @@ export class ReplicationRegistry implements Resource {
 
 /**
  * 创建默认的组件函数
+ * TODO: 使用 Roblox buffer API 替代 TextEncoder/TextDecoder
  * @returns 组件函数
  */
 export function createDefaultComponentFns<C extends AnyComponent>(): ComponentFns<C> {
@@ -163,13 +166,24 @@ export function createDefaultComponentFns<C extends AnyComponent>(): ComponentFn
 		serialize: (ctx, component) => {
 			// 默认序列化：将组件转换为 JSON
 			const json = game.GetService("HttpService").JSONEncode(component);
-			const encoder = new TextEncoder();
-			return encoder.encode(json);
+			// TODO: 实现基于 Roblox buffer 的序列化
+			// const encoder = new TextEncoder();
+			// return encoder.encode(json);
+			const bytes = createUint8Array(json.size());
+			for (let index = 0; index < json.size(); index++) {
+				bytes[index] = string.byte(json, index + 1)[0];
+			}
+			return bytes;
 		},
 		deserialize: (ctx, data) => {
 			// 默认反序列化：从 JSON 恢复组件
-			const decoder = new TextDecoder();
-			const json = decoder.decode(data);
+			// TODO: 实现基于 Roblox buffer 的反序列化
+			// const decoder = new TextDecoder();
+			// const json = decoder.decode(data);
+			let json = "";
+			for (let index = 0; index < data.size(); index++) {
+				json += string.char(data[index]);
+			}
 			return game.GetService("HttpService").JSONDecode(json) as C;
 		},
 	};

@@ -4,7 +4,7 @@
  */
 
 import { BasePlugin } from "../bevy_app/plugin";
-import { App } from "../bevy_app/app";
+import { App, ExtensionFactory } from "../bevy_app/app";
 import { BuiltinSchedules } from "../bevy_app/main-schedule";
 import { World } from "@rbxts/matter";
 import { Duration } from "./duration";
@@ -19,7 +19,7 @@ import {
 } from "./time-resources";
 import { FrameCount, FrameCountResource, updateFrameCount } from "./frame-count";
 import { Context } from "../bevy_ecs";
-import type { TimeExtension } from "./extensions";
+import type { AppContext } from "../bevy_app/context";
 
 
 
@@ -84,10 +84,45 @@ class TimeStatsManager {
 }
 
 /**
+ * 时间扩展工厂接口
+ */
+export interface TimePluginExtensionFactories {
+	getCurrent: ExtensionFactory<() => Time<Empty>>;
+	getTime: ExtensionFactory<() => Time<Empty>>;
+	getElapsedSeconds: ExtensionFactory<() => number>;
+	getDeltaSeconds: ExtensionFactory<() => number>;
+	getElapsedMillis: ExtensionFactory<() => number>;
+	getDeltaMillis: ExtensionFactory<() => number>;
+	pause: ExtensionFactory<() => void>;
+	resume: ExtensionFactory<() => void>;
+	isPaused: ExtensionFactory<() => boolean>;
+	setTimeScale: ExtensionFactory<(scale: number) => void>;
+	getTimeScale: ExtensionFactory<() => number>;
+	advanceTime: ExtensionFactory<(seconds: number) => void>;
+	reset: ExtensionFactory<() => void>;
+	getAverageFPS: ExtensionFactory<() => number>;
+	getInstantFPS: ExtensionFactory<() => number>;
+	getMinFrameTime: ExtensionFactory<() => number>;
+	getMaxFrameTime: ExtensionFactory<() => number>;
+	getAverageFrameTime: ExtensionFactory<() => number>;
+	resetStats: ExtensionFactory<() => void>;
+	getFrameCount: ExtensionFactory<() => number>;
+}
+
+/**
  * TimePlugin - 为应用添加时间功能
  * 对应 Rust bevy_time::TimePlugin (lib.rs:56-100)
  */
 export class TimePlugin extends BasePlugin {
+	/** 插件扩展工厂 */
+	extension: TimePluginExtensionFactories;
+
+	constructor() {
+		super();
+		// 扩展工厂将在 build() 中初始化
+		this.extension = {} as TimePluginExtensionFactories;
+	}
+
 	/**
 	 * 插件名称
 	 */
@@ -141,161 +176,156 @@ export class TimePlugin extends BasePlugin {
 			timeSystem(world, context, app, statsManager);
 		});
 
-		// 注册统一的时间扩展
-		this.registerExtensions(app, {
-			time: {
-				extension: {
-					// 获取当前时间对象
-					getCurrent() {
-						const resource = app.getResource<GenericTimeResource>();
-						return resource ? resource.value : genericTime;
-					},
-
-					// 基本时间查询功能
-					getTime() {
-						const resource = app.getResource<GenericTimeResource>();
-						return resource ? resource.value : genericTime;
-					},
-
-					getElapsedSeconds() {
-						const resource = app.getResource<GenericTimeResource>();
-						return resource ? resource.value.getElapsedSecs() : 0;
-					},
-
-					getDeltaSeconds() {
-						const resource = app.getResource<GenericTimeResource>();
-						return resource ? resource.value.getDeltaSecs() : 0;
-					},
-
-					getElapsedMillis() {
-						const resource = app.getResource<GenericTimeResource>();
-						return resource ? resource.value.getElapsedSecs() * 1000 : 0;
-					},
-
-					getDeltaMillis() {
-						const resource = app.getResource<GenericTimeResource>();
-						return resource ? resource.value.getDeltaSecs() * 1000 : 0;
-					},
-
-					// 时间控制功能
-					pause() {
-						const resource = app.getResource<VirtualTimeResource>();
-						if (resource) {
-							const vTime = resource.value;
-							const context = vTime.getContext() as Virtual;
-							vTime.setContext({
-								...context,
-								paused: true,
-								effectiveSpeed: 0,
-							});
-						}
-					},
-
-					resume() {
-						const resource = app.getResource<VirtualTimeResource>();
-						if (resource) {
-							const vTime = resource.value;
-							const context = vTime.getContext() as Virtual;
-							vTime.setContext({
-								...context,
-								paused: false,
-								effectiveSpeed: context.relativeSpeed,
-							});
-						}
-					},
-
-					isPaused() {
-						const resource = app.getResource<VirtualTimeResource>();
-						return resource ? (resource.value.getContext() as Virtual).paused : false;
-					},
-
-					setTimeScale(scale: number) {
-						const resource = app.getResource<VirtualTimeResource>();
-						if (resource) {
-							const vTime = resource.value;
-							const context = vTime.getContext() as Virtual;
-							vTime.setContext({
-								...context,
-								relativeSpeed: scale,
-								effectiveSpeed: context.paused ? 0 : scale,
-							});
-						}
-					},
-
-					getTimeScale() {
-						const resource = app.getResource<VirtualTimeResource>();
-						return resource ? (resource.value.getContext() as Virtual).relativeSpeed : 1.0;
-					},
-
-					advanceTime(seconds: number) {
-						const strategyResource = app.getResource<TimeUpdateStrategyResource>();
-						if (strategyResource) {
-							strategyResource.mockDelta = seconds;
-						}
-					},
-
-					reset() {
-						const realResource = app.getResource<RealTimeResource>();
-						const virtualResource = app.getResource<VirtualTimeResource>();
-						const fixedResource = app.getResource<FixedTimeResource>();
-
-						if (realResource) {
-							realResource.value = new Time<Real>({ __brand: "Real" } as Real);
-						}
-						if (virtualResource) {
-							virtualResource.value = new Time<Virtual>({
-								__brand: "Virtual",
-								paused: false,
-								relativeSpeed: 1.0,
-								effectiveSpeed: 1.0,
-								maxDelta: Duration.fromSecs(0.25),
-							} as Virtual);
-						}
-						if (fixedResource) {
-							fixedResource.value = new TimeFixed();
-						}
-
-						// 重置统计
-						statsManager.reset();
-					},
-
-					// 统计功能
-					getAverageFPS() {
-						return statsManager.getAverageFPS();
-					},
-
-					getInstantFPS() {
-						return statsManager.getInstantFPS();
-					},
-
-					getMinFrameTime() {
-						return statsManager.getMinFrameTime();
-					},
-
-					getMaxFrameTime() {
-						return statsManager.getMaxFrameTime();
-					},
-
-					getAverageFrameTime() {
-						return statsManager.getAverageFrameTime();
-					},
-
-					resetStats() {
-						statsManager.reset();
-					},
-
-					// 帧计数功能
-					getFrameCount() {
-						const resource = app.getResource<FrameCountResource>();
-						return resource ? resource.value.getValue() : 0;
-					},
-				} satisfies TimeExtension,
-				metadata: {
-					description: "Unified time system for elapsed time, delta time, control and statistics",
-					version: "0.1.0",
-				},
+		// 初始化扩展工厂
+		this.extension = {
+			getCurrent: (world: World, context: AppContext, plugin: TimePlugin) => {
+				return () => {
+					const resource = app.getResource<GenericTimeResource>();
+					return resource ? resource.value : genericTime;
+				};
 			},
-		});
+			getTime: (world: World, context: AppContext, plugin: TimePlugin) => {
+				return () => {
+					const resource = app.getResource<GenericTimeResource>();
+					return resource ? resource.value : genericTime;
+				};
+			},
+			getElapsedSeconds: (world: World, context: AppContext, plugin: TimePlugin) => {
+				return () => {
+					const resource = app.getResource<GenericTimeResource>();
+					return resource ? resource.value.getElapsedSecs() : 0;
+				};
+			},
+			getDeltaSeconds: (world: World, context: AppContext, plugin: TimePlugin) => {
+				return () => {
+					const resource = app.getResource<GenericTimeResource>();
+					return resource ? resource.value.getDeltaSecs() : 0;
+				};
+			},
+			getElapsedMillis: (world: World, context: AppContext, plugin: TimePlugin) => {
+				return () => {
+					const resource = app.getResource<GenericTimeResource>();
+					return resource ? resource.value.getElapsedSecs() * 1000 : 0;
+				};
+			},
+			getDeltaMillis: (world: World, context: AppContext, plugin: TimePlugin) => {
+				return () => {
+					const resource = app.getResource<GenericTimeResource>();
+					return resource ? resource.value.getDeltaSecs() * 1000 : 0;
+				};
+			},
+			pause: (world: World, context: AppContext, plugin: TimePlugin) => {
+				return () => {
+					const resource = app.getResource<VirtualTimeResource>();
+					if (resource) {
+						const vTime = resource.value;
+						const timeContext = vTime.getContext() as Virtual;
+						vTime.setContext({
+							...timeContext,
+							paused: true,
+							effectiveSpeed: 0,
+						});
+					}
+				};
+			},
+			resume: (world: World, context: AppContext, plugin: TimePlugin) => {
+				return () => {
+					const resource = app.getResource<VirtualTimeResource>();
+					if (resource) {
+						const vTime = resource.value;
+						const timeContext = vTime.getContext() as Virtual;
+						vTime.setContext({
+							...timeContext,
+							paused: false,
+							effectiveSpeed: timeContext.relativeSpeed,
+						});
+					}
+				};
+			},
+			isPaused: (world: World, context: AppContext, plugin: TimePlugin) => {
+				return () => {
+					const resource = app.getResource<VirtualTimeResource>();
+					return resource ? (resource.value.getContext() as Virtual).paused : false;
+				};
+			},
+			setTimeScale: (world: World, context: AppContext, plugin: TimePlugin) => {
+				return (scale: number) => {
+					const resource = app.getResource<VirtualTimeResource>();
+					if (resource) {
+						const vTime = resource.value;
+						const timeContext = vTime.getContext() as Virtual;
+						vTime.setContext({
+							...timeContext,
+							relativeSpeed: scale,
+							effectiveSpeed: timeContext.paused ? 0 : scale,
+						});
+					}
+				};
+			},
+			getTimeScale: (world: World, context: AppContext, plugin: TimePlugin) => {
+				return () => {
+					const resource = app.getResource<VirtualTimeResource>();
+					return resource ? (resource.value.getContext() as Virtual).relativeSpeed : 1.0;
+				};
+			},
+			advanceTime: (world: World, context: AppContext, plugin: TimePlugin) => {
+				return (seconds: number) => {
+					const strategyResource = app.getResource<TimeUpdateStrategyResource>();
+					if (strategyResource) {
+						strategyResource.mockDelta = seconds;
+					}
+				};
+			},
+			reset: (world: World, context: AppContext, plugin: TimePlugin) => {
+				return () => {
+					const realResource = app.getResource<RealTimeResource>();
+					const virtualResource = app.getResource<VirtualTimeResource>();
+					const fixedResource = app.getResource<FixedTimeResource>();
+
+					if (realResource) {
+						realResource.value = new Time<Real>({ __brand: "Real" } as Real);
+					}
+					if (virtualResource) {
+						virtualResource.value = new Time<Virtual>({
+							__brand: "Virtual",
+							paused: false,
+							relativeSpeed: 1.0,
+							effectiveSpeed: 1.0,
+							maxDelta: Duration.fromSecs(0.25),
+						} as Virtual);
+					}
+					if (fixedResource) {
+						fixedResource.value = new TimeFixed();
+					}
+
+					statsManager.reset();
+				};
+			},
+			getAverageFPS: (world: World, context: AppContext, plugin: TimePlugin) => {
+				return () => statsManager.getAverageFPS();
+			},
+			getInstantFPS: (world: World, context: AppContext, plugin: TimePlugin) => {
+				return () => statsManager.getInstantFPS();
+			},
+			getMinFrameTime: (world: World, context: AppContext, plugin: TimePlugin) => {
+				return () => statsManager.getMinFrameTime();
+			},
+			getMaxFrameTime: (world: World, context: AppContext, plugin: TimePlugin) => {
+				return () => statsManager.getMaxFrameTime();
+			},
+			getAverageFrameTime: (world: World, context: AppContext, plugin: TimePlugin) => {
+				return () => statsManager.getAverageFrameTime();
+			},
+			resetStats: (world: World, context: AppContext, plugin: TimePlugin) => {
+				return () => statsManager.reset();
+			},
+			getFrameCount: (world: World, context: AppContext, plugin: TimePlugin) => {
+				return () => {
+					const resource = app.getResource<FrameCountResource>();
+					return resource ? resource.value.getValue() : 0;
+				};
+			},
+		};
 
 		// 添加固定主调度运行系统到 RunFixedMainLoop
 		// 对应 lib.rs:90-93

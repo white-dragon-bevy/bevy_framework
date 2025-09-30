@@ -1,6 +1,10 @@
 /**
  * InputManager Context Helper Functions
  * 提供新的组件系统访问方法
+ *
+ * @deprecated 推荐使用通过 AppContext 扩展访问,这些辅助函数将在未来版本中移除
+ * 新方式: context.playerInput.spawnWithInput(world, inputMap)
+ * 旧方式: spawnWithInput(context, plugin, inputMap)
  */
 
 import { AppContext } from "../../bevy_app/context";

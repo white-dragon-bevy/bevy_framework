@@ -289,6 +289,8 @@ export function runMovingEntitiesExample(): void {
 		});
 	});
 
+	
+
 	// 运行应用
 	app.run();
 

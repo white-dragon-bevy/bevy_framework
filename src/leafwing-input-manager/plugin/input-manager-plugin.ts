@@ -8,6 +8,9 @@ import { ClashStrategy, ClashStrategyResource } from "../clashing-inputs/clash-s
 import { BevyWorld, Context } from "../../bevy_ecs/types";
 import { createActionComponents, ComponentDefinition } from "./component-factory";
 import { getKeyboardInput, getMouseInput, getMouseMotion, getMouseWheel } from "../../bevy_input/plugin";
+import type { InputManagerExtension } from "./extensions";
+import type { ExtensionFactory } from "../../bevy_app/app";
+import type { AppContext } from "../../bevy_app/context";
 
 // =============================================================================
 // 辅助工具
@@ -54,21 +57,97 @@ export interface InputManagerPluginConfig<A extends Actionlike> {
 }
 
 /**
+ * InputManagerPlugin 扩展工厂接口
+ * 定义扩展方法的工厂函数
+ */
+export interface InputManagerPluginExtensionFactories<A extends Actionlike, TNamespace extends string> {
+	[key: string]: (world: BevyWorld, context: AppContext, plugin: any) => InputManagerExtension<A>;
+}
+
+/**
+ * 创建扩展工厂的辅助函数
+ * 这个函数返回一个具有确定键名的对象,供 TypeScript 类型推导
+ */
+function createExtensionFactory<A extends Actionlike, TNamespace extends string>(
+	namespace: TNamespace,
+	components: ComponentDefinition<A>,
+): InputManagerPluginExtensionFactories<A, TNamespace> & Record<TNamespace, (world: BevyWorld, context: AppContext, plugin: any) => InputManagerExtension<A>> {
+	return {
+		[namespace]: (
+			world: BevyWorld,
+			context: AppContext,
+			plugin: any,
+		): InputManagerExtension<A> => {
+			return {
+				getComponents() {
+					return components;
+				},
+
+				spawnWithInput(
+					world: BevyWorld,
+					inputMap: InputMap<A>,
+					actionState?: ActionState<A>,
+				) {
+					return components.spawn(world, inputMap, actionState);
+				},
+
+				getEntityInputData(world: BevyWorld, entityId: number) {
+					return components.get(world, entityId);
+				},
+
+				addInputToEntity(
+					world: BevyWorld,
+					entityId: number,
+					inputMap: InputMap<A>,
+					actionState?: ActionState<A>,
+				) {
+					components.insert(world, entityId, inputMap, actionState);
+				},
+
+				removeInputFromEntity(world: BevyWorld, entityId: number) {
+					components.remove(world, entityId);
+				},
+
+				queryInputEntities(world: BevyWorld) {
+					return components.query(world);
+				},
+			};
+		},
+	} as any;
+}
+
+/**
  * Main plugin for the leafwing input manager
  * Integrates with bevy_input for input handling and provides action mapping
  *
  * This plugin now uses dynamic component creation instead of InputInstanceManagerResource,
  * allowing for proper ECS queries while maintaining type safety.
+ *
+ * @template A - Action 类型
+ * @template TNamespace - 命名空间字符串字面量类型,用于扩展注册
  */
-export class InputManagerPlugin<A extends Actionlike> implements Plugin {
+export class InputManagerPlugin<A extends Actionlike, TNamespace extends string = string>
+	implements Plugin
+{
 	private config: InputManagerPluginConfig<A>;
 	private components: ComponentDefinition<A>;
 	private connections: RBXScriptConnection[] = [];
 
-	constructor(config: InputManagerPluginConfig<A>) {
+	/**
+	 * 扩展工厂 - 提供类型安全的上下文扩展
+	 */
+	readonly extension: InputManagerPluginExtensionFactories<A, TNamespace> & Record<TNamespace, (world: BevyWorld, context: AppContext, plugin: any) => InputManagerExtension<A>>;
+
+	constructor(config: InputManagerPluginConfig<A>, namespace?: TNamespace) {
 		this.config = config;
 		// Create dynamic components for this Action type
 		this.components = createActionComponents<A>(config.actionTypeName);
+
+		// 初始化扩展工厂
+		const ns = (namespace ?? config.actionTypeName) as TNamespace;
+
+		// 创建扩展工厂对象
+		this.extension = createExtensionFactory<A, TNamespace>(ns, this.components);
 	}
 
 	/**

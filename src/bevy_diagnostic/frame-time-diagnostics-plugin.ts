@@ -124,7 +124,8 @@ export class FrameTimeDiagnosticsPlugin implements Plugin {
 		}
 
 		// Get deltaTime from time extension if available
-		const deltaSeconds = context.has("time") ? context.get("time").getDeltaSeconds() : 0;
+		const contextWithTime = context as Context & { getDeltaSeconds?: () => number };
+		const deltaSeconds = contextWithTime.getDeltaSeconds ? contextWithTime.getDeltaSeconds() : 0;
 		if (deltaSeconds === 0) {
 			return;
 		}

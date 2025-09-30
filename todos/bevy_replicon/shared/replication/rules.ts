@@ -264,7 +264,7 @@ export namespace ReplicationFilters {
 	 * @param filters - 过滤器数组
 	 * @returns 组合的过滤器
 	 */
-	export function and(...filters: ReplicationFilter[]): ReplicationFilter {
+	export function andFilter(...filters: ReplicationFilter[]): ReplicationFilter {
 		return (entity: Entity, world: World): boolean => {
 			for (const filter of filters) {
 				if (!filter(entity, world)) {
@@ -280,7 +280,7 @@ export namespace ReplicationFilters {
 	 * @param filters - 过滤器数组
 	 * @returns 组合的过滤器
 	 */
-	export function or(...filters: ReplicationFilter[]): ReplicationFilter {
+	export function orFilter(...filters: ReplicationFilter[]): ReplicationFilter {
 		return (entity: Entity, world: World): boolean => {
 			for (const filter of filters) {
 				if (filter(entity, world)) {
