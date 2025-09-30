@@ -47,8 +47,8 @@ export function transformBundleFromPosition(position: Vector3): TransformBundleD
 
 /**
  * 从 CFrame 创建 TransformBundle
- * @param cframe - CFrame
- * @param scale - 缩放，默认为 (1, 1, 1)
+ * @param cframe - CFrame 数据（位置和旋转）
+ * @param scale - 缩放向量，默认为 (1, 1, 1)
  * @returns TransformBundle 数据
  */
 export function transformBundleFromCFrame(cframe: CFrame, scale: Vector3 = Vector3.one): TransformBundleData {
@@ -60,8 +60,8 @@ export function transformBundleFromCFrame(cframe: CFrame, scale: Vector3 = Vecto
 
 /**
  * 将 TransformBundle 添加到实体
- * @param world - Matter World
- * @param entity - 目标实体
+ * @param world - Matter World 实例
+ * @param entity - 目标实体 ID
  * @param bundle - TransformBundle 数据
  */
 export function insertTransformBundle(world: World, entity: number, bundle: TransformBundleData): void {
@@ -74,8 +74,8 @@ export function insertTransformBundle(world: World, entity: number, bundle: Tran
 
 /**
  * 生成带有 TransformBundle 的新实体
- * @param world - Matter World
- * @param bundle - TransformBundle 数据
+ * @param world - Matter World 实例
+ * @param bundle - TransformBundle 数据（可选，默认使用 createTransformBundle）
  * @returns 新创建的实体 ID
  */
 export function spawnWithTransformBundle(world: World, bundle: TransformBundleData = createTransformBundle()): number {

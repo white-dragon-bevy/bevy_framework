@@ -15,20 +15,26 @@ import { Modding } from "@flamework/core";
 
 /**
  * 状态转换调度标签
+ *
+ * **用途**: 标识状态转换系统执行的调度阶段
  */
 export const StateTransition: ScheduleLabel = "StateTransition";
 
 /**
  * 状态转换事件
- * 对应 Rust StateTransitionEvent<S>
+ *
+ * **用途**: 对应 Rust StateTransitionEvent<S>，在状态转换时发送的事件消息
+ *
+ * @template S - 状态类型
  */
 export class StateTransitionMessage<S extends States> implements Message {
 	public readonly timestamp?: number;
 
 	/**
-	 * 构造函数
-	 * @param exited - 退出的状态（可选）
-	 * @param entered - 进入的状态（可选）
+	 * 私有构造函数 (使用 create() 创建实例)
+	 *
+	 * @param exited - 退出的状态实例（可选）
+	 * @param entered - 进入的状态实例（可选）
 	 */
 	private constructor(
 		public readonly exited?: S,
@@ -56,6 +62,7 @@ export class StateTransitionMessage<S extends States> implements Message {
 
 	/**
 	 * 克隆事件
+	 *
 	 * @returns 克隆的事件实例
 	 */
 	public clone(): StateTransitionMessage<S> {
@@ -67,7 +74,8 @@ export class StateTransitionMessage<S extends States> implements Message {
 
 	/**
 	 * 检查是否从某状态退出
-	 * @param state - 要检查的状态
+	 *
+	 * @param state - 要检查的状态实例
 	 * @returns 是否退出该状态
 	 */
 	public isExitingFrom(state: S): boolean {
@@ -76,7 +84,8 @@ export class StateTransitionMessage<S extends States> implements Message {
 
 	/**
 	 * 检查是否进入某状态
-	 * @param state - 要检查的状态
+	 *
+	 * @param state - 要检查的状态实例
 	 * @returns 是否进入该状态
 	 */
 	public isEnteringTo(state: S): boolean {
@@ -85,8 +94,9 @@ export class StateTransitionMessage<S extends States> implements Message {
 
 	/**
 	 * 检查是否为特定的转换
-	 * @param from - 起始状态
-	 * @param to - 目标状态
+	 *
+	 * @param from - 起始状态实例
+	 * @param to - 目标状态实例
 	 * @returns 是否为指定转换
 	 */
 	public isTransition(from: S, to: S): boolean {
@@ -96,8 +106,11 @@ export class StateTransitionMessage<S extends States> implements Message {
 
 /**
  * 进入状态时的调度标签
- * @param state - 状态值
- * @returns 调度标签
+ *
+ * **用途**: 生成进入特定状态时执行系统的调度标签
+ *
+ * @param state - 状态实例
+ * @returns 调度标签字符串
  */
 export function OnEnter<S extends States>(state: S): ScheduleLabel {
 	return `OnEnter_${state.getStateId()}` as ScheduleLabel;
@@ -105,8 +118,11 @@ export function OnEnter<S extends States>(state: S): ScheduleLabel {
 
 /**
  * 退出状态时的调度标签
- * @param state - 状态值
- * @returns 调度标签
+ *
+ * **用途**: 生成退出特定状态时执行系统的调度标签
+ *
+ * @param state - 状态实例
+ * @returns 调度标签字符串
  */
 export function OnExit<S extends States>(state: S): ScheduleLabel {
 	return `OnExit_${state.getStateId()}` as ScheduleLabel;
@@ -114,31 +130,44 @@ export function OnExit<S extends States>(state: S): ScheduleLabel {
 
 /**
  * 状态转换时的调度标签
- * @param from - 起始状态
- * @param to - 目标状态
- * @returns 调度标签
+ *
+ * **用途**: 生成特定状态转换时执行系统的调度标签
+ *
+ * @param from - 起始状态实例
+ * @param to - 目标状态实例
+ * @returns 调度标签字符串
  */
 export function OnTransition<S extends States>(from: S, to: S): ScheduleLabel {
 	return `OnTransition_${from.getStateId()}_to_${to.getStateId()}` as ScheduleLabel;
 }
 
 /**
- * 进入调度集合
+ * 进入调度集合常量
+ *
+ * **用途**: 标识进入状态时执行的系统集合
  */
 export const EnterSchedules = "EnterSchedules";
 
 /**
- * 退出调度集合
+ * 退出调度集合常量
+ *
+ * **用途**: 标识退出状态时执行的系统集合
  */
 export const ExitSchedules = "ExitSchedules";
 
 /**
- * 转换调度集合
+ * 转换调度集合常量
+ *
+ * **用途**: 标识状态转换时执行的系统集合
  */
 export const TransitionSchedules = "TransitionSchedules";
 
 /**
  * 状态转换管理器
+ *
+ * **用途**: 管理状态转换的核心类，负责协调 OnEnter、OnExit、OnTransition 调度的执行
+ *
+ * @template S - 状态类型
  */
 export class StateTransitionManager<S extends States> {
 	private typeDescriptor: TypeDescriptor;
@@ -147,9 +176,10 @@ export class StateTransitionManager<S extends States> {
 	private messageRegistry: MessageRegistry;
 
 	/**
-	 * 构造函数
-	 * @param stateType - 状态类型构造函数
-	 * @param messageRegistry - 事件管理器（可选）
+	 * 私有构造函数 (使用 create() 创建实例)
+	 *
+	 * @param typeDescriptor - 状态类型描述符
+	 * @param messageRegistry - 事件管理器实例
 	 */
 	private constructor(typeDescriptor:TypeDescriptor, messageRegistry: MessageRegistry) {
 		this.typeDescriptor = typeDescriptor;
@@ -172,10 +202,17 @@ export class StateTransitionManager<S extends States> {
 	}
 
 	/**
-	 * 处理状态转换
-	 * @param world - 游戏世界
-	 * @param resourceManager - 资源管理器
-	 * @param app - App 实例（可选）
+	 * 处理状态转换逻辑
+	 *
+	 * **执行流程**:
+	 * 1. 检查 NextState 是否有待处理状态
+	 * 2. 判断是否为身份转换(相同状态)
+	 * 3. 执行完整转换流程: OnExit → OnTransition → 更新状态 → OnEnter
+	 * 4. 发送状态转换事件
+	 *
+	 * @param world - 游戏世界实例
+	 * @param resourceManager - 资源管理器实例
+	 * @param app - 应用实例（可选）
 	 * @returns 是否发生了转换
 	 */
 	public processTransition(world: World, resourceManager: ResourceManager, app?: unknown): boolean {
@@ -285,7 +322,8 @@ export class StateTransitionManager<S extends States> {
 
 	/**
 	 * 获取最后一次转换事件
-	 * @returns 最后一次转换事件或 undefined
+	 *
+	 * @returns 最后一次转换事件的副本或 undefined
 	 */
 	public getLastTransition(): StateTransitionMessage<S> | undefined {
 		return this.lastTransitionEvent?.clone();
@@ -365,8 +403,11 @@ export class StateTransitionManager<S extends States> {
 
 /**
  * 获取状态转换事件读取器
- * @param MessageRegistry - 事件管理器
- * @returns 事件读取器
+ *
+ * **用途**: 创建一个用于读取状态转换事件的读取器
+ *
+ * @param MessageRegistry - 事件管理器实例
+ * @returns 状态转换消息的读取器
  */
 export function getStateTransitionReader<S extends States>(
 	MessageRegistry: MessageRegistry,

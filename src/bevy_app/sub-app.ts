@@ -149,6 +149,7 @@ export class SubApp {
 	/**
 	 * 设置更新调度
 	 * 对应 Rust SubApp 的 update_schedule 字段
+	 * @param schedule - 调度标签
 	 */
 	setUpdateSchedule(schedule: ScheduleLabel): void {
 		this.updateSchedule = schedule;
@@ -156,6 +157,7 @@ export class SubApp {
 
 	/**
 	 * 获取更新调度
+	 * @returns 当前更新调度标签或undefined
 	 */
 	getUpdateSchedule(): ScheduleLabel | undefined {
 		return this.updateSchedule;
@@ -164,6 +166,7 @@ export class SubApp {
 	/**
 	 * 设置提取函数
 	 * 对应 Rust SubApp::set_extract
+	 * @param extractFn - 从主世界提取数据到子世界的函数
 	 */
 	setExtract(extractFn: (mainWorld: WorldContainer, subWorld: WorldContainer) => void): void {
 		this.extractFunction = extractFn;
@@ -171,6 +174,7 @@ export class SubApp {
 
 	/**
 	 * 执行提取操作
+	 * @param mainWorld - 主世界容器
 	 */
 	extract(mainWorld: WorldContainer): void {
 		if (this.extractFunction) {
@@ -234,6 +238,8 @@ export class SubApp {
 	/**
 	 * 添加系统到指定调度
 	 * 支持简单系统函数和配置对象
+	 * @param schedule - 调度标签
+	 * @param systems - 系统或系统配置数组
 	 */
 	addSystems(schedule: ScheduleLabel, ...systems: IntoSystemConfigs[]): void {
 		for (const system of systems) {
@@ -484,6 +490,15 @@ export class SubApp {
 	}
 
 	/**
+	 * 设置静默错误模式
+	 * 当设置为 true 时，系统错误不会输出警告信息
+	 * @param silent - 是否静默错误
+	 */
+	setSilentErrors(silent: boolean): void {
+		this.schedules.setSilentErrors(silent);
+	}
+
+	/**
 	 * 获取调度器
 	 */
 	getSchedules(): Schedules {
@@ -493,7 +508,7 @@ export class SubApp {
 	/**
 	 * 启动 Loop 执行
 	 * 使用 Loop 和中间件来执行系统，支持调试器
-	 * @param events - 事件映射
+	 * @param events - 调度标签到Roblox事件的映射表
 	 */
 	startLoop(events: { [scheduleLabel: string]: RBXScriptSignal }): void {
 		if (this.isLoopRunning) {
@@ -522,7 +537,6 @@ export class SubApp {
 		this.schedules.stop(this.loopConnections);
 		this.loopConnections = undefined;
 		this.isLoopRunning = false;
-		print("[SubApp] Loop stopped");
 	}
 
 	/**
@@ -551,12 +565,17 @@ export class SubApps {
 	private _main: SubApp;
 	private subApps = new Map<string, SubApp>();
 
+	/**
+	 * 创建SubApps集合
+	 * @param context - 应用上下文（可选）
+	 */
 	constructor(context?:AppContext) {
 		this._main = new SubApp(context);
 	}
 
 	/**
 	 * 获取主SubApp
+	 * @returns 主SubApp实例
 	 */
 	main(): SubApp {
 		return this._main;
@@ -564,6 +583,7 @@ export class SubApps {
 
 	/**
 	 * 更新所有SubApp
+	 * 先更新主应用，然后按顺序更新所有子应用
 	 */
 	update(): void {
 		// 首先更新主应用
@@ -580,6 +600,8 @@ export class SubApps {
 
 	/**
 	 * 获取整体插件状态
+	 * 取所有SubApp中最早的状态作为整体状态
+	 * @returns 整体插件状态
 	 */
 	getOverallPluginState(): PluginState {
 		let overallState = this._main.getPluginState();
@@ -647,6 +669,8 @@ export class SubApps {
 
 	/**
 	 * 获取指定标签的SubApp
+	 * @param label - SubApp标签
+	 * @returns SubApp实例或undefined
 	 */
 	getSubApp(label: AppLabel): SubApp | undefined {
 		return this.subApps.get(label.name);
@@ -654,6 +678,8 @@ export class SubApps {
 
 	/**
 	 * 插入SubApp
+	 * @param label - SubApp标签
+	 * @param subApp - SubApp实例
 	 */
 	insertSubApp(label: AppLabel, subApp: SubApp): void {
 		this.subApps.set(label.name, subApp);
@@ -661,6 +687,8 @@ export class SubApps {
 
 	/**
 	 * 移除SubApp
+	 * @param label - SubApp标签
+	 * @returns 被移除的SubApp实例或undefined
 	 */
 	removeSubApp(label: AppLabel): SubApp | undefined {
 		const subApp = this.subApps.get(label.name);
@@ -672,6 +700,7 @@ export class SubApps {
 
 	/**
 	 * 遍历所有SubApp（包括主应用）
+	 * @returns SubApp迭代器
 	 */
 	*iter(): IterableIterator<SubApp> {
 		yield this._main;
@@ -682,6 +711,7 @@ export class SubApps {
 
 	/**
 	 * 设置错误处理器到所有SubApp
+	 * @param handler - 错误处理函数
 	 */
 	setErrorHandler(handler: ErrorHandler): void {
 		this._main.setErrorHandler(handler);
@@ -691,7 +721,19 @@ export class SubApps {
 	}
 
 	/**
+	 * 设置静默错误模式到所有SubApp
+	 * @param silent - 是否静默错误
+	 */
+	setSilentErrors(silent: boolean): void {
+		this._main.setSilentErrors(silent);
+		for (const [_, subApp] of this.subApps) {
+			subApp.setSilentErrors(silent);
+		}
+	}
+
+	/**
 	 * 根据标签更新特定SubApp
+	 * @param label - SubApp标签
 	 */
 	updateSubAppByLabel(label: AppLabel): void {
 		const subApp = this.getSubApp(label);

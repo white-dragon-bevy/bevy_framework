@@ -3,6 +3,7 @@
  *
  * 包含最常用的公共 API，方便用户快速导入。
  *
+ * @module prelude
  * @example
  * ```typescript
  * import { DebuggerPlugin, type DebuggerOptions } from "bevy_ecs_debugger/prelude";
@@ -19,11 +20,7 @@ export { DebuggerPlugin } from "./debugger-plugin";
 export { createDebugger } from "./debugger";
 
 // 类型定义
-export type {
-    DebuggerOptions,
-    IDebugger,
-    DebuggerState
-} from "./types";
+export type { DebuggerOptions, IDebugger, DebuggerState } from "./types";
 
 // 默认配置
 export { DefaultDebuggerOptions } from "./types";

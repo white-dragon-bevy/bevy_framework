@@ -83,6 +83,14 @@ export class PinchGesture {
 	 */
 	public readonly positions: ReadonlyArray<Vector2>;
 
+	/**
+	 * 创建捏合手势事件
+	 * @param state - 手势状态
+	 * @param delta - 缩放增量
+	 * @param velocity - 缩放速度
+	 * @param scale - 当前缩放比例
+	 * @param positions - 触摸点位置
+	 */
 	constructor(
 		state: GestureState,
 		delta: number,
@@ -142,6 +150,14 @@ export class RotationGesture {
 	 */
 	public readonly positions: ReadonlyArray<Vector2>;
 
+	/**
+	 * 创建旋转手势事件
+	 * @param state - 手势状态
+	 * @param delta - 旋转角度增量（弧度）
+	 * @param velocity - 旋转速度
+	 * @param rotation - 当前旋转角度（弧度）
+	 * @param positions - 触摸点位置
+	 */
 	constructor(
 		state: GestureState,
 		delta: number,
@@ -179,6 +195,11 @@ export class DoubleTapGesture {
 	 */
 	public readonly interval: number;
 
+	/**
+	 * 创建双击手势事件
+	 * @param position - 双击位置
+	 * @param interval - 两次点击之间的时间间隔（秒）
+	 */
 	constructor(position: Vector2, interval: number) {
 		this.position = position;
 		this.interval = interval;
@@ -225,6 +246,14 @@ export class PanGesture {
 	 */
 	public readonly positions: ReadonlyArray<Vector2>;
 
+	/**
+	 * 创建平移手势事件
+	 * @param state - 手势状态
+	 * @param delta - 移动增量
+	 * @param velocity - 移动速度
+	 * @param totalTranslation - 总移动量
+	 * @param positions - 触摸点位置
+	 */
 	constructor(
 		state: GestureState,
 		delta: Vector2,
@@ -274,6 +303,13 @@ export class LongPressGesture {
 	 */
 	public readonly positions: ReadonlyArray<Vector2>;
 
+	/**
+	 * 创建长按手势事件
+	 * @param state - 手势状态
+	 * @param position - 长按位置
+	 * @param duration - 长按持续时间（秒）
+	 * @param positions - 触摸点位置
+	 */
 	constructor(state: GestureState, position: Vector2, duration: number, positions: ReadonlyArray<Vector2>) {
 		this.state = state;
 		this.position = position;
@@ -385,6 +421,10 @@ export class GestureManager {
 	private lastRotation?: number;
 	private lastPanTranslation?: Vector2;
 
+	/**
+	 * 创建手势输入管理器
+	 * @param config - 手势管理器配置（可选，默认使用 DEFAULT_GESTURE_CONFIG）
+	 */
 	constructor(config: GestureManagerConfig = DEFAULT_GESTURE_CONFIG) {
 		this.config = config;
 	}
@@ -407,7 +447,6 @@ export class GestureManager {
 	): void {
 		// 防御性检查: 如果已设置,先清理
 		if (this.isSetup) {
-			warn("[GestureManager] setupHandlers called multiple times! Cleaning up old connections...");
 			this.cleanup();
 		}
 		// 捏合手势

@@ -11,9 +11,12 @@ import { TypeDescriptor } from "../bevy_core";
 
 /**
  * 生成状态资源键名
- * @param prefix - 资源前缀
- * @param stateType - 状态类型
- * @returns 资源键名
+ *
+ * **内部函数**: 此函数用于统一生成 State<T> 和 NextState<T> 的资源键名。
+ *
+ * @param prefix - 资源前缀（如 "State" 或 "NextState"）
+ * @param stateType - 状态类型构造函数
+ * @returns 格式化的资源键名，如 "State<AppState>"
  */
 function generateResourceKey<T extends States>(prefix: string, stateType: StateConstructor<T>): string {
 	const stateTypeName = (stateType as unknown as { name?: string }).name ?? tostring(stateType);
@@ -22,18 +25,23 @@ function generateResourceKey<T extends States>(prefix: string, stateType: StateC
 
 /**
  * 状态集接口，支持单个状态或状态元组
+ *
+ * **用途**: 为计算状态提供统一的源状态访问接口
+ *
  * @template T - 状态类型或状态元组类型
  */
 export interface StateSet<T = unknown> {
 	/**
 	 * 获取状态集的依赖深度
-	 * @returns 依赖深度
+	 *
+	 * @returns 依赖深度值
 	 */
 	getDependencyDepth(): number;
 
 	/**
 	 * 从资源管理器获取状态集的当前值
-	 * @param resourceManager - 资源管理器
+	 *
+	 * @param resourceManager - 资源管理器实例
 	 * @returns 状态或状态元组，如果不存在则返回 undefined
 	 */
 	getStates(resourceManager: ResourceManager): T | undefined;
@@ -41,6 +49,9 @@ export interface StateSet<T = unknown> {
 
 /**
  * 单个状态的 StateSet 实现
+ *
+ * **用途**: 为单一源状态的计算状态提供状态访问
+ *
  * @template S - 状态类型
  */
 export class SingleStateSet<S extends States> implements StateSet<S> {
@@ -48,6 +59,12 @@ export class SingleStateSet<S extends States> implements StateSet<S> {
 
 	/**
 	 * 构造函数
+	 *
+	 * **TypeDescriptor 的重要性**:
+	 * - TypeDescriptor 用于在 ResourceManager 中唯一标识状态资源
+	 * - 如果不提供，调用 getStates() 时将抛出错误
+	 * - 推荐使用 Modding 宏系统自动生成 TypeDescriptor
+	 *
 	 * @param stateType - 状态类型构造函数
 	 * @param typeDescriptor - 可选的类型描述符（用于资源查询）
 	 */
@@ -60,7 +77,8 @@ export class SingleStateSet<S extends States> implements StateSet<S> {
 
 	/**
 	 * 获取依赖深度
-	 * @returns 状态的依赖深度
+	 *
+	 * @returns 状态的依赖深度值
 	 */
 	public getDependencyDepth(): number {
 		const stateClass = this.stateType as unknown as { DEPENDENCY_DEPTH?: number };
@@ -97,6 +115,9 @@ export class SingleStateSet<S extends States> implements StateSet<S> {
 
 /**
  * 状态元组的 StateSet 实现
+ *
+ * **用途**: 为多源状态的计算状态提供状态访问
+ *
  * @template T - 状态元组类型，如 [AppState, MenuState]
  */
 export class TupleStateSet<T extends ReadonlyArray<States>> implements StateSet<T> {
@@ -105,6 +126,13 @@ export class TupleStateSet<T extends ReadonlyArray<States>> implements StateSet<
 
 	/**
 	 * 构造函数
+	 *
+	 * **用法示例**:
+	 * ```typescript
+	 * const tupleSet = new TupleStateSet(AppState, MenuState, LoadingState);
+	 * tupleSet.setTypeDescriptors([appTypeDesc, menuTypeDesc, loadingTypeDesc]);
+	 * ```
+	 *
 	 * @param stateTypes - 状态类型构造函数数组（变长参数）
 	 */
 	constructor(...stateTypes: { [K in keyof T]: StateConstructor<T[K]> }) {
@@ -113,7 +141,10 @@ export class TupleStateSet<T extends ReadonlyArray<States>> implements StateSet<
 
 	/**
 	 * 设置类型描述符（用于资源查询）
-	 * @param typeDescriptors - 类型描述符数组
+	 *
+	 * **注意**: 类型描述符数组的长度和顺序必须与构造函数中的状态类型数组一致。
+	 *
+	 * @param typeDescriptors - 类型描述符数组，顺序必须与 stateTypes 一致
 	 */
 	public setTypeDescriptors(typeDescriptors: ReadonlyArray<TypeDescriptor>): void {
 		this.typeDescriptors = typeDescriptors;
@@ -121,6 +152,7 @@ export class TupleStateSet<T extends ReadonlyArray<States>> implements StateSet<
 
 	/**
 	 * 获取依赖深度
+	 *
 	 * @returns 所有状态中的最大依赖深度 + 1
 	 */
 	public getDependencyDepth(): number {
@@ -181,12 +213,14 @@ export class TupleStateSet<T extends ReadonlyArray<States>> implements StateSet<
  * 计算状态接口
  * 对应 Rust ComputedStates trait
  *
- * 计算状态是从其他状态派生的状态，不能直接修改
+ * **说明**: 计算状态是从其他状态派生的状态，不能直接修改
+ *
  * @template TSource - 源状态类型或状态元组类型
  */
 export interface ComputedStates<TSource = unknown> extends States {
 	/**
 	 * 从源状态集计算派生状态
+	 *
 	 * @param sources - 源状态或状态元组
 	 * @returns 计算后的状态或 undefined
 	 */
@@ -194,13 +228,17 @@ export interface ComputedStates<TSource = unknown> extends States {
 
 	/**
 	 * 获取源状态集配置
-	 * @returns 源状态集
+	 *
+	 * @returns 源状态集实例
 	 */
 	getSourceStateSet(): StateSet<TSource>;
 }
 
 /**
  * 抽象计算状态基类
+ *
+ * **用途**: 为计算状态提供通用实现，简化自定义计算状态的开发
+ *
  * @template TSource - 源状态类型或状态元组类型
  */
 export abstract class BaseComputedStates<TSource = unknown>
@@ -215,6 +253,12 @@ export abstract class BaseComputedStates<TSource = unknown>
 
 	/**
 	 * 构造函数
+	 *
+	 * **依赖深度自动计算**:
+	 * - 如果提供 sourceStateSet，依赖深度将自动设置为源状态深度 + 1
+	 * - 如果不提供（向后兼容模式），依赖深度默认为 2
+	 * - 子类应在构造函数中设置 sourceStateSet
+	 *
 	 * @param sourceStateSet - 源状态集（可选，用于向后兼容）
 	 */
 	constructor(sourceStateSet?: StateSet<TSource>) {
@@ -237,13 +281,15 @@ export abstract class BaseComputedStates<TSource = unknown>
 
 	/**
 	 * 获取状态标识符
-	 * @returns 状态标识符
+	 *
+	 * @returns 状态的唯一标识符
 	 */
 	public abstract getStateId(): string | number;
 
 	/**
 	 * 比较状态相等性
-	 * @param other - 另一个状态
+	 *
+	 * @param other - 另一个状态实例
 	 * @returns 是否相等
 	 */
 	public equals(other: States): boolean {
@@ -252,13 +298,15 @@ export abstract class BaseComputedStates<TSource = unknown>
 
 	/**
 	 * 克隆状态
-	 * @returns 状态副本
+	 *
+	 * @returns 状态的深拷贝副本
 	 */
 	public abstract clone(): States;
 
 	/**
 	 * 获取源状态集配置
-	 * @returns 源状态集
+	 *
+	 * @returns 源状态集实例
 	 */
 	public getSourceStateSet(): StateSet<TSource> {
 		if (!this.sourceStateSet) {
@@ -269,14 +317,23 @@ export abstract class BaseComputedStates<TSource = unknown>
 
 	/**
 	 * 计算状态
+	 *
 	 * @param sources - 源状态或状态元组
-	 * @returns 计算后的状态
+	 * @returns 计算后的状态或 undefined
 	 */
 	public abstract compute(sources: TSource | undefined): ComputedStates<TSource> | undefined;
 }
 
 /**
  * 计算状态管理器
+ *
+ * **职责**: 负责在每帧更新计算状态，将源状态的变化反映到计算状态中。
+ *
+ * **使用场景**:
+ * - 从单个或多个源状态派生新的状态
+ * - 实现状态的联合、映射、过滤等逻辑
+ * - 保持计算状态与源状态同步
+ *
  * @template TSource - 源状态类型或状态元组类型
  * @template TComputed - 计算状态类型
  */
@@ -285,7 +342,8 @@ export class ComputedStateManager<TSource = unknown, TComputed extends ComputedS
 
 	/**
 	 * 构造函数
-	 * @param computedType - 计算状态类型
+	 *
+	 * @param computedType - 计算状态类型构造函数
 	 */
 	public constructor(
 		computedType: new () => TComputed,
@@ -295,6 +353,15 @@ export class ComputedStateManager<TSource = unknown, TComputed extends ComputedS
 
 	/**
 	 * 更新计算状态
+	 *
+	 * **执行流程**:
+	 * 1. 从源状态集获取当前源状态值
+	 * 2. 调用 compute() 方法计算新的计算状态
+	 * 3. 更新或创建 State<TComputed> 资源
+	 * 4. 如果计算结果为 undefined，移除计算状态资源
+	 *
+	 * **调用时机**: 通常在 StateTransition 调度中自动调用
+	 *
 	 * @param world - 游戏世界
 	 * @param resourceManager - 资源管理器
 	 */
@@ -336,9 +403,20 @@ export class ComputedStateManager<TSource = unknown, TComputed extends ComputedS
 
 /**
  * 创建简单的计算状态类
+ *
+ * **便利函数**: 用于快速创建计算状态类，无需手动实现完整的 ComputedStates 接口。
+ *
+ * **使用示例**:
+ * ```typescript
+ * const PausedState = createComputedState(
+ *     new SingleStateSet(AppState),
+ *     (source) => source?.isPaused() ? PausedStates.Paused : PausedStates.Active
+ * );
+ * ```
+ *
  * @param sourceStateSet - 源状态集
- * @param computeFn - 计算函数
- * @returns 计算状态类
+ * @param computeFn - 计算函数，接收源状态返回计算后的状态
+ * @returns 计算状态类构造函数
  */
 export function createComputedState<TSource>(
 	sourceStateSet: StateSet<TSource>,
@@ -376,7 +454,24 @@ export function createComputedState<TSource>(
 
 /**
  * 映射计算状态
- * 简单地将一个状态映射到另一个状态
+ *
+ * **用途**: 将一个状态通过映射表转换为另一个状态。
+ *
+ * **使用场景**:
+ * - 从游戏状态映射到 UI 显示状态
+ * - 从详细状态映射到简化状态
+ * - 状态分组和归类
+ *
+ * **示例**:
+ * ```typescript
+ * const mapping = new Map([
+ *     ["loading", UIStates.Busy],
+ *     ["saving", UIStates.Busy],
+ *     ["idle", UIStates.Ready]
+ * ]);
+ * const uiState = new MappedComputedState(gameStateSet, mapping);
+ * ```
+ *
  * @template TSource - 源状态类型
  */
 export class MappedComputedState<TSource extends States> extends BaseComputedStates<TSource> {
@@ -385,18 +480,29 @@ export class MappedComputedState<TSource extends States> extends BaseComputedSta
 
 	/**
 	 * 构造函数
-	 * @param sourceStateSet - 源状态集
-	 * @param mapping - 状态映射表
+	 *
+	 * @param sourceStateSet - 源状态集实例
+	 * @param mapping - 状态映射表，键为源状态ID，值为目标状态
 	 */
 	public constructor(sourceStateSet: StateSet<TSource>, mapping: Map<string | number, States>) {
 		super(sourceStateSet);
 		this.mapping = mapping;
 	}
 
+	/**
+	 * 获取状态标识符
+	 *
+	 * @returns 当前映射状态的标识符
+	 */
 	public getStateId(): string | number {
 		return this.currentValue?.getStateId() ?? "";
 	}
 
+	/**
+	 * 克隆状态
+	 *
+	 * @returns 状态的深拷贝副本
+	 */
 	public clone(): States {
 		if (!this.sourceStateSet) {
 			error("StateSet not configured");
@@ -406,6 +512,12 @@ export class MappedComputedState<TSource extends States> extends BaseComputedSta
 		return cloned;
 	}
 
+	/**
+	 * 计算映射后的状态
+	 *
+	 * @param sources - 源状态或 undefined
+	 * @returns 映射后的计算状态或 undefined
+	 */
 	public compute(sources: TSource | undefined): ComputedStates<TSource> | undefined {
 		if (sources === undefined) {
 			return undefined;
@@ -430,9 +542,25 @@ export class MappedComputedState<TSource extends States> extends BaseComputedSta
 
 /**
  * 便利函数：创建支持多状态源的计算状态
+ *
+ * **用途**: 从多个源状态计算派生状态，支持复杂的状态组合逻辑。
+ *
+ * **使用示例**:
+ * ```typescript
+ * const CombinedState = createMultiSourceComputedState(
+ *     [AppState, NetworkState, AuthState],
+ *     ([appState, netState, authState]) => {
+ *         if (appState.isLoading() || netState.isConnecting()) return LoadingStates.Loading;
+ *         if (!authState.isAuthenticated()) return LoadingStates.Unauthorized;
+ *         return LoadingStates.Ready;
+ *     },
+ *     [appTypeDesc, netTypeDesc, authTypeDesc]
+ * );
+ * ```
+ *
  * @param sourceTypes - 源状态类型构造函数数组
- * @param computeFn - 计算函数
- * @param typeDescriptors - 可选的类型描述符数组
+ * @param computeFn - 计算函数，接收源状态元组返回计算后的状态
+ * @param typeDescriptors - 可选的类型描述符数组，顺序必须与 sourceTypes 一致
  * @returns 计算状态类构造函数
  */
 export function createMultiSourceComputedState<T extends ReadonlyArray<States>, R extends States>(

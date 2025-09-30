@@ -25,6 +25,10 @@ export class DiagnosticPath {
 	private readonly path: string;
 	private readonly hash: string;
 
+	/**
+	 * 创建诊断路径实例
+	 * @param path - 诊断路径字符串,使用 `/` 分隔组件
+	 */
 	constructor(path: string) {
 		assert(path !== "", "diagnostic path should not be empty");
 		assert(!(path.sub(1, 1) === "/"), "diagnostic path should not start with `/`");
@@ -88,9 +92,9 @@ export class DiagnosticPath {
  */
 export interface DiagnosticMeasurement {
 	/** 测量时间（秒） */
-	time: number;
+	readonly time: number;
 	/** 测量值 */
-	value: number;
+	readonly value: number;
 }
 
 /**
@@ -109,6 +113,10 @@ export class Diagnostic {
 	/** 诊断是否启用 */
 	isEnabled: boolean = true;
 
+	/**
+	 * 创建诊断实例
+	 * @param path - 诊断路径
+	 */
 	constructor(path: DiagnosticPath) {
 		this.path = path;
 	}
@@ -117,6 +125,7 @@ export class Diagnostic {
 	 * 添加新的测量值
 	 * 对应 Rust add_measurement
 	 * @param measurement - 测量值
+	 * @returns 无返回值
 	 */
 	addMeasurement(measurement: DiagnosticMeasurement): void {
 		if (measurement.value === measurement.value) {
@@ -314,6 +323,7 @@ export class Diagnostic {
 	/**
 	 * 清空历史记录
 	 * 对应 Rust clear_history
+	 * @returns 无返回值
 	 */
 	clearHistory(): void {
 		this.history.clear();
@@ -331,9 +341,17 @@ export class DiagnosticsStore {
 	private diagnostics = new Map<string, Diagnostic>();
 
 	/**
+	 * 创建诊断存储实例
+	 */
+	constructor() {
+		// 初始化存储
+	}
+
+	/**
 	 * 添加新诊断
 	 * 对应 Rust add
 	 * @param diagnostic - 诊断实例
+	 * @returns 无返回值
 	 */
 	add(diagnostic: Diagnostic): void {
 		this.diagnostics.set(diagnostic.getPath().toString(), diagnostic);
@@ -409,14 +427,16 @@ export class DiagnosticsStore {
 
 	/**
 	 * 清空所有诊断项
+	 * @returns 无返回值
 	 */
 	clear(): void {
 		this.diagnostics.clear();
 	}
 
 	/**
-	 * 遍历所有诊断项
-	 * @param callback - 回调函数
+	 * 遍历所有诊断项并执行回调
+	 * @param callback - 对每个诊断项执行的回调函数
+	 * @returns 无返回值
 	 */
 	iterDiagnostics(callback: (diagnostic: Diagnostic) => void): void {
 		for (const [_, diagnostic] of this.diagnostics) {
@@ -432,13 +452,20 @@ export class DiagnosticsStore {
 export class Diagnostics {
 	private pendingMeasurements = new Map<string, DiagnosticMeasurement>();
 
-	constructor(private store: DiagnosticsStore) {}
+	/**
+	 * 创建诊断系统参数实例
+	 * @param store - 诊断存储实例
+	 */
+	constructor(private store: DiagnosticsStore) {
+		this.store = store;
+	}
 
 	/**
 	 * 添加测量值到已启用的诊断
 	 * 对应 Rust add_measurement
 	 * @param path - 诊断路径
 	 * @param valueFn - 值计算函数（仅在诊断启用时调用）
+	 * @returns 无返回值
 	 */
 	addMeasurement(path: DiagnosticPath, valueFn: () => number): void {
 		const diagnostic = this.store.get(path);
@@ -452,7 +479,9 @@ export class Diagnostics {
 	}
 
 	/**
-	 * 应用所有挂起的测量值
+	 * 应用所有挂起的测量值到对应的诊断项
+	 * 通常在系统结束时调用
+	 * @returns 无返回值
 	 */
 	apply(): void {
 		for (const [pathStr, measurement] of this.pendingMeasurements) {
@@ -498,8 +527,9 @@ export function registerDiagnostic(app: App, diagnostic: Diagnostic): App {
 
 /**
  * 安装诊断系统到App
- * 这个函数应该在使用诊断系统前调用
+ * 该函数在 DiagnosticsPlugin 中自动调用,通常无需手动调用
  * @param app - App实例
+ * @returns 无返回值
  */
 export function installDiagnosticSystem(app: import("../bevy_app/app").App): void {
 	(

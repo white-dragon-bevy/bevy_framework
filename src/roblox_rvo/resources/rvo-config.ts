@@ -6,8 +6,9 @@
 import { Resource } from "../../bevy_ecs/resource";
 
 /**
- * RVO 系统配置资源
- * 控制 RVO 算法的全局行为
+ * RVOConfig 类
+ * RVO 系统配置资源，控制 RVO 算法的全局行为和默认参数
+ * 实现 Resource 接口，可作为 ECS 资源使用
  */
 export class RVOConfig implements Resource {
 	/** 最大代理数量 */
@@ -79,27 +80,22 @@ export class RVOConfig implements Resource {
 	 */
 	validate(): boolean {
 		if (this.maxAgents <= 0) {
-			warn("[RVOConfig] maxAgents must be positive");
 			return false;
 		}
 
 		if (this.timeStep <= 0) {
-			warn("[RVOConfig] timeStep must be positive");
 			return false;
 		}
 
 		if (this.radius <= 0) {
-			warn("[RVOConfig] radius must be positive");
 			return false;
 		}
 
 		if (this.maxSpeed <= 0) {
-			warn("[RVOConfig] maxSpeed must be positive");
 			return false;
 		}
 
 		if (this.maxNeighbors < 0) {
-			warn("[RVOConfig] maxNeighbors must be non-negative");
 			return false;
 		}
 

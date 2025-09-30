@@ -7,6 +7,7 @@ import { component } from "@rbxts/matter";
 
 /**
  * RVOObstacle 组件数据接口
+ * 定义静态障碍物的形状和属性
  */
 export interface RVOObstacleData {
 	/** 障碍物顶点列表 (逆时针顺序) */
@@ -105,8 +106,9 @@ export function createLineObstacle(start: Vector2, endPoint: Vector2): RVOObstac
 
 /**
  * 检查多边形是否为凸多边形
- * @param vertices - 顶点列表
- * @returns 是否为凸多边形
+ * 通过计算相邻边的叉积符号来判断凸性
+ * @param vertices - 顶点列表（按顺序排列）
+ * @returns 如果是凸多边形返回 true，否则返回 false
  */
 function checkConvexity(vertices: Array<Vector2>): boolean {
 	const vertexCount = vertices.size();

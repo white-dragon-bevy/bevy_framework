@@ -1,6 +1,5 @@
 /**
  * Fixed Time 测试用例
- * 严格对应 Rust bevy_time/src/fixed.rs 中的测试
  */
 
 import { Duration } from "../duration";
@@ -8,7 +7,7 @@ import { TimeFixed } from "../fixed";
 
 export = () => {
 	describe("Time<Fixed>", () => {
-		describe("test_set_timestep (对应 Rust fixed.rs:258-272)", () => {
+		describe("test_set_timestep ", () => {
 			it("应该使用默认 64Hz 时间步长", () => {
 				const time = new TimeFixed();
 				// DEFAULT_TIMESTEP = Duration::from_micros(15625)
@@ -34,7 +33,7 @@ export = () => {
 			});
 		});
 
-		describe("test_expend (对应 Rust fixed.rs:274-337)", () => {
+		describe("test_expend ", () => {
 			it("应该正确处理 expend 逻辑（完整测试）", () => {
 				// let mut time = Time::<Fixed>::from_seconds(2.0);
 				const time = TimeFixed.fromSeconds(2.0);
@@ -109,7 +108,7 @@ export = () => {
 			});
 		});
 
-		describe("test_expend_multiple (对应 Rust fixed.rs:338-360)", () => {
+		describe("test_expend_multiple", () => {
 			it("应该正确处理多次 expend", () => {
 				// let mut time = Time::<Fixed>::from_seconds(2.0);
 				const time = TimeFixed.fromSeconds(2.0);

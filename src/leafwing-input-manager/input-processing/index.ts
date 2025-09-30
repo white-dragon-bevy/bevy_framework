@@ -1,3 +1,10 @@
+/**
+ * Input processing module exports
+ *
+ * This module provides processors for transforming raw input values,
+ * including single-axis, dual-axis, deadzone, and custom processors.
+ */
+
 // Single-axis processors
 export {
 	SingleAxisProcessor,

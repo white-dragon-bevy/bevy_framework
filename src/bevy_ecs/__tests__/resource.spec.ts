@@ -42,7 +42,6 @@ export = () => {
 
 		it("应该能够插入和获取资源", () => {
 			const testResource = new TestResource(42, "hello");
-			print("应该能够插入和获取资源")
 			resourceManager.insertResource<TestResource>(testResource);
 
 			const retrieved = resourceManager.getResource<TestResource>();

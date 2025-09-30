@@ -440,6 +440,9 @@ export class GamepadSettings {
 	/** 特定按钮轴的自定义设置 */
 	public buttonAxisSettings: Map<GamepadButton, ButtonAxisSettings>;
 
+	/**
+	 * 创建游戏手柄设置对象
+	 */
 	constructor() {
 		this.defaultButtonSettings = new ButtonSettings();
 		this.defaultAxisSettings = new AxisSettings();
@@ -616,6 +619,9 @@ export class GamepadManager {
 	/** 游戏手柄设置 */
 	public settings: GamepadSettings;
 
+	/**
+	 * 创建游戏手柄管理器
+	 */
 	constructor() {
 		this.gamepads = new Map();
 		this.settings = new GamepadSettings();

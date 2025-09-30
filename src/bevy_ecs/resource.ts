@@ -1,30 +1,49 @@
+/**
+ * @fileoverview 资源管理系统
+ * 实现 Bevy 的 Resource 系统，用于管理全局共享数据
+ * 提供类型安全的资源存储、检索和生命周期管理
+ */
+
 import { Modding } from "@flamework/core";
 import { getTypeDescriptor, TypeDescriptor } from "../bevy_core";
 import { ComponentId, getComponentId, getComponentIdByDescriptor } from "./component/component-id";
 
 /**
- * 资源标识符 - 用于唯一标识资源类型
+ * 资源标识符
+ * 用于唯一标识资源类型的字符串
  */
 export type ResourceId = string;
 
 /**
  * 资源基础接口
+ * 所有资源类型应实现此接口（可选，用于类型标记）
  */
 export interface Resource {}
 
 /**
  * 资源元数据
+ * 跟踪资源的类型信息和时间戳
  */
 export interface ResourceMetadata {
+	/** 资源的类型描述符 */
 	readonly typeDescriptor: TypeDescriptor;
+	/** 资源创建时间 */
 	readonly created: number;
+	/** 资源最后更新时间 */
 	readonly updated: number;
 }
 
 /**
- * 资源管理器 - 实现Bevy的Resource系统
+ * 资源管理器
+ * 实现 Bevy 的 Resource 系统
  *
- * 直接使用Map存储资源，完全独立于ECS组件系统
+ * 功能：
+ * - 类型安全的资源存储和检索
+ * - 基于 TypeDescriptor 的资源识别
+ * - 资源元数据跟踪
+ * - 完全独立于 ECS 组件系统
+ *
+ * 注意：资源是全局单例，每种类型只能存在一个实例
  */
 export class ResourceManager {
 	private readonly resources = new Map<ComponentId, object>();
@@ -54,11 +73,9 @@ export class ResourceManager {
 	}
 
 	/**
-	 * 
-	 * 获取资源
-	 * 
-	 * @param resource 
-	 * @param typeDescriptor 
+	 * 通过 TypeDescriptor 获取资源
+	 * @param typeDescriptor - 资源的类型描述符
+	 * @returns 资源实例，如果不存在则返回 undefined
 	 */
 	public getResourceByTypeDescriptor<T extends defined>(typeDescriptor:TypeDescriptor ):T|undefined {
 		if(typeDescriptor===undefined){
@@ -175,9 +192,9 @@ export class ResourceManager {
 	}
 
 	/**
-	 * 
-	 * @param resource 
-	 * @param typeDescriptor 
+	 * 通过 TypeDescriptor 插入资源
+	 * @param resource - 要插入的资源实例
+	 * @param typeDescriptor - 资源的类型描述符
 	 */
 	public insertResourceByTypeDescriptor(resource:object, typeDescriptor:TypeDescriptor ) {
 		const componentId = getComponentIdByDescriptor(typeDescriptor)
@@ -233,7 +250,7 @@ export class ResourceManager {
 
 	/**
 	 * 移除资源（通过 TypeDescriptor）
-	 *
+	 * @param descriptor - 资源的类型描述符
 	 * @returns 被移除的资源实例，如果不存在则返回undefined
 	 */
 	public removeResourceByTypeDescriptor(descriptor:TypeDescriptor): object|undefined {
@@ -271,8 +288,13 @@ export class ResourceManager {
 		return this.resources.has(componentId);
 	}
 
+	/**
+	 * 检查资源是否存在（通过 TypeDescriptor）
+	 * @param descriptor - 资源的类型描述符
+	 * @returns 资源是否存在
+	 */
 	public hasResourceByDescriptor<T >(descriptor:TypeDescriptor): boolean {
-	
+
 		const componentId = getComponentIdByDescriptor(descriptor)
 		if(componentId===undefined){
 			return false
@@ -312,6 +334,7 @@ export class ResourceManager {
 
 	/**
 	 * 获取所有资源（用于调试和特殊情况）
+	 * @returns 包含所有资源的 Map
 	 */
 	public getAllResources(): Map<ComponentId, Resource> {
 		return this.resources;

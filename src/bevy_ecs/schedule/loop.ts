@@ -86,6 +86,7 @@ export class Loop<T extends Array<unknown>> {
 	// 使用普通对象而不是 Map，以兼容 Matter 调试器
 	public profiling: unknown;
 	public trackErrors = false;
+	public silentErrors = false;
 
 	/**
 	 * 创建一个新的循环。接受参数将传递给所有系统。
@@ -471,7 +472,10 @@ export class Loop<T extends Array<unknown>> {
 
 		if (this.trackErrors) {
 			// When tracking errors, log but don't throw
-			warn(errorString);
+			if (!this.silentErrors) {
+				warn(errorString);
+			}
+
 			let errors = this._systemErrors.get(system);
 			if (!errors) {
 				errors = [];
@@ -492,8 +496,10 @@ export class Loop<T extends Array<unknown>> {
 				}
 			}
 		} else {
-			// When not tracking errors, throw immediately
-			task.spawn(error, errorString);
+			// When not tracking errors, throw immediately (unless silentErrors is enabled)
+			if (!this.silentErrors) {
+				task.spawn(error, errorString);
+			}
 		}
 	}
 

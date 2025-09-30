@@ -7,8 +7,9 @@ import { Resource } from "../../bevy_ecs/resource";
 import Simulator from "../core/Simulator";
 
 /**
- * RVO 模拟器资源
- * 包含模拟器实例和实体映射
+ * RVOSimulatorResource 类
+ * RVO 模拟器资源，管理核心模拟器实例和实体映射关系
+ * 实现 Resource 接口，可作为 ECS 资源使用
  */
 export class RVOSimulatorResource implements Resource {
 	/** 核心模拟器实例 */
@@ -206,7 +207,8 @@ export class RVOSimulatorResource implements Resource {
 }
 
 /**
- * RVO 统计信息
+ * RVOStats 接口
+ * RVO 模拟器的性能和状态统计信息
  */
 interface RVOStats {
 	/** 当前 Agent 数量 */

@@ -3,26 +3,62 @@ import Simulator from "./Simulator";
 import Obstacle from "./Obstacle";
 import Line from "./Line";
 
+/**
+ * Agent 类
+ * 表示 RVO 算法中的移动代理，处理碰撞避免计算
+ * 每个代理维护自己的邻居列表、ORCA 约束线和运动参数
+ */
 export default class Agent {
-  public id = 0;
-  simulator!: Simulator;
-  agentNeighbors:KeyValuePair<number,Agent>[] = []; //  new List<KeyValuePair<float, Agent>>()
-  maxNeighbors = 0;
-  maxSpeed = 0.0;
-  neighborDist = 0.0;
-  private _newVelocity!: Vector2;
-  obstaclNeighbors: KeyValuePair<number,Obstacle>[] = []; // new List<KeyValuePair<float, Obstacle>>()
-  orcaLines: Line[] = [];
-  position!: Vector2;
+	/** 代理唯一标识符 */
+	public id = 0;
 
-  prefVelocity!: Vector2;
+	/** 所属模拟器的引用 */
+	simulator!: Simulator;
 
-  radius = 0.0;
-  timeHorizon = 0.0;
-  timeHorizonObst = 0.0;
-  velocity!: Vector2;
+	/** 邻近代理列表（按距离排序的键值对） */
+	agentNeighbors: KeyValuePair<number, Agent>[] = [];
 
-  computeNeighbors() {
+	/** 最大邻居数量 */
+	maxNeighbors = 0;
+
+	/** 最大移动速度 */
+	maxSpeed = 0.0;
+
+	/** 邻居检测距离 */
+	neighborDist = 0.0;
+
+	/** 计算得出的新速度（内部使用） */
+	private _newVelocity!: Vector2;
+
+	/** 邻近障碍物列表（按距离排序的键值对） */
+	obstaclNeighbors: KeyValuePair<number, Obstacle>[] = [];
+
+	/** ORCA 约束线数组 */
+	orcaLines: Line[] = [];
+
+	/** 当前位置 */
+	position!: Vector2;
+
+	/** 首选速度（期望的移动方向和速度） */
+	prefVelocity!: Vector2;
+
+	/** 代理碰撞半径 */
+	radius = 0.0;
+
+	/** 时间视界（用于预测与其他代理的碰撞） */
+	timeHorizon = 0.0;
+
+	/** 障碍物时间视界（用于预测与障碍物的碰撞） */
+	timeHorizonObst = 0.0;
+
+	/** 当前速度 */
+	velocity!: Vector2;
+
+	/**
+	 * 计算代理的邻居
+	 * 查找附近的障碍物和其他代理，为速度计算做准备
+	 */
+	computeNeighbors(): void {
     this.obstaclNeighbors = [];
     let rangeSq = RVOMath.sqr(this.timeHorizonObst * this.maxSpeed + this.radius);
     this.simulator.kdTree.computeObstacleNeighbors(this, rangeSq);
@@ -34,8 +70,12 @@ export default class Agent {
     }
   }
 
-  /* Search for the best new velocity. */
-  computeNewVelocity() {
+	/**
+	 * 计算新的速度
+	 * 使用 ORCA (Optimal Reciprocal Collision Avoidance) 算法计算避免碰撞的最佳速度
+	 * 构建 ORCA 约束线并通过线性规划求解最优速度
+	 */
+	computeNewVelocity(): void {
     this.orcaLines = [];
     let orcaLines = this.orcaLines;
     const invTimeHorizonObst = 1.0 / this.timeHorizonObst;
@@ -328,6 +368,13 @@ export default class Agent {
     }
   }
 
+  /**
+   * 插入代理邻居
+   * 将其他代理添加到邻居列表中（按距离排序）
+   * @param agent - 要添加的代理
+   * @param rangeSq - 搜索范围的平方
+   * @returns 更新后的搜索范围平方
+   */
   insertAgentNeighbor(agent: Agent, rangeSq: number): number {
     if (this !== agent) {
       const distSq = RVOMath.absSq(this.position.sub(agent.position))
@@ -361,6 +408,12 @@ export default class Agent {
     return rangeSq
   }
 
+  /**
+   * 插入障碍物邻居
+   * 将障碍物添加到邻居列表中（按距离排序）
+   * @param obstacle - 要添加的障碍物
+   * @param rangeSq - 搜索范围的平方
+   */
   insertObstacleNeighbor(obstacle: Obstacle, rangeSq: number) {
     let nextObstacle = obstacle.next;
 
@@ -378,13 +431,27 @@ export default class Agent {
     }
   }
 
-  update() {
+	/**
+	 * 更新代理状态
+	 * 应用计算出的新速度并更新位置
+	 */
+	update(): void {
     // let rnd = new Vector2(math.random() * 0.1 - 0.05, math.random() * 0.1 - 0.05)
     // this.velocity = this.newVelocity.add(rnd)
     this.velocity = this._newVelocity;
     this.position = this.position.add(this._newVelocity.mul(this.simulator.timeStep))
   }
 
+  /**
+   * 线性规划求解 - 第一阶段
+   * 在给定约束线上求解最优速度
+   * @param lines - ORCA 约束线数组
+   * @param lineNo - 当前处理的线编号
+   * @param radius - 代理半径
+   * @param optVelocity - 最优速度目标
+   * @param directionOpt - 是否优化方向
+   * @returns 是否成功找到解
+   */
   private _linearProgram1(lines: Line[],
     lineNo: number,
     radius: number,
@@ -460,6 +527,15 @@ export default class Agent {
     return true;
   }
 
+  /**
+   * 线性规划求解 - 第二阶段
+   * 在多条约束线下求解最优速度
+   * @param lines - ORCA 约束线数组
+   * @param radius - 代理半径
+   * @param optVelocity - 最优速度目标
+   * @param directionOpt - 是否优化方向
+   * @returns 失败的约束线编号，若全部成功则返回线数量
+   */
   private _linearProgram2(lines: Line[],
     radius: number,
     optVelocity: Vector2,
@@ -492,6 +568,14 @@ export default class Agent {
     return lines.size();
   }
 
+  /**
+   * 线性规划求解 - 第三阶段
+   * 处理无解情况，寻找最接近的可行解
+   * @param lines - ORCA 约束线数组
+   * @param numObstLines - 障碍物约束线数量
+   * @param beginLine - 开始处理的线编号
+   * @param radius - 代理半径
+   */
   private _linearProgram3(lines: Line[], numObstLines: number, beginLine: number, radius: number) {
     let distance = 0.0;
 
@@ -544,12 +628,26 @@ export default class Agent {
 }
 
 
-class KeyValuePair<K,V> {
-  key;
-  value;
+/**
+ * KeyValuePair 类
+ * 用于存储邻居信息（距离的平方和对应的代理/障碍物引用）
+ * @template K - 键类型（通常为 number，表示距离的平方）
+ * @template V - 值类型（Agent 或 Obstacle）
+ */
+class KeyValuePair<K, V> {
+	/** 键（距离的平方） */
+	key: K;
 
-  constructor(key:K, value:V) {
-    this.key = key
-    this.value = value
-  }
+	/** 值（代理或障碍物引用） */
+	value: V;
+
+	/**
+	 * 创建键值对
+	 * @param key - 键值（距离的平方）
+	 * @param value - 关联的对象（代理或障碍物）
+	 */
+	constructor(key: K, value: V) {
+		this.key = key;
+		this.value = value;
+	}
 }

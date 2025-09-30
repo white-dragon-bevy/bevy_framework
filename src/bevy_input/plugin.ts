@@ -46,8 +46,9 @@ import { TouchInput, Touches, touchScreenInputSystem } from "./touch";
 
 /**
  * 检查 UserInputType 是否为游戏手柄
- * @param inputType - UserInputType
- * @returns 如果是游戏手柄返回 true
+ * 判断输入类型是否为 Gamepad1-Gamepad8 中的任意一个
+ * @param inputType - Roblox UserInputType 枚举值
+ * @returns 如果是游戏手柄输入返回 true
  */
 function isGamepadInput(inputType: Enum.UserInputType): boolean {
 	return (
@@ -80,8 +81,9 @@ export const InputResources = {
 
 /**
  * 将 Roblox KeyCode 映射到 GamepadButton
- * @param keyCode - Roblox KeyCode
- * @returns GamepadButton 或 undefined
+ * 将 Roblox 的按钮键码 (如 ButtonA, ButtonB) 映射到标准游戏手柄按钮枚举
+ * @param keyCode - Roblox KeyCode 枚举值
+ * @returns 对应的 GamepadButton 枚举值,如果无法映射返回 undefined
  */
 function mapKeyCodeToGamepadButton(keyCode: Enum.KeyCode): GamepadButton | undefined {
 	const mapping: Record<string, GamepadButton> = {
@@ -116,7 +118,9 @@ const KEY_PRESS_TIMEOUT = 100; // 100ms 内的 TextInputted 事件会被关联�
 
 /**
  * 查找最近按下的键（用于文本关联）
- * @returns 最近按下的键码，如果没有找到返回 undefined
+ * 在按键记录中查找时间戳最新的按键,用于将文本输入事件关联到对应按键
+ * 同时清理超过超时时间的过期记录
+ * @returns 最近按下的键码,如果没有找到或所有记录已过期返回 undefined
  */
 function findRecentKeyPress(): Enum.KeyCode | undefined {
 	const currentTime = os.clock() * 1000; // 转换为毫秒
@@ -136,10 +140,29 @@ function findRecentKeyPress(): Enum.KeyCode | undefined {
 	return mostRecentKey;
 }
 
-	/**
-	 * 处理所有输入事件
-	 */
-	function processInputEvents(
+/**
+ * 处理所有输入事件
+ * 统一处理键盘、鼠标、游戏手柄等输入事件,并发送到消息系统
+ * @param gamepadManager - 游戏手柄管理器
+ * @param keyInputValue - 逻辑键输入管理器
+ * @param keyboard - 键盘物理键输入管理器
+ * @param mouse - 鼠标按钮输入管理器
+ * @param mouseMotion - 鼠标移动累积器
+ * @param mouseWheel - 鼠标滚轮累积器
+ * @param mousePosition - 鼠标位置跟踪器
+ * @param cursorMovedWriter - 光标移动事件写入器
+ * @param gamepadAxisChangedWriter - 游戏手柄轴变化事件写入器
+ * @param gamepadButtonChangedWriter - 游戏手柄按钮变化事件写入器
+ * @param gamepadButtonStateChangedWriter - 游戏手柄按钮状态变化事件写入器
+ * @param keyboardInputWriter - 键盘输入事件写入器
+ * @param keyboardFocusLostWriter - 键盘焦点丢失事件写入器
+ * @param mouseButtonWriter - 鼠标按钮事件写入器
+ * @param mouseMotionWriter - 鼠标移动事件写入器
+ * @param mouseWheelWriter - 鼠标滚轮事件写入器
+ * @param rawGamepadAxisChangedWriter - 原始游戏手柄轴变化事件写入器
+ * @param rawGamepadButtonChangedWriter - 原始游戏手柄按钮变化事件写入器
+ */
+function processInputEvents(
 		gamepadManager: GamepadManager | undefined,
 		keyInputValue: ButtonInput<Key> | undefined,
 		keyboard: ButtonInput<Enum.KeyCode>,
@@ -497,8 +520,9 @@ function findRecentKeyPress(): Enum.KeyCode | undefined {
 
 /**
  * 将 Roblox KeyCode 映射到 GamepadAxis
- * @param keyCode - Roblox KeyCode
- * @returns GamepadAxis 或 undefined
+ * 将摇杆键码 (Thumbstick1, Thumbstick2) 映射到对应的游戏手柄轴枚举
+ * @param keyCode - Roblox KeyCode 枚举值
+ * @returns 对应的 GamepadAxis 枚举值,如果无法映射返回 undefined
  */
 function mapKeyCodeToGamepadAxis(keyCode: Enum.KeyCode): GamepadAxis | undefined {
 	const mapping: Record<string, GamepadAxis> = {
@@ -512,11 +536,14 @@ function mapKeyCodeToGamepadAxis(keyCode: Enum.KeyCode): GamepadAxis | undefined
 	// ✅ gestureSystem 已移除 - 手势处理器现在在 Plugin.build() 中直接初始化
 	// 这解决了内存泄漏问题(每帧重复创建事件连接)
 
-	/**
-	 * 创建触摸处理系统
-	 * @returns 触摸处理系统函数
-	 */
-	function touchSystem(world: World,context:Context) {
+/**
+ * 创建触摸处理系统
+ * 处理触摸输入事件并更新 Touches 资源状态
+ * @param world - World 实例
+ * @param context - 上下文实例
+ * @returns 触摸处理系统函数
+ */
+function touchSystem(world: World, context: Context) {
 		return (world: World) => {
 			const touches = world.resources.getResource<Touches>() ;
 			if (!touches) return;
@@ -534,11 +561,14 @@ function mapKeyCodeToGamepadAxis(keyCode: Enum.KeyCode): GamepadAxis | undefined
 
 
 }
-	/**
-	 * 创建主输入处理系统
-	 * @returns 输入处理系统函数
-	 */
-	function inputProcessingSystem(world: World,context:Context) {
+/**
+ * 创建主输入处理系统
+ * 每帧处理所有输入事件 (键盘、鼠标、游戏手柄、触摸等)
+ * @param world - World 实例
+ * @param context - 上下文实例
+ * @returns 输入处理系统函数
+ */
+function inputProcessingSystem(world: World, context: Context) {
 		let callCount = 0;
 			callCount++;
 			if (DEBUG_ENABLED && callCount % 60 === 1) { // 每60帧输出一次，避免日志过多
@@ -594,11 +624,14 @@ function mapKeyCodeToGamepadAxis(keyCode: Enum.KeyCode): GamepadAxis | undefined
 			);
 	}
 
-	/**
-	 * 创建游戏手柄连接系统
-	 * @returns 游戏手柄连接处理系统函数
-	 */
-	function gamepadConnectionSystem(world: World,context:Context) {
+/**
+ * 创建游戏手柄连接系统
+ * 检测游戏手柄的连接和断开事件,并更新 GamepadManager
+ * @param world - World 实例
+ * @param context - 上下文实例
+ * @returns 游戏手柄连接处理系统函数
+ */
+function gamepadConnectionSystem(world: World, context: Context) {
 		let initialized = false;
 
 			const gamepadManager = world.resources.getResource<GamepadManager>() ;
@@ -812,39 +845,83 @@ export class InputPlugin implements Plugin {
 	}
 }
 
-// 辅助函数：从 world.resources 获取输入资源
+/**
+ * 从 World 获取游戏手柄管理器
+ * @param world - World 实例
+ * @returns 游戏手柄管理器,如果未初始化返回 undefined
+ */
 export function getGamepadManager(world: World): GamepadManager | undefined {
 	return world.resources.getResource<GamepadManager>() ;
 }
 
+/**
+ * 从 World 获取手势管理器
+ * @param world - World 实例
+ * @returns 手势管理器,如果未初始化返回 undefined
+ */
 export function getGestureManager(world: World): GestureManager | undefined {
-	return world.resources.getResource<GestureManager>() ;
+	return world.resources.getResource<GestureManager>();
 }
 
+/**
+ * 从 World 获取逻辑键输入管理器
+ * @param world - World 实例
+ * @returns 逻辑键输入管理器,如果未初始化返回 undefined
+ */
 export function getKeyInput(world: World): ButtonInput<Key> | undefined {
-	return world.resources.getResource<ButtonInput<Key>>() ;
+	return world.resources.getResource<ButtonInput<Key>>();
 }
 
+/**
+ * 从 World 获取键盘输入管理器
+ * @param world - World 实例
+ * @returns 键盘输入管理器,如果未初始化返回 undefined
+ */
 export function getKeyboardInput(world: World): ButtonInput<Enum.KeyCode> | undefined {
-	return world.resources.getResource<ButtonInput<Enum.KeyCode>>() ;
+	return world.resources.getResource<ButtonInput<Enum.KeyCode>>();
 }
 
+/**
+ * 从 World 获取鼠标输入管理器
+ * @param world - World 实例
+ * @returns 鼠标输入管理器,如果未初始化返回 undefined
+ */
 export function getMouseInput(world: World): ButtonInput<Enum.UserInputType> | undefined {
-	return world.resources.getResource<ButtonInput<Enum.UserInputType>>() ;
+	return world.resources.getResource<ButtonInput<Enum.UserInputType>>();
 }
 
+/**
+ * 从 World 获取鼠标移动累积器
+ * @param world - World 实例
+ * @returns 鼠标移动累积器,如果未初始化返回 undefined
+ */
 export function getMouseMotion(world: World): AccumulatedMouseMotion | undefined {
-	return world.resources.getResource<AccumulatedMouseMotion>() ;
+	return world.resources.getResource<AccumulatedMouseMotion>();
 }
 
+/**
+ * 从 World 获取鼠标位置跟踪器
+ * @param world - World 实例
+ * @returns 鼠标位置跟踪器,如果未初始化返回 undefined
+ */
 export function getMousePosition(world: World): MousePosition | undefined {
-	return world.resources.getResource<MousePosition>() ;
+	return world.resources.getResource<MousePosition>();
 }
 
+/**
+ * 从 World 获取鼠标滚轮累积器
+ * @param world - World 实例
+ * @returns 鼠标滚轮累积器,如果未初始化返回 undefined
+ */
 export function getMouseWheel(world: World): AccumulatedMouseWheel | undefined {
-	return world.resources.getResource<AccumulatedMouseWheel>() ;
+	return world.resources.getResource<AccumulatedMouseWheel>();
 }
 
+/**
+ * 从 World 获取触摸输入管理器
+ * @param world - World 实例
+ * @returns 触摸输入管理器,如果未初始化返回 undefined
+ */
 export function getTouches(world: World): Touches | undefined {
-	return world.resources.getResource<Touches>() ;
+	return world.resources.getResource<Touches>();
 }		

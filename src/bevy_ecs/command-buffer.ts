@@ -1,8 +1,15 @@
+/**
+ * @fileoverview 命令缓冲系统
+ * 实现 Bevy 的 Commands 系统，提供延迟执行的结构性变更
+ * 允许在系统中安全地排队实体和资源操作，在安全时机批量应用
+ */
+
 import { AnyEntity, World, AnyComponent } from "@rbxts/matter";
 import { TypeDescriptor } from "../bevy_core";
 
 /**
- * 组件构造函数类型 - 兼容 Matter 的 ComponentCtor
+ * 组件构造函数类型
+ * 兼容 Matter 的 ComponentCtor 定义
  */
 export type ComponentConstructor<T extends AnyComponent = AnyComponent> = () => T;
 

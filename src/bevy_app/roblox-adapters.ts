@@ -12,8 +12,15 @@ import { BuiltinSchedules } from "./main-schedule";
 /**
  * Roblox运行器插件
  * 集成Roblox的RunService来驱动App更新
+ * 支持Heartbeat、Stepped和RenderStepped三种事件模式
  */
 export class RobloxRunnerPlugin extends BasePlugin {
+	/**
+	 * 创建Roblox运行器插件
+	 * @param useHeartbeat - 是否使用Heartbeat事件，默认为true（推荐用于物理更新）
+	 * @param useStepped - 是否使用Stepped事件，默认为false（物理步骤前触发）
+	 * @param useRenderStepped - 是否使用RenderStepped事件，默认为false（仅客户端，渲染前触发）
+	 */
 	constructor(
 		private useHeartbeat: boolean = true,
 		private useStepped: boolean = false,
@@ -22,6 +29,10 @@ export class RobloxRunnerPlugin extends BasePlugin {
 		super();
 	}
 
+	/**
+	 * 配置App - 设置Roblox运行器
+	 * @param app - App实例
+	 */
 	build(app: App): void {
 		// 设置自定义 runner
 		app.setRunner((app: App) => {
@@ -38,12 +49,18 @@ export class RobloxRunnerPlugin extends BasePlugin {
 		});
 	}
 
+	/**
+	 * 获取插件名称
+	 * @returns 插件名称
+	 */
 	name(): string {
 		return "RobloxRunnerPlugin";
 	}
 
 	/**
 	 * 执行启动序列（只执行一次）
+	 * 等待插件准备完成，然后执行 finish 和 cleanup
+	 * @param app - App实例
 	 */
 	private runStartupOnce(app: App): void {
 		// 等待所有插件准备完成
@@ -60,6 +77,8 @@ export class RobloxRunnerPlugin extends BasePlugin {
 
 	/**
 	 * 启动主循环
+	 * 创建事件映射并启动 Matter Loop
+	 * @param app - App实例
 	 */
 	private startMainLoop(app: App): void {
 		const mainApp = app.main();

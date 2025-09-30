@@ -1,3 +1,8 @@
+/**
+ * @fileoverview 防抖调试打印工具单元测试
+ * 测试 usePrintDebounce 函数在 Matter 系统中的防抖行为
+ */
+
 import { World } from "@rbxts/matter";
 import { Loop } from "../../bevy_ecs/schedule/loop";
 import { usePrintDebounce } from "./hook-debug-print";
@@ -19,7 +24,6 @@ export = () => {
 		loop.step(); // 模拟一帧
 		loop.step(); // 第二帧不打印
 
-
 		expect(true).to.equal(true);
 	});
 
@@ -28,8 +32,8 @@ export = () => {
 		const loop = new Loop(world);
 
 		function debugSystem(): void {
-			// 防抖时间
-			usePrintDebounce("message (debounced time set to 0.001 )",0.001);
+			// 防抖时间设置为 0.001 秒
+			usePrintDebounce("message (debounced time set to 0.001 )", 0.001);
 		}
 
 		loop.scheduleSystem(debugSystem);

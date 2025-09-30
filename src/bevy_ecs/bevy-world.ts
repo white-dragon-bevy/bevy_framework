@@ -1,6 +1,6 @@
 /**
- * BevyWorld - 扩展的 World 类
- * 继承 Matter World 并添加 Bevy 风格的查询方法
+ * @fileoverview BevyWorld - 扩展的 World 类
+ * 继承 Matter World 并添加 Bevy 风格的查询方法、变更跟踪和资源管理
  */
 
 import type { ComponentCtor } from "./query";
@@ -16,14 +16,27 @@ import { ResourceManager } from "./resource";
 
 /**
  * BevyWorld 类
- * 扩展 Matter 的 World，提供额外的查询功能
+ * 扩展 Matter 的 World，提供额外的查询功能和 ECS 资源管理
+ *
+ * 主要功能：
+ * - 资源管理：全局共享数据
+ * - 命令缓冲：延迟执行实体操作
+ * - 消息系统：实体间通信
+ * - 事件系统：事件驱动编程
+ * - 变更跟踪：检测组件的添加、修改和移除
  */
 export class World extends MatterWorld {
+	/** 资源管理器，用于存储和访问全局资源 */
 	resources: ResourceManager;
+	/** 命令缓冲区，用于延迟执行实体操作 */
 	commands: CommandBuffer;
+	/** 消息注册表，用于实体间通信 */
 	messages: MessageRegistry;
+	/** 事件管理器，用于处理游戏事件 */
 	events: EventManager;
+	/** 事件传播器，用于事件的传播和处理 */
 	eventPropagator: EventPropagator;
+	/** 变更跟踪器，用于检测组件的添加、修改和移除 */
 	changeTracker: ChangeTracker;
 
 	constructor() {
@@ -38,6 +51,9 @@ export class World extends MatterWorld {
 
 	/**
 	 * 覆盖 spawn 方法以自动标记变更
+	 * 创建新实体并自动跟踪组件添加
+	 * @param componentBundle - 要添加到新实体的组件集合
+	 * @returns 新创建的实体
 	 */
 	spawn<T extends ComponentBundle>(...componentBundle: T): Entity<T> {
 		const entity = super.spawn(...componentBundle);
@@ -59,6 +75,9 @@ export class World extends MatterWorld {
 
 	/**
 	 * 覆盖 insert 方法以自动标记变更
+	 * 向现有实体插入组件并自动跟踪变更
+	 * @param entity - 目标实体
+	 * @param componentBundle - 要插入的组件集合
 	 */
 	insert(entity: AnyEntity, ...componentBundle: ComponentBundle): void {
 		super.insert(entity, ...componentBundle);
@@ -75,6 +94,8 @@ export class World extends MatterWorld {
 
 	/**
 	 * 覆盖 despawn 方法以清理变更跟踪
+	 * 销毁实体并清理相关的变更跟踪数据
+	 * @param entity - 要销毁的实体
 	 */
 	despawn(entity: AnyEntity): void {
 		super.despawn(entity);
@@ -109,6 +130,7 @@ export class World extends MatterWorld {
 
 	/**
 	 * 在每帧开始时调用，增加变更检测的 tick
+	 * 用于跟踪哪些变更是在当前帧发生的
 	 */
 	incrementTick(): void {
 		this.changeTracker.incrementTick();
@@ -128,13 +150,27 @@ export class World extends MatterWorld {
 	}
 }
 
-// WorldContainer 类型（用于兼容）
+/**
+ * WorldContainer 接口
+ * 用于兼容旧代码，提供 World 实例的容器
+ *
+ * 用于需要延迟访问 World 或需要统一访问接口的场景
+ */
 export interface WorldContainer {
+	/** World 实例 */
 	world: World;
+	/**
+	 * 获取 World 实例的方法
+	 * @returns World 实例
+	 */
 	getWorld(): World;
 }
 
-// 创建 WorldContainer
+/**
+ * 创建 WorldContainer 实例
+ * 便捷函数，用于创建包含新 World 实例的容器
+ * @returns 包含 World 实例的容器对象
+ */
 export function createWorldContainer(): WorldContainer {
 	const world = new World();
 	return {

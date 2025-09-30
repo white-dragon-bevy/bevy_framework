@@ -161,11 +161,10 @@ export function createApp() {
 	app.addPlugins(...DefaultPlugins.create().build().getPlugins());
 
 	// 创建并添加 InputManagerPlugin
-	inputPlugin = new InputManagerPlugin<PlayerActionlike, "playerInput">(
+	inputPlugin = new InputManagerPlugin<PlayerActionlike>(
 		{
 			actionTypeName: "PlayerAction",
-		},
-		"playerInput",
+		}
 	);
 
 	// 添加 InputManagerPlugin - 链式调用保持类型

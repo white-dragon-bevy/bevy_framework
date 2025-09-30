@@ -18,7 +18,14 @@
       "Bash(sed:*)",
       "mcp__mcp-sequentialthinking-tools__sequentialthinking_tools",
       "Bash(tee:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(tasklist:*)",
+      "Bash(timeout 60 npm run build)",
+      "Bash(for:*)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(tail:*)",
+      "Bash(done)",
+      "Bash(find:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

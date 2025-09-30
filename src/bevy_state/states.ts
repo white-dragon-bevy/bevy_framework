@@ -7,25 +7,28 @@
  * 状态系统的核心接口
  * 对应 Rust States trait
  *
- * 用于定义有限状态机中的状态类型
+ * **用途**: 定义有限状态机中的状态类型
  */
 export interface States {
 	/**
 	 * 获取状态的唯一标识符
-	 * @returns 状态标识符
+	 *
+	 * @returns 状态的唯一标识符（字符串或数字）
 	 */
 	getStateId(): string | number;
 
 	/**
 	 * 比较两个状态是否相等
-	 * @param other - 另一个状态
+	 *
+	 * @param other - 另一个状态实例
 	 * @returns 是否相等
 	 */
 	equals(other: States): boolean;
 
 	/**
 	 * 克隆当前状态
-	 * @returns 状态的副本
+	 *
+	 * @returns 状态的深拷贝副本
 	 */
 	clone(): States;
 }
@@ -49,7 +52,8 @@ export function isStates(value: unknown): value is States {
 
 /**
  * 抽象状态基类
- * 提供 States 接口的基础实现
+ *
+ * **用途**: 提供 States 接口的基础实现，简化自定义状态的开发
  */
 export abstract class BaseStates implements States {
 	/**
@@ -82,13 +86,15 @@ export abstract class BaseStates implements States {
 
 	/**
 	 * 获取状态标识符
-	 * @returns 状态标识符
+	 *
+	 * @returns 状态的唯一标识符
 	 */
 	public abstract getStateId(): string | number;
 
 	/**
 	 * 比较状态相等性
-	 * @param other - 另一个状态
+	 *
+	 * @param other - 另一个状态实例
 	 * @returns 是否相等
 	 */
 	public equals(other: States): boolean {
@@ -97,19 +103,22 @@ export abstract class BaseStates implements States {
 
 	/**
 	 * 克隆状态
-	 * @returns 状态副本
+	 *
+	 * @returns 状态的深拷贝副本
 	 */
 	public abstract clone(): States;
 }
 
 /**
  * 枚举状态基类
- * 用于创建简单的枚举状态
+ *
+ * **用途**: 用于创建简单的枚举状态，无需手动实现 States 接口
  */
 export class EnumStates extends BaseStates {
 	/**
 	 * 构造函数
-	 * @param value - 枚举值
+	 *
+	 * @param value - 枚举值（字符串或数字）
 	 */
 	public constructor(private readonly value: string | number) {
 		super();
@@ -117,7 +126,8 @@ export class EnumStates extends BaseStates {
 
 	/**
 	 * 获取状态标识符
-	 * @returns 状态标识符
+	 *
+	 * @returns 状态的唯一标识符
 	 */
 	public getStateId(): string | number {
 		return this.value;
@@ -125,7 +135,8 @@ export class EnumStates extends BaseStates {
 
 	/**
 	 * 克隆状态
-	 * @returns 状态副本
+	 *
+	 * @returns 状态的深拷贝副本
 	 */
 	public clone(): States {
 		return new EnumStates(this.value);
@@ -134,6 +145,9 @@ export class EnumStates extends BaseStates {
 
 /**
  * 创建枚举状态的辅助函数
+ *
+ * **便利函数**: 快速从枚举值对象创建状态映射
+ *
  * @param values - 枚举值对象
  * @returns 状态映射对象
  */

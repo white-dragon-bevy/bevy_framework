@@ -13,12 +13,14 @@ import { RunService } from "@rbxts/services";
 /**
  * BoxedLayer 类型
  * 对应 Rust Box<dyn Layer<Registry> + Send + Sync + 'static>
+ * 表示动态分配的日志层对象
  */
 export type BoxedLayer = Layer;
 
 /**
  * BoxedFmtLayer 类型
  * 对应格式化层
+ * 表示负责格式化输出的日志层
  */
 export type BoxedFmtLayer = Layer;
 
@@ -28,15 +30,18 @@ import type { AppContext } from "../bevy_app/context";
 
 /**
  * LogPlugin 扩展工厂接口
+ * 定义日志插件暴露给 App 的扩展方法工厂
  */
 export interface LogPluginExtensionFactories {
 	/**
 	 * 获取日志管理器工厂
+	 * 返回能够获取全局日志订阅器的工厂函数
 	 */
 	getLogManager: ExtensionFactory<() => LogSubscriber | undefined>;
-	
+
 	/**
 	 * 获取当前日志级别工厂
+	 * 返回能够获取当前配置日志级别的工厂函数
 	 */
 	getLogLevel: ExtensionFactory<() => Level>;
 }
@@ -77,6 +82,10 @@ export class LogPlugin extends BasePlugin {
 	/** 插件扩展工厂 */
 	extension: LogPluginExtensionFactories;
 
+	/**
+	 * 创建日志插件实例
+	 * @param config - 日志插件配置（可选）
+	 */
 	constructor(config?: Partial<LogPlugin>) {
 		super();
 		this.filter = config?.filter ?? DEFAULT_FILTER;
@@ -99,6 +108,10 @@ export class LogPlugin extends BasePlugin {
 		};
 	}
 
+	/**
+	 * 构建日志插件并初始化日志系统
+	 * @param app - 应用程序实例
+	 */
 	build(app: App): void {
 		// 创建订阅器
 		const subscriber = new LogSubscriber();
@@ -135,10 +148,13 @@ export class LogPlugin extends BasePlugin {
 
 		if (subscriberAlreadySet && RunService.IsStudio()) {
 			// 只在 Studio 模式下输出警告，避免在生产环境中产生噪音
-			warn("Could not set global tracing subscriber as it is already set. Consider disabling LogPlugin.");
 		}
 	}
 
+	/**
+	 * 获取插件名称
+	 * @returns 插件标识名称 "LogPlugin"
+	 */
 	name(): string {
 		return "LogPlugin";
 	}
@@ -148,6 +164,7 @@ export class LogPlugin extends BasePlugin {
 
 /**
  * 内部日志函数
+ * 统一处理所有级别的日志输出
  * @param level - 日志级别
  * @param message - 日志消息
  * @param module - 模块名称（可选）
@@ -182,10 +199,15 @@ function log(level: Level, message: string, module?: string, fields?: Map<string
 /**
  * 记录错误级别日志
  * 对应 Rust error! 宏
- * 注意：由于 'error' 是 roblox-ts 保留字，使用 'error' 作为函数名但避免与全局冲突
+ * 用于记录需要立即关注的错误情况
  * @param message - 日志消息
  * @param module - 模块名称（可选）
  * @param fields - 额外字段（可选）
+ * @example
+ * ```typescript
+ * error("Failed to load configuration");
+ * error("Database connection failed", "MyModule");
+ * ```
  */
 export { logError as error };
 function logError(message: string, module?: string, fields?: Map<string, unknown>): void {
@@ -195,9 +217,15 @@ function logError(message: string, module?: string, fields?: Map<string, unknown
 /**
  * 记录警告级别日志
  * 对应 Rust warn! 宏
+ * 用于记录潜在问题或不推荐的使用方式
  * @param message - 日志消息
  * @param module - 模块名称（可选）
  * @param fields - 额外字段（可选）
+ * @example
+ * ```typescript
+ * logWarn("Deprecated function called");
+ * logWarn("Low memory warning", "MemoryManager");
+ * ```
  */
 export function logWarn(message: string, module?: string, fields?: Map<string, unknown>): void {
 	log(Level.WARN, message, module, fields);
@@ -209,9 +237,15 @@ export { logWarn as warn };
 /**
  * 记录信息级别日志
  * 对应 Rust info! 宏
+ * 用于记录常规运行信息和重要事件
  * @param message - 日志消息
  * @param module - 模块名称（可选）
  * @param fields - 额外字段（可选）
+ * @example
+ * ```typescript
+ * info("Server started successfully");
+ * info("Player connected", "NetworkManager");
+ * ```
  */
 export function info(message: string, module?: string, fields?: Map<string, unknown>): void {
 	log(Level.INFO, message, module, fields);
@@ -220,9 +254,15 @@ export function info(message: string, module?: string, fields?: Map<string, unkn
 /**
  * 记录调试级别日志
  * 对应 Rust debug! 宏
+ * 用于开发调试时输出详细信息
  * @param message - 日志消息
  * @param module - 模块名称（可选）
  * @param fields - 额外字段（可选）
+ * @example
+ * ```typescript
+ * debug("Variable value: 42");
+ * debug("State transition detected", "StateMachine");
+ * ```
  */
 export function debug(message: string, module?: string, fields?: Map<string, unknown>): void {
 	log(Level.DEBUG, message, module, fields);
@@ -231,9 +271,15 @@ export function debug(message: string, module?: string, fields?: Map<string, unk
 /**
  * 记录追踪级别日志
  * 对应 Rust trace! 宏
+ * 用于输出最详细的跟踪信息，通常只在深度调试时启用
  * @param message - 日志消息
  * @param module - 模块名称（可选）
  * @param fields - 额外字段（可选）
+ * @example
+ * ```typescript
+ * trace("Function entry");
+ * trace("Loop iteration", "Algorithm");
+ * ```
  */
 export function trace(message: string, module?: string, fields?: Map<string, unknown>): void {
 	log(Level.TRACE, message, module, fields);
@@ -243,9 +289,16 @@ export function trace(message: string, module?: string, fields?: Map<string, unk
 
 /**
  * 创建错误级别的 span
- * 对应 Rust error_span! 宏
- * @param name - Span 名称
- * @returns Span 处理函数
+ * 对应 Rust error_span! 宏，用于追踪代码执行区域
+ * @param name - Span 名称，用于标识代码区域
+ * @returns Span 处理函数，接收要执行的函数并在进入/退出时记录日志
+ * @example
+ * ```typescript
+ * const span = errorSpan("critical_operation");
+ * span(() => {
+ *     // 执行关键操作
+ * });
+ * ```
  */
 export function errorSpan(name: string): (fn: () => void) => void {
 	return (fn: () => void) => {
@@ -257,9 +310,16 @@ export function errorSpan(name: string): (fn: () => void) => void {
 
 /**
  * 创建警告级别的 span
- * 对应 Rust warn_span! 宏
- * @param name - Span 名称
- * @returns Span 处理函数
+ * 对应 Rust warn_span! 宏，用于追踪可能有问题的代码区域
+ * @param name - Span 名称，用于标识代码区域
+ * @returns Span 处理函数，接收要执行的函数并在进入/退出时记录日志
+ * @example
+ * ```typescript
+ * const span = warnSpan("deprecated_function");
+ * span(() => {
+ *     // 执行已废弃的功能
+ * });
+ * ```
  */
 export function warnSpan(name: string): (fn: () => void) => void {
 	return (fn: () => void) => {
@@ -271,9 +331,16 @@ export function warnSpan(name: string): (fn: () => void) => void {
 
 /**
  * 创建信息级别的 span
- * 对应 Rust info_span! 宏
- * @param name - Span 名称
- * @returns Span 处理函数
+ * 对应 Rust info_span! 宏，用于追踪一般操作区域
+ * @param name - Span 名称，用于标识代码区域
+ * @returns Span 处理函数，接收要执行的函数并在进入/退出时记录日志
+ * @example
+ * ```typescript
+ * const span = infoSpan("data_processing");
+ * span(() => {
+ *     // 执行数据处理
+ * });
+ * ```
  */
 export function infoSpan(name: string): (fn: () => void) => void {
 	return (fn: () => void) => {
@@ -285,9 +352,16 @@ export function infoSpan(name: string): (fn: () => void) => void {
 
 /**
  * 创建调试级别的 span
- * 对应 Rust debug_span! 宏
- * @param name - Span 名称
- * @returns Span 处理函数
+ * 对应 Rust debug_span! 宏，用于追踪调试代码区域
+ * @param name - Span 名称，用于标识代码区域
+ * @returns Span 处理函数，接收要执行的函数并在进入/退出时记录日志
+ * @example
+ * ```typescript
+ * const span = debugSpan("calculation");
+ * span(() => {
+ *     // 执行计算逻辑
+ * });
+ * ```
  */
 export function debugSpan(name: string): (fn: () => void) => void {
 	return (fn: () => void) => {
@@ -299,9 +373,16 @@ export function debugSpan(name: string): (fn: () => void) => void {
 
 /**
  * 创建追踪级别的 span
- * 对应 Rust trace_span! 宏
- * @param name - Span 名称
- * @returns Span 处理函数
+ * 对应 Rust trace_span! 宏，用于追踪最详细的代码执行区域
+ * @param name - Span 名称，用于标识代码区域
+ * @returns Span 处理函数，接收要执行的函数并在进入/退出时记录日志
+ * @example
+ * ```typescript
+ * const span = traceSpan("inner_loop");
+ * span(() => {
+ *     // 执行内部循环
+ * });
+ * ```
  */
 export function traceSpan(name: string): (fn: () => void) => void {
 	return (fn: () => void) => {

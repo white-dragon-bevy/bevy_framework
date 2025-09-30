@@ -1,8 +1,14 @@
 /**
- * Bevy ECS Event System
+ * @fileoverview Bevy ECS Event System
  *
  * 基于 rbx-better-signal 实现的事件系统，提供推送式事件处理机制
  * 支持全局事件、实体事件、事件传播等功能
+ *
+ * 核心功能：
+ * - EventManager：事件管理和分发
+ * - Observer：事件观察者和回调
+ * - EventPropagator：事件在层次结构中的传播
+ * - 类型安全的事件注册和触发
  */
 
 import Signal from "@rbxts/rbx-better-signal";

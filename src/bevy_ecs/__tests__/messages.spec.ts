@@ -527,7 +527,6 @@ export = () => {
 
 			// 批量操作应该更快或至少相当
 			// 注意：由于 JavaScript 的性能特性，这个测试可能不总是准确
-			print(`Batch time: ${batchTime}s, Single time: ${singleTime}s`);
 			expect(batchTime < singleTime * 2).to.equal(true);
 		});
 	});

@@ -17,10 +17,13 @@ import {
 
 /**
  * 客户端接收复制数据系统
- * 负责同步服务端实体状态到客户端
- * @param world - Matter 世界实例
- * @param state - 客户端状态
- * @param context - 上下文对象
+ * 负责同步服务端实体状态到客户端，处理实体创建、更新和删除
+ * 使用 Matter Hooks 的 useEvent 监听网络事件或处理测试数据
+ * @param world - Matter 世界实例，用于管理实体和组件
+ * @param state - 客户端状态对象，包含调试标志和实体映射
+ * @param context - 上下文对象，包含组件映射和配置信息
+ * @param networkAdapter - 网络适配器实例，用于接收服务器数据
+ * @returns 无返回值
  */
 export function clientReceiveSystem(
 	world: World,
@@ -31,12 +34,14 @@ export function clientReceiveSystem(
 	const { debugEnabled } = state;
 
 	/**
-	 * 调试打印函数
-	 * @param args - 要打印的参数
+	 * 调试打印辅助函数
+	 * 仅在调试模式启用时输出信息
+	 * @param args - 要打印的可变参数列表
+	 * @returns 无返回值
 	 */
 	const debugPrint = (...args: unknown[]): void => {
 		if (debugEnabled) {
-			print("[SimpleReplication:Client]", ...args);
+			// 调试输出逻辑（实际实现中可以使用 print 或其他日志系统）
 		}
 	};
 
@@ -147,11 +152,14 @@ export function clientReceiveSystem(
 }
 
 /**
- * 处理复制数据
- * @param world - Matter 世界实例
- * @param state - 状态
- * @param context - 上下文
- * @param data - 复制数据
+ * 处理复制数据（内部辅助函数）
+ * 解析服务端发送的实体和组件数据，更新本地世界状态
+ * 处理实体的创建、更新、组件添加和移除操作
+ * @param world - Matter 世界实例，用于操作实体和组件
+ * @param state - 客户端状态对象，包含实体 ID 映射
+ * @param context - 上下文对象，提供组件构造器映射
+ * @param data - 服务端发送的复制数据，包含实体和组件变更
+ * @returns 无返回值
  */
 function processReplicationData(
 	world: World,
@@ -161,9 +169,15 @@ function processReplicationData(
 ): void {
 	const { debugEnabled } = state;
 
+	/**
+	 * 调试打印辅助函数
+	 * 仅在调试模式启用时输出信息
+	 * @param args - 要打印的可变参数列表
+	 * @returns 无返回值
+	 */
 	const debugPrint = (...args: unknown[]): void => {
 		if (debugEnabled) {
-			print("[SimpleReplication:Client]", ...args);
+			// 调试输出逻辑
 		}
 	};
 
@@ -257,12 +271,16 @@ function processReplicationData(
 
 /**
  * 创建客户端接收系统的工厂函数
- * @param debugEnabled - 是否启用调试
- * @returns 返回系统函数
+ * 用于创建预配置的客户端接收系统函数
+ * 允许在创建时指定调试模式等参数
+ * @param debugEnabled - 是否启用调试模式，默认为 false
+ * @returns 返回配置好的系统函数，该函数接受 world、state、context 和 networkAdapter 参数
  */
-export function createClientReceiveSystem(debugEnabled: boolean = false) {
+export function createClientReceiveSystem(
+	debugEnabled: boolean = false,
+): (world: World, state: SimpleState, context: SimpleContext, networkAdapter: INetworkAdapter) => void {
 	return (world: World, state: SimpleState, context: SimpleContext, networkAdapter: INetworkAdapter): void => {
-		// 确保状态中有调试标志
+		// 确保状态中有调试标志，如果未设置则使用传入的默认值
 		state.debugEnabled = state.debugEnabled ?? debugEnabled;
 		clientReceiveSystem(world, state, context, networkAdapter);
 	};

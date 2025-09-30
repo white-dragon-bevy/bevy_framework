@@ -29,6 +29,10 @@ export class FrameTimeDiagnosticsPlugin implements Plugin {
 	/** 指数移动平均的平滑因子。通常为 2.0 / (history_length + 1.0) */
 	smoothingFactor: number;
 
+	/**
+	 * 创建帧时间诊断插件实例
+	 * @param maxHistoryLength - 最大历史记录长度,默认为 DEFAULT_MAX_HISTORY_LENGTH
+	 */
 	constructor(maxHistoryLength: number = DEFAULT_MAX_HISTORY_LENGTH) {
 		this.maxHistoryLength = maxHistoryLength;
 		this.smoothingFactor = 2.0 / (maxHistoryLength + 1.0);
@@ -65,6 +69,7 @@ export class FrameTimeDiagnosticsPlugin implements Plugin {
 	/**
 	 * 配置应用
 	 * @param app - 应用实例
+	 * @returns 无返回值
 	 */
 	build(app: App): void {
 		registerDiagnostic(
@@ -109,6 +114,7 @@ export class FrameTimeDiagnosticsPlugin implements Plugin {
 	 * 对应 Rust diagnostic_system
 	 * @param world - ECS世界
 	 * @param context - 系统上下文
+	 * @returns 无返回值
 	 */
 	static diagnosticSystem(world: World, context: Context): void {
 		const resources = world.resources;

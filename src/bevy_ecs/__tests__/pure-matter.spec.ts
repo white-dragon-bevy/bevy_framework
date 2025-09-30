@@ -17,7 +17,6 @@ export = () => {
 			const e2 = world.spawn(TestA({ value: 2 }));
 
 			const e2_hasB = world.get(e2, TestB);
-			print("Matter World - e2 has TestB?", e2_hasB !== undefined, "value:", e2_hasB);
 
 			expect(e2_hasB).to.equal(undefined);
 		});
@@ -29,7 +28,6 @@ export = () => {
 			const e2 = world.spawn(TestA({ value: 2 }));
 
 			const e2_hasB = world.get(e2, TestB);
-			print("BevyWorld - e2 has TestB?", e2_hasB !== undefined, "value:", e2_hasB);
 
 			expect(e2_hasB).to.equal(undefined);
 		});

@@ -1,7 +1,8 @@
 /**
  * Duration - 时间长度表示
  * 对应 Rust std::time::Duration
- * 内部使用 秒 + 纳秒 表示，保证精度
+ * 内部使用秒 + 纳秒表示，保证精度
+ * 所有算术操作都会正确处理纳秒溢出
  */
 export class Duration {
 	/** 零时间长度 */
@@ -16,8 +17,8 @@ export class Duration {
 
 	/**
 	 * 构造函数
-	 * @param secs 秒数
-	 * @param nanos 纳秒数 (0-999,999,999)
+	 * @param secs - 秒数
+	 * @param nanos - 纳秒数 (0-999,999,999)
 	 */
 	private constructor(secs: number, nanos: number) {
 		// 确保 nanos 在有效范围内
@@ -30,6 +31,8 @@ export class Duration {
 	/**
 	 * 从秒数创建 Duration
 	 * 对应 Rust Duration::from_secs_f64
+	 * @param secs - 秒数
+	 * @returns Duration 实例
 	 */
 	static fromSecs(secs: number): Duration {
 		const wholeSecs = math.floor(secs);
@@ -40,6 +43,8 @@ export class Duration {
 	/**
 	 * 从秒数创建 Duration (f64 精度)
 	 * 对应 Rust Duration::from_secs_f64
+	 * @param secs - 秒数 (64位浮点精度)
+	 * @returns Duration 实例
 	 */
 	static fromSecsF64(secs: number): Duration {
 		return Duration.fromSecs(secs);
@@ -48,6 +53,8 @@ export class Duration {
 	/**
 	 * 从毫秒创建 Duration
 	 * 对应 Rust Duration::from_millis
+	 * @param millis - 毫秒数
+	 * @returns Duration 实例
 	 */
 	static fromMillis(millis: number): Duration {
 		const secs = math.floor(millis / 1000);
@@ -58,6 +65,8 @@ export class Duration {
 	/**
 	 * 从微秒创建 Duration
 	 * 对应 Rust Duration::from_micros
+	 * @param micros - 微秒数
+	 * @returns Duration 实例
 	 */
 	static fromMicros(micros: number): Duration {
 		const secs = math.floor(micros / 1_000_000);
@@ -68,6 +77,8 @@ export class Duration {
 	/**
 	 * 从纳秒创建 Duration
 	 * 对应 Rust Duration::from_nanos
+	 * @param nanos - 纳秒数
+	 * @returns Duration 实例
 	 */
 	static fromNanos(nanos: number): Duration {
 		const secs = math.floor(nanos / 1_000_000_000);
@@ -78,6 +89,7 @@ export class Duration {
 	/**
 	 * 获取总秒数 (f32 精度)
 	 * 对应 Rust Duration::as_secs_f32
+	 * @returns 总秒数 (32位浮点精度)
 	 */
 	asSecsF32(): number {
 		return this.secs + this.nanos / 1_000_000_000;
@@ -86,6 +98,7 @@ export class Duration {
 	/**
 	 * 获取总秒数 (f64 精度)
 	 * 对应 Rust Duration::as_secs_f64
+	 * @returns 总秒数 (64位浮点精度)
 	 */
 	asSecsF64(): number {
 		return this.secs + this.nanos / 1_000_000_000;
@@ -94,6 +107,7 @@ export class Duration {
 	/**
 	 * 获取总毫秒数
 	 * 对应 Rust Duration::as_millis
+	 * @returns 总毫秒数
 	 */
 	asMillis(): number {
 		return this.secs * 1000 + this.nanos / 1_000_000;
@@ -102,6 +116,7 @@ export class Duration {
 	/**
 	 * 获取总微秒数
 	 * 对应 Rust Duration::as_micros
+	 * @returns 总微秒数
 	 */
 	asMicros(): number {
 		return this.secs * 1_000_000 + this.nanos / 1000;
@@ -110,6 +125,7 @@ export class Duration {
 	/**
 	 * 获取总纳秒数
 	 * 对应 Rust Duration::as_nanos
+	 * @returns 总纳秒数
 	 */
 	asNanos(): number {
 		return this.secs * 1_000_000_000 + this.nanos;
@@ -118,6 +134,8 @@ export class Duration {
 	/**
 	 * 加法运算
 	 * 对应 Rust impl Add for Duration
+	 * @param other - 另一个 Duration
+	 * @returns 相加后的新 Duration
 	 */
 	add(other: Duration): Duration {
 		const totalSecs = this.secs + other.secs;
@@ -128,6 +146,8 @@ export class Duration {
 	/**
 	 * 减法运算（饱和减法）
 	 * 对应 Rust Duration::saturating_sub
+	 * @param other - 要减去的 Duration
+	 * @returns 相减后的新 Duration，如果结果为负则返回 ZERO
 	 */
 	saturatingSub(other: Duration): Duration {
 		// 转换为纳秒进行计算
@@ -145,6 +165,8 @@ export class Duration {
 	/**
 	 * 检查减法（返回 undefined 如果结果为负）
 	 * 对应 Rust Duration::checked_sub
+	 * @param other - 要减去的 Duration
+	 * @returns 相减后的新 Duration，如果结果为负则返回 undefined
 	 */
 	checkedSub(other: Duration): Duration | undefined {
 		const thisNanos = this.asNanos();
@@ -161,6 +183,9 @@ export class Duration {
 	/**
 	 * 乘法运算
 	 * 对应 Rust impl Mul<u32> for Duration
+	 * @param factor - 乘数，必须为非负数
+	 * @returns 相乘后的新 Duration
+	 * @throws 如果 factor 为负数
 	 */
 	mul(factor: number): Duration {
 		if (factor < 0) {
@@ -172,6 +197,9 @@ export class Duration {
 	/**
 	 * 饱和乘法运算
 	 * 对应 Rust Duration::saturating_mul
+	 * @param factor - 乘数，必须为非负数
+	 * @returns 相乘后的新 Duration，如果溢出则返回 MAX
+	 * @throws 如果 factor 为负数
 	 */
 	saturatingMul(factor: number): Duration {
 		if (factor < 0) {
@@ -187,6 +215,8 @@ export class Duration {
 	/**
 	 * 检查乘法（返回 undefined 如果溢出）
 	 * 对应 Rust Duration::checked_mul
+	 * @param factor - 乘数
+	 * @returns 相乘后的新 Duration，如果溢出或 factor 为负则返回 undefined
 	 */
 	checkedMul(factor: number): Duration | undefined {
 		if (factor < 0) {
@@ -202,6 +232,9 @@ export class Duration {
 	/**
 	 * 除法运算
 	 * 对应 Rust impl Div<u32> for Duration
+	 * @param divisor - 除数，必须大于 0
+	 * @returns 相除后的新 Duration
+	 * @throws 如果 divisor 小于等于 0
 	 */
 	div(divisor: number): Duration {
 		if (divisor <= 0) {
@@ -213,6 +246,8 @@ export class Duration {
 	/**
 	 * 检查除法（返回 undefined 如果除数为 0）
 	 * 对应 Rust Duration::checked_div
+	 * @param divisor - 除数
+	 * @returns 相除后的新 Duration，如果 divisor 小于等于 0 则返回 undefined
 	 */
 	checkedDiv(divisor: number): Duration | undefined {
 		if (divisor <= 0) {
@@ -224,6 +259,9 @@ export class Duration {
 	/**
 	 * 计算两个 Duration 的比率
 	 * 对应 Rust Duration::as_secs_f64() / other.as_secs_f64()
+	 * @param other - 另一个 Duration
+	 * @returns 两个 Duration 的比率
+	 * @throws 如果 other 为零
 	 */
 	divDuration(other: Duration): number {
 		if (other.isZero()) {
@@ -235,6 +273,8 @@ export class Duration {
 	/**
 	 * 检查是否相等
 	 * 对应 Rust PartialEq for Duration
+	 * @param other - 另一个 Duration
+	 * @returns 如果两个 Duration 相等则返回 true
 	 */
 	equals(other: Duration): boolean {
 		return this.secs === other.secs && this.nanos === other.nanos;
@@ -242,6 +282,7 @@ export class Duration {
 
 	/**
 	 * 检查是否为零
+	 * @returns 如果 Duration 为零则返回 true
 	 */
 	isZero(): boolean {
 		return this.secs === 0 && this.nanos === 0;
@@ -250,6 +291,8 @@ export class Duration {
 	/**
 	 * 比较大小
 	 * 对应 Rust PartialOrd for Duration
+	 * @param other - 另一个 Duration
+	 * @returns -1 表示小于，0 表示相等，1 表示大于
 	 */
 	compare(other: Duration): number {
 		if (this.secs !== other.secs) {
@@ -263,6 +306,8 @@ export class Duration {
 
 	/**
 	 * 是否小于
+	 * @param other - 另一个 Duration
+	 * @returns 如果当前 Duration 小于 other 则返回 true
 	 */
 	lessThan(other: Duration): boolean {
 		return this.compare(other) < 0;
@@ -270,6 +315,8 @@ export class Duration {
 
 	/**
 	 * 是否大于
+	 * @param other - 另一个 Duration
+	 * @returns 如果当前 Duration 大于 other 则返回 true
 	 */
 	greaterThan(other: Duration): boolean {
 		return this.compare(other) > 0;
@@ -277,6 +324,8 @@ export class Duration {
 
 	/**
 	 * 是否小于等于
+	 * @param other - 另一个 Duration
+	 * @returns 如果当前 Duration 小于等于 other 则返回 true
 	 */
 	lessThanOrEqual(other: Duration): boolean {
 		return this.compare(other) <= 0;
@@ -284,6 +333,8 @@ export class Duration {
 
 	/**
 	 * 是否大于等于
+	 * @param other - 另一个 Duration
+	 * @returns 如果当前 Duration 大于等于 other 则返回 true
 	 */
 	greaterThanOrEqual(other: Duration): boolean {
 		return this.compare(other) >= 0;
@@ -292,6 +343,7 @@ export class Duration {
 	/**
 	 * 获取秒数部分（整数）
 	 * 对应 Rust Duration::as_secs
+	 * @returns 秒数部分（整数）
 	 */
 	asSecs(): number {
 		return this.secs;
@@ -300,13 +352,15 @@ export class Duration {
 	/**
 	 * 获取纳秒部分（余数）
 	 * 对应 Rust Duration::subsec_nanos
+	 * @returns 纳秒部分（0-999,999,999）
 	 */
 	subsecNanos(): number {
 		return this.nanos;
 	}
 
 	/**
-	 * 调试字符串
+	 * 转换为可读字符串
+	 * @returns 格式化的时间字符串
 	 */
 	toString(): string {
 		if (this.isZero()) {
@@ -329,6 +383,10 @@ export class Duration {
 /**
  * Duration 取模运算（内部使用）
  * 对应 Rust 内部的 duration_rem 函数
+ * 用于计算时间周期性包装
+ * @param duration - 被除数 Duration
+ * @param period - 除数 Duration（包装周期）
+ * @returns 取模后的余数 Duration
  */
 export function durationRem(duration: Duration, period: Duration): Duration {
 	if (period.isZero()) {

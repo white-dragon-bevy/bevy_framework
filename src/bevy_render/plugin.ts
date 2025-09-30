@@ -13,11 +13,12 @@ import { Context } from "../bevy_ecs/types";
 
 /**
  * 渲染系统集枚举
+ * 定义渲染模块中各个系统的唯一标识符
  */
 export enum RenderSystems {
-	/** 可见性计算 */
+	/** 可见性计算系统 */
 	Visibility = "RenderVisibility",
-	/** Roblox 实例同步 */
+	/** Roblox 实例同步系统 */
 	Sync = "RenderSync",
 	/** 清理系统 */
 	Cleanup = "RenderCleanup",
@@ -25,11 +26,17 @@ export enum RenderSystems {
 
 /**
  * Roblox 渲染插件
- * 负责管理对象的可见性和位置同步
+ * 负责管理 ECS 实体与 Roblox 实例之间的同步，包括：
+ * - 可见性管理（显示/隐藏）
+ * - Transform 数据同步（位置、旋转、缩放）
+ * - 已删除实体的清理
+ * 系统在 Startup 和 PostUpdate 阶段运行
  */
 export class RenderPlugin implements Plugin {
 	/**
-	 * 配置应用程序
+	 * 构建渲染插件，向应用程序添加渲染系统
+	 * 在 Startup 阶段执行初始同步
+	 * 在 PostUpdate 阶段持续更新（在 Transform 系统之后）
 	 * @param app - Bevy App 实例
 	 */
 	build(app: App): void {
@@ -73,16 +80,17 @@ export class RenderPlugin implements Plugin {
 	}
 
 	/**
-	 * 插件名称
-	 * @returns 插件的唯一名称
+	 * 获取插件的唯一标识名称
+	 * @returns 插件名称字符串
 	 */
 	name(): string {
 		return "RenderPlugin";
 	}
 
 	/**
-	 * 插件是否唯一
-	 * @returns true 表示只能添加一次
+	 * 检查插件是否为唯一插件
+	 * RenderPlugin 是唯一插件，一个应用程序中只能添加一次
+	 * @returns true 表示该插件只能添加一次
 	 */
 	isUnique(): boolean {
 		return true;
@@ -90,8 +98,14 @@ export class RenderPlugin implements Plugin {
 }
 
 /**
- * 创建 RenderPlugin 实例的辅助函数
+ * 创建 RenderPlugin 实例的工厂函数
+ * 提供便捷的方式创建渲染插件，用于添加到 App
  * @returns 新的 RenderPlugin 实例
+ * @example
+ * ```ts
+ * const app = new App();
+ * app.addPlugin(createRenderPlugin());
+ * ```
  */
 export function createRenderPlugin(): RenderPlugin {
 	return new RenderPlugin();

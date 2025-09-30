@@ -26,6 +26,10 @@ export class EntityCountDiagnosticsPlugin implements Plugin {
 	/** 要保留的总值数量 */
 	maxHistoryLength: number;
 
+	/**
+	 * 创建实体计数诊断插件实例
+	 * @param maxHistoryLength - 最大历史记录长度,默认为 DEFAULT_MAX_HISTORY_LENGTH
+	 */
 	constructor(maxHistoryLength: number = DEFAULT_MAX_HISTORY_LENGTH) {
 		this.maxHistoryLength = maxHistoryLength;
 	}
@@ -49,6 +53,7 @@ export class EntityCountDiagnosticsPlugin implements Plugin {
 	/**
 	 * 配置应用
 	 * @param app - 应用实例
+	 * @returns 无返回值
 	 */
 	build(app: App): void {
 		registerDiagnostic(
@@ -78,6 +83,7 @@ export class EntityCountDiagnosticsPlugin implements Plugin {
 	 * 对应 Rust diagnostic_system
 	 * @param world - ECS世界
 	 * @param context - 系统上下文
+	 * @returns 无返回值
 	 */
 	static diagnosticSystem(world: World, context: Context): void {
 		const resources = world.resources;

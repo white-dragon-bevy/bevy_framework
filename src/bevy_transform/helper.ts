@@ -14,6 +14,10 @@ import { Parent, Children } from "./systems";
 export class TransformHelper {
 	private world: World;
 
+	/**
+	 * 构造函数
+	 * @param world - Matter World 实例
+	 */
 	constructor(world: World) {
 		this.world = world;
 	}
@@ -133,7 +137,7 @@ export class TransformHelper {
 	/**
 	 * 缩放实体
 	 * @param entity - 实体 ID
-	 * @param scale - 缩放因子
+	 * @param scale - 缩放因子（Vector3 或统一缩放的数字）
 	 */
 	scale(entity: number, scale: Vector3 | number): void {
 		const [transform] = this.world.get(entity, Transform);
@@ -206,7 +210,7 @@ export class TransformHelper {
 
 /**
  * 创建 TransformHelper 实例
- * @param world - Matter World
+ * @param world - Matter World 实例
  * @returns TransformHelper 实例
  */
 export function createTransformHelper(world: World): TransformHelper {

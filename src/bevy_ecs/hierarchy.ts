@@ -1,13 +1,20 @@
 /**
- * ECS 层次结构组件和工具
+ * @fileoverview ECS 层次结构系统
  * 精简版实现，只维护单向 Parent 关系
- * 充分利用 Roblox 的原生层次系统
+ * 充分利用 Roblox 的原生层次系统，提供实体间的父子关系管理
+ *
+ * 功能：
+ * - Parent/Children 组件定义
+ * - 层次遍历工具（子节点、后代、祖先）
+ * - 层次修改操作（设置父级、重新父级化）
+ * - 与 Roblox Instance 层次的同步
  */
 
 import { component, World, AnyEntity } from "@rbxts/matter";
 
 /**
- * Parent 组件 - 指向父实体
+ * Parent 组件
+ * 指向父实体，建立实体间的父子关系
  */
 export const Parent = component<{
 	/** 父实体 ID */
@@ -15,8 +22,9 @@ export const Parent = component<{
 }>("Parent");
 
 /**
- * Children 组件 - 缓存子实体列表
- * 用于优化 getChildren 查询性能，从 O(n) 降为 O(1)
+ * Children 组件
+ * 缓存子实体列表，用于优化 getChildren 查询性能
+ * 将查询复杂度从 O(n) 降为 O(1)
  */
 export const Children = component<{
 	/** 直接子实体 ID 列表 */
@@ -26,11 +34,20 @@ export const Children = component<{
 /**
  * 层次结构工具类
  * 提供常用的层次操作函数
+ *
+ * 功能分类：
+ * - 查询：getChildren, getParent, getDescendants, getAncestors, getRoot
+ * - 修改：setParent, reparent, despawnWithDescendants
+ * - 判断：isAncestor
+ * - 辅助：getSiblingIndex, getDepth
  */
 export class HierarchyUtils {
 	/**
 	 * 获取实体的所有直接子实体
 	 * O(1) 查询，从 Children 组件读取缓存
+	 * @param world - World 实例
+	 * @param parentEntity - 父实体 ID
+	 * @returns 直接子实体 ID 数组
 	 */
 	static getChildren(world: World, parentEntity: number): number[] {
 		const children = world.get(parentEntity as AnyEntity, Children);
@@ -40,6 +57,9 @@ export class HierarchyUtils {
 	/**
 	 * 获取实体的所有子孙实体
 	 * 递归查询整个子树
+	 * @param world - World 实例
+	 * @param parentEntity - 父实体 ID
+	 * @returns 所有子孙实体 ID 数组（深度优先遍历顺序）
 	 */
 	static getDescendants(world: World, parentEntity: number): number[] {
 		const descendants: number[] = [];
@@ -60,6 +80,9 @@ export class HierarchyUtils {
 
 	/**
 	 * 获取实体的父实体
+	 * @param world - World 实例
+	 * @param entity - 实体 ID
+	 * @returns 父实体 ID，如果没有父级则返回 undefined
 	 */
 	static getParent(world: World, entity: number): number | undefined {
 		const parent = world.get(entity as AnyEntity, Parent);
@@ -68,7 +91,10 @@ export class HierarchyUtils {
 
 	/**
 	 * 获取实体的所有祖先实体
-	 * 从父级一直到根
+	 * 从父级一直到根，按从近到远的顺序排列
+	 * @param world - World 实例
+	 * @param entity - 实体 ID
+	 * @returns 所有祖先实体 ID 数组
 	 */
 	static getAncestors(world: World, entity: number): number[] {
 		const ancestors: number[] = [];

@@ -66,7 +66,7 @@ export function computeGlobalTransform(
 
 /**
  * 从 GlobalTransform 提取位置
- * @param globalTransform - 全局变换
+ * @param globalTransform - 全局变换数据
  * @returns 世界坐标位置
  */
 export function getGlobalPosition(globalTransform: { cframe: CFrame; scale: Vector3 }): Vector3 {
@@ -75,7 +75,7 @@ export function getGlobalPosition(globalTransform: { cframe: CFrame; scale: Vect
 
 /**
  * 从 GlobalTransform 提取旋转
- * @param globalTransform - 全局变换
+ * @param globalTransform - 全局变换数据
  * @returns 世界坐标旋转（作为 CFrame）
  */
 export function getGlobalRotation(globalTransform: { cframe: CFrame; scale: Vector3 }): CFrame {
@@ -84,7 +84,7 @@ export function getGlobalRotation(globalTransform: { cframe: CFrame; scale: Vect
 
 /**
  * 从 GlobalTransform 提取前向向量
- * @param globalTransform - 全局变换
+ * @param globalTransform - 全局变换数据
  * @returns 前向向量（-Z 轴）
  */
 export function getForward(globalTransform: { cframe: CFrame; scale: Vector3 }): Vector3 {
@@ -93,7 +93,7 @@ export function getForward(globalTransform: { cframe: CFrame; scale: Vector3 }):
 
 /**
  * 从 GlobalTransform 提取右向向量
- * @param globalTransform - 全局变换
+ * @param globalTransform - 全局变换数据
  * @returns 右向向量（X 轴）
  */
 export function getRight(globalTransform: { cframe: CFrame; scale: Vector3 }): Vector3 {
@@ -102,7 +102,7 @@ export function getRight(globalTransform: { cframe: CFrame; scale: Vector3 }): V
 
 /**
  * 从 GlobalTransform 提取上向向量
- * @param globalTransform - 全局变换
+ * @param globalTransform - 全局变换数据
  * @returns 上向向量（Y 轴）
  */
 export function getUp(globalTransform: { cframe: CFrame; scale: Vector3 }): Vector3 {
@@ -111,7 +111,7 @@ export function getUp(globalTransform: { cframe: CFrame; scale: Vector3 }): Vect
 
 /**
  * 变换一个点从局部空间到世界空间
- * @param globalTransform - 全局变换
+ * @param globalTransform - 全局变换数据
  * @param point - 局部空间中的点
  * @returns 世界空间中的点
  */
@@ -123,9 +123,9 @@ export function transformPoint(globalTransform: { cframe: CFrame; scale: Vector3
 
 /**
  * 变换一个方向从局部空间到世界空间
- * @param globalTransform - 全局变换
- * @param direction - 局部空间中的方向
- * @returns 世界空间中的方向
+ * @param globalTransform - 全局变换数据
+ * @param direction - 局部空间中的方向向量
+ * @returns 世界空间中的方向向量
  */
 export function transformDirection(
 	globalTransform: { cframe: CFrame; scale: Vector3 },
