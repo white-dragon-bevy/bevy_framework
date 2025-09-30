@@ -148,13 +148,12 @@ export function createApp(): App {
 	const app = new App();
 
 	// 添加默认插件组
-	app.addPlugins(...DefaultPlugins.create().build().getPlugins());
-
-	// 创建并添加 InputManagerPlugin - 使用新的构造函数
-	inputPlugin = new InputManagerPlugin<PlayerActionlike>({
+	app.addPlugins(...DefaultPlugins.create().build().getPlugins())
+	   .addPlugin( new InputManagerPlugin<PlayerActionlike>({
 		actionTypeName: "PlayerAction",
-	});
-	app.addPlugin(inputPlugin);
+	}))
+
+	
 
 	// 添加系统
 	app.addSystems(MainScheduleLabel.STARTUP, spawnPlayer);

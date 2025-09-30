@@ -2,7 +2,7 @@ import { RunService } from "@rbxts/services";
 
 // Choose which example to run
 const exampleFolder: string = "leafwing-input-manager"; // Change to "input" or "state" for other examples
-const exampleName: string = "simple-new"; // Change to other example names
+const exampleName: string = "complex"; // Change to other example names
 
 export function bootstrap() {
 	print(`[Examples] Bootstrap called on ${RunService.IsClient() ? "CLIENT" : "SERVER"}`);
