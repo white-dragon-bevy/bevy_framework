@@ -225,12 +225,6 @@ export class ActionState<Action extends Actionlike> {
 			// Update button data
 			currentButtonData.update(newActionData.pressed, wasPressed);
 
-			// 调试：记录更新
-			if (actionHash.find("jump")[0] && newActionData.pressed) {
-				print(`[ActionState.updateFromUpdatedActions] 🔄 更新 Jump - pressed: ${newActionData.pressed}, value: ${newActionData.value}`);
-				print(`[ActionState.updateFromUpdatedActions] 🔄 当前状态 - pressed: ${currentActionData.pressed}, justPressed: ${currentButtonData.justPressed}`);
-			}
-
 			this.actionData.set(actionHash, currentActionData);
 			this.buttonData.set(actionHash, currentButtonData);
 		});

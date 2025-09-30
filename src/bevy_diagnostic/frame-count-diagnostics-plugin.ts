@@ -25,6 +25,10 @@ export class FrameCount implements Resource {
 	/** 帧计数值 */
 	value: number = 0;
 
+	/**
+	 * 创建帧计数资源实例
+	 * @param value - 初始帧计数值,默认为 0
+	 */
 	constructor(value: number = 0) {
 		// 确保初始值也符合32位无符号整数约束
 		const MAX_U32 = 0xffffffff;
@@ -40,6 +44,7 @@ export class FrameCountPlugin implements Plugin {
 	/**
 	 * 配置应用
 	 * @param app - 应用实例
+	 * @returns 无返回值
 	 */
 	build(app: App): void {
 		// 直接插入资源实例，使用类构造函数作为标识
@@ -72,6 +77,7 @@ export class FrameCountPlugin implements Plugin {
  * 对应 Rust update_frame_count
  * @param world - ECS世界
  * @param context - 系统上下文
+ * @returns 无返回值
  */
 export function updateFrameCount(world: World, context: Context): void {
 	const resources = world.resources;

@@ -21,6 +21,10 @@ export class ButtonInput<T extends defined> {
 	/** 用于调试的类型名称 */
 	private debugName?: string;
 
+	/**
+	 * 创建按钮输入状态管理器
+	 * @param debugName - 用于调试的类型名称（可选）
+	 */
 	constructor(debugName?: string) {
 		this.pressedSet = new Set();
 		this.justPressedSet = new Set();

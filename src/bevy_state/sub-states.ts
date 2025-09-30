@@ -12,15 +12,17 @@ import { TypeDescriptor } from "../bevy_core";
 
 /**
  * 子状态配置接口
+ *
+ * **用途**: 定义子状态与父状态之间的关联规则
  */
 export interface SubStateConfig<TParent extends States> {
 	/**
-	 * 父状态类型
+	 * 父状态类型构造函数
 	 */
 	readonly parentType: StateConstructor<TParent>;
 
 	/**
-	 * 允许子状态存在的父状态值
+	 * 允许子状态存在的父状态值集合
 	 */
 	readonly allowedParentStates: Set<string | number>;
 }
@@ -29,19 +31,22 @@ export interface SubStateConfig<TParent extends States> {
  * 子状态接口
  * 对应 Rust SubStates trait
  *
- * 子状态依赖于父状态，只在特定父状态下存在
+ * **说明**: 子状态依赖于父状态，只在特定父状态下存在
  */
 export interface SubStates<TParent extends States> extends States {
 	/**
 	 * 获取子状态配置
-	 * @returns 子状态配置
+	 *
+	 * @returns 子状态配置对象
 	 */
 	getSubStateConfig(): SubStateConfig<TParent>;
 
 	/**
 	 * 检查在给定父状态下是否应该存在
-	 * 如果返回非 undefined 值，表示子状态应该存在，并且返回值为初始状态
-	 * @param parentState - 父状态
+	 *
+	 * **说明**: 如果返回非 undefined 值，表示子状态应该存在，并且返回值为初始状态
+	 *
+	 * @param parentState - 父状态实例或 undefined
 	 * @returns 初始状态或 undefined（表示不应该存在）
 	 */
 	shouldExist(parentState: TParent | undefined): this | undefined;
@@ -49,6 +54,8 @@ export interface SubStates<TParent extends States> extends States {
 
 /**
  * 抽象子状态基类
+ *
+ * **用途**: 为子状态提供通用实现，简化自定义子状态的开发
  */
 export abstract class BaseSubStates<TParent extends States> implements SubStates<TParent> {
 	/**
@@ -60,7 +67,8 @@ export abstract class BaseSubStates<TParent extends States> implements SubStates
 
 	/**
 	 * 构造函数
-	 * @param config - 子状态配置
+	 *
+	 * @param config - 子状态配置对象
 	 */
 	public constructor(config: SubStateConfig<TParent>) {
 		this.config = config;
@@ -68,13 +76,15 @@ export abstract class BaseSubStates<TParent extends States> implements SubStates
 
 	/**
 	 * 获取状态标识符
-	 * @returns 状态标识符
+	 *
+	 * @returns 状态的唯一标识符
 	 */
 	public abstract getStateId(): string | number;
 
 	/**
 	 * 比较状态相等性
-	 * @param other - 另一个状态
+	 *
+	 * @param other - 另一个状态实例
 	 * @returns 是否相等
 	 */
 	public equals(other: States): boolean {
@@ -83,13 +93,15 @@ export abstract class BaseSubStates<TParent extends States> implements SubStates
 
 	/**
 	 * 克隆状态
-	 * @returns 状态副本
+	 *
+	 * @returns 状态的深拷贝副本
 	 */
 	public abstract clone(): States;
 
 	/**
 	 * 获取子状态配置
-	 * @returns 子状态配置
+	 *
+	 * @returns 子状态配置对象
 	 */
 	public getSubStateConfig(): SubStateConfig<TParent> {
 		return this.config;
@@ -97,8 +109,10 @@ export abstract class BaseSubStates<TParent extends States> implements SubStates
 
 	/**
 	 * 检查在给定父状态下是否应该存在
-	 * 如果返回非 undefined 值，表示子状态应该存在，并且返回值为初始状态
-	 * @param parentState - 父状态
+	 *
+	 * **说明**: 如果返回非 undefined 值，表示子状态应该存在，并且返回值为初始状态
+	 *
+	 * @param parentState - 父状态实例或 undefined
 	 * @returns 初始状态或 undefined（表示不应该存在）
 	 */
 	public abstract shouldExist(parentState: TParent | undefined): this | undefined;
@@ -106,6 +120,20 @@ export abstract class BaseSubStates<TParent extends States> implements SubStates
 
 /**
  * 子状态管理器
+ *
+ * **职责**:
+ * - 监控父状态变化
+ * - 自动创建/销毁子状态资源
+ * - 处理子状态的转换逻辑
+ *
+ * **工作流程**:
+ * 1. 检查父状态是否允许子状态存在（shouldExist）
+ * 2. 如果允许但子状态不存在，创建默认子状态
+ * 3. 如果不允许但子状态存在，销毁子状态
+ * 4. 处理 NextState<TSub> 的状态转换
+ *
+ * @template TParent - 父状态类型
+ * @template TSub - 子状态类型
  */
 export class SubStateManager<TParent extends States, TSub extends SubStates<TParent>> {
 	private parentType: TypeDescriptor;
@@ -138,6 +166,14 @@ export class SubStateManager<TParent extends States, TSub extends SubStates<TPar
 
 	/**
 	 * 更新子状态
+	 *
+	 * **执行逻辑**:
+	 * - 获取父状态并检查子状态是否应该存在
+	 * - 如果应该存在但不存在，创建默认子状态
+	 * - 如果不应该存在但存在，移除子状态和 NextState
+	 *
+	 * **调用时机**: 在 StateTransition 调度中自动调用
+	 *
 	 * @param world - 游戏世界
 	 * @param resourceManager - 资源管理器
 	 */
@@ -176,9 +212,15 @@ export class SubStateManager<TParent extends States, TSub extends SubStates<TPar
 	}
 
 	/**
-	 * 处理子状态转换
-	 * @param world - 游戏世界
-	 * @param resourceManager - 资源管理器
+	 * 处理子状态转换逻辑
+	 *
+	 * **执行流程**:
+	 * 1. 确保子状态在正确的父状态下
+	 * 2. 检查 NextState<TSub> 是否有待处理状态
+	 * 3. 执行状态转换并更新 State<TSub>
+	 *
+	 * @param world - 游戏世界实例
+	 * @param resourceManager - 资源管理器实例
 	 * @returns 是否发生了转换
 	 */
 	public processSubStateTransition(world: World, resourceManager: ResourceManager): boolean {
@@ -213,10 +255,13 @@ export class SubStateManager<TParent extends States, TSub extends SubStates<TPar
 
 /**
  * 创建简单的枚举子状态
- * @param config - 子状态配置
- * @param values - 子状态值
- * @param defaultValue - 默认状态值
- * @returns 子状态类
+ *
+ * **便利函数**: 用于快速创建枚举类型的子状态
+ *
+ * @param config - 子状态配置对象
+ * @param values - 子状态值映射对象
+ * @param defaultValue - 默认状态值（可选）
+ * @returns 包含状态实例和类型的对象
  */
 export function createEnumSubState<TParent extends States>(
 	config: SubStateConfig<TParent>,

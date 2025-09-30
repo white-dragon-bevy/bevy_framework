@@ -12,13 +12,18 @@ import { TypeDescriptor } from "../bevy_core";
 
 /**
  * 运行条件函数类型
+ *
+ * **用途**: 定义系统运行条件的函数签名
  */
 export type RunCondition = (world: World, resourceManager: ResourceManager) => boolean;
 
 /**
  * 检查是否处于特定状态
- * @param stateType - 状态类型
- * @param targetState - 目标状态
+ *
+ * **用途**: 创建一个运行条件，仅在当前状态匹配目标状态时返回 true
+ *
+ * @param stateType - 状态类型描述符
+ * @param targetState - 目标状态实例
  * @returns 运行条件函数
  */
 export function inState<S extends States>(
@@ -35,8 +40,11 @@ export function inState<S extends States>(
 }
 
 /**
- * 检查状态是否存在
- * @param stateType - 状态类型
+ * 检查状态资源是否存在
+ *
+ * **用途**: 创建一个运行条件，仅在状态资源存在时返回 true
+ *
+ * @param stateType - 状态类型描述符
  * @returns 运行条件函数
  */
 export function stateExists<S extends States>(stateType: TypeDescriptor): RunCondition {
@@ -137,8 +145,11 @@ export function enteringState<S extends States>(
 
 /**
  * 组合多个运行条件（AND 逻辑）
+ *
+ * **用途**: 创建一个运行条件，仅在所有子条件都为 true 时返回 true
+ *
  * @param conditions - 运行条件数组
- * @returns 组合后的运行条件
+ * @returns 组合后的运行条件函数
  */
 export function andCondition(...conditions: RunCondition[]): RunCondition {
 	return (world: World, resourceManager: ResourceManager): boolean => {
@@ -153,8 +164,11 @@ export function andCondition(...conditions: RunCondition[]): RunCondition {
 
 /**
  * 组合多个运行条件（OR 逻辑）
+ *
+ * **用途**: 创建一个运行条件，只要有一个子条件为 true 就返回 true
+ *
  * @param conditions - 运行条件数组
- * @returns 组合后的运行条件
+ * @returns 组合后的运行条件函数
  */
 export function orCondition(...conditions: RunCondition[]): RunCondition {
 	return (world: World, resourceManager: ResourceManager): boolean => {
@@ -169,8 +183,11 @@ export function orCondition(...conditions: RunCondition[]): RunCondition {
 
 /**
  * 反转运行条件
- * @param condition - 运行条件
- * @returns 反转后的运行条件
+ *
+ * **用途**: 创建一个运行条件，返回输入条件的相反值
+ *
+ * @param condition - 原始运行条件函数
+ * @returns 反转后的运行条件函数
  */
 export function notCondition(condition: RunCondition): RunCondition {
 	return (world: World, resourceManager: ResourceManager): boolean => {
@@ -180,8 +197,11 @@ export function notCondition(condition: RunCondition): RunCondition {
 
 /**
  * 创建自定义运行条件
- * @param fn - 条件函数
- * @returns 运行条件
+ *
+ * **便利函数**: 将自定义函数包装为运行条件
+ *
+ * @param fn - 自定义条件判断函数
+ * @returns 运行条件函数
  */
 export function customCondition(
 	fn: (world: World, resourceManager: ResourceManager) => boolean,
@@ -191,10 +211,14 @@ export function customCondition(
 
 /**
  * 始终返回 true 的运行条件
+ *
+ * **用途**: 用于始终执行的系统
  */
 export const alwaysRun: RunCondition = () => true;
 
 /**
  * 始终返回 false 的运行条件
+ *
+ * **用途**: 用于禁用系统执行
  */
 export const neverRun: RunCondition = () => false;

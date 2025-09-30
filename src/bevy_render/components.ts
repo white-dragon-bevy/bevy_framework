@@ -73,10 +73,11 @@ export const DefaultRenderLayers = {
 } as const;
 
 /**
- * 检查实体是否在指定层级
+ * 检查实体是否在指定渲染层级中
+ * 使用位运算检查层级掩码是否有重叠
  * @param entityLayers - 实体的层级掩码
  * @param checkLayers - 要检查的层级掩码
- * @returns 是否在指定层级
+ * @returns 如果实体在指定层级中返回 true，否则返回 false
  */
 export function isInRenderLayer(entityLayers: number, checkLayers: number): boolean {
 	return (entityLayers & checkLayers) !== 0;
@@ -84,8 +85,10 @@ export function isInRenderLayer(entityLayers: number, checkLayers: number): bool
 
 /**
  * 创建默认可见的 Visibility 组件
+ * 状态设置为 Visible，表示实体默认可见
+ * @returns 新的 Visibility 组件实例，状态为 Visible
  */
-export function createDefaultVisibility() {
+export function createDefaultVisibility(): ReturnType<typeof Visibility> {
 	return Visibility({
 		state: VisibilityState.Visible,
 	});
@@ -93,8 +96,10 @@ export function createDefaultVisibility() {
 
 /**
  * 创建默认的 ViewVisibility 组件
+ * 可见性设置为 true，表示实体在视图中可见
+ * @returns 新的 ViewVisibility 组件实例，visible 为 true
  */
-export function createDefaultViewVisibility() {
+export function createDefaultViewVisibility(): ReturnType<typeof ViewVisibility> {
 	return ViewVisibility({
 		visible: true,
 	});

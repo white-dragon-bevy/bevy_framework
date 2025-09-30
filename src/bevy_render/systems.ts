@@ -12,7 +12,9 @@ import { World } from "../bevy_ecs/bevy-world";
 
 /**
  * 获取或创建隐藏容器
- * 用于存放临时隐藏的对象
+ * 用于存放临时隐藏的 Roblox 实例，避免销毁和重新创建
+ * 容器位于 ReplicatedStorage 中，名为 "HiddenRenderObjects"
+ * @returns 隐藏容器 Folder 实例
  */
 function getHiddenContainer(): Folder {
 	let container = ReplicatedStorage.FindFirstChild("HiddenRenderObjects") as Folder | undefined;
@@ -26,7 +28,11 @@ function getHiddenContainer(): Folder {
 
 /**
  * 可见性系统
- * 计算最终可见性并管理对象显示/隐藏
+ * 两步处理流程：
+ * 1. 根据 Visibility 组件计算最终的 ViewVisibility（考虑父级继承）
+ * 2. 将 ViewVisibility 应用到 RobloxInstance，控制实例的显示/隐藏
+ * 隐藏的对象会移动到隐藏容器，显示时恢复到原始父级
+ * @param world - ECS 世界实例
  */
 export function visibilitySystem(world: World): void {
 	const hiddenContainer = getHiddenContainer();
@@ -80,7 +86,10 @@ export function visibilitySystem(world: World): void {
 
 /**
  * Roblox 同步系统
- * 将 GlobalTransform 同步到 Roblox 实例的 CFrame
+ * 将 GlobalTransform 组件的变换数据同步到 Roblox 实例
+ * 支持 BasePart（直接设置 CFrame）和 Model（通过 PrimaryPart 或 Pivot）
+ * 如果 BasePart 有 BaseSize 属性，会同步缩放到 Size
+ * @param world - ECS 世界实例
  */
 export function robloxSyncSystem(world: World): void {
 	// 查询所有需要同步的实体
@@ -120,8 +129,10 @@ export function robloxSyncSystem(world: World): void {
 }
 
 /**
- * 清理系统
- * 移除没有对应 ECS 实体的 Roblox 实例
+ * 清理已删除实体的系统
+ * 检查 RobloxInstance 组件关联的 Roblox 实例是否仍然有效
+ * 如果实例的 Parent 为 nil（已被销毁），则移除对应的组件
+ * @param world - ECS 世界实例
  */
 export function cleanupRemovedEntities(world: World): void {
 	// 这个系统应该监听实体删除事件
@@ -137,8 +148,12 @@ export function cleanupRemovedEntities(world: World): void {
 }
 
 /**
- * 渲染系统集
- * 包含所有渲染相关系统的执行顺序
+ * 渲染系统集合
+ * 按照正确的顺序执行所有渲染相关系统：
+ * 1. visibilitySystem - 计算可见性
+ * 2. robloxSyncSystem - 同步变换到 Roblox 实例
+ * 3. cleanupRemovedEntities - 清理无效实体
+ * @param world - ECS 世界实例
  */
 export function renderSystemSet(world: World): void {
 	// 1. 计算可见性

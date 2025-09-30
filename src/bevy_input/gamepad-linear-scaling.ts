@@ -5,9 +5,14 @@
 
 /**
  * 应用死区和线性重映射
+ * 将原始轴值通过死区和活动区进行线性映射,过滤小幅度抖动并规范化输出
  * @param value - 原始轴值 [-1, 1]
- * @param settings - 轴配置
- * @returns 处理后的值 [-1, 1]
+ * @param settings - 轴配置对象
+ * @param settings.deadzoneLowerbound - 死区下界 (负值)
+ * @param settings.deadzoneUpperbound - 死区上界 (正值)
+ * @param settings.livezoneLowerbound - 活动区下界 (负值)
+ * @param settings.livezoneUpperbound - 活动区上界 (正值)
+ * @returns 处理后的值 [-1, 1],死区内返回 0,活动区外钳制到 ±1
  */
 export function applyDeadzoneAndScaling(value: number, settings: {
 	deadzoneLowerbound: number;

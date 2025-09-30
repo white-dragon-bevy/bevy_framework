@@ -68,7 +68,7 @@ export function transformFromLookAt(position: Vector3, lookAt: Vector3): {
  * 应用缩放到 Transform
  * @param transform - Transform 数据
  * @param scale - 新的缩放值
- * @returns 更新后的 Transform
+ * @returns 更新后的 Transform 数据
  */
 export function withScale(
 	transform: { cframe: CFrame; scale: Vector3 },
@@ -83,8 +83,8 @@ export function withScale(
 /**
  * 应用位置到 Transform
  * @param transform - Transform 数据
- * @param position - 新的位置
- * @returns 更新后的 Transform
+ * @param position - 新的位置向量
+ * @returns 更新后的 Transform 数据
  */
 export function withPosition(
 	transform: { cframe: CFrame; scale: Vector3 },

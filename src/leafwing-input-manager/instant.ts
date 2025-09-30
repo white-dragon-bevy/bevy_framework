@@ -4,6 +4,10 @@
 export class Instant {
 	private readonly timestamp: number;
 
+	/**
+	 * Creates a new Instant
+	 * @param timestamp - Optional timestamp in seconds, defaults to current time
+	 */
 	constructor(timestamp?: number) {
 		this.timestamp = timestamp ?? os.clock();
 	}

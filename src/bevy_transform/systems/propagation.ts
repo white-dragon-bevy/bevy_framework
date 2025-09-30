@@ -11,18 +11,26 @@ import { Transform, GlobalTransform, TransformTreeChanged, computeGlobalTransfor
  */
 import { component } from "@rbxts/matter";
 
+/**
+ * Parent 组件 - 指向父实体的引用
+ */
 export const Parent = component<{
+	/** 父实体的 ID */
 	entity: number;
 }>("Parent");
 
+/**
+ * Children 组件 - 存储子实体列表
+ */
 export const Children = component<{
+	/** 子实体的 ID 数组 */
 	entities: number[];
 }>("Children");
 
 /**
  * 标记需要更新的变换树
  * 当 Transform 改变或父子关系改变时，标记整个子树为需要更新
- * @param world - Matter World
+ * @param world - Matter World 实例
  */
 export function markDirtyTrees(world: World): void {
 	// 查找所有变更的 Transform 或新添加的 GlobalTransform
@@ -51,10 +59,11 @@ export function markDirtyTrees(world: World): void {
 
 /**
  * 递归传播变换到子级
- * @param world - Matter World
- * @param entity - 当前实体
- * @param parentGlobalTransform - 父级的全局变换
- * @param forceUpdate - 是否强制更新（父级已更新）
+ * 从父实体向下递归计算并更新子实体的全局变换
+ * @param world - Matter World 实例
+ * @param entity - 当前处理的实体 ID
+ * @param parentGlobalTransform - 父级的全局变换数据
+ * @param forceUpdate - 是否强制更新（当父级已更新时为 true）
  */
 function propagateRecursive(
 	world: World,
@@ -108,7 +117,7 @@ function propagateRecursive(
 /**
  * 传播父级变换到子级
  * 处理整个实体层级的变换更新
- * @param world - Matter World
+ * @param world - Matter World 实例
  */
 export function propagateParentTransforms(world: World): void {
 	// 查找所有根实体（没有父级的实体）

@@ -10,7 +10,7 @@ import { Parent } from "../../bevy_ecs/hierarchy";
 /**
  * 同步简单变换
  * 更新没有父子关系的实体的 GlobalTransform
- * @param world - Matter World
+ * @param world - Matter World 实例
  */
 export function syncSimpleTransforms(world: World): void {
 	// 查询所有有 Transform 但没有父级和子级的实体
@@ -48,7 +48,7 @@ export function syncSimpleTransforms(world: World): void {
 
 /**
  * 确保所有有 Transform 的实体都有 GlobalTransform
- * @param world - Matter World
+ * @param world - Matter World 实例
  */
 export function ensureGlobalTransforms(world: World): void {
 	for (const [entity, transform] of world.query(Transform)) {

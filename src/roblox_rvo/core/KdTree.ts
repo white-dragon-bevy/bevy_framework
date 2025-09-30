@@ -4,16 +4,32 @@ import Simulator from "./Simulator";
 import Agent from "./Agent";
 import Obstacle from "./Obstacle";
 
+/**
+ * KdTree 类
+ * K-D 树数据结构，用于高效的空间查询和邻居搜索
+ * 支持代理和障碍物的快速最近邻查询
+ */
 export default class KdTree {
-  simulator!: Simulator;
+	/** 所属模拟器的引用 */
+	simulator!: Simulator;
 
-  MAXLEAF_SIZE = 100;
+	/** 叶节点最大容量（超过此值将分裂节点） */
+	MAXLEAF_SIZE = 100;
 
-  private agents: Agent[] = [];
-  private agentTree: AgentTreeNode[] = [];
-  private obstacleTree: ObstacleTreeNode = new ObstacleTreeNode();
+	/** 代理数组的引用 */
+	private agents: Agent[] = [];
 
-  buildAgentTree() {
+	/** 代理 K-D 树节点数组 */
+	private agentTree: AgentTreeNode[] = [];
+
+	/** 障碍物 K-D 树根节点 */
+	private obstacleTree: ObstacleTreeNode = new ObstacleTreeNode();
+
+	/**
+	 * 构建代理 K-D 树
+	 * 为所有代理构建空间索引结构，支持快速的最近邻查询
+	 */
+	buildAgentTree(): void {
     if (this.agents.size() !==this.simulator.getNumAgents()) {
       this.agents = this.simulator.agents;
 
@@ -81,7 +97,11 @@ export default class KdTree {
     }
   }
 
-  buildObstacleTree() {
+	/**
+	 * 构建障碍物 K-D 树
+	 * 为所有障碍物构建空间索引结构，支持快速的可见性查询
+	 */
+	buildObstacleTree(): void {
     let obstacles = this.simulator.obstacles;
     this.obstacleTree = this._buildObstacleTreeRecursive(obstacles)!;
   }
@@ -241,10 +261,20 @@ export default class KdTree {
     }
   }
 
+  /**
+   * 计算代理的邻居代理
+   * @param agent - 目标代理
+   * @param rangeSq - 搜索范围的平方
+   */
   computeAgentNeighbors(agent: Agent, rangeSq: number) {
     this._queryAgentTreeRecursive(agent, rangeSq, 0);
   }
 
+  /**
+   * 计算代理的邻居障碍物
+   * @param agent - 目标代理
+   * @param rangeSq - 搜索范围的平方
+   */
   computeObstacleNeighbors(agent: Agent, rangeSq: number) {
     this._queryObstacleTreeRecursive(agent, rangeSq, this.obstacleTree);
   }
@@ -327,6 +357,14 @@ export default class KdTree {
     }
   }
 
+  /**
+   * 查询两点间的可见性
+   * 检查两点之间是否被障碍物阻挡
+   * @param q1 - 起点
+   * @param q2 - 终点
+   * @param radius - 查询半径
+   * @returns 是否可见（无障碍物阻挡）
+   */
   queryVisibility(q1: Vector2, q2: Vector2, radius: number): boolean {
     return this._queryVisibilityRecursive(q1, q2, radius, this.obstacleTree);
   }
@@ -384,49 +422,105 @@ export default class KdTree {
   }
 }
 
+/**
+ * FloatPair 类
+ * 浮点数对，用于障碍物 K-D 树构建时的分割质量比较
+ */
 class FloatPair {
+	/** 第一个浮点数 */
+	a = 0;
 
-  a = 0;
-  b = 0;
+	/** 第二个浮点数 */
+	b = 0;
 
-  constructor(a: number = 0, b: number = 0) {
-    this.a = a;
-    this.b = b;
-  }
+	/**
+	 * 创建浮点数对
+	 * @param a - 第一个浮点数（默认 0）
+	 * @param b - 第二个浮点数（默认 0）
+	 */
+	constructor(a: number = 0, b: number = 0) {
+		this.a = a;
+		this.b = b;
+	}
 
+  /**
+   * 小于比较
+   * @param rhs - 右侧操作数
+   * @returns 是否小于
+   */
   _mt(rhs: FloatPair): boolean {
     return this.a < rhs.a || !(rhs.a < this.a) && this.b < rhs.b;
   }
 
+  /**
+   * 小于等于比较
+   * @param rhs - 右侧操作数
+   * @returns 是否小于等于
+   */
   _met(rhs: FloatPair): boolean {
     return (this.a ===rhs.a && this.b ===rhs.b) || this._mt(rhs);
   }
 
-  //greater-than
+  /**
+   * 大于比较
+   * @param rhs - 右侧操作数
+   * @returns 是否大于
+   */
   _gt(rhs: FloatPair): boolean {
     return !this._met(rhs);
   }
 
-  //greater-or-equal-than
+  /**
+   * 大于等于比较
+   * @param rhs - 右侧操作数
+   * @returns 是否大于等于
+   */
   _get(rhs: FloatPair): boolean {
     return !this._mt(rhs);
   }
 }
 
-
+/**
+ * AgentTreeNode 类
+ * 代理 K-D 树节点，存储代理索引范围和空间边界
+ */
 class AgentTreeNode {
-  begin = 0;
-  end = 0;
-  left = 0;
-  maxX = 0;
-  maxY = 0;
-  minX = 0;
-  minY = 0;
-  right = 0;
+	/** 节点包含的代理起始索引 */
+	begin = 0;
+
+	/** 节点包含的代理结束索引（不包含） */
+	end = 0;
+
+	/** 左子节点索引 */
+	left = 0;
+
+	/** 节点空间的最大 X 坐标 */
+	maxX = 0;
+
+	/** 节点空间的最大 Y 坐标 */
+	maxY = 0;
+
+	/** 节点空间的最小 X 坐标 */
+	minX = 0;
+
+	/** 节点空间的最小 Y 坐标 */
+	minY = 0;
+
+	/** 右子节点索引 */
+	right = 0;
 }
 
+/**
+ * ObstacleTreeNode 类
+ * 障碍物 K-D 树节点，存储障碍物线段和子树引用
+ */
 class ObstacleTreeNode {
-  obstacle!: Obstacle;
-  left?: ObstacleTreeNode;
-  right?: ObstacleTreeNode;
+	/** 节点存储的障碍物线段 */
+	obstacle!: Obstacle;
+
+	/** 左子树引用（可选） */
+	left?: ObstacleTreeNode;
+
+	/** 右子树引用（可选） */
+	right?: ObstacleTreeNode;
 }

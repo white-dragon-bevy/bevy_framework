@@ -100,6 +100,7 @@ import {
 	inputJustReleased as ijr,
 	inputPressed as ip,
 	inputToggleActive as ita,
+	RunCondition,
 } from "./common-conditions";
 
 /**
@@ -111,7 +112,7 @@ export namespace KeyboardConditions {
 	 * @param key - 按键
 	 * @returns 条件函数
 	 */
-	export function justPressed(key: Enum.KeyCode) {
+	export function justPressed(key: Enum.KeyCode): RunCondition {
 		return ijp(key, IR.Keyboard);
 	}
 
@@ -120,7 +121,7 @@ export namespace KeyboardConditions {
 	 * @param key - 按键
 	 * @returns 条件函数
 	 */
-	export function pressed(key: Enum.KeyCode) {
+	export function pressed(key: Enum.KeyCode): RunCondition {
 		return ip(key, IR.Keyboard);
 	}
 
@@ -129,7 +130,7 @@ export namespace KeyboardConditions {
 	 * @param key - 按键
 	 * @returns 条件函数
 	 */
-	export function justReleased(key: Enum.KeyCode) {
+	export function justReleased(key: Enum.KeyCode): RunCondition {
 		return ijr(key, IR.Keyboard);
 	}
 
@@ -139,7 +140,7 @@ export namespace KeyboardConditions {
 	 * @param key - 按键
 	 * @returns 条件函数
 	 */
-	export function toggleActive(defaultState: boolean, key: Enum.KeyCode) {
+	export function toggleActive(defaultState: boolean, key: Enum.KeyCode): RunCondition {
 		return ita(defaultState, key, IR.Keyboard);
 	}
 
@@ -148,7 +149,7 @@ export namespace KeyboardConditions {
 	 * @param keys - 按键数组
 	 * @returns 条件函数
 	 */
-	export function anyPressed(keys: Array<Enum.KeyCode>) {
+	export function anyPressed(keys: Array<Enum.KeyCode>): RunCondition {
 		return anyIP(keys, IR.Keyboard);
 	}
 
@@ -157,7 +158,7 @@ export namespace KeyboardConditions {
 	 * @param keys - 按键数组
 	 * @returns 条件函数
 	 */
-	export function allPressed(keys: Array<Enum.KeyCode>) {
+	export function allPressed(keys: Array<Enum.KeyCode>): RunCondition {
 		return allIP(keys, IR.Keyboard);
 	}
 }
@@ -171,7 +172,7 @@ export namespace MouseConditions {
 	 * @param button - 鼠标按钮
 	 * @returns 条件函数
 	 */
-	export function justPressed(button: Enum.UserInputType) {
+	export function justPressed(button: Enum.UserInputType): RunCondition {
 		return ijp(button, IR.Mouse);
 	}
 
@@ -180,7 +181,7 @@ export namespace MouseConditions {
 	 * @param button - 鼠标按钮
 	 * @returns 条件函数
 	 */
-	export function pressed(button: Enum.UserInputType) {
+	export function pressed(button: Enum.UserInputType): RunCondition {
 		return ip(button, IR.Mouse);
 	}
 
@@ -189,7 +190,7 @@ export namespace MouseConditions {
 	 * @param button - 鼠标按钮
 	 * @returns 条件函数
 	 */
-	export function justReleased(button: Enum.UserInputType) {
+	export function justReleased(button: Enum.UserInputType): RunCondition {
 		return ijr(button, IR.Mouse);
 	}
 
@@ -199,7 +200,7 @@ export namespace MouseConditions {
 	 * @param button - 鼠标按钮
 	 * @returns 条件函数
 	 */
-	export function toggleActive(defaultState: boolean, button: Enum.UserInputType) {
+	export function toggleActive(defaultState: boolean, button: Enum.UserInputType): RunCondition {
 		return ita(defaultState, button, IR.Mouse);
 	}
 }

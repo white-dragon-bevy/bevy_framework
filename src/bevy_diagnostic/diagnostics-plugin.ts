@@ -10,13 +10,18 @@ import type { World } from "../../src/bevy_ecs";
 import type { AppContext } from "../../src/bevy_app/context";
 
 /**
- * 简化的诊断项接口
+ * 简化的诊断项配置接口
+ * 用于快速创建诊断项的配置对象
  */
 export interface DiagnosticConfig {
-	id: string;
-	name?: string;
-	value?: number;
-	maxHistory?: number;
+	/** 诊断项唯一标识符 */
+	readonly id: string;
+	/** 最大历史记录长度 */
+	readonly maxHistory?: number;
+	/** 诊断项显示名称 */
+	readonly name?: string;
+	/** 初始值 */
+	readonly value?: number;
 }
 
 /**
@@ -27,10 +32,18 @@ class DiagnosticsRenderer {
 	private format: "json" | "text" | "table" = "text";
 	private store: DiagnosticsStore;
 
+	/**
+	 * 创建诊断渲染器实例
+	 * @param store - 诊断存储实例
+	 */
 	constructor(store: DiagnosticsStore) {
 		this.store = store;
 	}
 
+	/**
+	 * 将诊断信息渲染到控制台
+	 * @returns 无返回值
+	 */
 	renderToConsole(): void {
 		const diagnostics: Diagnostic[] = [];
 		// 收集所有诊断项
@@ -51,15 +64,29 @@ class DiagnosticsRenderer {
 		}
 	}
 
+	/**
+	 * 将诊断信息渲染到UI界面
+	 * 注意: 当前未实现
+	 * @returns 无返回值
+	 */
 	renderToUI(): void {
 		// 未来可以实现UI渲染
 		warn("UI rendering not yet implemented");
 	}
 
+	/**
+	 * 设置渲染输出格式
+	 * @param format - 输出格式类型 (json/text/table)
+	 * @returns 无返回值
+	 */
 	setFormat(format: "json" | "text" | "table"): void {
 		this.format = format;
 	}
 
+	/**
+	 * 获取当前渲染格式
+	 * @returns 当前的输出格式类型
+	 */
 	getFormat(): "json" | "text" | "table" {
 		return this.format;
 	}
@@ -67,19 +94,31 @@ class DiagnosticsRenderer {
 
 /**
  * 诊断扩展工厂接口
+ * 定义 DiagnosticsPlugin 提供的所有扩展方法
  */
 export interface DiagnosticPluginExtensionFactories {
-	getStore: ExtensionFactory<() => DiagnosticsStore>;
-	registerDiagnostic: ExtensionFactory<(config: DiagnosticConfig | Diagnostic) => void>;
-	getDiagnostic: ExtensionFactory<(id: string) => Diagnostic | undefined>;
+	/** 清空所有诊断项 */
 	clearDiagnostics: ExtensionFactory<() => void>;
-	updateDiagnostic: ExtensionFactory<(id: string, value: number) => void>;
+	/** 获取所有诊断项 */
 	getAllDiagnostics: ExtensionFactory<() => ReadonlyArray<Diagnostic>>;
+	/** 根据ID获取诊断项 */
+	getDiagnostic: ExtensionFactory<(id: string) => Diagnostic | undefined>;
+	/** 获取诊断项总数 */
 	getDiagnosticsCount: ExtensionFactory<() => number>;
-	renderToConsole: ExtensionFactory<() => void>;
-	renderToUI: ExtensionFactory<() => void>;
-	setRenderFormat: ExtensionFactory<(format: "json" | "text" | "table") => void>;
+	/** 获取当前渲染格式 */
 	getRenderFormat: ExtensionFactory<() => "json" | "text" | "table">;
+	/** 获取诊断存储实例 */
+	getStore: ExtensionFactory<() => DiagnosticsStore>;
+	/** 注册新的诊断项 */
+	registerDiagnostic: ExtensionFactory<(config: DiagnosticConfig | Diagnostic) => void>;
+	/** 将诊断信息渲染到控制台 */
+	renderToConsole: ExtensionFactory<() => void>;
+	/** 将诊断信息渲染到UI */
+	renderToUI: ExtensionFactory<() => void>;
+	/** 设置渲染格式 */
+	setRenderFormat: ExtensionFactory<(format: "json" | "text" | "table") => void>;
+	/** 更新指定诊断项的值 */
+	updateDiagnostic: ExtensionFactory<(id: string, value: number) => void>;
 }
 
 /**
@@ -90,6 +129,9 @@ export class DiagnosticsPlugin extends BasePlugin {
 	/** 插件扩展工厂 */
 	extension: DiagnosticPluginExtensionFactories;
 
+	/**
+	 * 创建 DiagnosticsPlugin 实例
+	 */
 	constructor() {
 		super();
 		// 扩展工厂将在 build() 中初始化
@@ -99,6 +141,7 @@ export class DiagnosticsPlugin extends BasePlugin {
 	/**
 	 * 配置应用
 	 * @param app - 应用实例
+	 * @returns 无返回值
 	 */
 	build(app: App): void {
 		// 安装诊断系统

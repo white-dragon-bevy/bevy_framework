@@ -38,11 +38,15 @@ export interface TimeUpdateStrategy {
  * 管理帧率和帧时间统计
  */
 class TimeStatsManager {
-	private frameTimesMs: number[] = [];
+	private frameTimesMs: Array<number> = [];
 	private maxSamples = 60;
 	private minFrameTime = math.huge;
 	private maxFrameTime = 0;
 
+	/**
+	 * 添加一帧的时间
+	 * @param deltaMs - 帧时间（毫秒）
+	 */
 	addFrameTime(deltaMs: number): void {
 		this.frameTimesMs.push(deltaMs);
 		if (this.frameTimesMs.size() > this.maxSamples) {
@@ -52,30 +56,53 @@ class TimeStatsManager {
 		this.maxFrameTime = math.max(this.maxFrameTime, deltaMs);
 	}
 
+	/**
+	 * 获取平均 FPS
+	 * @returns 平均帧率
+	 */
 	getAverageFPS(): number {
 		if (this.frameTimesMs.isEmpty()) return 0;
 		const avgMs = this.frameTimesMs.reduce((sum, time) => sum + time, 0) / this.frameTimesMs.size();
 		return avgMs > 0 ? 1000 / avgMs : 0;
 	}
 
+	/**
+	 * 获取瞬时 FPS
+	 * @returns 当前帧率
+	 */
 	getInstantFPS(): number {
 		const last = this.frameTimesMs[this.frameTimesMs.size() - 1];
 		return last !== undefined && last > 0 ? 1000 / last : 0;
 	}
 
+	/**
+	 * 获取最小帧时间
+	 * @returns 最小帧时间（毫秒）
+	 */
 	getMinFrameTime(): number {
 		return this.minFrameTime === math.huge ? 0 : this.minFrameTime;
 	}
 
+	/**
+	 * 获取最大帧时间
+	 * @returns 最大帧时间（毫秒）
+	 */
 	getMaxFrameTime(): number {
 		return this.maxFrameTime;
 	}
 
+	/**
+	 * 获取平均帧时间
+	 * @returns 平均帧时间（毫秒）
+	 */
 	getAverageFrameTime(): number {
 		if (this.frameTimesMs.isEmpty()) return 0;
 		return this.frameTimesMs.reduce((sum, time) => sum + time, 0) / this.frameTimesMs.size();
 	}
 
+	/**
+	 * 重置统计数据
+	 */
 	reset(): void {
 		this.frameTimesMs.clear();
 		this.minFrameTime = math.huge;
@@ -85,6 +112,7 @@ class TimeStatsManager {
 
 /**
  * 时间扩展工厂接口
+ * 提供时间插件的所有扩展方法工厂
  */
 export interface TimePluginExtensionFactories {
 	getCurrent: ExtensionFactory<() => Time<Empty>>;
@@ -125,6 +153,7 @@ export class TimePlugin extends BasePlugin {
 
 	/**
 	 * 插件名称
+	 * @returns 插件的唯一标识名称
 	 */
 	name(): string {
 		return "TimePlugin";
@@ -132,6 +161,7 @@ export class TimePlugin extends BasePlugin {
 
 	/**
 	 * 插件是否唯一
+	 * @returns 总是返回 true，表示同一应用中只能有一个 TimePlugin 实例
 	 */
 	isUnique(): boolean {
 		return true;
@@ -140,6 +170,7 @@ export class TimePlugin extends BasePlugin {
 	/**
 	 * 构建插件
 	 * 对应 Rust TimePlugin::build (lib.rs:68-94)
+	 * @param app - 应用程序实例
 	 */
 	build(app: App): void {
 		// 初始化时间资源
@@ -347,6 +378,8 @@ export class TimePlugin extends BasePlugin {
 
 	/**
 	 * 插件是否准备就绪
+	 * @param app - 应用程序实例
+	 * @returns 总是返回 true
 	 */
 	ready(app: App): boolean {
 		return true;
@@ -354,6 +387,7 @@ export class TimePlugin extends BasePlugin {
 
 	/**
 	 * 完成插件设置
+	 * @param app - 应用程序实例
 	 */
 	finish(app: App): void {
 		// 不需要额外的完成步骤
@@ -361,6 +395,7 @@ export class TimePlugin extends BasePlugin {
 
 	/**
 	 * 清理插件资源
+	 * @param app - 应用程序实例
 	 */
 	cleanup(app: App): void {
 		// 清理时间资源
@@ -370,6 +405,10 @@ export class TimePlugin extends BasePlugin {
 /**
  * 时间系统 - 更新所有时间资源
  * 对应 Rust time_system
+ * @param world - Matter World 实例
+ * @param context - ECS 上下文
+ * @param app - 应用程序实例
+ * @param statsManager - 统计管理器
  */
 function timeSystem(world: World, context: Context, app: App, statsManager: TimeStatsManager): void {
 	// 获取时间更新策略
@@ -449,6 +488,7 @@ function timeSystem(world: World, context: Context, app: App, statsManager: Time
 
 /**
  * 手动推进时间（用于测试）
+ * 设置模拟时间增量，下一帧将使用此增量而非真实时间
  * @param app - 应用程序实例
  * @param seconds - 要推进的秒数
  */
@@ -463,6 +503,9 @@ export function advanceTime(app: App, seconds: number): void {
  * 运行固定主循环系统
  * 对应 Rust run_fixed_main_schedule (fixed.rs:239-252)
  * 这个系统在 RunFixedMainLoop 调度中运行
+ * @param world - Matter World 实例
+ * @param context - ECS 上下文
+ * @param app - 应用程序实例
  */
 function runFixedMainLoop(world: World, context: Context, app: App): void {
 	// 获取虚拟时间和固定时间

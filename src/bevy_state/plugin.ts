@@ -38,16 +38,25 @@ export enum StateTransitionSystems {
 
 /**
  * 状态插件配置
+ *
+ * **配置说明**:
+ * - defaultState: 提供默认初始状态的工厂函数
+ * - initOnStartup: 是否在应用启动时自动初始化状态（默认 true）
  */
 export interface StatePluginConfig<S extends States> {
 
 	/**
-	 * 默认状态
+	 * 默认状态工厂函数
+	 *
+	 * **注意**: 必须是函数而非直接的状态值，以支持延迟初始化
 	 */
 	readonly defaultState: DefaultStateFn<S>;
 
 	/**
 	 * 是否在启动时初始化
+	 *
+	 * **默认值**: true
+	 * **用途**: 设置为 false 可延迟状态初始化，需手动设置 NextState
 	 */
 	readonly initOnStartup?: boolean;
 }
@@ -55,6 +64,21 @@ export interface StatePluginConfig<S extends States> {
 
 /**
  * 状态管理插件
+ *
+ * **职责**:
+ * - 初始化状态资源（State<S> 和 NextState<S>）
+ * - 注册状态转换调度（StateTransition）
+ * - 管理状态生命周期和转换流程
+ * - 协调 OnEnter、OnExit、OnTransition 调度的执行
+ *
+ * **使用示例**:
+ * ```typescript
+ * app.addPlugin(StatesPlugin.create({
+ *     defaultState: () => GameState.Menu
+ * }));
+ * ```
+ *
+ * @template S - 状态类型，必须实现 States 接口
  */
 export class StatesPlugin<S extends States> implements Plugin {
 	private config: StatePluginConfig<S>;
@@ -64,7 +88,8 @@ export class StatesPlugin<S extends States> implements Plugin {
 
 	/**
 	 * 私有构造函数 (公开调用 create())
-	 * @param config - 插件配置
+	 *
+	 * @param config - 插件配置对象
 	 */
 	private constructor(config: StatePluginConfig<S>) {
 		this.config = config;
@@ -78,13 +103,15 @@ export class StatesPlugin<S extends States> implements Plugin {
 
 
 	/**
-	 * 创建新的状态资源
-	 * 
-	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
-	 * @metadata macro 
-	 * 
-	 * @param state - 初始状态
-	 * @returns State 资源实例
+	 * 创建新的状态插件实例
+	 *
+	 * **注意**: @claudecode , @cursor , 这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
+	 *
+	 * @param config - 插件配置对象
+	 * @param id - 状态类型标识符 (由 Flamework 宏自动提供)
+	 * @param text - 状态类型文本描述 (由 Flamework 宏自动提供)
+	 * @returns StatesPlugin 实例
 	 */
 	public static create<S extends States>(config: StatePluginConfig<S>,id?:Modding.Generic<S, "id">, text?: Modding.Generic<S,"text">): StatesPlugin<S>  {
 		let typeDescriptor = getTypeDescriptor(id,text)
@@ -95,7 +122,15 @@ export class StatesPlugin<S extends States> implements Plugin {
 	}
 
 	/**
-	 * 构建插件
+	 * 构建插件并注册到应用
+	 *
+	 * **执行流程**:
+	 * 1. 初始化资源管理器和事件管理器
+	 * 2. 创建状态转换管理器
+	 * 3. 注册 StateTransition 调度
+	 * 4. 初始化默认状态资源
+	 * 5. 添加状态转换系统和清理系统
+	 *
 	 * @param app - 应用实例
 	 */
 	public build(app: App): void {
@@ -152,10 +187,13 @@ export class StatesPlugin<S extends States> implements Plugin {
 	}
 
 	/**
-	 * 处理状态转换
-	 * @param world - 游戏世界
-	 * @param resourceManager - 资源管理器
-	 * @param app - App 实例
+	 * 处理状态转换逻辑
+	 *
+	 * **内部方法**: 由插件系统在 StateTransition 调度中自动调用
+	 *
+	 * @param world - 游戏世界实例
+	 * @param resourceManager - 资源管理器实例
+	 * @param app - 应用实例
 	 */
 	private processStateTransitions(world: World, resourceManager: ResourceManager, app: App): void {
 		this.transitionManager.processTransition(world, resourceManager, app);
@@ -163,15 +201,19 @@ export class StatesPlugin<S extends States> implements Plugin {
 
 	/**
 	 * 获取插件名称
-	 * @returns 插件名称
+	 *
+	 * @returns 插件的唯一标识名称
 	 */
 	public name(): string {
 		return this.statsTypeDescriptor.text
 	}
 
 	/**
-	 * 插件是否唯一
-	 * @returns 是否唯一
+	 * 检查插件是否唯一
+	 *
+	 * **说明**: StatesPlugin 为唯一插件,每个状态类型只能注册一次
+	 *
+	 * @returns 始终返回 true
 	 */
 	public isUnique(): boolean {
 		return true;
@@ -180,6 +222,23 @@ export class StatesPlugin<S extends States> implements Plugin {
 
 /**
  * 计算状态插件
+ *
+ * **职责**:
+ * - 注册计算状态的更新系统
+ * - 在 StateTransition 调度中自动更新计算状态
+ * - 保持计算状态与源状态同步
+ *
+ * **使用场景**:
+ * - 从一个或多个源状态派生新状态
+ * - 实现状态的映射、过滤、组合等逻辑
+ *
+ * **使用示例**:
+ * ```typescript
+ * app.addPlugin(new ComputedStatesPlugin(AppState, PausedState));
+ * ```
+ *
+ * @template TSource - 源状态类型
+ * @template TComputed - 计算状态类型
  */
 export class ComputedStatesPlugin<TSource extends States, TComputed extends ComputedStates<TSource>> implements Plugin {
 	private sourceType: StateConstructor<TSource>;
@@ -189,9 +248,11 @@ export class ComputedStatesPlugin<TSource extends States, TComputed extends Comp
 
 	/**
 	 * 构造函数
-	 * todo , 增加 create
-	 * @param sourceType - 源状态类型
-	 * @param computedType - 计算状态类型
+	 *
+	 * **TODO**: 增加静态 create() 方法以支持 Modding 宏系统
+	 *
+	 * @param sourceType - 源状态类型构造函数
+	 * @param computedType - 计算状态类型构造函数
 	 */
 	private constructor(sourceType: StateConstructor<TSource>, computedType: new () => TComputed) {
 		this.sourceType = sourceType;
@@ -200,7 +261,12 @@ export class ComputedStatesPlugin<TSource extends States, TComputed extends Comp
 	}
 
 	/**
-	 * 构建插件
+	 * 构建插件并注册到应用
+	 *
+	 * **执行流程**:
+	 * 1. 获取应用的资源管理器
+	 * 2. 注册计算状态更新系统到 StateTransition 调度
+	 *
 	 * @param app - 应用实例
 	 */
 	public build(app: App): void {
@@ -217,7 +283,8 @@ export class ComputedStatesPlugin<TSource extends States, TComputed extends Comp
 
 	/**
 	 * 获取插件名称
-	 * @returns 插件名称
+	 *
+	 * @returns 插件的唯一标识名称
 	 */
 	public name(): string {
 		const sourceType = this.sourceType as unknown as { name?: string };
@@ -226,8 +293,11 @@ export class ComputedStatesPlugin<TSource extends States, TComputed extends Comp
 	}
 
 	/**
-	 * 插件是否唯一
-	 * @returns 是否唯一
+	 * 检查插件是否唯一
+	 *
+	 * **说明**: ComputedStatesPlugin 为唯一插件,每个计算状态类型只能注册一次
+	 *
+	 * @returns 始终返回 true
 	 */
 	public isUnique(): boolean {
 		return true;
@@ -236,6 +306,24 @@ export class ComputedStatesPlugin<TSource extends States, TComputed extends Comp
 
 /**
  * 子状态插件
+ *
+ * **职责**:
+ * - 管理子状态的生命周期
+ * - 在父状态改变时自动创建/销毁子状态
+ * - 处理子状态的转换逻辑
+ *
+ * **使用场景**:
+ * - 实现嵌套状态机
+ * - 在特定父状态下激活子状态
+ * - 状态层级管理
+ *
+ * **使用示例**:
+ * ```typescript
+ * app.addPlugin(SubStatesPlugin.create(MenuSubState));
+ * ```
+ *
+ * @template TParent - 父状态类型
+ * @template TSub - 子状态类型
  */
 export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TParent>> implements Plugin {
 	private parentType: TypeDescriptor;
@@ -246,8 +334,8 @@ export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TPar
 
 	/**
 	 * 私有构造函数 (公开调用 create())
-	 * 
-	 * @param parentType - 父状态类型
+	 *
+	 * @param parentType - 父状态类型描述符
 	 * @param stateType - State<TSub> 类型描述符
 	 * @param nextStateType - NextState<TSub> 类型描述符
 	 * @param subStateClass - 子状态类构造函数
@@ -272,21 +360,26 @@ export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TPar
 	private _typeDescriptor:TypeDescriptor = undefined as unknown as TypeDescriptor
 
 	/**
-	 * 获取类型描述
-	 * @returns TypeDescriptor
+	 * 获取类型描述符
+	 *
+	 * @returns 子状态的类型描述符
 	 */
 	public getTypeDescriptor():TypeDescriptor{
 		return this._typeDescriptor
 	}
 
 	/**
-	 * 创建新的状态资源
-	 * 
-	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
-	 * @metadata macro 
-	 * 
-	 * @param state - 初始状态
-	 * @returns State 资源实例
+	 * 创建新的子状态插件实例
+	 *
+	 * **注意**: @claudecode , @cursor , 这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+	 * @metadata macro
+	 *
+	 * @param subStateClass - 子状态类构造函数
+	 * @param pid - 父状态类型标识符 (由 Flamework 宏自动提供)
+	 * @param ptext - 父状态类型文本描述 (由 Flamework 宏自动提供)
+	 * @param sid - 子状态类型标识符 (由 Flamework 宏自动提供)
+	 * @param stext - 子状态类型文本描述 (由 Flamework 宏自动提供)
+	 * @returns SubStatesPlugin 实例
 	 */
 	public static create<TParent extends States, TSub extends SubStates<TParent>>(
 		subStateClass: new () => TSub,
@@ -308,7 +401,13 @@ export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TPar
 	}
 
 	/**
-	 * 构建插件
+	 * 构建插件并注册到应用
+	 *
+	 * **执行流程**:
+	 * 1. 获取应用的资源管理器
+	 * 2. 注册子状态管理系统到 StateTransition 调度
+	 * 3. 初始化 NextState<TSub> 资源
+	 *
 	 * @param app - 应用实例
 	 */
 	public build(app: App): void {
@@ -331,7 +430,8 @@ export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TPar
 
 	/**
 	 * 获取插件名称
-	 * @returns 插件名称
+	 *
+	 * @returns 插件的唯一标识名称
 	 */
 	public name(): string {
 		const parentType = this.parentType as unknown as { name?: string };
@@ -340,8 +440,11 @@ export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TPar
 	}
 
 	/**
-	 * 插件是否唯一
-	 * @returns 是否唯一
+	 * 检查插件是否唯一
+	 *
+	 * **说明**: SubStatesPlugin 为唯一插件,每个子状态类型只能注册一次
+	 *
+	 * @returns 始终返回 true
 	 */
 	public isUnique(): boolean {
 		return true;

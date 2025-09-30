@@ -13,12 +13,18 @@ import { World, Context } from "../bevy_ecs";
 
 /**
  * 计时器类 - 用于定时触发
+ * 支持一次性和重复触发模式
  */
 class Timer {
 	private elapsed: number = 0;
 	private duration: number;
 	private repeating: boolean;
 
+	/**
+	 * 创建计时器实例
+	 * @param duration - 计时器持续时间(秒)
+	 * @param repeating - 是否重复触发,默认为 true
+	 */
 	constructor(duration: number, repeating: boolean = true) {
 		this.duration = duration;
 		this.repeating = repeating;
@@ -27,7 +33,7 @@ class Timer {
 	/**
 	 * 更新计时器
 	 * @param deltaTime - 增量时间
-	 * @returns 是否完成
+	 * @returns 包含完成状态的对象
 	 */
 	tick(deltaTime: number): { finished: boolean } {
 		this.elapsed += deltaTime;
@@ -43,6 +49,7 @@ class Timer {
 	/**
 	 * 设置持续时间
 	 * @param duration - 新的持续时间
+	 * @returns 无返回值
 	 */
 	setDuration(duration: number): void {
 		this.duration = duration;
@@ -51,6 +58,7 @@ class Timer {
 	/**
 	 * 设置已过时间
 	 * @param elapsed - 已过时间
+	 * @returns 无返回值
 	 */
 	setElapsed(elapsed: number): void {
 		this.elapsed = elapsed;
@@ -68,13 +76,17 @@ class Timer {
  */
 export class LogDiagnosticsPlugin implements Plugin {
 	/** 如果为 true，则记录每个诊断的调试表示。如果为 false，则记录（平滑的）当前值和历史平均值 */
-	debug: boolean = false;
-	/** 记录诊断之间等待的时间 */
-	waitDuration: number = 1;
+	readonly debug: boolean = false;
 	/** 如果设置，则只记录这些诊断 */
-	filter?: Set<string>;
+	readonly filter?: Set<string>;
+	/** 记录诊断之间等待的时间(秒) */
+	readonly waitDuration: number = 1;
 
-	constructor(options?: { debug?: boolean; waitDuration?: number; filter?: Set<string> }) {
+	/**
+	 * 创建 LogDiagnosticsPlugin 实例
+	 * @param options - 插件配置选项
+	 */
+	constructor(options?: { debug?: boolean; filter?: Set<string>; waitDuration?: number }) {
 		if (options) {
 			this.debug = options.debug ?? false;
 			this.waitDuration = options.waitDuration ?? 1;
@@ -95,6 +107,7 @@ export class LogDiagnosticsPlugin implements Plugin {
 	/**
 	 * 配置应用
 	 * @param app - 应用实例
+	 * @returns 无返回值
 	 */
 	build(app: App): void {
 		const state = new LogDiagnosticsState(this.waitDuration, this.filter);
@@ -133,6 +146,7 @@ export class LogDiagnosticsPlugin implements Plugin {
 	 * @param state - 日志状态
 	 * @param diagnostics - 诊断存储
 	 * @param callback - 回调函数
+	 * @returns 无返回值
 	 */
 	private static forEachDiagnostic(
 		state: LogDiagnosticsState,
@@ -160,6 +174,7 @@ export class LogDiagnosticsPlugin implements Plugin {
 	 * 记录单个诊断
 	 * @param pathWidth - 路径宽度
 	 * @param diagnostic - 诊断实例
+	 * @returns 无返回值
 	 */
 	private static logDiagnostic(pathWidth: number, diagnostic: Diagnostic): void {
 		const value = diagnostic.smoothed();
@@ -188,6 +203,7 @@ export class LogDiagnosticsPlugin implements Plugin {
 	 * 记录所有诊断
 	 * @param state - 日志状态
 	 * @param diagnostics - 诊断存储
+	 * @returns 无返回值
 	 */
 	private static logDiagnostics(state: LogDiagnosticsState, diagnostics: DiagnosticsStore): void {
 		let pathWidth = 0;
@@ -206,6 +222,7 @@ export class LogDiagnosticsPlugin implements Plugin {
 	 * 对应 Rust log_diagnostics_system
 	 * @param world - ECS世界
 	 * @param context - 系统上下文
+	 * @returns 无返回值
 	 */
 	static logDiagnosticsSystem(world: World, context: Context): void {
 		const resources = world.resources;
@@ -227,6 +244,7 @@ export class LogDiagnosticsPlugin implements Plugin {
 	 * 对应 Rust log_diagnostics_debug_system
 	 * @param world - ECS世界
 	 * @param context - 系统上下文
+	 * @returns 无返回值
 	 */
 	static logDiagnosticsDebugSystem(world: World, context: Context): void {
 		const resources = world.resources;
@@ -251,9 +269,14 @@ export class LogDiagnosticsPlugin implements Plugin {
  */
 export class LogDiagnosticsState implements Resource {
 	readonly __brand = "Resource" as const;
-	timer: Timer;
 	filter?: Set<string>;
+	timer: Timer;
 
+	/**
+	 * 创建日志诊断状态实例
+	 * @param duration - 日志输出间隔时间(秒)
+	 * @param filter - 可选的诊断路径过滤集合
+	 */
 	constructor(duration: number, filter?: Set<string>) {
 		this.timer = new Timer(duration, true);
 		this.filter = filter;
@@ -263,6 +286,7 @@ export class LogDiagnosticsState implements Resource {
 	 * 设置日志计时器的新持续时间
 	 * 对应 Rust set_timer_duration
 	 * @param duration - 新的持续时间（秒）
+	 * @returns 无返回值
 	 */
 	setTimerDuration(duration: number): void {
 		this.timer.setDuration(duration);
@@ -293,6 +317,7 @@ export class LogDiagnosticsState implements Resource {
 	 * 使用多个诊断路径扩展日志状态的过滤器
 	 * 对应 Rust extend_filter
 	 * @param paths - 诊断路径数组
+	 * @returns 无返回值
 	 */
 	extendFilter(paths: DiagnosticPath[]): void {
 		if (this.filter) {
@@ -320,6 +345,7 @@ export class LogDiagnosticsState implements Resource {
 	/**
 	 * 清除日志状态的过滤器
 	 * 对应 Rust clear_filter
+	 * @returns 无返回值
 	 */
 	clearFilter(): void {
 		if (this.filter) {
@@ -330,6 +356,7 @@ export class LogDiagnosticsState implements Resource {
 	/**
 	 * 启用带空过滤器的过滤
 	 * 对应 Rust enable_filtering
+	 * @returns 无返回值
 	 */
 	enableFiltering(): void {
 		this.filter = new Set();
@@ -338,6 +365,7 @@ export class LogDiagnosticsState implements Resource {
 	/**
 	 * 禁用过滤
 	 * 对应 Rust disable_filtering
+	 * @returns 无返回值
 	 */
 	disableFiltering(): void {
 		this.filter = undefined;

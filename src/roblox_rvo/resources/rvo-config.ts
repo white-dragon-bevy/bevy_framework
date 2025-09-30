@@ -6,8 +6,9 @@
 import { Resource } from "../../bevy_ecs/resource";
 
 /**
- * RVO 系统配置资源
- * 控制 RVO 算法的全局行为
+ * RVOConfig 类
+ * RVO 系统配置资源，控制 RVO 算法的全局行为和默认参数
+ * 实现 Resource 接口，可作为 ECS 资源使用
  */
 export class RVOConfig implements Resource {
 	/** 最大代理数量 */

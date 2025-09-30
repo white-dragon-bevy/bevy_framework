@@ -18,15 +18,22 @@ import {
 
 const Players = game.GetService("Players");
 
-/** 全局变更记录映射 */
+/**
+ * 全局变更记录映射
+ * 存储每个玩家待发送的实体和组件变更
+ * 键为玩家 UserId 字符串，值为该玩家的变更日志
+ */
 const changes = new Map<string, Changelog>();
 
 /**
  * 服务器端复制系统
- * 将组件变化同步到客户端
- * @param world - Matter 世界实例
- * @param state - 状态对象
- * @param context - 上下文对象
+ * 将组件变化同步到客户端，支持全局复制和玩家专属复制
+ * 处理新客户端连接、组件变更追踪和网络数据发送
+ * @param world - Matter 世界实例，用于查询实体和组件
+ * @param state - 服务器状态对象，包含调试标志等运行时状态
+ * @param context - 上下文对象，包含复制配置和组件映射
+ * @param networkAdapter - 网络适配器实例，用于向客户端发送数据
+ * @returns 无返回值
  */
 export function serverReplicationSystem(
 	world: World,
@@ -37,11 +44,14 @@ export function serverReplicationSystem(
 	const { debugEnabled } = state;
 
 	/**
-	 * 调试打印函数
-	 * @param args - 要打印的参数
+	 * 调试日志辅助函数
+	 * 仅在调试模式启用时输出信息
+	 * @param args - 要打印的可变参数列表
+	 * @returns 无返回值
 	 */
 	const debugLog = (...args: unknown[]): void => {
 		if (debugEnabled) {
+			// 调试输出逻辑（实际实现中可以使用 print 或其他日志系统）
 		}
 	};
 
@@ -178,9 +188,18 @@ export function serverReplicationSystem(
 }
 
 /**
- * 导出复制系统配置
+ * 服务器复制系统配置对象
+ * 包含系统函数引用和调度优先级
+ * 使用最高优先级确保在所有游戏逻辑系统之后执行
  */
 export const serverReplicationSystemConfig = {
+	/** 系统函数引用，指向 serverReplicationSystem */
 	system: serverReplicationSystem,
-	priority: math.huge, // 最高优先级
+
+	/**
+	 * 系统优先级
+	 * 设置为 math.huge（最高优先级）以确保在所有其他系统之后执行
+	 * 这样可以捕获到所有系统在当前帧中产生的组件变化
+	 */
+	priority: math.huge,
 };

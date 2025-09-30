@@ -1,6 +1,25 @@
 /**
  * ECS Debugger 模块
- * 提供 Matter ECS 的调试功能
+ *
+ * 提供 Matter ECS 的调试功能，包括可视化调试界面、实体检查、系统性能分析等。
+ *
+ * @module bevy_ecs_debugger
+ *
+ * @example
+ * ```typescript
+ * import { DebuggerPlugin, DefaultDebuggerOptions } from "bevy_ecs_debugger";
+ *
+ * // 使用默认配置
+ * const app = new App()
+ *     .addPlugin(new DebuggerPlugin());
+ *
+ * // 自定义配置
+ * const app = new App()
+ *     .addPlugin(new DebuggerPlugin({
+ *         toggleKey: Enum.KeyCode.F5,
+ *         groupId: 123456
+ *     }));
+ * ```
  */
 
 export { DebuggerPlugin } from "./debugger-plugin";

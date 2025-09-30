@@ -1,5 +1,5 @@
 /**
- * Name - 实体名称组件
+ * @fileoverview Name - 实体名称组件
  * 对应 Rust bevy_ecs/src/name.rs
  *
  * 用于标识实体的组件，存储名称的哈希以实现更快的比较
@@ -11,6 +11,9 @@ import { component, World, Entity } from "@rbxts/matter";
 /**
  * 简单的哈希函数
  * 用于替代 Rust 的 FixedHasher
+ * 实现基于字符码的简单哈希算法
+ * @param str - 要哈希的字符串
+ * @returns 字符串的哈希值（无符号32位整数）
  */
 function hashString(str: string): number {
 	let hash = 0;
@@ -43,6 +46,7 @@ export class Name {
 	/**
 	 * 创建新的 Name
 	 * 对应 Rust Name::new (name.rs:65-70)
+	 * @param name - 实体的名称
 	 */
 	constructor(name: string) {
 		this.name = name;
@@ -52,6 +56,8 @@ export class Name {
 	/**
 	 * 创建新的 Name 实例
 	 * 对应 Rust Name::new
+	 * @param name - 实体的名称
+	 * @returns Name 实例
 	 */
 	static create(name: string): Name {
 		return new Name(name);
@@ -61,6 +67,7 @@ export class Name {
 	 * 设置实体的名称
 	 * 对应 Rust Name::set (name.rs:75-78)
 	 * 内部哈希将被重新计算
+	 * @param name - 新的名称
 	 */
 	set(name: string): void {
 		this.name = name;
@@ -70,6 +77,7 @@ export class Name {
 	/**
 	 * 就地修改实体的名称
 	 * 对应 Rust Name::mutate (name.rs:85-88)
+	 * @param f - 名称转换函数
 	 */
 	mutate(f: (name: string) => string): void {
 		this.name = f(this.name);
@@ -101,6 +109,8 @@ export class Name {
 	/**
 	 * 比较两个 Name 是否相等
 	 * 首先比较哈希，然后比较字符串
+	 * @param other - 要比较的另一个 Name
+	 * @returns 如果两个 Name 相等则返回 true
 	 */
 	equals(other: Name): boolean {
 		return this.hash === other.hash && this.name === other.name;
@@ -146,6 +156,9 @@ export const NameComponent = component<{ name: Name }>("Name");
 
 /**
  * 辅助函数：为实体添加名称
+ * @param world - World 实例
+ * @param entity - 目标实体
+ * @param name - 要设置的名称
  */
 export function withName(world: World, entity: Entity, name: string): void {
 	world.insert(entity, NameComponent({ name: new Name(name) }));
@@ -153,6 +166,9 @@ export function withName(world: World, entity: Entity, name: string): void {
 
 /**
  * 辅助函数：获取实体的名称
+ * @param world - World 实例
+ * @param entity - 目标实体
+ * @returns 实体的名称，如果没有名称则返回 undefined
  */
 export function getEntityName(world: World, entity: Entity): string | undefined {
 	const nameData = world.get(entity, NameComponent);
@@ -165,6 +181,9 @@ export function getEntityName(world: World, entity: Entity): string | undefined 
 /**
  * 辅助函数：获取实体的名称或 ID
  * 类似于 Rust 的 NameOrEntity
+ * @param world - World 实例
+ * @param entity - 目标实体
+ * @returns 实体的名称或实体 ID 字符串
  */
 export function getNameOrEntity(world: World, entity: Entity): string {
 	const name = getEntityName(world, entity);

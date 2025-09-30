@@ -22,8 +22,8 @@ import { TransformPlugin } from "../bevy_transform/plugin";
  */
 export class DefaultPlugins extends BasePluginGroup {
 	/**
-	 * 构建默认插件组
-	 * @returns 插件组构建器
+	 * 构建默认插件组，包含所有常用的 Bevy 插件
+	 * @returns 插件组构建器实例
 	 */
 	build(): PluginGroupBuilder {
 		const builder = new PluginGroupBuilder();
@@ -45,14 +45,14 @@ export class DefaultPlugins extends BasePluginGroup {
 
 	/**
 	 * 获取插件组名称
-	 * @returns 插件组名称
+	 * @returns 插件组名称字符串
 	 */
 	name(): string {
 		return "DefaultPlugins";
 	}
 
 	/**
-	 * 创建默认插件组构建器
+	 * 创建默认插件组实例（静态工厂方法）
 	 * @returns 新的默认插件组实例
 	 */
 	static create(): DefaultPlugins {
@@ -67,8 +67,8 @@ export class DefaultPlugins extends BasePluginGroup {
  */
 export class MinimalPlugins extends BasePluginGroup {
 	/**
-	 * 构建最小插件组
-	 * @returns 插件组构建器
+	 * 构建最小插件组，仅包含运行 Bevy 应用的必需插件
+	 * @returns 插件组构建器实例
 	 */
 	build(): PluginGroupBuilder {
 		const builder = new PluginGroupBuilder();
@@ -83,14 +83,14 @@ export class MinimalPlugins extends BasePluginGroup {
 
 	/**
 	 * 获取插件组名称
-	 * @returns 插件组名称
+	 * @returns 插件组名称字符串
 	 */
 	name(): string {
 		return "MinimalPlugins";
 	}
 
 	/**
-	 * 创建最小插件组构建器
+	 * 创建最小插件组实例（静态工厂方法）
 	 * @returns 新的最小插件组实例
 	 */
 	static create(): MinimalPlugins {
@@ -105,13 +105,16 @@ export class MinimalPlugins extends BasePluginGroup {
 export class DefaultPluginsBuilder {
 	private pluginGroupBuilder: PluginGroupBuilder;
 
+	/**
+	 * 构造函数，初始化默认插件组构建器
+	 */
 	constructor() {
 		this.pluginGroupBuilder = new DefaultPlugins().build();
 	}
 
 	/**
-	 * 添加插件
-	 * @param plugin - 要添加的插件
+	 * 添加插件到插件组
+	 * @param plugin - 要添加的插件实例
 	 * @returns 构建器自身，支持链式调用
 	 */
 	add(plugin: Plugin): this {
@@ -121,8 +124,8 @@ export class DefaultPluginsBuilder {
 
 	/**
 	 * 在指定插件之前添加插件
-	 * @param beforePlugin - 参考插件类型
-	 * @param plugin - 要添加的插件
+	 * @param beforePlugin - 参考插件类型（构造函数）
+	 * @param plugin - 要添加的插件实例
 	 * @returns 构建器自身，支持链式调用
 	 */
 	addBefore<T extends Plugin>(beforePlugin: new (...args: unknown[]) => T, plugin: Plugin): this {
@@ -132,8 +135,8 @@ export class DefaultPluginsBuilder {
 
 	/**
 	 * 在指定插件之后添加插件
-	 * @param afterPlugin - 参考插件类型
-	 * @param plugin - 要添加的插件
+	 * @param afterPlugin - 参考插件类型（构造函数）
+	 * @param plugin - 要添加的插件实例
 	 * @returns 构建器自身，支持链式调用
 	 */
 	addAfter<T extends Plugin>(afterPlugin: new (...args: unknown[]) => T, plugin: Plugin): this {
@@ -142,8 +145,8 @@ export class DefaultPluginsBuilder {
 	}
 
 	/**
-	 * 禁用指定插件
-	 * @param pluginType - 要禁用的插件类型
+	 * 禁用指定插件，使其不会被添加到应用中
+	 * @param pluginType - 要禁用的插件类型（构造函数）
 	 * @returns 构建器自身，支持链式调用
 	 */
 	disable<T extends Plugin>(pluginType: new (...args: unknown[]) => T): this {
@@ -152,8 +155,8 @@ export class DefaultPluginsBuilder {
 	}
 
 	/**
-	 * 获取所有插件
-	 * @returns 插件列表
+	 * 获取所有已配置的插件列表
+	 * @returns 只读插件数组
 	 */
 	getPlugins(): readonly Plugin[] {
 		return this.pluginGroupBuilder.getPlugins();
@@ -167,13 +170,16 @@ export class DefaultPluginsBuilder {
 export class MinimalPluginsBuilder {
 	private pluginGroupBuilder: PluginGroupBuilder;
 
+	/**
+	 * 构造函数，初始化最小插件组构建器
+	 */
 	constructor() {
 		this.pluginGroupBuilder = new MinimalPlugins().build();
 	}
 
 	/**
-	 * 添加插件
-	 * @param plugin - 要添加的插件
+	 * 添加插件到插件组
+	 * @param plugin - 要添加的插件实例
 	 * @returns 构建器自身，支持链式调用
 	 */
 	add(plugin: Plugin): this {
@@ -183,8 +189,8 @@ export class MinimalPluginsBuilder {
 
 	/**
 	 * 在指定插件之前添加插件
-	 * @param beforePlugin - 参考插件类型
-	 * @param plugin - 要添加的插件
+	 * @param beforePlugin - 参考插件类型（构造函数）
+	 * @param plugin - 要添加的插件实例
 	 * @returns 构建器自身，支持链式调用
 	 */
 	addBefore<T extends Plugin>(beforePlugin: new (...args: unknown[]) => T, plugin: Plugin): this {
@@ -194,8 +200,8 @@ export class MinimalPluginsBuilder {
 
 	/**
 	 * 在指定插件之后添加插件
-	 * @param afterPlugin - 参考插件类型
-	 * @param plugin - 要添加的插件
+	 * @param afterPlugin - 参考插件类型（构造函数）
+	 * @param plugin - 要添加的插件实例
 	 * @returns 构建器自身，支持链式调用
 	 */
 	addAfter<T extends Plugin>(afterPlugin: new (...args: unknown[]) => T, plugin: Plugin): this {
@@ -204,8 +210,8 @@ export class MinimalPluginsBuilder {
 	}
 
 	/**
-	 * 禁用指定插件
-	 * @param pluginType - 要禁用的插件类型
+	 * 禁用指定插件，使其不会被添加到应用中
+	 * @param pluginType - 要禁用的插件类型（构造函数）
 	 * @returns 构建器自身，支持链式调用
 	 */
 	disable<T extends Plugin>(pluginType: new (...args: unknown[]) => T): this {
@@ -214,8 +220,8 @@ export class MinimalPluginsBuilder {
 	}
 
 	/**
-	 * 获取所有插件
-	 * @returns 插件列表
+	 * 获取所有已配置的插件列表
+	 * @returns 只读插件数组
 	 */
 	getPlugins(): readonly Plugin[] {
 		return this.pluginGroupBuilder.getPlugins();

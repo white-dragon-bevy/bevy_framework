@@ -13,15 +13,16 @@ import { component } from "@rbxts/matter";
  * 单向关系，不维护反向的 Children 列表
  */
 export const Parent = component<{
+	/** 父实体的 ID */
 	entity: number;
 }>("Parent");
 
 /**
  * 获取实体的所有子实体
  * 动态查询，不缓存结果
- * @param world - Matter World
- * @param parentEntity - 父实体
- * @returns 子实体列表
+ * @param world - Matter World 实例
+ * @param parentEntity - 父实体 ID
+ * @returns 子实体 ID 数组
  */
 export function getChildren(world: World, parentEntity: number): number[] {
 	const children: number[] = [];
@@ -36,9 +37,9 @@ export function getChildren(world: World, parentEntity: number): number[] {
 /**
  * 获取实体的根实体
  * 沿着 Parent 链向上查找直到根
- * @param world - Matter World
- * @param entity - 起始实体
- * @returns 根实体
+ * @param world - Matter World 实例
+ * @param entity - 起始实体 ID
+ * @returns 根实体 ID
  */
 export function getRootEntity(world: World, entity: number): number {
 	let current = entity;
@@ -55,9 +56,9 @@ export function getRootEntity(world: World, entity: number): number {
 /**
  * 计算实体的全局变换
  * 递归向上计算，不依赖缓存的 GlobalTransform
- * @param world - Matter World
- * @param entity - 实体
- * @returns 全局变换
+ * @param world - Matter World 实例
+ * @param entity - 实体 ID
+ * @returns 全局变换数据，如果实体没有 Transform 返回 undefined
  */
 export function calculateGlobalTransform(
 	world: World,
@@ -88,7 +89,7 @@ export function calculateGlobalTransform(
 /**
  * 更新所有实体的 GlobalTransform
  * 简化版：直接计算，不使用脏标记
- * @param world - Matter World
+ * @param world - Matter World 实例
  */
 export function updateGlobalTransforms(world: World): void {
 	// 方案1：简单粗暴，更新所有实体
@@ -103,8 +104,8 @@ export function updateGlobalTransforms(world: World): void {
 
 /**
  * 优化版：只更新变化的实体及其子孙
- * @param world - Matter World
- * @param changedEntities - 变化的实体集合
+ * @param world - Matter World 实例
+ * @param changedEntities - 变化的实体 ID 集合
  */
 export function updateChangedTransforms(world: World, changedEntities: Set<number>): void {
 	const toUpdate = new Set<number>();
@@ -126,9 +127,10 @@ export function updateChangedTransforms(world: World, changedEntities: Set<numbe
 
 /**
  * 收集实体的所有子孙
- * @param world - Matter World
- * @param entity - 父实体
- * @param collection - 收集结果的集合
+ * 递归遍历实体的所有后代并添加到集合中
+ * @param world - Matter World 实例
+ * @param entity - 父实体 ID
+ * @param collection - 用于收集结果的集合
  */
 function collectDescendants(world: World, entity: number, collection: Set<number>): void {
 	const children = getChildren(world, entity);
@@ -141,9 +143,9 @@ function collectDescendants(world: World, entity: number, collection: Set<number
 /**
  * 设置实体的父级
  * 只更新 Parent 组件，不维护 Children
- * @param world - Matter World
- * @param child - 子实体
- * @param parent - 新的父实体（undefined 表示移除父级）
+ * @param world - Matter World 实例
+ * @param child - 子实体 ID
+ * @param parent - 新的父实体 ID（undefined 表示移除父级）
  */
 export function setParent(world: World, child: number, parent?: number): void {
 	if (parent !== undefined) {
@@ -165,8 +167,8 @@ export function setParent(world: World, child: number, parent?: number): void {
 
 /**
  * 移除实体及其所有子孙
- * @param world - Matter World
- * @param entity - 要移除的实体
+ * @param world - Matter World 实例
+ * @param entity - 要移除的实体 ID
  */
 export function removeWithDescendants(world: World, entity: number): void {
 	// 先递归移除所有子实体

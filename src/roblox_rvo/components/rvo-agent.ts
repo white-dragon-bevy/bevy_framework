@@ -7,6 +7,7 @@ import { component } from "@rbxts/matter";
 
 /**
  * RVOAgent 组件数据接口
+ * 定义 RVO 代理的所有配置和状态属性
  */
 export interface RVOAgentData {
 	/** 内部 Agent ID (由系统自动分配) */

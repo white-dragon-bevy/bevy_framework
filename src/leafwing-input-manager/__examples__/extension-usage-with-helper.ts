@@ -131,9 +131,8 @@ export function main(): void {
 
 	// 注册插件
 	app.addPlugin(
-		new InputManagerPlugin<PlayerAction, typeof PLAYER_INPUT_NS>(
-			{ actionTypeName: "PlayerAction" },
-			PLAYER_INPUT_NS,
+		new InputManagerPlugin<PlayerAction>(
+			{ actionTypeName: "PlayerAction" }
 		),
 	);
 

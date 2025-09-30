@@ -12,6 +12,7 @@ import { Context } from "../bevy_ecs/types";
 
 /**
  * Transform 系统集枚举
+ * 用于标识和组织 Transform 相关的系统
  */
 export enum TransformSystems {
 	/** 传播变换的系统集 */

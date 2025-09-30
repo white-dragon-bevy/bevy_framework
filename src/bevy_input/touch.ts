@@ -141,6 +141,14 @@ export class TouchInput {
 	 */
 	public readonly window?: number;
 
+	/**
+	 * 创建触摸输入事件
+	 * @param phase - 触摸输入的阶段
+	 * @param position - 手指在触摸屏上的位置
+	 * @param id - 触摸的唯一标识符
+	 * @param force - 描述屏幕被按压的力度（可选）
+	 * @param window - 窗口实体（可选）
+	 */
 	constructor(phase: TouchPhase, position: Vector2, id: number, force?: ForceTouch, window?: number) {
 		this.phase = phase;
 		this.position = position;
@@ -205,6 +213,16 @@ export class Touch {
 	 */
 	public force?: ForceTouch;
 
+	/**
+	 * 创建触摸对象
+	 * @param id - 触摸输入的 ID
+	 * @param startPosition - 触摸输入的起始位置
+	 * @param position - 触摸输入的当前位置
+	 * @param startForce - 触摸输入的起始力度（可选）
+	 * @param previousPosition - 触摸输入的前一帧位置（可选）
+	 * @param previousForce - 触摸输入的前一帧力度（可选）
+	 * @param force - 触摸输入的当前力度（可选）
+	 */
 	constructor(
 		id: number,
 		startPosition: Vector2,
@@ -291,6 +309,9 @@ export class Touches {
 	 */
 	private readonly justCanceledMap: Map<number, Touch>;
 
+	/**
+	 * 创建 Touches 资源对象
+	 */
 	constructor() {
 		this.pressed = new Map();
 		this.justPressedMap = new Map();

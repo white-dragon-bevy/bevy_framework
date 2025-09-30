@@ -9,77 +9,111 @@ import { World } from "./bevy-world";
 import type { AnyEntity } from "@rbxts/matter";
 
 /**
- * Component constructor type - matches Matter's ComponentCtor
+ * 组件构造函数类型
+ * 匹配 Matter 的 ComponentCtor 定义
+ * 用于在查询和过滤器中引用组件类型
  */
 export type ComponentCtor = () => Component<object>;
 
 /**
- * Query filter interface - all filters must implement this
+ * 查询过滤器接口
+ * 所有过滤器都必须实现此接口
+ * 用于在查询中应用复杂的实体筛选逻辑
  */
 export interface QueryFilter {
 	/**
-	 * Check if an entity matches this filter
-	 * @param world - The world to query
-	 * @param entity - The entity to check
-	 * @returns True if the entity passes the filter
+	 * 检查实体是否匹配此过滤器
+	 * @param world - 要查询的 World 实例
+	 * @param entity - 要检查的实体
+	 * @returns 如果实体通过过滤器则返回 true
 	 */
 	matches(world: World, entity: AnyEntity): boolean;
 
-	/** Component constructor (for debugging) */
+	/** 组件构造函数（用于调试） */
 	readonly component?: ComponentCtor;
 }
 
 /**
- * With<T> filter - matches entities that have the specified component
- * @template T - The component type to check for
+ * With<T> 过滤器
+ * 匹配拥有指定组件的实体
+ *
+ * 用于查询时要求实体必须拥有某个组件
+ *
+ * @template T - 要检查的组件类型
  */
 export class With<T extends object> implements QueryFilter {
 	readonly component: ComponentCtor;
 
 	/**
-	 * Create a new With filter
-	 * @param component - The component constructor to check for
+	 * 创建新的 With 过滤器
+	 * @param component - 要检查的组件构造函数
 	 */
 	constructor(component: ComponentCtor) {
 		this.component = component;
 	}
 
+	/**
+	 * 检查实体是否拥有指定组件
+	 * @param world - World 实例
+	 * @param entity - 要检查的实体
+	 * @returns 如果实体拥有该组件则返回 true
+	 */
 	matches(world: World, entity: AnyEntity): boolean {
 		return world.get(entity, this.component) ? true : false;
 	}
 }
 
 /**
- * Without<T> filter - matches entities that do NOT have the specified component
- * @template T - The component type to check for absence
+ * Without<T> 过滤器
+ * 匹配不拥有指定组件的实体
+ *
+ * 用于查询时排除拥有某个组件的实体
+ *
+ * @template T - 要检查缺失的组件类型
  */
 export class Without<T extends object> implements QueryFilter {
 	readonly component: ComponentCtor;
 
 	/**
-	 * Create a new Without filter
-	 * @param component - The component constructor to check for absence
+	 * 创建新的 Without 过滤器
+	 * @param component - 要检查缺失的组件构造函数
 	 */
 	constructor(component: ComponentCtor) {
 		this.component = component;
 	}
 
+	/**
+	 * 检查实体是否不拥有指定组件
+	 * @param world - World 实例
+	 * @param entity - 要检查的实体
+	 * @returns 如果实体不拥有该组件则返回 true
+	 */
 	matches(world: World, entity: AnyEntity): boolean {
 		return world.get(entity, this.component) ? false : true;
 	}
 }
 
 /**
- * Or filter - matches entities that pass at least one of the provided filters
- * @template F - Array of filter types
+ * Or 过滤器
+ * 匹配至少通过一个子过滤器的实体
+ *
+ * 用于组合多个过滤器，实现逻辑或操作
+ *
+ * @template F - 过滤器数组类型
  */
 export class Or<F extends QueryFilter[]> implements QueryFilter {
 	/**
-	 * Create a new Or filter
-	 * @param filters - Array of filters to combine with OR logic
+	 * 创建新的 Or 过滤器
+	 * @param filters - 要用 OR 逻辑组合的过滤器数组
 	 */
 	constructor(private readonly filters: F) {}
 
+	/**
+	 * 检查实体是否至少通过一个过滤器
+	 * @param world - World 实例
+	 * @param entity - 要检查的实体
+	 * @returns 如果实体通过至少一个过滤器则返回 true
+	 */
 	matches(world: World, entity: AnyEntity): boolean {
 		for (const filter of this.filters) {
 			if (filter.matches(world, entity)) {
@@ -91,16 +125,26 @@ export class Or<F extends QueryFilter[]> implements QueryFilter {
 }
 
 /**
- * And filter - matches entities that pass all of the provided filters
- * @template F - Array of filter types
+ * And 过滤器
+ * 匹配通过所有子过滤器的实体
+ *
+ * 用于组合多个过滤器，实现逻辑与操作
+ *
+ * @template F - 过滤器数组类型
  */
 export class And<F extends QueryFilter[]> implements QueryFilter {
 	/**
-	 * Create a new And filter
-	 * @param filters - Array of filters to combine with AND logic
+	 * 创建新的 And 过滤器
+	 * @param filters - 要用 AND 逻辑组合的过滤器数组
 	 */
 	constructor(private readonly filters: F) {}
 
+	/**
+	 * 检查实体是否通过所有过滤器
+	 * @param world - World 实例
+	 * @param entity - 要检查的实体
+	 * @returns 如果实体通过所有过滤器则返回 true
+	 */
 	matches(world: World, entity: AnyEntity): boolean {
 		for (const filter of this.filters) {
 			if (!filter.matches(world, entity)) {
@@ -112,16 +156,20 @@ export class And<F extends QueryFilter[]> implements QueryFilter {
 }
 
 /**
- * Query builder for constructing complex queries with filters
- * @template T - Component tuple type
+ * 查询构建器
+ * 用于构建带有过滤器的复杂查询
+ *
+ * 支持链式调用，可以添加多个过滤器来精确控制查询结果
+ *
+ * @template T - 组件元组类型
  */
 export class QueryBuilder<T extends ComponentCtor[]> {
 	private readonly filters: QueryFilter[] = [];
 
 	/**
-	 * Create a new query builder
-	 * @param world - The world to query
-	 * @param components - The components to query for
+	 * 创建新的查询构建器
+	 * @param world - 要查询的 World 实例
+	 * @param components - 要查询的组件构造函数数组
 	 */
 	constructor(
 		private readonly world: World,
@@ -129,9 +177,9 @@ export class QueryBuilder<T extends ComponentCtor[]> {
 	) {}
 
 	/**
-	 * Add a With filter to the query
-	 * @param component - Component that must be present
-	 * @returns This query builder for chaining
+	 * 添加 With 过滤器到查询
+	 * @param component - 必须存在的组件构造函数
+	 * @returns 此查询构建器，用于链式调用
 	 */
 	with<U extends object>(component: ComponentCtor): QueryBuilder<T> {
 		this.filters.push(new With<U>(component));
@@ -139,9 +187,9 @@ export class QueryBuilder<T extends ComponentCtor[]> {
 	}
 
 	/**
-	 * Add a Without filter to the query
-	 * @param component - Component that must be absent
-	 * @returns This query builder for chaining
+	 * 添加 Without 过滤器到查询
+	 * @param component - 必须不存在的组件构造函数
+	 * @returns 此查询构建器，用于链式调用
 	 */
 	without<U extends object>(component: ComponentCtor): QueryBuilder<T> {
 		this.filters.push(new Without<U>(component));
@@ -149,9 +197,9 @@ export class QueryBuilder<T extends ComponentCtor[]> {
 	}
 
 	/**
-	 * Add an Or filter to the query
-	 * @param filters - Filters to combine with OR logic
-	 * @returns This query builder for chaining
+	 * 添加 Or 过滤器到查询
+	 * @param filters - 要用 OR 逻辑组合的过滤器
+	 * @returns 此查询构建器，用于链式调用
 	 */
 	or(...filters: QueryFilter[]): QueryBuilder<T> {
 		this.filters.push(new Or(filters));
@@ -159,9 +207,9 @@ export class QueryBuilder<T extends ComponentCtor[]> {
 	}
 
 	/**
-	 * Add an And filter to the query
-	 * @param filters - Filters to combine with AND logic
-	 * @returns This query builder for chaining
+	 * 添加 And 过滤器到查询
+	 * @param filters - 要用 AND 逻辑组合的过滤器
+	 * @returns 此查询构建器，用于链式调用
 	 */
 	and(...filters: QueryFilter[]): QueryBuilder<T> {
 		this.filters.push(new And(filters));
@@ -169,8 +217,8 @@ export class QueryBuilder<T extends ComponentCtor[]> {
 	}
 
 	/**
-	 * Execute the query and return an iterator
-	 * @returns Iterator over matching entities and components
+	 * 执行查询并返回迭代器
+	 * @returns 匹配的实体和组件的迭代器
 	 */
 	*iter(): Generator<[number, ...InferComponentTypes<T>]> {
 		// Collect all results first since we can't properly wrap Matter's iterator
@@ -181,8 +229,8 @@ export class QueryBuilder<T extends ComponentCtor[]> {
 	}
 
 	/**
-	 * Get all results as an array
-	 * @returns Array of matching entities and components
+	 * 获取所有结果为数组
+	 * @returns 匹配的实体和组件的数组
 	 */
 	collect(): Array<[number, ...InferComponentTypes<T>]> {
 		const results: Array<[number, ...InferComponentTypes<T>]> = [];
@@ -226,8 +274,8 @@ export class QueryBuilder<T extends ComponentCtor[]> {
 	}
 
 	/**
-	 * Count the number of matching entities
-	 * @returns Number of entities that match the query
+	 * 统计匹配的实体数量
+	 * @returns 匹配查询的实体数量
 	 */
 	count(): number {
 		let totalCount = 0;
@@ -238,8 +286,8 @@ export class QueryBuilder<T extends ComponentCtor[]> {
 	}
 
 	/**
-	 * Check if any entities match the query
-	 * @returns True if at least one entity matches
+	 * 检查是否有任何实体匹配查询
+	 * @returns 如果至少有一个实体匹配则返回 true
 	 */
 	any(): boolean {
 		for (const _ of this.iter()) {
@@ -249,8 +297,8 @@ export class QueryBuilder<T extends ComponentCtor[]> {
 	}
 
 	/**
-	 * Get the first matching entity
-	 * @returns First matching entity and components, or undefined
+	 * 获取第一个匹配的实体
+	 * @returns 第一个匹配的实体和组件，如果没有匹配则返回 undefined
 	 */
 	first(): [number, ...InferComponentTypes<T>] | undefined {
 		for (const result of this.iter()) {
@@ -261,7 +309,8 @@ export class QueryBuilder<T extends ComponentCtor[]> {
 }
 
 /**
- * Helper type to infer component value types from component constructors
+ * 辅助类型：从组件构造函数推断组件值类型
+ * 用于 TypeScript 类型推导，将组件构造函数数组转换为组件实例类型数组
  */
 type InferComponentTypes<T> = T extends [infer First, ...infer Rest]
 	? First extends ComponentCtor
