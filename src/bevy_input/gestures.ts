@@ -407,7 +407,6 @@ export class GestureManager {
 	): void {
 		// 防御性检查: 如果已设置,先清理
 		if (this.isSetup) {
-			warn("[GestureManager] setupHandlers called multiple times! Cleaning up old connections...");
 			this.cleanup();
 		}
 		// 捏合手势

@@ -240,7 +240,6 @@ export class LogDiagnosticsPlugin implements Plugin {
 		const deltaTime = contextWithTime.getDeltaSeconds ? contextWithTime.getDeltaSeconds() : 0.016;
 		if (state.timer.tick(deltaTime).finished) {
 			LogDiagnosticsPlugin.forEachDiagnostic(state, diagnostics, (diagnostic) => {
-				print(`[DEBUG] ${diagnostic}`);
 			});
 		}
 	}

@@ -80,14 +80,10 @@ export class DebuggerPlugin extends BasePlugin {
 
 				// 服务端GUI验证
 				if (RunService.IsServer()) {
-					print("[DebuggerPlugin] Server debugger initialized, checking GUI...");
 					task.wait(0.1);
 					const ReplicatedStorage = game.GetService("ReplicatedStorage");
 					const debuggerGui = ReplicatedStorage.FindFirstChild("MatterDebugger");
 					if (debuggerGui) {
-						print("[DebuggerPlugin] Server GUI confirmed in ReplicatedStorage");
-						print("[DebuggerPlugin] Server GUI ClassName:", debuggerGui.ClassName);
-						print("[DebuggerPlugin] Server GUI Children count:", debuggerGui.GetChildren().size());
 
 						// 监控GUI的Parent变化
 						debuggerGui.GetPropertyChangedSignal("Parent").Connect(() => {
@@ -103,13 +99,10 @@ export class DebuggerPlugin extends BasePlugin {
 
 				// 客户端检查
 				if (RunService.IsClient()) {
-					print("[DebuggerPlugin] Client debugger initialized, checking for server GUI...");
 					task.wait(0.2); // 等待服务端GUI创建
 					const ReplicatedStorage = game.GetService("ReplicatedStorage");
 					const serverGui = ReplicatedStorage.FindFirstChild("MatterDebugger");
 					if (serverGui) {
-						print("[DebuggerPlugin] Client: Server GUI found in ReplicatedStorage");
-						print("[DebuggerPlugin] Client: Server GUI ClassName:", serverGui.ClassName);
 					} else {
 						warn("[DebuggerPlugin] Client: Server GUI NOT found in ReplicatedStorage!");
 					}

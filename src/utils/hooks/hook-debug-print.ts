@@ -37,7 +37,6 @@ export function usePrintDebounce(message: string,debounceTime:number = DEBOUNCE_
 
 	// 检查是否超过防抖时间（10秒）
 	if (currentTime - storage.lastPrintTime >= debounceTime) {
-		print(`[debug debounce] ${message}`);
 		storage.lastPrintTime = currentTime;
 	}
 }

@@ -38,20 +38,15 @@ class DiagnosticsRenderer {
 			diagnostics.push(diagnostic);
 		});
 		if (this.format === "json") {
-			print(diagnostics);
 		} else if (this.format === "table") {
-			print("=== Diagnostics ===");
 			for (const diagnostic of diagnostics) {
 				const pathStr = diagnostic.getPath().asStr();
 				const value = diagnostic.value();
-				print(`${pathStr}: ${value ?? "N/A"}`);
 			}
-			print("==================");
 		} else {
 			for (const diagnostic of diagnostics) {
 				const pathStr = diagnostic.getPath().asStr();
 				const value = diagnostic.value();
-				print(`[DIAG] ${pathStr} = ${value ?? "N/A"}`);
 			}
 		}
 	}

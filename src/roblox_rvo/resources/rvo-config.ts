@@ -79,27 +79,22 @@ export class RVOConfig implements Resource {
 	 */
 	validate(): boolean {
 		if (this.maxAgents <= 0) {
-			warn("[RVOConfig] maxAgents must be positive");
 			return false;
 		}
 
 		if (this.timeStep <= 0) {
-			warn("[RVOConfig] timeStep must be positive");
 			return false;
 		}
 
 		if (this.radius <= 0) {
-			warn("[RVOConfig] radius must be positive");
 			return false;
 		}
 
 		if (this.maxSpeed <= 0) {
-			warn("[RVOConfig] maxSpeed must be positive");
 			return false;
 		}
 
 		if (this.maxNeighbors < 0) {
-			warn("[RVOConfig] maxNeighbors must be non-negative");
 			return false;
 		}
 

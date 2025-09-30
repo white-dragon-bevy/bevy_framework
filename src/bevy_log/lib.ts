@@ -135,7 +135,6 @@ export class LogPlugin extends BasePlugin {
 
 		if (subscriberAlreadySet && RunService.IsStudio()) {
 			// 只在 Studio 模式下输出警告，避免在生产环境中产生噪音
-			warn("Could not set global tracing subscriber as it is already set. Consider disabling LogPlugin.");
 		}
 	}
 

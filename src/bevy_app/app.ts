@@ -300,7 +300,6 @@ export class App<T extends AppContext = AppContext> {
 		const mainApp = this.subApps.main();
 
 		if (plugin.isUnique() && mainApp.hasPlugin(plugin.name())) {
-			print(`Duplicate plugin detected: ${plugin.name()}`);
 			throw new DuplicatePluginError(plugin.name());
 		}
 
@@ -624,6 +623,16 @@ export class App<T extends AppContext = AppContext> {
 	 */
 	getErrorHandler(): ErrorHandler | undefined {
 		return this.defaultErrorHandler;
+	}
+
+	/**
+	 * 设置静默错误模式
+	 * 当设置为 true 时，系统错误不会输出警告信息，适用于测试环境
+	 * @param silent - 是否静默错误
+	 */
+	setSilentErrors(silent: boolean): this {
+		this.subApps.setSilentErrors(silent);
+		return this;
 	}
 
 	/**

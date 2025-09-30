@@ -40,9 +40,6 @@ export class ButtonInput<T extends defined> {
 			this.pressedSet.add(input);
 			this.justPressedSet.add(input);
 			if (ButtonInput.DEBUG_ENABLED && this.debugName) {
-				print(`[ButtonInput<${this.debugName}>] ➕ Pressed: ${tostring(input)}`);
-				print(`  - pressedSet size: ${this.pressedSet.size()}`);
-				print(`  - justPressedSet size: ${this.justPressedSet.size()}`);
 			}
 		} else if (ButtonInput.DEBUG_ENABLED && this.debugName) {
 			print(`[ButtonInput<${this.debugName}>] 🔁 Already pressed: ${tostring(input)}`);
@@ -96,7 +93,6 @@ export class ButtonInput<T extends defined> {
 			this.justReleasedSet.add(input);
 			if (ButtonInput.DEBUG_ENABLED && this.debugName) {
 				print(`[ButtonInput<${this.debugName}>] ➖ Released: ${tostring(input)}`);
-				print(`  - pressedSet size: ${this.pressedSet.size()}`);
 				print(`  - justReleasedSet size: ${this.justReleasedSet.size()}`);
 			}
 		} else if (ButtonInput.DEBUG_ENABLED && this.debugName) {

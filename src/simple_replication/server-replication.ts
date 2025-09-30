@@ -42,7 +42,6 @@ export function serverReplicationSystem(
 	 */
 	const debugLog = (...args: unknown[]): void => {
 		if (debugEnabled) {
-			print("[SimpleReplication:Server]", ...args);
 		}
 	};
 

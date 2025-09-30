@@ -36,7 +36,6 @@ export function clientReceiveSystem(
 	 */
 	const debugPrint = (...args: unknown[]): void => {
 		if (debugEnabled) {
-			print("[SimpleReplication:Client]", ...args);
 		}
 	};
 
@@ -163,7 +162,6 @@ function processReplicationData(
 
 	const debugPrint = (...args: unknown[]): void => {
 		if (debugEnabled) {
-			print("[SimpleReplication:Client]", ...args);
 		}
 	};
 

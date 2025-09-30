@@ -207,19 +207,13 @@ export class ContextBase {
 	 * 调试输出所有扩展信息
 	 */
 	debug(): void {
-		print("=== AppContext Extensions ===");
 		for (const [key, entry] of this.extensions) {
 			const metadata = entry.metadata;
-			print(`  ${key as string}:`);
 			if (metadata) {
-				if (metadata.description) print(`    Description: ${metadata.description}`);
-				if (metadata.version) print(`    Version: ${metadata.version}`);
 				if (metadata.dependencies && metadata.dependencies.size() > 0) {
-					print(`    Dependencies: ${metadata.dependencies.join(", ")}`);
 				}
 			}
 		}
-		print("=============================");
 	}
 }
 

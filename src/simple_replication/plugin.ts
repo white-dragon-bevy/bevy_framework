@@ -211,7 +211,6 @@ export class SimpleReplicationPlugin extends BasePlugin {
 		app.addSystems(BuiltinSchedules.POST_UPDATE, wrappedSystem);
 
 		if (this.config.debugEnabled) {
-			print("[SimpleReplication] Server systems initialized");
 		}
 	}
 
@@ -231,7 +230,6 @@ export class SimpleReplicationPlugin extends BasePlugin {
 		app.addSystems(BuiltinSchedules.PRE_UPDATE, wrappedSystem);
 
 		if (this.config.debugEnabled) {
-			print("[SimpleReplication] Client systems initialized");
 		}
 	}
 

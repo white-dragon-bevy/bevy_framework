@@ -278,6 +278,15 @@ export class Schedules {
 	}
 
 	/**
+	 * 设置静默错误模式
+	 * 当设置为 true 时，系统错误不会输出警告信息
+	 * @param silent - 是否静默错误
+	 */
+	public setSilentErrors(silent: boolean): void {
+		this.loop.silentErrors = silent;
+	}
+
+	/**
 	 * 添加中间件到 Matter Loop
 	 * @param middleware - 中间件函数
 	 */

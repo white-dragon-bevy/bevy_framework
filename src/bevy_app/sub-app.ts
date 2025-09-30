@@ -484,6 +484,15 @@ export class SubApp {
 	}
 
 	/**
+	 * 设置静默错误模式
+	 * 当设置为 true 时，系统错误不会输出警告信息
+	 * @param silent - 是否静默错误
+	 */
+	setSilentErrors(silent: boolean): void {
+		this.schedules.setSilentErrors(silent);
+	}
+
+	/**
 	 * 获取调度器
 	 */
 	getSchedules(): Schedules {
@@ -522,7 +531,6 @@ export class SubApp {
 		this.schedules.stop(this.loopConnections);
 		this.loopConnections = undefined;
 		this.isLoopRunning = false;
-		print("[SubApp] Loop stopped");
 	}
 
 	/**
@@ -687,6 +695,17 @@ export class SubApps {
 		this._main.setErrorHandler(handler);
 		for (const [_, subApp] of this.subApps) {
 			subApp.setErrorHandler(handler);
+		}
+	}
+
+	/**
+	 * 设置静默错误模式到所有SubApp
+	 * @param silent - 是否静默错误
+	 */
+	setSilentErrors(silent: boolean): void {
+		this._main.setSilentErrors(silent);
+		for (const [_, subApp] of this.subApps) {
+			subApp.setSilentErrors(silent);
 		}
 	}
 

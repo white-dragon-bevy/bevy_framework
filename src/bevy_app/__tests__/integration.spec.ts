@@ -280,12 +280,12 @@ export = (): void => {
 					})
 					.addSystems(BuiltinSchedules.UPDATE, () => {
 						tracker.record("System3");
-					});
+					})
+					.setSilentErrors(true); // 启用静默模式，不输出错误警告
 
-				// 设置静默错误处理器（避免测试输出警告）
+				// 设置错误处理器
 				app.setErrorHandler((err) => {
 					tracker.record("ErrorHandler");
-					// 静默处理，不输出到控制台
 				});
 
 				// 即使有错误也不应该崩溃
