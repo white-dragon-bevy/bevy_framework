@@ -3,7 +3,7 @@
  * 演示如何使用 RVO 插件实现多个 Agent 相互避让并到达各自目标
  */
 
-import { Workspace } from "@rbxts/services";
+import { RunService, Workspace } from "@rbxts/services";
 import { App } from "../../bevy_app/app";
 import { createRenderPlugin, RobloxInstance, Visibility, VisibilityState, ViewVisibility } from "../../bevy_render";
 import { World } from "../../bevy_ecs/bevy-world";
@@ -109,6 +109,8 @@ export function runMultiAgentNavigationExample(): void {
 		new BrickColor("Cyan"),
 	];
 
+	if(RunService.IsClient()){
+		
 	// 在启动阶段创建 Agent
 	app.editSchedule(BuiltinSchedules.STARTUP, (schedule: Schedule) => {
 		schedule.addSystem({
@@ -159,11 +161,11 @@ export function runMultiAgentNavigationExample(): void {
 						RVOAgent(
 							createRVOAgent({
 								radius: 1.5,
-								maxSpeed: 10,
+								maxSpeed: 1,
 								preferredVelocity: new Vector2(0, 0),
 								goalPosition: goalPosition2D,
 								maxNeighbors: 10,
-								neighborDist: 15,
+								neighborDist: 5,
 								timeHorizon: 10,
 								timeHorizonObst: 10,
 							}),
@@ -287,6 +289,7 @@ export function runMultiAgentNavigationExample(): void {
 		});
 	});
 
+	}
 	// 运行应用
 	app.run();
 

@@ -8,13 +8,12 @@ import { App } from "../../bevy_app/app";
 import { createRenderPlugin, RobloxInstance, Visibility, VisibilityState, ViewVisibility } from "../../bevy_render";
 import { World } from "../../bevy_ecs/bevy-world";
 import { BuiltinSchedules } from "../../bevy_app/main-schedule";
-import { Schedule } from "../../bevy_ecs/schedule/schedule";
 import { RobloxRunnerPlugin } from "../../bevy_app/roblox-adapters";
 import { RVOPlugin } from "../../roblox_rvo";
 import { RVOAgent, createRVOAgent } from "../../roblox_rvo/components";
-import { setAgentGoal } from "../../roblox_rvo/components/rvo-agent";
 import { Transform, transformFromPosition } from "../../bevy_transform/components/transform";
 import { TransformPlugin } from "../../bevy_transform/plugin";
+import { getRVOSimulator } from "../../roblox_rvo/helpers";
 
 /**
  * 创建一个 Agent Part
@@ -55,20 +54,15 @@ export function runSimpleCollisionAvoidanceExample(): void {
 	app.addPlugin(new TransformPlugin());
 	app.addPlugin(RVOPlugin.default());
 
-	app.editSchedule(BuiltinSchedules.STARTUP, (schedule: Schedule) => {
-		schedule.addSystem({
-			name: "SpawnTwoAgents",
-			system: (world: World) => {
-				print("创建两个相向运动的 Agent...");
+	// 客户端：创建和模拟 Agent
+	app.addClientSystems(BuiltinSchedules.STARTUP, (world: World) => {
+		print("创建两个相向运动的 Agent...");
 
 				const leftPosition = new Vector3(-30, 5, -5);
 				const rightPosition = new Vector3(30, 5, 5);
 
 				const leftPart = createAgentPart("LeftAgent", leftPosition, BrickColor.Red());
 				const rightPart = createAgentPart("RightAgent", rightPosition, BrickColor.Blue());
-
-				const leftGoal = new Vector2(30, -5);
-				const rightGoal = new Vector2(-30, 5);
 
 				const leftEntity = world.spawn(
 					RobloxInstance({
@@ -86,8 +80,7 @@ export function runSimpleCollisionAvoidanceExample(): void {
 						createRVOAgent({
 							radius: 2,
 							maxSpeed: 5,
-							preferredVelocity: new Vector2(1, 0),
-							goalPosition: leftGoal,
+							preferredVelocity: new Vector2(5, 0.5),
 						}),
 					),
 				);
@@ -108,25 +101,50 @@ export function runSimpleCollisionAvoidanceExample(): void {
 						createRVOAgent({
 							radius: 2,
 							maxSpeed: 5,
-							preferredVelocity: new Vector2(-1, 0),
-							goalPosition: rightGoal,
+							preferredVelocity: new Vector2(-5, -0.5),
 						}),
 					),
 				);
 
-				print(`创建了两个 Agent: Left=${leftEntity}, Right=${rightEntity}`);
-			},
-		});
+		print(`创建了两个 Agent: Left=${leftEntity}, Right=${rightEntity}`);
 	});
 
+	// 客户端：调试输出
 	let debugFrame = 0;
-	app.editSchedule(BuiltinSchedules.UPDATE, (schedule: Schedule) => {
-		schedule.addSystem({
-			name: "DebugAgentPositions",
-			system: (world: World) => {
-				debugFrame++;
+	app.addClientSystems(BuiltinSchedules.UPDATE, (world: World) => {
+		debugFrame++;
 				if (debugFrame % 60 === 0) {
 					print(`[Frame ${debugFrame}] ==================`);
+
+					const simulator = getRVOSimulator(world);
+					if (simulator) {
+						const agentCount = simulator.getNumAgents();
+						print(`[RVO] Agent 数量: ${agentCount}`);
+
+						for (let index = 0; index < agentCount; index++) {
+							const pos = simulator.getAgentPosition(index);
+							const vel = simulator.getAgentVelocity(index);
+							const prefVel = simulator.getAgentPrefVelocity(index);
+							const radius = simulator.agents[index].radius;
+							const maxSpeed = simulator.agents[index].maxSpeed;
+
+							const posStr = string.format("(%.1f, %.1f)", pos.X, pos.Y);
+							const velStr = string.format("(%.2f, %.2f)", vel.X, vel.Y);
+							const prefVelStr = string.format("(%.2f, %.2f)", prefVel.X, prefVel.Y);
+
+							print(`[RVO] Agent ${index}: 位置=${posStr} 速度=${velStr} 首选=${prefVelStr}`);
+							print(`[RVO] Agent ${index}: 半径=${radius} 最大速度=${maxSpeed}`);
+						}
+
+						if (agentCount === 2) {
+							const pos0 = simulator.getAgentPosition(0);
+							const pos1 = simulator.getAgentPosition(1);
+							const distance = pos0.sub(pos1).Magnitude;
+							const distStr = string.format("%.2f", distance);
+							print(`[RVO] Agent 距离: ${distStr}`);
+						}
+					}
+
 					for (const [entity, transform, robloxInstance, agent] of world.query(
 						Transform,
 						RobloxInstance,
@@ -135,35 +153,22 @@ export function runSimpleCollisionAvoidanceExample(): void {
 						const pos = transform.cframe.Position;
 						const agentIdStr = agent.agentId !== undefined ? `AgentID=${agent.agentId}` : "未注册";
 						const posStr = string.format("(%.1f, %.1f, %.1f)", pos.X, pos.Y, pos.Z);
-						print(`[Debug] Entity ${entity} (${agentIdStr}): 位置=${posStr}`);
-						if (agent.currentVelocity) {
-							const velStr = string.format(
-								"(%.2f, %.2f)",
-								agent.currentVelocity.X,
-								agent.currentVelocity.Y,
-							);
-							print(`[Debug] Entity ${entity} 速度=${velStr}`);
-						}
-						if (agent.goalPosition) {
-							const goalStr = string.format("(%.1f, %.1f)", agent.goalPosition.X, agent.goalPosition.Y);
-							print(`[Debug] Entity ${entity} 目标=${goalStr}`);
-						}
-					}
-				}
-			},
-		});
+						print(`[Entity] ${entity} (${agentIdStr}): Transform位置=${posStr}`);
 
-		schedule.addSystem({
-			name: "SyncPositions",
-			system: (world: World) => {
-				for (const [entity, transform, robloxInstance] of world.query(Transform, RobloxInstance)) {
+						const prefVelStr = string.format("(%.2f, %.2f)", agent.preferredVelocity.X, agent.preferredVelocity.Y);
+						print(`[Entity] ${entity}: 首选速度=${prefVelStr} 半径=${agent.radius} 最大速度=${agent.maxSpeed}`);
+				}
+			}
+	});
+
+	// 客户端：同步位置到 Roblox
+	app.addClientSystems(BuiltinSchedules.UPDATE, (world: World) => {
+		for (const [entity, transform, robloxInstance] of world.query(Transform, RobloxInstance)) {
 					const instance = robloxInstance.instance;
 					if (instance && instance.Parent) {
 						(instance as Part).CFrame = transform.cframe;
-					}
-				}
-			},
-		});
+			}
+		}
 	});
 
 	app.run();
