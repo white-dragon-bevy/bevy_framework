@@ -80,7 +80,18 @@ export class LogPlugin extends BasePlugin {
 	fmtLayer?: (app: App) => BoxedFmtLayer | undefined;
 	
 	/** 插件扩展工厂 */
-	extension: LogPluginExtensionFactories;
+	extension = {
+		getLogManager: (world: World, context: AppContext, plugin: LogPlugin) => {
+			// 返回获取日志管理器的函数，使用 plugin 参数而不是 this
+			return () => LogSubscriber.getGlobal();
+		},
+		getLogLevel: (world: World, context: AppContext, plugin: LogPlugin) => {
+			// 使用 plugin 参数获取 level 值，避免 this 指针问题
+			const currentLevel = plugin.level;
+			// 返回获取日志级别的函数
+			return () => currentLevel;
+		},
+	};
 
 	/**
 	 * 创建日志插件实例
@@ -93,19 +104,6 @@ export class LogPlugin extends BasePlugin {
 		this.customLayer = config?.customLayer;
 		this.fmtLayer = config?.fmtLayer;
 		
-		// 初始化扩展工厂
-		this.extension = {
-			getLogManager: (world: World, context: AppContext, plugin: LogPlugin) => {
-				// 返回获取日志管理器的函数，使用 plugin 参数而不是 this
-				return () => LogSubscriber.getGlobal();
-			},
-			getLogLevel: (world: World, context: AppContext, plugin: LogPlugin) => {
-				// 使用 plugin 参数获取 level 值，避免 this 指针问题
-				const currentLevel = plugin.level;
-				// 返回获取日志级别的函数
-				return () => currentLevel;
-			},
-		};
 	}
 
 	/**

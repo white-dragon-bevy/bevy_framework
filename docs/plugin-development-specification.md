@@ -1332,26 +1332,22 @@ import { BasePlugin, App } from "@white-dragon-bevy/bevy_app";
 export class StandardExtensionPlugin extends BasePlugin {
     private data: Map<string, unknown> = new Map();
 
+	/** 插件扩展 */
+	extension = {
+		getLogManager: (world: World, context: AppContext, plugin: LogPlugin) => {
+			// 返回获取日志管理器的函数，使用 plugin 参数而不是 this
+			return () => LogSubscriber.getGlobal();
+		},
+		getLogLevel: (world: World, context: AppContext, plugin: LogPlugin) => {
+			// 使用 plugin 参数获取 level 值，避免 this 指针问题
+			const currentLevel = plugin.level;
+			// 返回获取日志级别的函数
+			return () => currentLevel;
+		},
+	};
+
     build(app: App): void {
-        // 注册扩展
-        this.registerExtensions(app, {
-            getValue: {
-                extension: (key: string) => {
-                    return this.data.get(key);
-                },
-                metadata: {
-                    description: "Get a value by key"
-                }
-            },
-            setValue: {
-                extension: (key: string, value: unknown) => {
-                    this.data.set(key, value);
-                },
-                metadata: {
-                    description: "Set a value by key"
-                }
-            }
-        });
+       
     }
 
     name(): string {

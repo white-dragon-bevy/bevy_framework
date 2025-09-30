@@ -113,6 +113,25 @@ export class ActionState<Action extends Actionlike> {
 	}
 
 	/**
+	 * Gets the button value for the action
+	 * This is an alias for value() specifically for button-like inputs
+	 * @param action - The action to get the button value for
+	 * @returns The button value (0.0 to 1.0)
+	 */
+	public buttonValue(action: Action): number {
+		return this.value(action);
+	}
+
+	/**
+	 * Consumes an action, marking it as no longer pressed
+	 * This is useful for preventing an action from being processed multiple times
+	 * @param action - The action to consume
+	 */
+	public consume(action: Action): void {
+		this.release(action);
+	}
+
+	/**
 	 * Gets the current axis pair value of the action
 	 * Only meaningful for dual-axis actions
 	 * @param action - The action to get the axis pair for
