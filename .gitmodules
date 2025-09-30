@@ -10,3 +10,6 @@
 [submodule "bevy-origin-packages/rvo-ts"]
 	path = bevy-origin-packages/rvo-ts
 	url = git@github.com:kylin206/RVO2-TS.git
+[submodule "bevy-origin-packages/leafwing_abilities"]
+	path = bevy-origin-packages/leafwing_abilities
+	url = git@github.com:Leafwing-Studios/leafwing_abilities.git

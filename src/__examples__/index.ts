@@ -1,8 +1,9 @@
 import { RunService } from "@rbxts/services";
 
 // Choose which example to run
-const exampleFolder: string = "roblox_rvo"; // Change to "input" or "state" for other examples
-const exampleName: string = "multi-agent-navigation"; // Change to other example names
+// Available folders: "app", "ecs", "input", "render", "simple-replication", "roblox_rvo", "leafwing-input-manager"
+const exampleFolder: string = "simple-replication"; // Change to other example folders
+const exampleName: string = "basic-replication"; // Change to other example names
 
 export function bootstrap() {
 	print(`[Examples] Bootstrap called on ${RunService.IsClient() ? "CLIENT" : "SERVER"}`);
