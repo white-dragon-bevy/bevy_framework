@@ -123,11 +123,10 @@ export class ActionData {
 
 		// Update timing information based on state changes
 		if (pressed && !wasPressed) {
-			// Action just started - flip timing to capture previous state, then start new timing
+			// Action just started - flip timing to preserve previous duration
 			this.timing.flip();
-			const currentInstant = Instant.now();
-			this.timing.start(currentInstant);
-			this.whenPressed = currentInstant;
+			// Don't set instant yet - will be set on first tick
+			this.whenPressed = undefined; // Will be set on first tick
 			this.duration = 0;
 		} else if (!pressed && wasPressed) {
 			// Action just stopped - flip timing to move current duration to previous
@@ -171,6 +170,10 @@ export class ActionData {
 	 */
 	public tick(currentInstant: Instant, previousInstant: Instant): void {
 		if (this.pressed) {
+			// Set whenPressed on first tick after press
+			if (this.whenPressed === undefined) {
+				this.whenPressed = previousInstant;
+			}
 			// Update timing with current and previous instants
 			this.timing.tick(currentInstant, previousInstant);
 			// Keep legacy duration updated for backward compatibility

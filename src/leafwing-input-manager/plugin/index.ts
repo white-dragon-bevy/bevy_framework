@@ -1,18 +1,16 @@
-export { InputManagerPlugin, InputManagerPluginConfig, InputManagerComponents } from "./input-manager-plugin";
-export { InputInstanceManager } from "./input-instance-manager";
+export { InputManagerPlugin, InputManagerPluginConfig } from "./input-manager-plugin";
+export { createActionComponents, ComponentDefinition, InputSystemData } from "./component-factory";
+export { clearComponentCache, getComponentCacheSize } from "./component-factory";
 
-// Export components
+// Context helper functions for new architecture
 export {
-	InputMapComponent,
-	ActionStateComponent,
-	InputEnabled,
-	LocalPlayer,
-	InputManagerBundle,
-	createInputComponents,
-} from "./components";
-
-// Export context helper functions
-export {
-	getInputManagerPlugin,
-	getInputInstanceManager,
+	getActionComponents,
+	spawnWithInput,
+	getEntityInputData,
+	addInputToEntity,
+	removeInputFromEntity,
+	queryInputEntities
 } from "./context-helpers";
+
+// Legacy components for backward compatibility
+export { InputMapComponent, ActionStateComponent, InputEnabled, LocalPlayer } from "./components";

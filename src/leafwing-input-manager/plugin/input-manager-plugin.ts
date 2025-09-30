@@ -1,22 +1,13 @@
 import { RunService } from "@rbxts/services";
 import { CentralInputStore } from "../user-input/central-input-store";
 import { Actionlike } from "../actionlike";
-import { InputMap } from "../input-map/input-map";
-import { ActionState } from "../action-state/action-state";
-import { getKeyboardInput, getMouseInput, getMouseMotion, getMouseWheel } from "../../bevy_input/plugin";
 import { Plugin } from "../../bevy_app/plugin";
 import { App } from "../../bevy_app";
 import { MainScheduleLabel } from "../../bevy_app";
-import { AppContext } from "../../bevy_app/context";
-import { Resource } from "../../bevy_ecs";
-import { InputInstanceManagerResource } from "./input-instance-manager-resource";
-import { BuiltinSchedules } from "../../bevy_app/main-schedule";
-import { BevyWorld, Context } from "../../bevy_ecs/types";
-import { createSystemAdapters } from "./system-adapter";
 import { ClashStrategy, ClashStrategyResource } from "../clashing-inputs/clash-strategy";
-import { Modding } from "@flamework/core";
-import { getTypeDescriptor, TypeDescriptor } from "../../bevy_core/reflect";
-import { INPUT_INSTANCE_MANAGER_RESOURCE_ID, INPUT_MANAGER_STATE_RESOURCE_ID } from "./const";
+import { BevyWorld, Context } from "../../bevy_ecs/types";
+import { createActionComponents, ComponentDefinition } from "./component-factory";
+import { getKeyboardInput, getMouseInput, getMouseMotion, getMouseWheel } from "../../bevy_input/plugin";
 
 // =============================================================================
 // 辅助工具
@@ -34,13 +25,6 @@ function syncFromBevyInput(world: BevyWorld, centralStore: CentralInputStore): v
 	const mouseMotion = getMouseMotion(world);
 	const mouseWheel = getMouseWheel(world);
 
-	// Debug: 检查键盘输入资源
-	if (!keyboardInput) {
-		if (tick() % 600 === 0) {
-			print(`[syncFromBevyInput] ⚠️ keyboardInput 资源为 undefined`);
-		}
-	}
-
 	// 同步到中央存储
 	centralStore.syncFromBevyInput(
 		keyboardInput,
@@ -51,49 +35,13 @@ function syncFromBevyInput(world: BevyWorld, centralStore: CentralInputStore): v
 }
 
 /**
- * 创建一个包装系统，负责同步 bevy_input 到 CentralInputStore
- */
-function createSyncBevyInputSystem() {
-	return (world: BevyWorld, context: Context): void => {
-		const centralStore = world.resources.getResource<CentralInputStore>();
-		if (centralStore) {
-			// Debug: 检查键盘输入
-			const UserInputService = game.GetService("UserInputService");
-			const keysPressed = UserInputService.GetKeysPressed();
-			const spacePressed = keysPressed.some(key => key.KeyCode === Enum.KeyCode.Space);
-
-			if (spacePressed) {
-				print(`[syncBevyInput] 🎮 检测到空格键！准备同步到 CentralInputStore`);
-			}
-
-			syncFromBevyInput(world, centralStore);
-
-			// Debug: 验证同步后的状态
-			if (spacePressed) {
-				const spaceValue = centralStore.getButtonValue("keyboard_Space");
-				print(`[syncBevyInput] ✅ 同步后 Space 键状态: pressed=${spaceValue?.pressed}, value=${spaceValue?.value}`);
-			}
-		} else {
-			if (tick() % 600 === 0) {
-				print(`[syncBevyInput] ❌ 无法获取 CentralInputStore`);
-			}
-		}
-	};
-}
-
-/**
  * Configuration for the InputManagerPlugin
  */
 export interface InputManagerPluginConfig<A extends Actionlike> {
 	/**
-	 * The action type to use
+	 * The action type name (used for component identification)
 	 */
-	actionType: (new (...args: any[]) => A) & { name: string };
-
-	/**
-	 * Default input map to use
-	 */
-	defaultInputMap?: InputMap<A>;
+	actionTypeName: string;
 
 	/**
 	 * Network sync configuration
@@ -106,185 +54,186 @@ export interface InputManagerPluginConfig<A extends Actionlike> {
 }
 
 /**
- * Components for the input manager system
- */
-export interface InputManagerComponents<A extends Actionlike> {
-	/**
-	 * Component for entities with input mapping
-	 */
-	InputMap: InputMap<A>;
-
-	/**
-	 * Component for entities with action state
-	 */
-	ActionState: ActionState<A>;
-
-	/**
-	 * Component marking an entity as input-enabled
-	 */
-	InputEnabled: boolean;
-
-	/**
-	 * Component marking local player entity
-	 */
-	LocalPlayer: boolean;
-}
-
-/**
- * Resource to store plugin state for system functions
- * 存储插件状态供系统函数访问的资源
- */
-export class InputManagerStateResource<A extends Actionlike> implements Resource {
-	constructor(
-		public config: InputManagerPluginConfig<A>,
-		public centralStore?: CentralInputStore,
-		public connections: RBXScriptConnection[] = []
-	) {}
-}
-
-/**
  * Main plugin for the leafwing input manager
  * Integrates with bevy_input for input handling and provides action mapping
  *
- * This plugin implements the Bevy Plugin interface and manages:
- * - Input state synchronization from bevy_input
- * - Action state updates based on input mappings
- * - System scheduling for input processing
+ * This plugin now uses dynamic component creation instead of InputInstanceManagerResource,
+ * allowing for proper ECS queries while maintaining type safety.
  */
 export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 	private config: InputManagerPluginConfig<A>;
+	private components: ComponentDefinition<A>;
 	private connections: RBXScriptConnection[] = [];
-	typeDescriptor:TypeDescriptor = undefined as unknown as TypeDescriptor;
 
-	private constructor(
-		config: InputManagerPluginConfig<A>,
-		private inputManagerStateDescriptor:TypeDescriptor<InputManagerStateResource<A>>,
-		private instanceManagerDescriptor:TypeDescriptor<InputInstanceManagerResource<A>>,
-
-	
-	) {
+	constructor(config: InputManagerPluginConfig<A>) {
 		this.config = config;
-	}
-
-
-	/**
-	 * craete
-	 * 
-	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
-	 * @metadata macro
-	 * 
-	 */
-	public static create<T extends Actionlike >(
-		config: InputManagerPluginConfig<T>,
-		id?: Modding.Generic<T, "id">, 
-		text?: Modding.Generic<T,"text">
-	) {
-
-		const result = new InputManagerPlugin(
-			config,
-			getTypeDescriptor(id as string,text,INPUT_INSTANCE_MANAGER_RESOURCE_ID)!,
-			getTypeDescriptor(id as string,text,INPUT_MANAGER_STATE_RESOURCE_ID)!,
-		);
-
-		return result;
+		// Create dynamic components for this Action type
+		this.components = createActionComponents<A>(config.actionTypeName);
 	}
 
 	/**
 	 * Builds the plugin and registers systems with the App
-	 * 
-	 * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
-	 * @metadata macro
-	 * 
 	 * @param app - The Bevy App instance
 	 */
 	build(app: App): void {
-		// Create InputInstanceManager
-		let instanceManagerDescripter = table.clone(this.typeDescriptor)
-		instanceManagerDescripter.genericId = INPUT_INSTANCE_MANAGER_RESOURCE_ID;
-		const instanceManager = new InputInstanceManagerResource<A>(this.config.actionType.name);
-		app.insertResourceByTypeDescriptor(instanceManager,instanceManagerDescripter);
-
-
-		// Create system adapters that bridge Rust-style functions with Matter ECS
-		const systems = createSystemAdapters(this.config.actionType);
-
 		const isServer = RunService.IsServer();
 		const isClient = RunService.IsClient();
 
 		if (isServer) {
 			// Server mode: Only tick action states
-			// Matches Rust implementation (server does not process input)
-
-			// // PreUpdate: tick action states
-			// app.addSystems(MainScheduleLabel.PRE_UPDATE, systems.tickActionState);
-
-			// // Fixed Update support for server-side physics
-			// // 1. Swap to fixed update state before the fixed main loop
-			// app.addSystems(BuiltinSchedules.RUN_FIXED_MAIN_LOOP, systems.swapToFixedUpdate);
-
-			// // 2. Tick action states during fixed update with fixed timestep
-			// app.addSystems(BuiltinSchedules.FIXED_PRE_UPDATE, systems.tickActionState);
-
-			// // 3. Swap back to regular update state after fixed update
-			// app.addSystems(MainScheduleLabel.PRE_UPDATE, systems.swapToUpdate);
+			this.registerServerSystems(app);
 		} else if (isClient) {
 			// Client mode: full input processing
-
-			// Initialize CentralInputStore and register as resource
-			const centralStore = new CentralInputStore();
-			centralStore.initializeGamepadListeners();
-			app.insertResource<CentralInputStore>(centralStore);
-
-			// Initialize ClashStrategy resource
-			const clashStrategyResource = new ClashStrategyResource(ClashStrategy.PrioritizeLargest);
-			app.getWorld().resources.insertResource(clashStrategyResource);
-
-			// Register systems with the App scheduler
-			// PreUpdate: tick, sync input, clear store, update action states
-			const syncBevyInput = createSyncBevyInputSystem();
-
-			// app.addSystems(MainScheduleLabel.PRE_UPDATE, systems.tickActionState);
-			// app.addSystems(MainScheduleLabel.PRE_UPDATE, syncBevyInput);
-			// app.addSystems(MainScheduleLabel.PRE_UPDATE, systems.updateActionState);
-
-			// // Last: clear input store for next frame
-			// app.addSystems(MainScheduleLabel.LAST, systems.clearCentralInputStore);
-
-			// // PostUpdate: cleanup and finalization
-			// app.addSystems(MainScheduleLabel.POST_UPDATE, systems.releaseOnWindowFocusLost);
-
-			// // Fixed Update support: comprehensive fixed timestep input handling
-			// // 1. Swap to fixed update state before the fixed main loop
-			// app.addSystems(BuiltinSchedules.RUN_FIXED_MAIN_LOOP, systems.swapToFixedUpdate);
-
-			// // 2. Tick action states during fixed update with fixed timestep
-			// app.addSystems(BuiltinSchedules.FIXED_PRE_UPDATE, systems.tickActionState);
-
-			// // 3. Sync and update action states during fixed update
-			// app.addSystems(BuiltinSchedules.FIXED_UPDATE, syncBevyInput);
-			// app.addSystems(BuiltinSchedules.FIXED_UPDATE, systems.updateActionState);
-
-			// // 4. Swap back to regular update state after fixed update
-			// app.addSystems(MainScheduleLabel.PRE_UPDATE, systems.swapToUpdate);
-
-			// Store connections for cleanup
-			const stateResource = new InputManagerStateResource(
-				this.config,
-				centralStore,
-				this.connections
-			);
-			app.insertResource<InputManagerStateResource<A>>(stateResource);
+			this.registerClientSystems(app);
 		}
 	}
 
 	/**
-	 * Sets up network synchronization
-	 * TODO: Implement network sync using Rust-style action diff systems
+	 * Register server-side systems
 	 */
-	private setupNetworkSync(): void {
-		// Network sync should use generate_action_diffs system from systems.ts
-		// This is a placeholder for future implementation
-		warn("Network sync not yet implemented with Rust-style systems");
+	private registerServerSystems(app: App): void {
+		const components = this.components;
+
+		// Server only needs to tick action states
+		app.addSystems(MainScheduleLabel.PRE_UPDATE, (world: BevyWorld, context: Context) => {
+			this.tickActionStates(world, context);
+		});
+	}
+
+	/**
+	 * Register client-side systems
+	 */
+	private registerClientSystems(app: App): void {
+		// Initialize CentralInputStore and register as resource
+		const centralStore = new CentralInputStore();
+		centralStore.initializeGamepadListeners();
+		app.insertResource<CentralInputStore>(centralStore);
+
+		// Initialize ClashStrategy resource
+		const clashStrategyResource = new ClashStrategyResource(ClashStrategy.PrioritizeLargest);
+		app.getWorld().resources.insertResource(clashStrategyResource);
+
+		// Register systems with proper ordering
+		// PreUpdate: tick, sync input, update action states
+		app.addSystems(MainScheduleLabel.PRE_UPDATE, [
+			(world: BevyWorld, context: Context) => this.tickActionStates(world, context),
+			(world: BevyWorld, context: Context) => this.syncBevyInput(world),
+			(world: BevyWorld, context: Context) => this.updateActionStates(world, context),
+		]);
+
+		// Last: clear input store for next frame
+		app.addSystems(MainScheduleLabel.LAST, (world: BevyWorld) => {
+			const centralStore = world.resources.getResource<CentralInputStore>();
+			centralStore?.clear();
+		});
+
+		// PostUpdate: cleanup and finalization
+		app.addSystems(MainScheduleLabel.POST_UPDATE, (world: BevyWorld) => {
+			this.releaseOnWindowFocusLost(world);
+		});
+
+		// Store connections for cleanup
+		// Note: getGamepadConnections was removed in the refactor
+	}
+
+	/**
+	 * Tick all action states
+	 */
+	private tickActionStates(world: BevyWorld, context: Context): void {
+		const currentTime = os.clock();
+		const deltaTime = (context as { deltaTime?: number }).deltaTime;
+		const previousTime = deltaTime ? currentTime - deltaTime : currentTime;
+
+		// Query all entities with our action components
+		for (const [entityId, data] of this.components.query(world)) {
+			if (data.actionState && data.enabled) {
+				data.actionState.tick();
+			}
+		}
+
+		// Also tick global resource if exists
+		const globalActionState = world.resources.getResource<ActionState<A>>();
+		if (globalActionState) {
+			globalActionState.tick();
+		}
+	}
+
+	/**
+	 * Sync inputs from bevy_input to CentralInputStore
+	 */
+	private syncBevyInput(world: BevyWorld): void {
+		const centralStore = world.resources.getResource<CentralInputStore>();
+		if (centralStore) {
+			syncFromBevyInput(world, centralStore);
+		}
+	}
+
+	/**
+	 * Update all action states based on input maps
+	 */
+	private updateActionStates(world: BevyWorld, context: Context): void {
+		const centralStore = world.resources.getResource<CentralInputStore>();
+		const clashStrategy = world.resources.getResource<ClashStrategyResource>();
+
+		if (!centralStore || !clashStrategy) {
+			return;
+		}
+
+		// Query all entities with our action components
+		for (const [entityId, data] of this.components.query(world)) {
+			if (data.inputMap && data.actionState && data.enabled) {
+				// Process inputs through the input map
+				const updatedActions = data.inputMap.processActions(
+					centralStore,
+					clashStrategy.strategy as any
+				);
+
+				// Update the action state with processed actions
+				// Note: Since InputMap stores action hashes internally, we need to
+				// recreate the actions from their states in ActionState
+				if (data.actionState) {
+					// Simply update based on the processed state
+					data.actionState.updateFromProcessed(updatedActions.actionData);
+				}
+			}
+		}
+
+		// Also update global resources if they exist
+		const globalInputMap = world.resources.getResource<InputMap<A>>();
+		const globalActionState = world.resources.getResource<ActionState<A>>();
+
+		if (globalInputMap && globalActionState) {
+			const updatedActions = globalInputMap.processActions(
+				centralStore,
+				clashStrategy.strategy as any
+			);
+			// Update the global action state with processed actions
+			globalActionState.updateFromProcessed(updatedActions.actionData);
+		}
+	}
+
+	/**
+	 * Release actions when window loses focus
+	 */
+	private releaseOnWindowFocusLost(world: BevyWorld): void {
+		// Check if window has focus (simplified for Roblox)
+		const UserInputService = game.GetService("UserInputService");
+		const windowFocused = UserInputService.WindowFocused;
+
+		if (!windowFocused) {
+			// Release all actions
+			for (const [entityId, data] of this.components.query(world)) {
+				if (data.actionState) {
+					data.actionState.releaseAll();
+				}
+			}
+
+			// Also release global action state if exists
+			const globalActionState = world.resources.getResource<ActionState<A>>();
+			if (globalActionState) {
+				globalActionState.releaseAll();
+			}
+		}
 	}
 
 	/**
@@ -292,7 +241,7 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 	 * @returns The plugin name with action type
 	 */
 	name(): string {
-		return `InputManagerPlugin<${this.config.actionType.name}>`;
+		return `InputManagerPlugin<${this.config.actionTypeName}>`;
 	}
 
 	/**
@@ -314,10 +263,22 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
 		}
 		this.connections.clear();
 
-		// Clean up gamepad listeners from state resource
-		const stateResource = app.getWorld().resources.getResource<InputManagerStateResource<A>>();
-		if (stateResource?.centralStore) {
-			stateResource.centralStore.cleanupGamepadListeners();
+		// Clean up gamepad listeners from CentralInputStore
+		const centralStore = app.getWorld().resources.getResource<CentralInputStore>();
+		if (centralStore) {
+			centralStore.cleanupGamepadListeners();
 		}
 	}
+
+	/**
+	 * Get the component definition for this plugin
+	 * This allows external code to interact with entities using the same components
+	 */
+	getComponents(): ComponentDefinition<A> {
+		return this.components;
+	}
 }
+
+// Import statements for missing types
+import { ActionState } from "../action-state/action-state";
+import { InputMap } from "../input-map/input-map";

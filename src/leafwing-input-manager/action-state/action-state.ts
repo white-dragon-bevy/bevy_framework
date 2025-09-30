@@ -307,6 +307,31 @@ export class ActionState<Action extends Actionlike> {
 	}
 
 	/**
+	 * Updates the action state from processed input data
+	 * @param processedData - Map of action hashes to processed states
+	 */
+	public updateFromProcessed(processedData: Map<string, { pressed: boolean; value: number; axisPair?: Vector2 }>): void {
+		// Update each action based on processed state
+		for (const [actionHash, state] of processedData) {
+			const action = this.hashToAction.get(actionHash);
+			if (action) {
+				if (state.pressed) {
+					this.press(action);
+					// Update axis values if present
+					const actionData = this.actionData.get(actionHash);
+					if (actionData && state.axisPair) {
+						actionData.axisPairX = state.axisPair.X;
+						actionData.axisPairY = state.axisPair.Y;
+						actionData.value = state.value;
+					}
+				} else {
+					this.release(action);
+				}
+			}
+		}
+	}
+
+	/**
 	 * Registers an action in the state
 	 * This ensures the action can be looked up by its hash
 	 * @param action - The action to register

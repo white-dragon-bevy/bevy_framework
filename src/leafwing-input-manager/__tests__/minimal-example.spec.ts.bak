@@ -78,8 +78,8 @@ export =()=>{
 			// 创建应用实例
 			app = App.create()
 				.addPlugins(...DefaultPlugins.create().build().getPlugins())
-				.addPlugin(InputManagerPlugin.create({
-					actionType: Action,
+				.addPlugin(new InputManagerPlugin<ActionLike>({
+					actionTypeName: "Action",
 				}));
 
 			// 获取 world 和 context

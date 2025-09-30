@@ -50,6 +50,9 @@ export class Timing {
 	 * @param previousInstant - The previous instant
 	 */
 	public tick(currentInstant: Instant, previousInstant: Instant): void {
+		// Save the current duration as previous before updating
+		this.previousDuration = this.currentDuration;
+
 		if (this.instantStarted !== undefined) {
 			// Calculate durations based on when the action started
 			this.currentDuration = currentInstant.durationSince(this.instantStarted);

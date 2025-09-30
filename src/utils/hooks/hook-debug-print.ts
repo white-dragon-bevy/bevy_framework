@@ -18,9 +18,16 @@ const DEBOUNCE_TIME = 30
  * @param discriminator - 唯一标识符 (matter 自动附件)
  */
 export function usePrintDebounce(message: string,debounceTime:number = DEBOUNCE_TIME,discriminator?:unknown): void {
+	// 尝试使用 Hook，如果失败则直接打印（用于测试环境）
+	let storage: DebugPrintStorage | undefined;
 
-
-	const storage = useHookState<DebugPrintStorage>(discriminator, cleanup)
+	try {
+		storage = useHookState<DebugPrintStorage>(discriminator, cleanup);
+	} catch (e) {
+		// 不在系统上下文中，直接打印（用于测试）
+		print(`[debug] ${message}`);
+		return;
+	}
 
 	if(storage.lastPrintTime ===undefined){
 		storage.lastPrintTime = 0

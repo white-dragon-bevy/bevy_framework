@@ -1,70 +1,158 @@
 /**
  * InputManager Context Helper Functions
- * 提供类型安全的 InputManagerPlugin 扩展访问
- *
- * 由于 TypeScript 不支持动态扩展类方法，使用 helper 函数模式
- * 支持多个不同 Action 类型的 InputManagerPlugin 实例
+ * 提供新的组件系统访问方法
  */
 
 import { AppContext } from "../../bevy_app/context";
-import { PluginExtensions } from "../../bevy_app/extensions";
 import { Actionlike } from "../actionlike";
 import { InputManagerPlugin } from "./input-manager-plugin";
-import { InputInstanceManagerResource } from "./input-instance-manager-resource";
-import { Modding } from "@flamework/core";
-
+import { ComponentDefinition } from "./component-factory";
+import { InputMap } from "../input-map/input-map";
+import { ActionState } from "../action-state/action-state";
 
 /**
- * 获取特定 Action 类型的 InputManager 插件
- * 
- * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
- * @metadata macro 
- * 
- * @param context - App 上下文
- * @param actionType - Action 类型构造函数
- * @returns InputManagerPlugin 实例，如果不存在则返回 undefined
+ * 获取特定 Action 类型的组件定义
+ *
+ * @param plugin - InputManagerPlugin 实例
+ * @returns ComponentDefinition 用于查询和操作实体
  * @example
  * ```typescript
- * const plugin = getInputManagerPlugin(context, PlayerAction);
- * if (plugin) {
- *     const instanceManager = plugin.getInstanceManager();
+ * const plugin = new InputManagerPlugin<PlayerAction>({ actionTypeName: "PlayerAction" });
+ * const components = getActionComponents(plugin);
+ *
+ * // 查询所有具有该动作组件的实体
+ * for (const [entityId, data] of components.query(world)) {
+ *     if (data.actionState?.pressed(PlayerAction.Jump)) {
+ *         // Handle jump
+ *     }
  * }
  * ```
  */
-export function getInputManagerPlugin<A extends Actionlike>(
-	context: AppContext,
-	actionType: (new (...args: any[]) => A) & { name: string },
-	id?: Modding.Generic<A, "id">, 
-	text?: Modding.Generic<A,"text">
-): InputManagerPlugin<A> | undefined {
-	return context.world.resources.getResource(id,text) as InputManagerPlugin<A> | undefined;
-
+export function getActionComponents<A extends Actionlike>(
+	plugin: InputManagerPlugin<A>
+): ComponentDefinition<A> {
+	return plugin.getComponents();
 }
 
 /**
- * 获取特定 Action 类型的实例管理器
- * 
- * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
- * @metadata macro 
- * 
+ * 创建带有输入组件的实体
+ *
  * @param context - App 上下文
- * @param actionType - Action 类型构造函数
- * @returns InputInstanceManagerResource 实例，如果不存在则返回 undefined
+ * @param plugin - InputManagerPlugin 实例
+ * @param inputMap - 输入映射
+ * @param actionState - 动作状态（可选）
+ * @returns 创建的实体 ID
  * @example
  * ```typescript
- * const instanceManager = getInputInstanceManager(context, PlayerAction);
- * if (instanceManager) {
- *     const actionState = instanceManager.getActionState(entity);
+ * const plugin = new InputManagerPlugin<PlayerAction>({ actionTypeName: "PlayerAction" });
+ * const inputMap = new InputMap<PlayerAction>()
+ *     .insert(PlayerAction.Jump, KeyCode.Space)
+ *     .insert(PlayerAction.Attack, MouseButton.Left);
+ *
+ * const entityId = spawnWithInput(context, plugin, inputMap);
+ * ```
+ */
+export function spawnWithInput<A extends Actionlike>(
+	context: AppContext,
+	plugin: InputManagerPlugin<A>,
+	inputMap: InputMap<A>,
+	actionState?: ActionState<A>
+): number {
+	const components = plugin.getComponents();
+	return components.spawn(context.world, inputMap, actionState);
+}
+
+/**
+ * 获取实体的输入数据
+ *
+ * @param context - App 上下文
+ * @param plugin - InputManagerPlugin 实例
+ * @param entityId - 实体 ID
+ * @returns 输入系统数据，如果实体没有该组件则返回 undefined
+ * @example
+ * ```typescript
+ * const data = getEntityInputData(context, plugin, playerId);
+ * if (data?.actionState?.pressed(PlayerAction.Jump)) {
+ *     // Player is jumping
  * }
  * ```
  */
-export function getInputInstanceManager<A extends Actionlike>(
+export function getEntityInputData<A extends Actionlike>(
 	context: AppContext,
-	actionType: (new (...args: any[]) => A) & { name: string },
-	id?: Modding.Generic<A, "id">, 
-	text?: Modding.Generic<A,"text">
-): InputInstanceManagerResource<A> | undefined {
-	return context.world.resources.getResource(id,text) as InputInstanceManagerResource<A> | undefined;
+	plugin: InputManagerPlugin<A>,
+	entityId: number
+) {
+	const components = plugin.getComponents();
+	return components.get(context.world, entityId);
 }
 
+/**
+ * 为现有实体添加输入组件
+ *
+ * @param context - App 上下文
+ * @param plugin - InputManagerPlugin 实例
+ * @param entityId - 实体 ID
+ * @param inputMap - 输入映射
+ * @param actionState - 动作状态（可选）
+ * @example
+ * ```typescript
+ * const entityId = world.spawn();
+ * const inputMap = new InputMap<PlayerAction>()
+ *     .insert(PlayerAction.Jump, KeyCode.Space);
+ *
+ * addInputToEntity(context, plugin, entityId, inputMap);
+ * ```
+ */
+export function addInputToEntity<A extends Actionlike>(
+	context: AppContext,
+	plugin: InputManagerPlugin<A>,
+	entityId: number,
+	inputMap: InputMap<A>,
+	actionState?: ActionState<A>
+): void {
+	const components = plugin.getComponents();
+	components.insert(context.world, entityId, inputMap, actionState);
+}
 
+/**
+ * 从实体移除输入组件
+ *
+ * @param context - App 上下文
+ * @param plugin - InputManagerPlugin 实例
+ * @param entityId - 实体 ID
+ * @example
+ * ```typescript
+ * removeInputFromEntity(context, plugin, playerId);
+ * ```
+ */
+export function removeInputFromEntity<A extends Actionlike>(
+	context: AppContext,
+	plugin: InputManagerPlugin<A>,
+	entityId: number
+): void {
+	const components = plugin.getComponents();
+	components.remove(context.world, entityId);
+}
+
+/**
+ * 查询所有具有特定动作类型组件的实体
+ *
+ * @param context - App 上下文
+ * @param plugin - InputManagerPlugin 实例
+ * @returns 实体和其输入数据的迭代器
+ * @example
+ * ```typescript
+ * for (const [entityId, data] of queryInputEntities(context, plugin)) {
+ *     if (data.actionState?.pressed(PlayerAction.Attack)) {
+ *         // Process attack
+ *     }
+ * }
+ * ```
+ */
+export function queryInputEntities<A extends Actionlike>(
+	context: AppContext,
+	plugin: InputManagerPlugin<A>
+) {
+	const components = plugin.getComponents();
+	return components.query(context.world);
+}

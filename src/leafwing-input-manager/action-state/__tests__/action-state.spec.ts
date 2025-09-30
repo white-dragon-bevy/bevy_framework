@@ -147,9 +147,9 @@ export = () => {
 
 		describe("Time Tracking", () => {
 			it("should track duration with deltaTime using instants", () => {
-				const startInstant = Instant.fromTimestamp(1000);
-				const instant1 = Instant.fromTimestamp(1016);
-				const instant2 = Instant.fromTimestamp(1032);
+				const startInstant = Instant.fromTimestamp(1.0);
+				const instant1 = Instant.fromTimestamp(1.016);
+				const instant2 = Instant.fromTimestamp(1.032);
 
 				actionState.press(Jump);
 
@@ -163,9 +163,9 @@ export = () => {
 			});
 
 			it("should track duration with instants", () => {
-				const startInstant = Instant.fromTimestamp(1000);
-				const instant1 = Instant.fromTimestamp(1016);
-				const instant2 = Instant.fromTimestamp(1032);
+				const startInstant = Instant.fromTimestamp(1.0);
+				const instant1 = Instant.fromTimestamp(1.016);
+				const instant2 = Instant.fromTimestamp(1.032);
 
 				actionState.press(Jump);
 				actionState.tickWithInstants(instant1, startInstant);
@@ -178,8 +178,8 @@ export = () => {
 			});
 
 			it("should reset duration when released", () => {
-				const startInstant = Instant.fromTimestamp(1000);
-				const instant1 = Instant.fromTimestamp(1500);
+				const startInstant = Instant.fromTimestamp(1.0);
+				const instant1 = Instant.fromTimestamp(1.5);
 
 				actionState.press(Jump);
 				actionState.tickWithInstants(instant1, startInstant);
@@ -192,9 +192,9 @@ export = () => {
 			});
 
 			it("should track previous duration", () => {
-				const instant0 = Instant.fromTimestamp(1000);
-				const instant1 = Instant.fromTimestamp(1100);
-				const instant2 = Instant.fromTimestamp(1200);
+				const instant0 = Instant.fromTimestamp(1.0);
+				const instant1 = Instant.fromTimestamp(1.1);
+				const instant2 = Instant.fromTimestamp(1.2);
 
 				actionState.press(Jump);
 				actionState.tickWithInstants(instant1, instant0);
@@ -207,7 +207,7 @@ export = () => {
 			});
 
 			it("should track when action was pressed", () => {
-				const startInstant = Instant.fromTimestamp(1000);
+				const startInstant = Instant.fromTimestamp(1.0);
 
 				expect(actionState.whenPressed(Jump)).to.equal(undefined);
 
@@ -364,8 +364,8 @@ export = () => {
 
 		describe("Reset Operations", () => {
 			it("should reset a specific action", () => {
-				const startInstant = Instant.fromTimestamp(1000);
-				const endInstant = Instant.fromTimestamp(1500);
+				const startInstant = Instant.fromTimestamp(1.0);
+				const endInstant = Instant.fromTimestamp(1.5);
 
 				actionState.press(Jump);
 				actionState.tickWithInstants(endInstant, startInstant);
@@ -380,8 +380,8 @@ export = () => {
 			});
 
 			it("should reset all actions", () => {
-				const startInstant = Instant.fromTimestamp(1000);
-				const endInstant = Instant.fromTimestamp(1500);
+				const startInstant = Instant.fromTimestamp(1.0);
+				const endInstant = Instant.fromTimestamp(1.5);
 
 				actionState.press(Jump);
 				actionState.press(Move);
@@ -439,7 +439,7 @@ export = () => {
 			});
 
 			it("should handle zero deltaTime", () => {
-				const instant = Instant.fromTimestamp(1000);
+				const instant = Instant.fromTimestamp(1.0);
 
 				actionState.press(Jump);
 				actionState.tickWithInstants(instant, instant);
@@ -448,8 +448,8 @@ export = () => {
 			});
 
 			it("should handle large deltaTime", () => {
-				const startInstant = Instant.fromTimestamp(1000);
-				const endInstant = Instant.fromTimestamp(11000);
+				const startInstant = Instant.fromTimestamp(1.0);
+				const endInstant = Instant.fromTimestamp(11.0);
 
 				actionState.press(Jump);
 				actionState.tickWithInstants(endInstant, startInstant);
