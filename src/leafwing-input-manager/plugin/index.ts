@@ -1,6 +1,7 @@
 export { InputManagerPlugin, InputManagerPluginConfig } from "./input-manager-plugin";
 export { createActionComponents, ComponentDefinition, InputSystemData } from "./component-factory";
 export { clearComponentCache, getComponentCacheSize } from "./component-factory";
+export { InputManagerExtension } from "./extensions";
 
 // Context helper functions for new architecture
 export {

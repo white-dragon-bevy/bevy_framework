@@ -11,7 +11,7 @@ import { ClientChannel, ServerChannel } from "./channels";
 /**
  * 消息数据
  */
-export type MessageData = Buffer;
+export type MessageData = buffer;
 
 /**
  * 客户端消息资源

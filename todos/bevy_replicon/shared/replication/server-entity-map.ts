@@ -125,7 +125,11 @@ export class ServerEntityMap implements Resource {
 	 * @returns 服务器到客户端的映射
 	 */
 	public getAllMappings(): Map<Entity, Entity> {
-		return new Map(this.serverToClient);
+		const entries: Array<[Entity, Entity]> = [];
+		for (const [key, value] of this.serverToClient) {
+			entries.push([key, value]);
+		}
+		return new Map(entries);
 	}
 
 	/**

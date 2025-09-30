@@ -4,7 +4,7 @@
  * 定义客户端和服务器的连接状态
  */
 
-import { Component, Resource } from "../../../bevy_ecs";
+import { Component, Resource } from "../../../../src/bevy_ecs";
 import { Entity } from "@rbxts/matter";
 
 /**

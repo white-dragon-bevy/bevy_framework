@@ -12,7 +12,7 @@ import { ClientChannel, ServerChannel } from "./channels";
 /**
  * 服务器消息数据类型
  */
-export type ServerServerMessageData = Buffer;
+export type ServerMessageData = buffer;
 
 /**
  * 服务器消息资源

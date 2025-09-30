@@ -12,9 +12,6 @@ export = () => {
 
 	beforeEach(() => {
 		world = new World();
-		const context = (world as unknown as { context: { resources: Map<string, import("../../bevy_ecs").Resource> } }).context;
-		world.resources = new Map();
-
 		manager = new ReplicationManager(NetworkRole.Server, {
 			strategy: ReplicationStrategy.Full,
 			updateRate: 30,
@@ -22,8 +19,7 @@ export = () => {
 			maxPacketSize: 4096,
 			reliable: true,
 		});
-
-		world.resources.set("ReplicationManager", manager);
+		// 注意: 实际使用中应该通过 BevyWorld 的资源系统管理
 	});
 
 	describe("ReplicationManager", () => {

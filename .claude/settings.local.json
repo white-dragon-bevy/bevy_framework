@@ -16,7 +16,9 @@
       "Bash(npm run build:*)",
       "Bash(npm test:*)",
       "Bash(sed:*)",
-      "mcp__mcp-sequentialthinking-tools__sequentialthinking_tools"
+      "mcp__mcp-sequentialthinking-tools__sequentialthinking_tools",
+      "Bash(tee:*)",
+      "Bash(cat:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

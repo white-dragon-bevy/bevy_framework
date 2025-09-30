@@ -11,11 +11,8 @@ export = () => {
 
 	beforeEach(() => {
 		world = new World();
-		const context = (world as unknown as { context: { resources: Map<string, import("../../bevy_ecs").Resource> } }).context;
-		world.resources = new Map();
-
 		manager = new ClientPredictionManager(60, 0.01);
-		world.resources.set("ClientPredictionManager", manager);
+		// 注意: 实际使用中应该通过 BevyWorld 的资源系统管理
 	});
 
 	describe("ClientPredictionManager", () => {

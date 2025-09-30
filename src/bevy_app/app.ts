@@ -39,7 +39,11 @@ export interface PluginExtensionFactories {
  * 从工厂类型提取实际扩展类型
  */
 export type ExtractExtensionTypes<F> = {
-	[K in keyof F]: F[K] extends ExtensionFactory<infer T> ? T : never;
+	[K in keyof F]: F[K] extends ExtensionFactory<infer T>
+		? T
+		: F[K] extends (world: any, context: any, plugin: any) => infer R
+		? R
+		: never;
 };
 
 /**
@@ -50,9 +54,9 @@ export type ExtractPluginExtensions<P> = P extends { extension: infer E } ? E : 
 /**
  * 从插件数组中提取所有扩展类型
  */
-export type ExtractAllPluginExtensions<P extends readonly (Plugin | PluginGroup)[]> = 
+export type ExtractAllPluginExtensions<P extends readonly (Plugin | PluginGroup)[]> =
 	P extends readonly [infer First, ...infer Rest]
-		? ExtractExtensionTypes<ExtractPluginExtensions<First>> & 
+		? ExtractExtensionTypes<ExtractPluginExtensions<First>> &
 		  ExtractAllPluginExtensions<Rest extends readonly (Plugin | PluginGroup)[] ? Rest : []>
 		: {};
 
@@ -269,7 +273,7 @@ export class App<T extends AppContext = AppContext> {
 		}
 
 		this.addBoxedPlugin(plugin);
-		return this as any;
+		return this as unknown as App<T & ExtractExtensionTypes<ExtractPluginExtensions<P>>>;
 	}
 
 	/**
@@ -286,7 +290,7 @@ export class App<T extends AppContext = AppContext> {
 				this.addPlugin(plugin as Plugin);
 			}
 		}
-		return this as any;
+		return this as unknown as App<T & ExtractAllPluginExtensions<P>>;
 	}
 
 	/**

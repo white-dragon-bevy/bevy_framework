@@ -215,7 +215,8 @@ export class LogDiagnosticsPlugin implements Plugin {
 		if (!state || !diagnostics) return;
 
 		// Get deltaTime from time extension
-		const deltaTime = context.has("time") ? context.get("time").getDeltaSeconds() : 0.016;
+		const contextWithTime = context as Context & { getDeltaSeconds?: () => number };
+		const deltaTime = contextWithTime.getDeltaSeconds ? contextWithTime.getDeltaSeconds() : 0.016;
 		if (state.timer.tick(deltaTime).finished) {
 			LogDiagnosticsPlugin.logDiagnostics(state, diagnostics);
 		}
@@ -235,7 +236,8 @@ export class LogDiagnosticsPlugin implements Plugin {
 		if (!state || !diagnostics) return;
 
 		// Get deltaTime from time extension
-		const deltaTime = context.has("time") ? context.get("time").getDeltaSeconds() : 0.016;
+		const contextWithTime = context as Context & { getDeltaSeconds?: () => number };
+		const deltaTime = contextWithTime.getDeltaSeconds ? contextWithTime.getDeltaSeconds() : 0.016;
 		if (state.timer.tick(deltaTime).finished) {
 			LogDiagnosticsPlugin.forEachDiagnostic(state, diagnostics, (diagnostic) => {
 				print(`[DEBUG] ${diagnostic}`);
