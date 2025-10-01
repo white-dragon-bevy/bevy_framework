@@ -26,6 +26,9 @@ importers:
       '@rbxts/rbx-better-signal':
         specifier: ^2.1.0
         version: 2.1.0
+      '@rbxts/rewire':
+        specifier: ^0.3.0
+        version: 0.3.0
       '@rbxts/services':
         specifier: ^1.5.5
         version: 1.5.5
@@ -591,6 +594,9 @@ packages:
 
   '@rbxts/rbx-better-signal@2.1.0':
     resolution: {integrity: sha512-mMTFiGS2+8CMeYMiGDAgOg9a3OxlA+m+yaH42EqlxgAcUV0vjo4lH8KST9Go2w0w9cJFX/xqQ2LvxME8vzA8FA==}
+
+  '@rbxts/rewire@0.3.0':
+    resolution: {integrity: sha512-wChhGZ3kEkEsMK9ZuwKpwRsC7OGVZlvxrYMR3beFgCIPXE58JKLziBLkDACmd709XCCEmsMAqv9HMCMhSTD08Q==}
 
   '@rbxts/services@1.5.5':
     resolution: {integrity: sha512-Hu7QH2ecefS60zpakKG3T2vgABydoOJqpSG7nXr59wFAbPk/cA+OcsntYPHUWyHAat0VFGZ5jNZLTLdiqfssvg==}
@@ -3694,6 +3700,8 @@ snapshots:
   '@rbxts/rbx-better-signal@2.1.0':
     dependencies:
       '@rbxts/janitor': 1.16.0-ts.0
+
+  '@rbxts/rewire@0.3.0': {}
 
   '@rbxts/services@1.5.5': {}
 
