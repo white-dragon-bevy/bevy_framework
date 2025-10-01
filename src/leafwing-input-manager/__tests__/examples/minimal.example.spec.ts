@@ -17,7 +17,7 @@ import { ActionState } from "../../action-state/action-state";
 import { Actionlike, ActionlikeEnum } from "../../actionlike";
 import { InputControlKind } from "../../input-control-kind";
 import { KeyCode } from "../../user-input/keyboard";
-import { InputManagerPlugin } from "../../plugin/input-manager-plugin";
+import { createInputManagerPlugin } from "../../plugin/input-manager-plugin";
 import { MainScheduleLabel } from "../../../bevy_app";
 import { BevyWorld } from "../../../bevy_ecs/types";
 
@@ -56,13 +56,13 @@ export = () => {
 			const app = createTestApp();
 
 			// 添加 InputManagerPlugin
-			const plugin = new InputManagerPlugin<Action>({
+			const plugin = createInputManagerPlugin<Action>({
 				actionTypeName: "Action",
 			});
 			app.addPlugins(plugin);
 
 			// 获取组件定义
-			const components = plugin.getComponents();
+			const components = plugin.extension!.getComponents();
 
 			// Setup: 创建玩家实体和输入映射 (对应 spawn_player 系统)
 			const world = app.getWorld();
@@ -119,12 +119,12 @@ export = () => {
 			const app = createTestApp();
 
 			// 添加 InputManagerPlugin
-			const plugin = new InputManagerPlugin<Action>({
+			const plugin = createInputManagerPlugin<Action>({
 				actionTypeName: "Action",
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.getComponents();
+			const components = plugin.extension!.getComponents();
 			const world = app.getWorld();
 			const playerEntity = world.spawn();
 
@@ -178,12 +178,12 @@ export = () => {
 			const app = createTestApp();
 
 			// 添加 InputManagerPlugin
-			const plugin = new InputManagerPlugin<Action>({
+			const plugin = createInputManagerPlugin<Action>({
 				actionTypeName: "Action",
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.getComponents();
+			const components = plugin.extension!.getComponents();
 
 			// 创建玩家实体
 			const world = app.getWorld();

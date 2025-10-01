@@ -19,7 +19,7 @@ import { RunService, Players } from "@rbxts/services";
 
 // 导入输入管理器相关类型
 import {
-	InputManagerPlugin,
+	createInputManagerPlugin,
 	InputMap,
 	ActionState,
 	KeyCode,
@@ -339,7 +339,7 @@ function setSkillCooldown(cooldowns: Map<string, number>, skillName: string, dur
 // 系统定义
 // =====================================
 
-let inputPlugin: InputManagerPlugin<GameActionlike>;
+let inputPlugin: ReturnType<typeof createInputManagerPlugin<GameActionlike>>;
 
 /**
  * 生成玩家实体
@@ -374,12 +374,7 @@ function spawnPlayers(world: BevyWorld, context: Context): void {
 		}
 
 		// 创建实体
-		const entity = spawnWithInput(
-			{ world } as any,
-			inputPlugin,
-			inputMap,
-			actionState
-		);
+		const entity = inputPlugin.extension!.spawnWithInput(world, inputMap, actionState);
 
 		// 添加游戏组件
 		world.insert(
@@ -441,7 +436,7 @@ function spawnPlayers(world: BevyWorld, context: Context): void {
  * 处理移动输入
  */
 function handleMovement(world: BevyWorld, context: Context): void {
-	for (const [entityId, inputData] of queryInputEntities({ world } as any, inputPlugin)) {
+	for (const [entityId, inputData] of inputPlugin.extension!.queryInputEntities(world)) {
 		const player = world.get(entityId as any, Player);
 		if (!player) continue;
 
@@ -558,7 +553,7 @@ function handleMovement(world: BevyWorld, context: Context): void {
  * 处理战斗输入
  */
 function handleCombat(world: BevyWorld, context: Context): void {
-	for (const [entityId, inputData] of queryInputEntities({ world } as any, inputPlugin)) {
+	for (const [entityId, inputData] of inputPlugin.extension!.queryInputEntities(world)) {
 		const player = world.get(entityId as any, Player);
 		if (!player) continue;
 
@@ -688,7 +683,7 @@ function handleCombat(world: BevyWorld, context: Context): void {
  * 处理UI输入
  */
 function handleUI(world: BevyWorld, context: Context): void {
-	for (const [entityId, inputData] of queryInputEntities({ world } as any, inputPlugin)) {
+	for (const [entityId, inputData] of inputPlugin.extension!.queryInputEntities(world)) {
 		const player = world.get(entityId as any, Player);
 		if (!player) continue;
 
@@ -833,7 +828,7 @@ export function createApp(): App {
 	app.addPlugins(...DefaultPlugins.create().build().getPlugins());
 
 	// 创建输入管理器插件
-	inputPlugin = new InputManagerPlugin<GameActionlike>({
+	inputPlugin = createInputManagerPlugin<GameActionlike>({
 		actionTypeName: "GameAction",
 	});
 	app.addPlugin(inputPlugin);

@@ -18,7 +18,7 @@ import { ActionlikeEnum } from "../../actionlike";
 import { InputControlKind } from "../../input-control-kind";
 import { KeyCode } from "../../user-input/keyboard";
 import { InputChord } from "../../user-input/chord";
-import { InputManagerPlugin } from "../../plugin/input-manager-plugin";
+import { createInputManagerPlugin } from "../../plugin/input-manager-plugin";
 import { ClashStrategy, ClashStrategyResource } from "../../clashing-inputs/clash-strategy";
 import { MainScheduleLabel } from "../../../bevy_app";
 import { BevyWorld } from "../../../bevy_ecs/types";
@@ -97,12 +97,12 @@ export = () => {
 			const app = createTestApp();
 
 			// 添加 InputManagerPlugin
-			const plugin = new InputManagerPlugin<TestAction>({
+			const plugin = createInputManagerPlugin<TestAction>({
 				actionTypeName: "TestAction",
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.getComponents();
+			const components = plugin.extension!.getComponents();
 			const world = app.getWorld();
 
 			// 设置冲突策略 (对应 insert_resource)
@@ -137,12 +137,12 @@ export = () => {
 		it("should prioritize longest chord when using PrioritizeLongest strategy", () => {
 			const app = createTestApp();
 
-			const plugin = new InputManagerPlugin<TestAction>({
+			const plugin = createInputManagerPlugin<TestAction>({
 				actionTypeName: "TestAction",
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.getComponents();
+			const components = plugin.extension!.getComponents();
 			const world = app.getWorld();
 
 			// 使用 PrioritizeLongest 策略
@@ -186,12 +186,12 @@ export = () => {
 		it("should handle three-key chord vs two-key chord clash", () => {
 			const app = createTestApp();
 
-			const plugin = new InputManagerPlugin<TestAction>({
+			const plugin = createInputManagerPlugin<TestAction>({
 				actionTypeName: "TestAction",
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.getComponents();
+			const components = plugin.extension!.getComponents();
 			const world = app.getWorld();
 
 			const clashStrategy = new ClashStrategyResource(ClashStrategy.PrioritizeLargest);
@@ -232,12 +232,12 @@ export = () => {
 		it("should report pressed actions with system query", () => {
 			const app = createTestApp();
 
-			const plugin = new InputManagerPlugin<TestAction>({
+			const plugin = createInputManagerPlugin<TestAction>({
 				actionTypeName: "TestAction",
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.getComponents();
+			const components = plugin.extension!.getComponents();
 			const world = app.getWorld();
 
 			const clashStrategy = new ClashStrategyResource(ClashStrategy.PrioritizeLargest);
@@ -295,12 +295,12 @@ export = () => {
 		it("should handle multiple overlapping chords", () => {
 			const app = createTestApp();
 
-			const plugin = new InputManagerPlugin<TestAction>({
+			const plugin = createInputManagerPlugin<TestAction>({
 				actionTypeName: "TestAction",
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.getComponents();
+			const components = plugin.extension!.getComponents();
 			const world = app.getWorld();
 
 			const clashStrategy = new ClashStrategyResource(ClashStrategy.PrioritizeLargest);
@@ -345,12 +345,12 @@ export = () => {
 		it("should allow non-overlapping chords to trigger simultaneously", () => {
 			const app = createTestApp();
 
-			const plugin = new InputManagerPlugin<TestAction>({
+			const plugin = createInputManagerPlugin<TestAction>({
 				actionTypeName: "TestAction",
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.getComponents();
+			const components = plugin.extension!.getComponents();
 			const world = app.getWorld();
 
 			const clashStrategy = new ClashStrategyResource(ClashStrategy.PrioritizeLargest);

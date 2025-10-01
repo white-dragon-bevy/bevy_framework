@@ -344,20 +344,15 @@ export class App<T extends AppContext = AppContext> {
 		if (isMatchRobloxContext(plugin.robloxContext)) {
 			// 添加到插件注册表
 			mainApp.addPlugin(plugin);
-			
-			// 如果插件有扩展工厂，将其转换为实际函数并添加到 context 上
+
+			// 如果插件有扩展对象，直接复制到 context 上（函数式插件）
 			if ('extension' in plugin && plugin.extension) {
-				const extensionFactories = plugin.extension as Record<string, ExtensionFactory<any>>;
+				const extension = plugin.extension as Record<string, unknown>;
 				const contextInstance = this.context as unknown as Record<string, unknown>;
-				const world = this.getWorld();
-				
-				// 将扩展工厂转换为实际函数并复制到 context 上
-				for (const [key, factory] of pairs(extensionFactories)) {
-					if (typeOf(factory) === "function") {
-						// 调用工厂函数，传入 world, context 和 plugin 实例，获得实际的扩展函数
-						const actualFunction = factory(world, this.context, plugin);
-						contextInstance[key] = actualFunction;
-					}
+
+				// 直接将扩展对象的方法复制到 context 上
+				for (const [key, value] of pairs(extension)) {
+					contextInstance[key] = value;
 				}
 			}
 		}

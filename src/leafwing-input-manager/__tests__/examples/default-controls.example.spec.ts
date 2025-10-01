@@ -18,7 +18,7 @@ import { ActionlikeEnum } from "../../actionlike";
 import { InputControlKind } from "../../input-control-kind";
 import { KeyCode } from "../../user-input/keyboard";
 import { VirtualDPad } from "../../user-input/virtual-controls";
-import { InputManagerPlugin } from "../../plugin/input-manager-plugin";
+import { createInputManagerPlugin } from "../../plugin/input-manager-plugin";
 import { MainScheduleLabel } from "../../../bevy_app";
 import { BevyWorld } from "../../../bevy_ecs/types";
 
@@ -78,12 +78,12 @@ export = () => {
 			const app = createTestApp();
 
 			// 添加 InputManagerPlugin
-			const plugin = new InputManagerPlugin<PlayerAction>({
+			const plugin = createInputManagerPlugin<PlayerAction>({
 				actionTypeName: "PlayerAction",
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.getComponents();
+			const components = plugin.extension!.getComponents();
 			const world = app.getWorld();
 
 			// 使用默认输入映射创建玩家 (对应 spawn_player 系统)
@@ -108,12 +108,12 @@ export = () => {
 		it("should handle WASD movement input", () => {
 			const app = createTestApp();
 
-			const plugin = new InputManagerPlugin<PlayerAction>({
+			const plugin = createInputManagerPlugin<PlayerAction>({
 				actionTypeName: "PlayerAction",
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.getComponents();
+			const components = plugin.extension!.getComponents();
 			const world = app.getWorld();
 
 			const playerEntity = world.spawn();
@@ -147,12 +147,12 @@ export = () => {
 		it("should handle jump action with Space key", () => {
 			const app = createTestApp();
 
-			const plugin = new InputManagerPlugin<PlayerAction>({
+			const plugin = createInputManagerPlugin<PlayerAction>({
 				actionTypeName: "PlayerAction",
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.getComponents();
+			const components = plugin.extension!.getComponents();
 			const world = app.getWorld();
 
 			const playerEntity = world.spawn();
@@ -186,12 +186,12 @@ export = () => {
 		it("should handle UseItem action with E key", () => {
 			const app = createTestApp();
 
-			const plugin = new InputManagerPlugin<PlayerAction>({
+			const plugin = createInputManagerPlugin<PlayerAction>({
 				actionTypeName: "PlayerAction",
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.getComponents();
+			const components = plugin.extension!.getComponents();
 			const world = app.getWorld();
 
 			const playerEntity = world.spawn();
@@ -225,12 +225,12 @@ export = () => {
 		it("should work with system checking all actions", () => {
 			const app = createTestApp();
 
-			const plugin = new InputManagerPlugin<PlayerAction>({
+			const plugin = createInputManagerPlugin<PlayerAction>({
 				actionTypeName: "PlayerAction",
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.getComponents();
+			const components = plugin.extension!.getComponents();
 			const world = app.getWorld();
 
 			const playerEntity = world.spawn();
@@ -292,12 +292,12 @@ export = () => {
 		it("should handle diagonal movement with WASD", () => {
 			const app = createTestApp();
 
-			const plugin = new InputManagerPlugin<PlayerAction>({
+			const plugin = createInputManagerPlugin<PlayerAction>({
 				actionTypeName: "PlayerAction",
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.getComponents();
+			const components = plugin.extension!.getComponents();
 			const world = app.getWorld();
 
 			const playerEntity = world.spawn();
@@ -333,12 +333,12 @@ export = () => {
 		it("should handle continuous movement across frames", () => {
 			const app = createTestApp();
 
-			const plugin = new InputManagerPlugin<PlayerAction>({
+			const plugin = createInputManagerPlugin<PlayerAction>({
 				actionTypeName: "PlayerAction",
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.getComponents();
+			const components = plugin.extension!.getComponents();
 			const world = app.getWorld();
 
 			const playerEntity = world.spawn();

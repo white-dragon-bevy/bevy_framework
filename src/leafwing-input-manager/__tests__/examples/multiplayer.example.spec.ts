@@ -17,7 +17,7 @@ import { ActionState } from "../../action-state/action-state";
 import { ActionlikeEnum } from "../../actionlike";
 import { InputControlKind } from "../../input-control-kind";
 import { KeyCode } from "../../user-input/keyboard";
-import { InputManagerPlugin } from "../../plugin/input-manager-plugin";
+import { createInputManagerPlugin } from "../../plugin/input-manager-plugin";
 import { MainScheduleLabel } from "../../../bevy_app";
 import { BevyWorld } from "../../../bevy_ecs/types";
 
@@ -84,12 +84,12 @@ export = () => {
 			const app = createTestApp();
 
 			// 添加 InputManagerPlugin
-			const plugin = new InputManagerPlugin<Action>({
+			const plugin = createInputManagerPlugin<Action>({
 				actionTypeName: "Action",
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.getComponents();
+			const components = plugin.extension!.getComponents();
 			const world = app.getWorld();
 
 			// 创建玩家1 (WASD)
@@ -136,12 +136,12 @@ export = () => {
 		it("should handle player 2 arrow key input independently", () => {
 			const app = createTestApp();
 
-			const plugin = new InputManagerPlugin<Action>({
+			const plugin = createInputManagerPlugin<Action>({
 				actionTypeName: "Action",
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.getComponents();
+			const components = plugin.extension!.getComponents();
 			const world = app.getWorld();
 
 			// 创建两个玩家
@@ -182,12 +182,12 @@ export = () => {
 		it("should handle simultaneous input from both players", () => {
 			const app = createTestApp();
 
-			const plugin = new InputManagerPlugin<Action>({
+			const plugin = createInputManagerPlugin<Action>({
 				actionTypeName: "Action",
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.getComponents();
+			const components = plugin.extension!.getComponents();
 			const world = app.getWorld();
 
 			// 创建两个玩家
@@ -233,12 +233,12 @@ export = () => {
 		it("should support querying multiple players in a system", () => {
 			const app = createTestApp();
 
-			const plugin = new InputManagerPlugin<Action>({
+			const plugin = createInputManagerPlugin<Action>({
 				actionTypeName: "Action",
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.getComponents();
+			const components = plugin.extension!.getComponents();
 			const world = app.getWorld();
 
 			// 创建两个玩家
@@ -306,12 +306,12 @@ export = () => {
 		it("should handle player movement with continuous input", () => {
 			const app = createTestApp();
 
-			const plugin = new InputManagerPlugin<Action>({
+			const plugin = createInputManagerPlugin<Action>({
 				actionTypeName: "Action",
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.getComponents();
+			const components = plugin.extension!.getComponents();
 			const world = app.getWorld();
 
 			// 创建玩家1
