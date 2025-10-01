@@ -114,7 +114,6 @@ export class InputManagerPlugin<A extends Actionlike>
 {
 	private config: InputManagerPluginConfig<A>;
 	private components: ComponentDefinition<A>;
-	private connections: RBXScriptConnection[] = [];
 
 	/**
 	 * API 辅助方法 - 提供类型安全的实体操作接口
@@ -322,12 +321,6 @@ export class InputManagerPlugin<A extends Actionlike>
 	 * @param app - The App instance
 	 */
 	cleanup(app: App): void {
-		// Disconnect all event connections
-		for (const connection of this.connections) {
-			connection.Disconnect();
-		}
-		this.connections.clear();
-
 		// Clean up gamepad listeners from CentralInputStore
 		const centralStore = app.getWorld().resources.getResource<CentralInputStore>();
 		if (centralStore) {
