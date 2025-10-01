@@ -5,7 +5,6 @@
 import { App } from "../../bevy_app/app";
 import { DefaultPlugins, DefaultPluginsBuilder, MinimalPlugins, MinimalPluginsBuilder } from "../default-plugins";
 import { BasePlugin } from "../../bevy_app/plugin";
-import { LogPlugin } from "../../bevy_log/lib";
 import { TimePlugin } from "../../bevy_time/time-plugin";
 import { TransformPlugin } from "../../bevy_transform/plugin";
 import { DiagnosticsPlugin } from "../../bevy_diagnostic/diagnostics-plugin";
@@ -79,12 +78,12 @@ export = () => {
 		it("should allow disabling plugins", () => {
 			const builder = new DefaultPluginsBuilder();
 
-			// 禁用 LogPlugin
-			builder.disable(LogPlugin as any);
+			// 禁用 FrameCountPlugin
+			builder.disable(FrameCountPlugin as any);
 			const plugins = builder.getPlugins();
 
 			const pluginNames = plugins.map((p) => p.name());
-			expect(pluginNames.includes("LogPlugin")).to.equal(false);
+			expect(pluginNames.includes("FrameCountPlugin")).to.equal(false);
 		});
 
 		it("should allow adding plugins before another", () => {
@@ -127,7 +126,7 @@ export = () => {
 			const result = builder
 				.add(testPlugin1)
 				.add(testPlugin2)
-				.disable(LogPlugin as any);
+				.disable(FrameCountPlugin as any);
 
 			expect(result).to.equal(builder);
 		});
@@ -220,7 +219,7 @@ export = () => {
 			builder.finish(app);
 
 			// 验证所有插件都已注册
-			expect(app.isPluginAdded(LogPlugin as any)).to.equal(true);
+			expect(app.main().hasPlugin("LogPlugin")).to.equal(true);
 			expect(app.isPluginAdded(TimePlugin as any)).to.equal(true);
 			expect(app.isPluginAdded(TransformPlugin as any)).to.equal(true);
 			expect(app.isPluginAdded(DiagnosticsPlugin as any)).to.equal(true);
@@ -242,7 +241,7 @@ export = () => {
 			expect(app.isPluginAdded(RobloxRunnerPlugin as any)).to.equal(true);
 
 			// 验证其他插件未注册
-			expect(app.isPluginAdded(LogPlugin as any)).to.equal(false);
+			expect(app.main().hasPlugin("LogPlugin")).to.equal(false);
 			expect(app.isPluginAdded(TransformPlugin as any)).to.equal(false);
 		});
 
@@ -251,8 +250,8 @@ export = () => {
 			const builder = new DefaultPluginsBuilder();
 			const testPlugin = new TestPlugin();
 
-			// 自定义配置：添加测试插件，禁用日志插件
-			builder.add(testPlugin).disable(LogPlugin as any);
+			// 自定义配置：添加测试插件，禁用 FrameCountPlugin
+			builder.add(testPlugin).disable(FrameCountPlugin as any);
 
 			const plugins = builder.getPlugins();
 			const pluginGroupBuilder = new (class {
@@ -274,7 +273,7 @@ export = () => {
 
 			// 验证配置生效
 			expect(app.isPluginAdded(TestPlugin as any)).to.equal(true);
-			expect(app.isPluginAdded(LogPlugin as any)).to.equal(false);
+			expect(app.isPluginAdded(FrameCountPlugin as any)).to.equal(false);
 		});
 	});
 };

@@ -4,7 +4,7 @@
  */
 
 import { App } from "../bevy_app/app";
-import { BasePlugin, Plugin } from "../bevy_app/plugin";
+import { Plugin, plugin } from "../bevy_app/plugin";
 import { Level } from "./level";
 import { EnvFilter, DEFAULT_FILTER } from "./filter";
 import { Layer, LogRecord, LogSubscriber, RobloxLayer } from "./roblox-tracing";
@@ -12,7 +12,6 @@ import { RunService } from "@rbxts/services";
 
 /**
  * BoxedLayer 类型
- * 对应 Rust Box<dyn Layer<Registry> + Send + Sync + 'static>
  * 表示动态分配的日志层对象
  */
 export type BoxedLayer = Layer;
@@ -24,139 +23,27 @@ export type BoxedLayer = Layer;
  */
 export type BoxedFmtLayer = Layer;
 
-import type { ExtensionFactory } from "../bevy_app/app";
 import type { World } from "../bevy_ecs";
 import type { AppContext } from "../bevy_app/context";
+import { LogPluginExtension } from "./extension";
+
+
 
 /**
- * LogPlugin 扩展工厂接口
- * 定义日志插件暴露给 App 的扩展方法工厂
+ * LogPlugin 配置接口
+ * 用于函数式和 class 插件的配置
  */
-export interface LogPluginExtensionFactories {
-	/**
-	 * 获取日志管理器工厂
-	 * 返回能够获取全局日志订阅器的工厂函数
-	 */
-	getLogManager: ExtensionFactory<() => LogSubscriber | undefined>;
-
-	/**
-	 * 获取当前日志级别工厂
-	 * 返回能够获取当前配置日志级别的工厂函数
-	 */
-	getLogLevel: ExtensionFactory<() => Level>;
-}
-
-/**
- * LogPlugin - 日志插件
- * 对应 Rust LogPlugin struct
- *
- * 这个插件是 DefaultPlugins 的一部分。添加这个插件将设置适合目标平台的收集器。
- *
- * 可以通过配置这个插件来自定义日志行为：
- * ```typescript
- * app.addPlugin(new LogPlugin({
- *     level: Level.DEBUG,
- *     filter: "wgpu=error,bevy_render=info,bevy_ecs=trace",
- * }));
- * ```
- *
- * 过滤器格式支持：
- * - "level" - 设置默认级别
- * - "level,module=level,..." - 为特定模块设置不同级别
- *
- * 示例："warn,my_crate=trace" 表示默认 warn 级别，但 my_crate 模块使用 trace 级别
- */
-export class LogPlugin extends BasePlugin {
+export interface LogPluginConfig {
 	/** 使用 EnvFilter 格式的过滤器 */
-	filter: string;
-
+	filter?: string;
 	/** 过滤"小于"给定级别的日志 */
-	level: Level;
-
+	level?: Level;
 	/** 可选添加额外的 Layer 到 tracing 订阅器 */
 	customLayer?: (app: App) => BoxedLayer | undefined;
-
 	/** 覆盖默认的格式化层 */
 	fmtLayer?: (app: App) => BoxedFmtLayer | undefined;
-	
-	/** 插件扩展工厂 */
-	extension = {
-		getLogManager: (world: World, context: AppContext, plugin: LogPlugin) => {
-			// 返回获取日志管理器的函数，使用 plugin 参数而不是 this
-			return () => LogSubscriber.getGlobal();
-		},
-		getLogLevel: (world: World, context: AppContext, plugin: LogPlugin) => {
-			// 使用 plugin 参数获取 level 值，避免 this 指针问题
-			const currentLevel = plugin.level;
-			// 返回获取日志级别的函数
-			return () => currentLevel;
-		},
-	};
-
-	/**
-	 * 创建日志插件实例
-	 * @param config - 日志插件配置（可选）
-	 */
-	constructor(config?: Partial<LogPlugin>) {
-		super();
-		this.filter = config?.filter ?? DEFAULT_FILTER;
-		this.level = config?.level ?? Level.INFO;
-		this.customLayer = config?.customLayer;
-		this.fmtLayer = config?.fmtLayer;
-		
-	}
-
-	/**
-	 * 构建日志插件并初始化日志系统
-	 * @param app - 应用程序实例
-	 */
-	build(app: App): void {
-		// 创建订阅器
-		const subscriber = new LogSubscriber();
-
-		// 添加用户自定义层
-		if (this.customLayer) {
-			const layer = this.customLayer(app);
-			if (layer) {
-				subscriber.addLayer(layer);
-			}
-		}
-
-		// 构建默认过滤器
-		const levelString = Level[this.level] as keyof typeof Level;
-		const defaultFilter = `${levelString.lower()},${this.filter}`;
-
-		// 尝试从环境创建过滤器（在 Roblox 中直接使用默认值）
-		const filter = EnvFilter.tryFromDefaultEnv(defaultFilter);
-
-		// 添加格式化层或默认的 Roblox 层
-		if (this.fmtLayer) {
-			const layer = this.fmtLayer(app);
-			if (layer) {
-				subscriber.addLayer(layer);
-			}
-		} else {
-			// 使用默认的 Roblox 层
-			const robloxLayer = new RobloxLayer(filter);
-			subscriber.addLayer(robloxLayer);
-		}
-
-		// 设置全局默认订阅器
-		const subscriberAlreadySet = !LogSubscriber.setGlobalDefault(subscriber);
-
-		if (subscriberAlreadySet && RunService.IsStudio()) {
-			// 只在 Studio 模式下输出警告，避免在生产环境中产生噪音
-		}
-	}
-
-	/**
-	 * 获取插件名称
-	 * @returns 插件标识名称 "LogPlugin"
-	 */
-	name(): string {
-		return "LogPlugin";
-	}
 }
+
 
 // 全局日志函数实现
 
@@ -388,6 +275,99 @@ export function traceSpan(name: string): (fn: () => void) => void {
 		fn();
 		trace(`[SPAN:${name}] Exit`);
 	};
+}
+
+// ============================================================================
+// 函数式 LogPlugin API
+// ============================================================================
+
+/**
+ * 创建函数式 LogPlugin
+ * 提供与 class LogPlugin 完全相同的功能，但使用函数式 API
+ * @param config - 日志插件配置（可选）
+ * @returns 函数式日志插件实例
+ * @example
+ * ```typescript
+ * // 默认配置
+ * const app = new App().addPlugin(createLogPlugin());
+ *
+ * // 自定义配置
+ * const app = new App().addPlugin(
+ *   createLogPlugin({
+ *     level: Level.DEBUG,
+ *     filter: "wgpu=error,bevy_render=info",
+ *   })
+ * );
+ *
+ * // 使用扩展方法
+ * const logLevel = app.context.getLogLevel();
+ * const logManager = app.context.getLogManager();
+ * ```
+ */
+export function createLogPlugin(
+	config?: LogPluginConfig,
+): Plugin & { extension: LogPluginExtension } {
+	const filter = config?.filter ?? DEFAULT_FILTER;
+	const level = config?.level ?? Level.INFO;
+	const customLayer = config?.customLayer;
+	const fmtLayer = config?.fmtLayer;
+
+
+	const pluginInstance = plugin<LogPluginExtension>({
+		name: "LogPlugin",
+		build: (app: App) => {
+			// 创建订阅器
+			const subscriber = new LogSubscriber();
+
+			// 添加用户自定义层
+			if (customLayer) {
+				const layer = customLayer(app);
+
+				if (layer) {
+					subscriber.addLayer(layer);
+				}
+			}
+
+			// 构建默认过滤器
+			const levelString = Level[level] as keyof typeof Level;
+			const defaultFilter = `${levelString.lower()},${filter}`;
+
+			// 尝试从环境创建过滤器（在 Roblox 中直接使用默认值）
+			const envFilter = EnvFilter.tryFromDefaultEnv(defaultFilter);
+
+			// 添加格式化层或默认的 Roblox 层
+			if (fmtLayer) {
+				const layer = fmtLayer(app);
+
+				if (layer) {
+					subscriber.addLayer(layer);
+				}
+			} else {
+				// 使用默认的 Roblox 层
+				const robloxLayer = new RobloxLayer(envFilter);
+				subscriber.addLayer(robloxLayer);
+			}
+
+			// 设置全局默认订阅器
+			const subscriberAlreadySet = !LogSubscriber.setGlobalDefault(subscriber);
+
+			if (subscriberAlreadySet && RunService.IsStudio()) {
+				// 只在 Studio 模式下输出警告，避免在生产环境中产生噪音
+			}
+		},
+		extension: {
+			getLogManager: (world: World, context: AppContext, pluginInstance: Plugin) => {
+				return () => LogSubscriber.getGlobal();
+			},
+			getLogLevel: (world: World, context: AppContext, pluginInstance: Plugin) => {
+				return () => level;
+			},
+		},
+		unique: true,
+	});
+
+	// 确保扩展属性存在
+	return pluginInstance as Plugin & { extension: LogPluginExtension };
 }
 
 // 导出所有公共类型

@@ -5,35 +5,36 @@
 /// <reference types="@rbxts/testez/globals" />
 
 import { App } from "../../bevy_app/app";
-import { LogPlugin, Level } from "../index";
+import { createLogPlugin, Level } from "../index";
 import { LogSubscriber, Layer, LogRecord } from "../roblox-tracing";
 
 export = () => {
-	describe("LogPlugin", () => {
+	describe("createLogPlugin (函数式)", () => {
 		afterEach(() => {
-			// 清理全局订阅器
 			LogSubscriber.clearGlobal();
 		});
 
 		it("应该使用默认配置创建插件", () => {
-			const plugin = new LogPlugin();
-			expect(plugin.filter).to.be.a("string");
-			expect(plugin.level).to.equal(Level.INFO);
+			const plugin = createLogPlugin();
 			expect(plugin.name()).to.equal("LogPlugin");
+			expect(plugin.isUnique()).to.equal(true);
 		});
 
 		it("应该接受自定义配置", () => {
-			const plugin = new LogPlugin({
+			const plugin = createLogPlugin({
 				level: Level.DEBUG,
 				filter: "custom=trace",
 			});
-			expect(plugin.level).to.equal(Level.DEBUG);
-			expect(plugin.filter).to.equal("custom=trace");
+
+			// 函数式插件应该有扩展
+			expect(plugin.extension).to.be.ok();
+			expect(plugin.extension.getLogLevel).to.be.a("function");
+			expect(plugin.extension.getLogManager).to.be.a("function");
 		});
 
 		it("应该在 App 中正确构建", () => {
 			const app = new App();
-			const plugin = new LogPlugin({
+			const plugin = createLogPlugin({
 				level: Level.WARN,
 				filter: "test=debug",
 			});
@@ -56,7 +57,7 @@ export = () => {
 				},
 			};
 
-			const plugin = new LogPlugin({
+			const plugin = createLogPlugin({
 				customLayer: () => customLayer,
 			});
 
@@ -65,6 +66,7 @@ export = () => {
 
 			// 触发日志事件
 			const subscriber = LogSubscriber.getGlobal();
+
 			if (subscriber) {
 				subscriber.logEvent({
 					level: Level.INFO,
@@ -87,7 +89,7 @@ export = () => {
 				},
 			};
 
-			const plugin = new LogPlugin({
+			const plugin = createLogPlugin({
 				fmtLayer: () => fmtLayer,
 			});
 
@@ -96,6 +98,7 @@ export = () => {
 
 			// 触发日志事件
 			const subscriber = LogSubscriber.getGlobal();
+
 			if (subscriber) {
 				subscriber.logEvent({
 					level: Level.INFO,
@@ -107,14 +110,22 @@ export = () => {
 			expect(fmtLayerCalled).to.equal(true);
 		});
 
+		it("应该暴露扩展方法", () => {
+			const plugin = createLogPlugin({ level: Level.ERROR });
+
+			expect(plugin.extension).to.be.ok();
+			expect(plugin.extension.getLogManager).to.be.a("function");
+			expect(plugin.extension.getLogLevel).to.be.a("function");
+		});
+
 		it("应该防止重复设置全局订阅器", () => {
 			const app1 = new App();
-			const plugin1 = new LogPlugin();
+			const plugin1 = createLogPlugin();
 			app1.addPlugin(plugin1);
 
 			// 第二次尝试应该失败
 			const app2 = new App();
-			const plugin2 = new LogPlugin();
+			const plugin2 = createLogPlugin();
 
 			// 这会产生一个预期的警告，但不会崩溃
 			app2.addPlugin(plugin2);
@@ -124,7 +135,7 @@ export = () => {
 		});
 
 		it("应该正确设置过滤器", () => {
-			const plugin = new LogPlugin({
+			const plugin = createLogPlugin({
 				level: Level.ERROR,
 				filter: "bevy_app=warn,bevy_ecs=info",
 			});
