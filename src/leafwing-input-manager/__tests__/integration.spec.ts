@@ -15,6 +15,7 @@ import { Resource } from "../../bevy_ecs";
 import { advanceFrame, createTestApp } from "./test-utils";
 import { KeyboardSimulator } from "./input-simulator";
 import { KeyCode } from "../user-input/keyboard";
+import { InputManagerPlugin } from "../plugin/input-manager-plugin";
 
 /**
  * 测试用动作
@@ -96,6 +97,12 @@ export = () => {
 
 			beforeEach(() => {
 				app = createTestApp();
+
+				// 添加 InputManagerPlugin 以注册输入处理系统
+				const plugin = new InputManagerPlugin<Action>({
+					actionTypeName: "Action",
+				});
+				app.addPlugins(plugin);
 
 				// 设置输入映射
 				const inputMap = new InputMap<Action>();
@@ -230,6 +237,12 @@ export = () => {
 
 			beforeEach(() => {
 				app = createTestApp();
+
+				// 添加 InputManagerPlugin 以注册输入处理系统
+				const plugin = new InputManagerPlugin<Action>({
+					actionTypeName: "Action",
+				});
+				app.addPlugins(plugin);
 
 				const inputMap = new InputMap<Action>();
 				inputMap.insert(Action.PayRespects, KeyCode.F);

@@ -13,6 +13,7 @@ import { App } from "../../bevy_app/app";
 import { KeyCode } from "../user-input/keyboard";
 import { MouseButton } from "../user-input/mouse";
 import { GamepadButton } from "../user-input/gamepad";
+import { InputManagerPlugin } from "../plugin/input-manager-plugin";
 
 /**
  * 测试用动作枚举
@@ -46,6 +47,12 @@ class TestAction implements Actionlike {
 function createButtonTestApp(): App {
 	const app = createTestApp();
 
+	// 添加 InputManagerPlugin 以注册输入处理系统
+	const plugin = new InputManagerPlugin<TestAction>({
+		actionTypeName: "TestAction",
+	});
+	app.addPlugins(plugin);
+
 	// 创建输入映射
 	const inputMap = new InputMap<TestAction>();
 	inputMap.insert(TestAction.Throttle, KeyCode.Space);
@@ -53,9 +60,13 @@ function createButtonTestApp(): App {
 	inputMap.insert(TestAction.Throttle, GamepadButton.south());
 	inputMap.insert(TestAction.Throttle, GamepadButton.rightTrigger());
 
+	// 创建并配置 ActionState
+	const actionState = new ActionState<TestAction>();
+	actionState.registerAction(TestAction.Throttle);
+
 	// 插入资源
 	app.insertResource(inputMap);
-	app.insertResource(new ActionState<TestAction>());
+	app.insertResource(actionState);
 
 	// 运行一次更新以初始化系统
 	app.update();

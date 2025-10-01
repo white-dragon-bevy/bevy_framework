@@ -117,9 +117,9 @@ export class InputManagerPlugin<A extends Actionlike>
 	private connections: RBXScriptConnection[] = [];
 
 	/**
-	 * 扩展工厂 - 提供类型安全的上下文扩展
+	 * API 辅助方法 - 提供类型安全的实体操作接口
 	 */
-	readonly extension:InputManagerExtension<A>;
+	readonly api:InputManagerExtension<A>;
 
 	constructor(config: InputManagerPluginConfig<A>) {
 		this.config = config;
@@ -127,8 +127,8 @@ export class InputManagerPlugin<A extends Actionlike>
 		this.components = createActionComponents<A>(config.actionTypeName);
 
 
-		// 创建扩展工厂对象
-		this.extension = createExtensionFactory<A>( this.components);
+		// 创建 API 辅助对象
+		this.api = createExtensionFactory<A>( this.components);
 	}
 
 	/**
@@ -139,12 +139,17 @@ export class InputManagerPlugin<A extends Actionlike>
 		const isServer = RunService.IsServer();
 		const isClient = RunService.IsClient();
 
-		if (isServer) {
-			// Server mode: Only tick action states
-			this.registerServerSystems(app);
-		} else if (isClient) {
-			// Client mode: full input processing
+		// In Studio test environment, IsServer and IsClient may both be true
+		// or we may want to test input processing even in server mode
+		// So we always register client systems if they're needed
+		const isTestEnvironment = RunService.IsStudio();
+
+		if (isClient || isTestEnvironment) {
+			// Client mode or test environment: full input processing
 			this.registerClientSystems(app);
+		} else if (isServer) {
+			// Pure server mode: Only tick action states
+			this.registerServerSystems(app);
 		}
 	}
 
