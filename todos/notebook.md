@@ -1,23 +1,17 @@
 ## 底层工作
 
 - 占位插件
-  - bevy_camera
+  - √ bevy_camera 
 - 功能插件
-  - bevy_animation
-  - 
-- jsdoc注释
+  - x bevy_animation
+- √ jsdoc注释
 - 文档
 - 结构调整
 - 例子
 - src\bevy_ecs\query.ts 要不要了
 - 热更新
 - 简单同步
-- 有可能需要
-  - bevy_animation
-  - bevy_asset
-  - bevy_audio
-  - bevy_camera
-  - bevy_light
+
 
 ## 社区库迁移和学习
 

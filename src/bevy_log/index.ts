@@ -34,7 +34,7 @@
  */
 
 // 导出核心插件
-export { LogPlugin } from "./lib";
+export { createLogPlugin, type LogPluginConfig } from "./lib";
 
 // 导出日志级别
 export { Level } from "./level";

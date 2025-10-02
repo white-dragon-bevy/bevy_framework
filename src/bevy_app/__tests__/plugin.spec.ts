@@ -2,7 +2,6 @@ import { App } from "../index";
 import {
 	Plugin,
 	BasePlugin,
-	FunctionPlugin,
 	createPlugin,
 	PluginState,
 	PluginGroup,
@@ -109,38 +108,6 @@ export = (): void => {
 			});
 		});
 
-		describe("FunctionPlugin", () => {
-			it("应该从函数创建插件", () => {
-				let functionCalled = false;
-				const plugin = new FunctionPlugin(
-					(app: App) => {
-						functionCalled = true;
-					},
-					"TestFunctionPlugin",
-					true,
-				);
-
-				expect(plugin.name()).to.equal("TestFunctionPlugin");
-				expect(plugin.isUnique()).to.equal(true);
-
-				const app = App.create();
-				plugin.build(app);
-				expect(functionCalled).to.equal(true);
-			});
-
-			it("应该使用默认名称和唯一性", () => {
-				const plugin = new FunctionPlugin((app: App) => {});
-
-				expect(plugin.name()).to.equal("FunctionPlugin");
-				expect(plugin.isUnique()).to.equal(true);
-			});
-
-			it("应该支持非唯一插件", () => {
-				const plugin = new FunctionPlugin((app: App) => {}, "NonUnique", false);
-
-				expect(plugin.isUnique()).to.equal(false);
-			});
-		});
 
 		describe("createPlugin", () => {
 			it("应该创建函数式插件", () => {

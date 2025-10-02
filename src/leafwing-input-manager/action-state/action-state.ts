@@ -3,6 +3,7 @@ import { Instant } from "../instant";
 import { ActionData } from "./action-data";
 import { ButtonData } from "./button-data";
 import { component } from "@rbxts/matter";
+import type { ProcessedActionState } from "../input-map/input-map";
 
 /**
  * Represents the updated state of all actions after processing from InputMap
@@ -31,6 +32,12 @@ export class ActionState<Action extends Actionlike> {
 	private readonly buttonData: Map<string, ButtonData>;
 
 	/**
+	 * Previous frame's processed action states for change detection
+	 * This is used by InputMap.processActions() to calculate justPressed/justReleased
+	 */
+	private previousProcessedData: Map<string, ProcessedActionState>;
+
+	/**
 	 * Actions that should not be updated from input
 	 */
 	private readonly disabledActions: Set<string>;
@@ -52,6 +59,7 @@ export class ActionState<Action extends Actionlike> {
 	constructor(disabled: boolean = false) {
 		this.actionData = new Map();
 		this.buttonData = new Map();
+		this.previousProcessedData = new Map();
 		this.disabledActions = new Set();
 		this.disabled = disabled;
 		this.hashToAction = new Map();
@@ -110,6 +118,25 @@ export class ActionState<Action extends Actionlike> {
 	 */
 	public value(action: Action): number {
 		return this.getActionData(action).value;
+	}
+
+	/**
+	 * Gets the button value for the action
+	 * This is an alias for value() specifically for button-like inputs
+	 * @param action - The action to get the button value for
+	 * @returns The button value (0.0 to 1.0)
+	 */
+	public buttonValue(action: Action): number {
+		return this.value(action);
+	}
+
+	/**
+	 * Consumes an action, marking it as no longer pressed
+	 * This is useful for preventing an action from being processed multiple times
+	 * @param action - The action to consume
+	 */
+	public consume(action: Action): void {
+		this.release(action);
 	}
 
 	/**
@@ -305,23 +332,47 @@ export class ActionState<Action extends Actionlike> {
 	 * @param processedData - Map of action hashes to processed states
 	 */
 	public updateFromProcessed(processedData: Map<string, { pressed: boolean; value: number; axisPair?: Vector2 }>): void {
+		// Save current state as previous before updating
+		this.previousProcessedData.clear();
+		for (const [actionHash, actionData] of this.actionData) {
+			const buttonData = this.buttonData.get(actionHash);
+			this.previousProcessedData.set(actionHash, {
+				pressed: actionData.pressed,
+				justPressed: buttonData?.justPressed ?? false,
+				justReleased: buttonData?.justReleased ?? false,
+				value: actionData.value,
+				axisPair: actionData.axisPairX !== undefined && actionData.axisPairY !== undefined
+					? new Vector2(actionData.axisPairX, actionData.axisPairY)
+					: undefined,
+			});
+		}
+
 		// Update each action based on processed state
 		for (const [actionHash, state] of processedData) {
-			const action = this.hashToAction.get(actionHash);
-			if (action) {
-				if (state.pressed) {
-					this.press(action);
-					// Update axis values if present
-					const actionData = this.actionData.get(actionHash);
-					if (actionData && state.axisPair) {
-						actionData.axisPairX = state.axisPair.X;
-						actionData.axisPairY = state.axisPair.Y;
-						actionData.value = state.value;
-					}
-				} else {
-					this.release(action);
-				}
+			if (this.disabled || this.disabledActions.has(actionHash)) {
+				continue;
 			}
+
+			// Ensure action data structures exist (don't need Action instance)
+			if (!this.actionData.has(actionHash)) {
+				this.actionData.set(actionHash, ActionData.default());
+				this.buttonData.set(actionHash, ButtonData.default());
+			}
+
+			const currentActionData = this.actionData.get(actionHash)!;
+			const currentButtonData = this.buttonData.get(actionHash)!;
+			const wasPressed = currentActionData.pressed;
+
+			// Update action data
+			currentActionData.update(
+				state.pressed,
+				state.value,
+				state.axisPair?.X,
+				state.axisPair?.Y,
+			);
+
+			// Update button data
+			currentButtonData.update(state.pressed, wasPressed);
 		}
 	}
 
@@ -429,9 +480,12 @@ export class ActionState<Action extends Actionlike> {
 
 	/**
 	 * Disables all actions in this ActionState
+	 * Also releases all currently pressed actions to prevent them from being stuck
 	 */
 	public disableAll(): void {
 		this.disabled = true;
+		// Release all pressed actions to prevent them from being stuck
+		this.releaseAll();
 	}
 
 	/**
@@ -588,6 +642,15 @@ export class ActionState<Action extends Actionlike> {
 	 */
 	public getHashToActionMap(): Map<string, Action> {
 		return this.hashToAction;
+	}
+
+	/**
+	 * Gets the previous frame's processed data for InputMap.processActions()
+	 * This is used to calculate justPressed/justReleased states correctly
+	 * @returns The previous frame's processed action data
+	 */
+	public getPreviousProcessedData(): Map<string, ProcessedActionState> {
+		return this.previousProcessedData;
 	}
 
 	/**

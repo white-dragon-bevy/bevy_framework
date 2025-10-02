@@ -9,10 +9,14 @@
 
 import { AppContext } from "../../bevy_app/context";
 import { Actionlike } from "../actionlike";
-import { InputManagerPlugin } from "./input-manager-plugin";
+import type { InputManagerExtension } from "./extensions";
 import { ComponentDefinition } from "./component-factory";
 import { InputMap } from "../input-map/input-map";
 import { ActionState } from "../action-state/action-state";
+
+interface InputManagerPlugin<A extends Actionlike> {
+	extension: InputManagerExtension<A>;
+}
 
 /**
  * 获取特定 Action 类型的组件定义
@@ -33,9 +37,9 @@ import { ActionState } from "../action-state/action-state";
  * ```
  */
 export function getActionComponents<A extends Actionlike>(
-	plugin: InputManagerPlugin<A>
+	plugin: InputManagerPlugin<A>,
 ): ComponentDefinition<A> {
-	return plugin.getComponents();
+	return plugin.extension.getComponents();
 }
 
 /**
@@ -60,9 +64,9 @@ export function spawnWithInput<A extends Actionlike>(
 	context: AppContext,
 	plugin: InputManagerPlugin<A>,
 	inputMap: InputMap<A>,
-	actionState?: ActionState<A>
+	actionState?: ActionState<A>,
 ): number {
-	const components = plugin.getComponents();
+	const components = plugin.extension.getComponents();
 	return components.spawn(context.world, inputMap, actionState);
 }
 
@@ -84,9 +88,9 @@ export function spawnWithInput<A extends Actionlike>(
 export function getEntityInputData<A extends Actionlike>(
 	context: AppContext,
 	plugin: InputManagerPlugin<A>,
-	entityId: number
+	entityId: number,
 ) {
-	const components = plugin.getComponents();
+	const components = plugin.extension.getComponents();
 	return components.get(context.world, entityId);
 }
 
@@ -112,9 +116,9 @@ export function addInputToEntity<A extends Actionlike>(
 	plugin: InputManagerPlugin<A>,
 	entityId: number,
 	inputMap: InputMap<A>,
-	actionState?: ActionState<A>
+	actionState?: ActionState<A>,
 ): void {
-	const components = plugin.getComponents();
+	const components = plugin.extension.getComponents();
 	components.insert(context.world, entityId, inputMap, actionState);
 }
 
@@ -132,9 +136,9 @@ export function addInputToEntity<A extends Actionlike>(
 export function removeInputFromEntity<A extends Actionlike>(
 	context: AppContext,
 	plugin: InputManagerPlugin<A>,
-	entityId: number
+	entityId: number,
 ): void {
-	const components = plugin.getComponents();
+	const components = plugin.extension.getComponents();
 	components.remove(context.world, entityId);
 }
 
@@ -155,8 +159,8 @@ export function removeInputFromEntity<A extends Actionlike>(
  */
 export function queryInputEntities<A extends Actionlike>(
 	context: AppContext,
-	plugin: InputManagerPlugin<A>
+	plugin: InputManagerPlugin<A>,
 ) {
-	const components = plugin.getComponents();
+	const components = plugin.extension.getComponents();
 	return components.query(context.world);
 }

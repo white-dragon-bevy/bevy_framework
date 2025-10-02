@@ -16,7 +16,7 @@ import { RunService, Players } from "@rbxts/services";
 
 // 导入输入管理器
 import {
-	InputManagerPlugin,
+	createInputManagerPlugin,
 	InputMap,
 	ActionState,
 	KeyCode,
@@ -277,7 +277,7 @@ function createVirtualButtonUI(virtualJumpButton: VirtualButton, virtualAttackBu
 // 系统定义
 // =====================================
 
-let inputPlugin: InputManagerPlugin<PlayerActionlike>;
+let inputPlugin: ReturnType<typeof createInputManagerPlugin<PlayerActionlike>>;
 
 /**
  * 生成玩家
@@ -339,7 +339,7 @@ function spawnPlayer(world: BevyWorld): void {
  * 处理玩家输入
  */
 function handlePlayerInput(world: BevyWorld): void {
-	for (const [entityId, inputData] of queryInputEntities({ world } as any, inputPlugin as any)) {
+	for (const [entityId, inputData] of inputPlugin.extension!.queryInputEntities(world)) {
 		const player = world.get(entityId as any, Player);
 		if (!player) continue;
 
@@ -387,7 +387,7 @@ function handlePlayerInput(world: BevyWorld): void {
  * 显示状态信息
  */
 function displayStatus(world: BevyWorld): void {
-	for (const [entityId, inputData] of queryInputEntities({ world } as any, inputPlugin as any)) {
+	for (const [entityId, inputData] of inputPlugin.extension!.queryInputEntities(world)) {
 		const player = world.get(entityId as any, Player);
 		if (!player) continue;
 
@@ -418,7 +418,7 @@ function createApp(): App {
 	app.addPlugins(new DefaultPlugins());
 
 	// 添加输入管理器插件
-	inputPlugin = new InputManagerPlugin<PlayerActionlike>({} as any) as any;
+	inputPlugin = createInputManagerPlugin<PlayerActionlike>({} as any) as any;
 	app.addPlugin(inputPlugin);
 
 	// 添加系统

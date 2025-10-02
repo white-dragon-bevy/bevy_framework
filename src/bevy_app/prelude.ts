@@ -21,7 +21,6 @@ export {
 	PluginGroup,
 	PluginState,
 	BasePlugin,
-	FunctionPlugin,
 	createPlugin,
 	PluginGroupBuilder,
 	BasePluginGroup,

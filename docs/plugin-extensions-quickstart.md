@@ -6,11 +6,11 @@
 
 ```typescript
 import { App } from "../bevy_app/app";
-import { LogPlugin } from "../bevy_log/lib";
+import { createLogPlugin } from "../bevy_log";
 
-// 1. 创建 App 并添加插件
+// 1. 创建 App 并添加插件（函数式）
 const app = App.create()
-    .addPlugin(new LogPlugin());
+    .addPlugin(createLogPlugin());
 
 // 2. 直接使用扩展方法 - 有完整的类型提示！
 const logLevel = app.context.getLogLevel();    // ✅ 类型安全
@@ -25,34 +25,38 @@ const logManager = app.context.getLogManager(); // ✅ 代码提示
 // my-plugin.ts
 import type { ExtensionFactory } from "../bevy_app/app";
 
-export interface MyPluginExtensionFactories {
+export interface MyPluginExtension {
     getManager: ExtensionFactory<() => MyManager>;
     doSomething: ExtensionFactory<(param: string) => void>;
 }
 ```
 
-### 2. 实现插件
+### 2. 实现插件（函数式）
 
 ```typescript
-export class MyPlugin extends BasePlugin {
-    extension: MyPluginExtensionFactories;
-    
-    constructor() {
-        super();
-        
-        // 关键：使用工厂模式，避免 this 问题
-        this.extension = {
-            getManager: (world, context, plugin: MyPlugin) => {
-                return () => plugin.manager; // 使用 plugin 而不是 this
+import { plugin } from "../bevy_app/plugin";
+
+export function createMyPlugin() {
+    const manager = new MyManager();
+
+    return plugin<MyPluginExtension>({
+        name: "MyPlugin",
+        build: (app) => {
+            // 插件构建逻辑
+            app.insertResource(manager);
+        },
+        extension: {
+            getManager: (world, context, pluginInstance) => {
+                return () => manager;
             },
-            
-            doSomething: (world, context, plugin: MyPlugin) => {
+
+            doSomething: (world, context, pluginInstance) => {
                 return (param: string) => {
                     print(`Hello ${param}!`);
                 };
             },
-        };
-    }
+        },
+    });
 }
 ```
 
@@ -60,7 +64,7 @@ export class MyPlugin extends BasePlugin {
 
 ```typescript
 const app = App.create()
-    .addPlugin(new MyPlugin());
+    .addPlugin(createMyPlugin());
 
 // 直接访问，享受类型安全！
 const manager = app.context.getManager();
@@ -84,7 +88,7 @@ app.context.doSomething("World");
 
 ```typescript
 // TypeScript 自动推导类型链：
-MyPlugin.extension -> MyPluginExtensionFactories -> 实际函数类型 -> app.context
+plugin<MyPluginExtension>(...) -> MyPluginExtension -> 实际函数类型 -> app.context
 ```
 
 ## 📖 更多信息

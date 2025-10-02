@@ -6,6 +6,9 @@ import { Axislike } from "../user-input/traits/axislike";
 import { DualAxislike } from "../user-input/traits/dual-axislike";
 import { CentralInputStore } from "../user-input/central-input-store";
 import { usePrintDebounce } from "../../utils";
+import { ClashDetector } from "../clashing-inputs/clash-detection";
+import { ClashStrategyResource } from "../clashing-inputs/clash-strategy";
+import type { BevyWorld } from "../../bevy_ecs/types";
 
 import { component } from "@rbxts/matter";
 
@@ -204,80 +207,146 @@ export class InputMap<Action extends Actionlike> {
 
 	/**
 	 * Processes all inputs and generates updated action states
+	 * Optimized to use single-pass traversal
 	 * @param inputStore - The central input store containing current input values
 	 * @param previousActions - The previous action states for change detection
+	 * @param world - The game world for accessing clash strategy resource
 	 * @returns Updated action states and consumed inputs
 	 */
 	processActions(
 		inputStore: CentralInputStore,
 		previousActions?: Map<string, ProcessedActionState>,
+		world?: BevyWorld,
 	): ProcessedActions<Action> {
 		const actionData: Map<string, ProcessedActionState> = new Map();
 		const consumedInputs: Set<string> = new Set();
 
+		// Single-pass: Collect all action states in one traversal
+		interface ActionProcessingState {
+			actionKey: string;
+			pressed: boolean;
+			value: number;
+			axisPair?: Vector2;
+			inputs: Array<UserInput>;
+		}
+
+		const actionStates = new Map<string, ActionProcessingState>();
+
+		// Phase 1: Single traversal to collect all action states
 		this.actionToInputs.forEach((inputs, actionKey) => {
 			let pressed = false;
 			let value = 0;
 			let axisPair: Vector2 | undefined;
 
-			// 调试: 检查jump动作
-			if (actionKey.find("jump")[0]) {
-				usePrintDebounce(`[InputMap.processActions] 🌟 处理 jump 动作 - 输入数量: ${inputs.size()}`, 3);
-			}
-
 			// Process all inputs for this action
 			for (const input of inputs) {
-				const inputHash = input.hash();
-
-				// Skip if this input was already consumed by another action
-				if (consumedInputs.has(inputHash)) {
-					continue;
-				}
-
 				const controlKind = input.kind();
 
 				if (controlKind === InputControlKind.Button && this.isButtonlike(input)) {
 					const buttonPressed = input.pressed(inputStore, this.gamepadAssociation);
 					const buttonValue = input.value(inputStore, this.gamepadAssociation);
 
-					// 调试: 检查空格键
-					if (inputHash.find("Space")[0] && actionKey.find("jump")[0]) {
-						usePrintDebounce(`[InputMap] 🎮 空格键状态 - pressed: ${buttonPressed}, value: ${buttonValue}, hash: ${inputHash}`, 2);
-					}
-
 					if (buttonPressed) {
 						pressed = true;
 						value = math.max(value, buttonValue);
-						consumedInputs.add(inputHash);
 					}
 				} else if (controlKind === InputControlKind.Axis && this.isAxislike(input)) {
 					const axisValue = input.value(inputStore, this.gamepadAssociation);
 
-					if (math.abs(axisValue) > 0.01) { // Dead zone threshold
+					if (math.abs(axisValue) > 0.01) {
 						pressed = true;
 						value = math.max(value, math.abs(axisValue));
-						consumedInputs.add(inputHash);
 					}
 				} else if (controlKind === InputControlKind.DualAxis && this.isDualAxislike(input)) {
 					const dualAxisValue = input.axisPair(inputStore, this.gamepadAssociation);
 
-					if (dualAxisValue.Magnitude > 0.01) { // Dead zone threshold
+					if (dualAxisValue.Magnitude > 0.01) {
 						pressed = true;
 						value = math.max(value, dualAxisValue.Magnitude);
 						axisPair = dualAxisValue;
-						consumedInputs.add(inputHash);
 					}
 				}
 			}
 
-			// Determine just pressed and just released states
+			// Store state for all actions (even unpressed ones for complete state tracking)
+			const inputsArray: Array<UserInput> = [];
+			for (const input of inputs) {
+				inputsArray.push(input);
+			}
+
+			actionStates.set(actionKey, {
+				actionKey,
+				pressed,
+				value,
+				axisPair,
+				inputs: inputsArray,
+			});
+		});
+
+		// Phase 2: Clash detection and resolution (only for pressed actions)
+		let allowedActions: Set<string> | undefined;
+		const pressedActions: Array<ActionProcessingState> = [];
+
+		// Filter to pressed actions for clash detection
+		actionStates.forEach((state) => {
+			if (state.pressed) {
+				pressedActions.push(state);
+			}
+		});
+
+		if (world && pressedActions.size() > 1) {
+			const clashStrategyResource = world.resources.getResource<ClashStrategyResource>();
+
+			if (clashStrategyResource) {
+				const detector = new ClashDetector<Action>();
+
+				// Register all pressed actions
+				for (const state of pressedActions) {
+					// Create a mock action from the action key
+					const mockAction = {
+						hash() {
+							return state.actionKey;
+						},
+					} as Action;
+
+					detector.registerAction(mockAction, state.inputs);
+				}
+
+				// Detect and resolve clashes
+				const clashes = detector.detectClashes();
+				allowedActions = detector.resolveClashes(clashes, clashStrategyResource.strategy);
+			}
+		}
+
+		// Phase 3: Build final action data (no additional traversal)
+		for (const [actionKey, state] of actionStates) {
+			// Determine if this action should trigger
+			let shouldTrigger = false;
+
+			if (state.pressed) {
+				// If clash resolution was performed, check if allowed
+				if (allowedActions) {
+					shouldTrigger = allowedActions.has(actionKey);
+				} else {
+					// No clash resolution, allow all pressed actions
+					shouldTrigger = true;
+				}
+			}
+
+			// Calculate final states
+			const pressed = shouldTrigger;
+			const value = shouldTrigger ? state.value : 0;
+			const axisPair = shouldTrigger ? state.axisPair : undefined;
+
 			const previousState = previousActions?.get(actionKey);
 			const justPressed = pressed && !(previousState?.pressed ?? false);
 			const justReleased = !pressed && (previousState?.pressed ?? false);
 
-			// 调试: 记录jump动作状态
-			if (actionKey.find("jump")[0] && (pressed || justPressed || justReleased)) {
-				usePrintDebounce(`[InputMap] 🎯 jump 最终状态 - pressed: ${pressed}, justPressed: ${justPressed}, value: ${value}`, 2);
+			// Mark inputs as consumed if triggered
+			if (shouldTrigger) {
+				for (const input of state.inputs) {
+					consumedInputs.add(input.hash());
+				}
 			}
 
 			actionData.set(actionKey, {
@@ -287,7 +356,7 @@ export class InputMap<Action extends Actionlike> {
 				value,
 				axisPair,
 			});
-		});
+		}
 
 		return {
 			actionData,
@@ -410,6 +479,23 @@ export class InputMap<Action extends Actionlike> {
 	 */
 	private isDualAxislike(input: UserInput): input is DualAxislike {
 		return input.kind() === InputControlKind.DualAxis;
+	}
+
+	/**
+	 * Gets all user inputs bound in this InputMap
+	 * @returns Array of all user inputs
+	 */
+	getAllInputs(): Array<UserInput> {
+		const allInputs: Array<UserInput> = [];
+		this.actionToInputs.forEach((inputs) => {
+			for (const input of inputs) {
+				// Avoid duplicates
+				if (!allInputs.includes(input)) {
+					allInputs.push(input);
+				}
+			}
+		});
+		return allInputs;
 	}
 }
 

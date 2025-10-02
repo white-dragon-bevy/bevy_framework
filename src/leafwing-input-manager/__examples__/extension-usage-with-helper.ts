@@ -4,7 +4,7 @@
  */
 
 import { App, MainScheduleLabel } from "../../bevy_app";
-import { InputManagerPlugin } from "../plugin/input-manager-plugin";
+import { createInputManagerPlugin } from "../plugin/input-manager-plugin";
 import { Actionlike } from "../actionlike";
 import { InputMap } from "../input-map/input-map";
 import type { AppContext } from "../../bevy_app/context";
@@ -131,7 +131,7 @@ export function main(): void {
 
 	// 注册插件
 	app.addPlugin(
-		new InputManagerPlugin<PlayerAction>(
+		createInputManagerPlugin<PlayerAction>(
 			{ actionTypeName: "PlayerAction" }
 		),
 	);
