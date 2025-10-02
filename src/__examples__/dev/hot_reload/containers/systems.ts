@@ -8,9 +8,9 @@
  * 2. 修改代码后会自动热更新
  */
 
-import type { World } from "../../../bevy_ecs";
-import type { Context } from "../../../bevy_ecs/types";
-import { BuiltinSchedules } from "../../../bevy_app/main-schedule";
+import type { World } from "../../../../bevy_ecs";
+import type { Context } from "../../../../bevy_ecs/types";
+import { BuiltinSchedules } from "../../../../bevy_app/main-schedule";
 
 /**
  * 方式 1：纯函数导出（最简单）
@@ -49,7 +49,7 @@ export const movementSystem = {
  */
 export const debugSystem = {
 	system: (world: World, context: Context) => {
-		print(`[DebugSystem] 调试信息 2222`);
+		print(`[DebugSystem] 调试信息 5555`);
 	},
 	// 只在 Studio 环境运行
 	runIf: (world: World) => {

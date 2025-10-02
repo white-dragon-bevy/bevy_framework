@@ -10,7 +10,26 @@ import type { ScheduleLabel, RunCondition, SystemSet, SystemFunction } from "../
  */
 export interface ContainerConfig {
 	/**
-	 * 系统容器（Roblox Instance，通常是 Folder）
+	 * 系统容器
+	 *
+	 * 支持两种类型：
+	 * - **Folder**: 包含多个 ModuleScript 子项，使用 scan() 扫描所有子模块
+	 * - **ModuleScript**: 单个模块容器，使用 listen() 监听该模块本身的变化
+	 *
+	 * @example
+	 * ```typescript
+	 * // Folder 容器：扫描所有子模块
+	 * {
+	 *   container: ReplicatedStorage.WaitForChild("Systems"),
+	 *   schedule: BuiltinSchedules.UPDATE
+	 * }
+	 *
+	 * // ModuleScript 容器：监听单个模块
+	 * {
+	 *   container: ReplicatedStorage.WaitForChild("GameSystems"),
+	 *   schedule: BuiltinSchedules.UPDATE
+	 * }
+	 * ```
 	 */
 	readonly container: Instance;
 

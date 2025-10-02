@@ -492,6 +492,7 @@ export class App<T extends AppContext = AppContext> {
 	}
 
 
+
 	/**
 	 * 通过类型描述符获取资源
 	 * @template T - 资源对象类型

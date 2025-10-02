@@ -9,10 +9,12 @@
  * 4. 修改系统代码，观察热更新效果
  */
 
+import { BuiltinSchedules } from "bevy_app/main-schedule";
 import { App } from "../../../bevy_app/app";
 import { RobloxRunnerPlugin } from "../../../bevy_app/roblox-adapters";
-import { HotReloadPlugin } from "../../../bevy_dev/hot_reload";
-import { GameplayPlugin, RenderPlugin } from "./gameplay-plugin";
+import { HotReloadPlugin, HotReloadService } from "../../../bevy_dev/hot_reload";
+
+declare const script: { containers: Folder };
 
 /**
  * 运行热更新示例
@@ -34,34 +36,12 @@ export function runHotReloadExample(): void {
 	print("2. 添加 RobloxRunnerPlugin...");
 	app.addPlugin(new RobloxRunnerPlugin());
 
-	// 添加游戏插件
-	print("3. 添加 GameplayPlugin...");
-	app.addPlugin(new GameplayPlugin());
-
-	// 添加渲染插件（可选）
-	print("4. 添加 RenderPlugin...");
-	app.addPlugin(new RenderPlugin());
-
-	print("");
-	print("应用初始化完成！");
-	print("");
-	print("═══════════════════════════════════════");
-	print("使用说明：");
-	print("1. 在 ReplicatedStorage 中创建以下结构：");
-	print("   ReplicatedStorage/");
-	print("     └── HotSystems/");
-	print("         ├── System1 (ModuleScript)");
-	print("         └── System2 (ModuleScript)");
-	print("");
-	print("2. 系统模块格式（参考 example-systems.ts）：");
-	print("   export function mySystem(world, context) {");
-	print("     print('Hello from hot reload!');");
-	print("   }");
-	print("");
-	print("3. 修改系统代码后，保存即可自动热更新");
-	print("═══════════════════════════════════════");
-	print("");
-
+	app.getResource<HotReloadService>()?.registerContainers({
+		container: script.containers,
+		schedule: BuiltinSchedules.UPDATE,
+		defaultSet: "MyPlugin",
+	  })
+	    
 	// 运行应用
 	app.run();
 }
