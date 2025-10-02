@@ -14,6 +14,7 @@ import { Instant } from "./instant";
 import type { UpdatedActions } from "./action-state/action-state";
 import { SummarizedActionState } from "./summarized-action-state";
 import { usePrintDebounce } from "../utils";
+import type { BevyWorld } from "../bevy_ecs/types";
 
 /**
  * Converts ProcessedActionState to ActionData for ActionState updates
@@ -129,17 +130,18 @@ export function updateActionState<A extends Actionlike>(
 	query: Array<{ actionState: ActionState<A>; inputMap: InputMap<A> }>,
 	resourceActionState?: ActionState<A>,
 	resourceInputMap?: InputMap<A>,
+	world?: BevyWorld,
 ): void {
 	// Handle resource-level action state and input map
 	if (resourceActionState && resourceInputMap) {
-		const processedActions = resourceInputMap.processActions(inputStore);
+		const processedActions = resourceInputMap.processActions(inputStore, undefined, world);
 		const updatedActions = convertToUpdatedActions<A>(processedActions);
 		resourceActionState.updateFromUpdatedActions(updatedActions);
 	}
 
 	// Handle entity-level action states and input maps
 	for (const entity of query) {
-		const processedActions = entity.inputMap.processActions(inputStore);
+		const processedActions = entity.inputMap.processActions(inputStore, undefined, world);
 		const updatedActions = convertToUpdatedActions<A>(processedActions);
 
 		entity.actionState.updateFromUpdatedActions(updatedActions);

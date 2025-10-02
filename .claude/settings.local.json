@@ -25,7 +25,8 @@
       "Bash(do echo \"=== $file ===\")",
       "Bash(tail:*)",
       "Bash(done)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Read(//d/**)"
     ]
   },
   "enableAllProjectMcpServers": true,

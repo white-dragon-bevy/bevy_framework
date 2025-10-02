@@ -114,7 +114,7 @@ export = () => {
 			expect(actionState.value(TestAction.Jump)).to.equal(1.0);
 
 			// Swap to fixed update
-			actionState.swapToFixedUpdate();
+			actionState.swapToFixedUpdateState();
 
 			// Should have separate state now
 			expect(actionState.pressed(TestAction.Jump)).to.equal(false);
@@ -130,13 +130,13 @@ export = () => {
 			actionState.press(TestAction.Jump, 1.0);
 
 			// Swap to fixed update
-			actionState.swapToFixedUpdate();
+			actionState.swapToFixedUpdateState();
 
 			// Press different action in fixed update
 			actionState.press(TestAction.Move, 0.5);
 
 			// Swap back to update
-			actionState.swapToUpdate();
+			actionState.swapToUpdateState();
 
 			// Should restore original state
 			expect(actionState.pressed(TestAction.Jump)).to.equal(true);
@@ -150,7 +150,7 @@ export = () => {
 			const actionData = new ActionData(true, 1.0, 0.5, -0.3);
 
 			// Swap to fixed update state
-			actionData.swapToFixedUpdate();
+			actionData.swapToFixedUpdateState();
 
 			// Should have reset values
 			expect(actionData.pressed).to.equal(false);
@@ -162,7 +162,7 @@ export = () => {
 			actionData.update(true, 0.8, 0.2, 0.7);
 
 			// Swap back to update
-			actionData.swapToUpdate();
+			actionData.swapToUpdateState();
 
 			// Should restore original values
 			expect(actionData.pressed).to.equal(true);
@@ -175,7 +175,7 @@ export = () => {
 			const buttonData = new ButtonData(true, false);
 
 			// Swap to fixed update state
-			buttonData.swapToFixedUpdate();
+			buttonData.swapToFixedUpdateState();
 
 			// Should have default fixed update state
 			expect(buttonData.justPressed).to.equal(false);
@@ -186,7 +186,7 @@ export = () => {
 			expect(buttonData.justPressed).to.equal(true);
 
 			// Swap back to update
-			buttonData.swapToUpdate();
+			buttonData.swapToUpdateState();
 
 			// Should restore original state
 			expect(buttonData.justPressed).to.equal(true);
@@ -198,18 +198,18 @@ export = () => {
 			actionState.press(TestAction.Jump, 1.0);
 
 			// Multiple swaps should maintain state integrity
-			actionState.swapToFixedUpdate();
+			actionState.swapToFixedUpdateState();
 			actionState.press(TestAction.Move, 0.5);
 
-			actionState.swapToUpdate();
+			actionState.swapToUpdateState();
 			expect(actionState.pressed(TestAction.Jump)).to.equal(true);
 			expect(actionState.pressed(TestAction.Move)).to.equal(false);
 
-			actionState.swapToFixedUpdate();
+			actionState.swapToFixedUpdateState();
 			expect(actionState.pressed(TestAction.Jump)).to.equal(false);
 			expect(actionState.pressed(TestAction.Move)).to.equal(true);
 
-			actionState.swapToUpdate();
+			actionState.swapToUpdateState();
 			expect(actionState.pressed(TestAction.Jump)).to.equal(true);
 			expect(actionState.pressed(TestAction.Move)).to.equal(false);
 		});
@@ -218,8 +218,8 @@ export = () => {
 			actionState.disableAll();
 
 			// Should not crash when swapping disabled state
-			actionState.swapToFixedUpdate();
-			actionState.swapToUpdate();
+			actionState.swapToFixedUpdateState();
+			actionState.swapToUpdateState();
 
 			// Should remain disabled
 			expect(actionState.isDisabledAll()).to.equal(true);

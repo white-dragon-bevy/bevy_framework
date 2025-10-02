@@ -15,7 +15,7 @@ import { component } from "@rbxts/matter";
 
 // 导入输入管理器相关类型
 import {
-	InputManagerPlugin,
+	createInputManagerPlugin,
 	InputMap,
 	ActionState,
 	KeyCode,
@@ -73,7 +73,7 @@ const Player = component<{
 // =====================================
 
 // 保存插件实例供系统使用
-let inputPlugin: InputManagerPlugin<PlayerActionlike>;
+let inputPlugin: ReturnType<typeof createInputManagerPlugin<PlayerActionlike>>;
 
 /**
  * 生成玩家实体并设置输入映射
@@ -94,13 +94,8 @@ function spawnPlayer(world: BevyWorld, context: Context): void {
 	actionState.registerAction(new PlayerActionlike(PlayerAction.Jump));
 	actionState.registerAction(new PlayerActionlike(PlayerAction.Shoot));
 
-	// 使用新的 helper 函数创建带有输入组件的实体
-	const entity = spawnWithInput(
-		{ world } as any,
-		inputPlugin,
-		inputMap,
-		actionState
-	);
+	// 使用插件扩展创建带有输入组件的实体
+	const entity = inputPlugin.extension!.spawnWithInput(world, inputMap, actionState);
 
 	// 添加其他游戏组件
 	world.insert(entity as any, Player({ name: "Player1" }));
@@ -119,7 +114,7 @@ function spawnPlayer(world: BevyWorld, context: Context): void {
  */
 function handlePlayerActions(world: BevyWorld, context: Context): void {
 	// 使用新的查询方法遍历所有具有输入组件的实体
-	for (const [entityId, inputData] of queryInputEntities({ world } as any, inputPlugin)) {
+	for (const [entityId, inputData] of inputPlugin.extension!.queryInputEntities(world)) {
 		// 检查实体是否也是玩家
 		const player = world.get(entityId as any, Player);
 		if (!player) continue;
@@ -161,7 +156,7 @@ export function createApp() {
 	app.addPlugins(...DefaultPlugins.create().build().getPlugins());
 
 	// 创建并添加 InputManagerPlugin
-	inputPlugin = new InputManagerPlugin<PlayerActionlike>(
+	inputPlugin = createInputManagerPlugin<PlayerActionlike>(
 		{
 			actionTypeName: "PlayerAction",
 		}

@@ -1,5 +1,7 @@
 # White Dragon Bevy 插件开发规范
 
+> **重要**：本规范基于函数式插件 API。**class plugin 已完全弃用**，请使用 `plugin<E>()` 函数创建插件。
+
 ## 目录
 
 1. [插件规范总则](#插件规范总则)
@@ -150,37 +152,46 @@ export default MyPlugin; // 不推荐
 
 ## 插件结构规范
 
-### 必须实现的接口方法
+### 函数式插件创建
 
-所有插件**必须**继承 `BasePlugin` 并实现以下方法：
+所有插件**必须**使用 `plugin<E>()` 函数创建：
 
 ```typescript
-import { BasePlugin, App } from "@white-dragon-bevy/bevy_app";
+import { plugin } from "@white-dragon-bevy/bevy_app";
+import type { App } from "@white-dragon-bevy/bevy_app";
 
-export class MyPlugin extends BasePlugin {
-    /**
-     * 构建插件 - 必须实现
-     * @param app - 应用实例
-     */
-    build(app: App): void {
-        // 插件配置逻辑
-    }
+/**
+ * 创建 MyPlugin 实例
+ * @param config - 插件配置
+ */
+export function createMyPlugin(config?: MyPluginConfig) {
+    return plugin({
+        /**
+         * 插件名称 - 必须提供
+         */
+        name: "MyPlugin",
 
-    /**
-     * 返回插件名称 - 必须重写
-     * @returns 插件的唯一标识名称
-     */
-    name(): string {
-        return "MyPlugin"; // 必须返回唯一名称
-    }
+        /**
+         * 构建插件 - 必须实现
+         * @param app - 应用实例
+         */
+        build: (app: App) => {
+            // 插件配置逻辑
+        },
+
+        /**
+         * 插件是否唯一 - 可选，默认为 true
+         */
+        unique: true,
+    });
 }
 ```
 
-**为什么**：`build` 方法是插件的核心，`name` 方法用于调试和错误报告。
+**为什么**：函数式 API 提供了更好的类型推导和更简洁的代码结构。
 
 ### 生命周期方法使用规范
 
-插件支持四个生命周期方法，使用规范如下：
+插件配置对象支持多个生命周期钩子：
 
 #### build() - 构建阶段
 - **必须**：在此方法中完成所有配置
@@ -188,29 +199,42 @@ export class MyPlugin extends BasePlugin {
 - **禁止**：执行异步操作或 yield 操作
 
 ```typescript
-build(app: App): void {
-    // ✅ 正确：同步配置
-    app.addSystems(BuiltinSchedules.UPDATE, mySystem);
-    app.insertResource(new MyResource());
-    app.addPlugin(new DependencyPlugin());
+export function createMyPlugin(config?: MyPluginConfig) {
+    return plugin({
+        name: "MyPlugin",
+        build: (app) => {
+            // ✅ 正确：同步配置
+            app.addSystems(BuiltinSchedules.UPDATE, mySystem);
+            app.insertResource(new MyResource());
+            app.addPlugin(createDependencyPlugin());
 
-    // ❌ 错误：异步操作
-    task.wait(1); // 禁止
-    RunService.Heartbeat.Wait(); // 禁止
+            // ❌ 错误：异步操作
+            // task.wait(1); // 禁止
+            // RunService.Heartbeat.Wait(); // 禁止
+        },
+    });
 }
 ```
 
 **为什么**：build 必须是同步的，确保插件加载的可预测性。
 
 #### ready() - 就绪检查
-- **可选**：实现此方法进行就绪检查
+- **可选**：实现此钩子进行就绪检查
 - **应该**：返回 boolean 表示插件是否准备完成
 - **用途**：等待外部资源加载完成
 
 ```typescript
-ready(app: App): boolean {
-    const resource = app.getResource<ExternalResource>();
-    return resource !== undefined && resource.isLoaded();
+export function createMyPlugin(config?: MyPluginConfig) {
+    return plugin({
+        name: "MyPlugin",
+        build: (app) => {
+            // 构建逻辑
+        },
+        ready: (app) => {
+            const resource = app.getResource<ExternalResource>();
+            return resource !== undefined && resource.isLoaded();
+        },
+    });
 }
 ```
 
@@ -221,12 +245,20 @@ ready(app: App): boolean {
 - **用途**：执行依赖其他插件的最终配置
 
 ```typescript
-finish(app: App): void {
-    // 所有插件都已加载，可以安全访问其他插件的资源
-    const otherResource = app.getResource<OtherPluginResource>();
-    if (otherResource) {
-        this.configureFinalSetup(otherResource);
-    }
+export function createMyPlugin(config?: MyPluginConfig) {
+    return plugin({
+        name: "MyPlugin",
+        build: (app) => {
+            // 构建逻辑
+        },
+        finish: (app) => {
+            // 所有插件都已加载，可以安全访问其他插件的资源
+            const otherResource = app.getResource<OtherPluginResource>();
+            if (otherResource) {
+                // 配置最终设置
+            }
+        },
+    });
 }
 ```
 
@@ -237,10 +269,19 @@ finish(app: App): void {
 - **应该**：清理所有外部资源、连接、监听器
 
 ```typescript
-cleanup(app: App): void {
-    // 清理资源
-    this.connections.forEach(conn => conn.Disconnect());
-    this.timers.forEach(timer => timer.destroy());
+export function createMyPlugin(config?: MyPluginConfig) {
+    const connections: RBXScriptConnection[] = [];
+
+    return plugin({
+        name: "MyPlugin",
+        build: (app) => {
+            // 构建逻辑，保存连接
+        },
+        cleanup: (app) => {
+            // 清理资源
+            connections.forEach(conn => conn.Disconnect());
+        },
+    });
 }
 ```
 
@@ -248,21 +289,31 @@ cleanup(app: App): void {
 
 ### 插件唯一性规范
 
-#### isUnique() 方法
-- **默认**：返回 `true`（只能添加一次）
-- **可以**：重写返回 `false` 允许多次添加
+#### unique 配置
+- **默认**：`true`（只能添加一次）
+- **可以**：设置为 `false` 允许多次添加
 
 ```typescript
-class SingletonPlugin extends BasePlugin {
-    isUnique(): boolean {
-        return true; // 默认行为，只能添加一次
-    }
+// 单例插件（默认）
+export function createSingletonPlugin() {
+    return plugin({
+        name: "SingletonPlugin",
+        build: (app) => {
+            // 构建逻辑
+        },
+        unique: true, // 默认行为，只能添加一次
+    });
 }
 
-class MultiInstancePlugin extends BasePlugin {
-    isUnique(): boolean {
-        return false; // 允许多次添加
-    }
+// 允许多实例插件
+export function createMultiInstancePlugin(deviceId: string) {
+    return plugin({
+        name: `MultiInstancePlugin_${deviceId}`,
+        build: (app) => {
+            // 构建逻辑
+        },
+        unique: false, // 允许多次添加
+    });
 }
 ```
 
@@ -275,29 +326,39 @@ class MultiInstancePlugin extends BasePlugin {
 - **值域**：`RobloxContext.Server`、`RobloxContext.Client`、`undefined`（两端都运行）
 
 ```typescript
-import { RobloxContext } from "@white-dragon-bevy/bevy_app";
+import { plugin, RobloxContext } from "@white-dragon-bevy/bevy_app";
 
 // 仅服务端插件
-export class ServerPlugin extends BasePlugin {
-    robloxContext = RobloxContext.Server;
-
-    build(app: App): void {
-        // 仅在服务端执行
-    }
+export function createServerPlugin() {
+    return plugin({
+        name: "ServerPlugin",
+        robloxContext: RobloxContext.Server,
+        build: (app) => {
+            // 仅在服务端执行
+        },
+    });
 }
 
 // 仅客户端插件
-export class ClientPlugin extends BasePlugin {
-    robloxContext = RobloxContext.Client;
-
-    build(app: App): void {
-        // 仅在客户端执行
-    }
+export function createClientPlugin() {
+    return plugin({
+        name: "ClientPlugin",
+        robloxContext: RobloxContext.Client,
+        build: (app) => {
+            // 仅在客户端执行
+        },
+    });
 }
 
 // 通用插件（默认）
-export class UniversalPlugin extends BasePlugin {
-    // 不设置 robloxContext，两端都运行
+export function createUniversalPlugin() {
+    return plugin({
+        name: "UniversalPlugin",
+        // 不设置 robloxContext，两端都运行
+        build: (app) => {
+            // 两端都执行
+        },
+    });
 }
 ```
 
@@ -344,54 +405,56 @@ export interface LogPluginExtensionFactories {
 #### 实现标准扩展
 
 **必须**：
-- 在插件 `constructor` 中初始化 `extension` 属性
+- 在 `plugin()` 配置中提供 `extension` 属性
 - 每个工厂函数返回实际的扩展函数
 - 使用 `plugin` 参数访问插件状态（避免 `this` 指针问题）
 
 ```typescript
-export class LogPlugin extends BasePlugin {
-    /** 日志级别配置 */
-    level: Level;
+import { plugin } from "@white-dragon-bevy/bevy_app";
+import type { ExtensionFactory, App } from "@white-dragon-bevy/bevy_app";
 
-    /** 插件扩展工厂 */
-    extension: LogPluginExtensionFactories;
+export interface LogPluginExtensionFactories {
+    getLogManager: ExtensionFactory<() => LogSubscriber | undefined>;
+    getLogLevel: ExtensionFactory<() => Level>;
+}
 
-    constructor(config?: Partial<LogPlugin>) {
-        super();
-        this.level = config?.level ?? Level.INFO;
+export interface LogPluginConfig {
+    level?: Level;
+}
 
-        // ✅ 在 constructor 中初始化扩展工厂
-        this.extension = {
+export function createLogPlugin(config?: LogPluginConfig) {
+    const level = config?.level ?? Level.INFO;
+
+    return plugin<LogPluginExtensionFactories>({
+        name: "LogPlugin",
+
+        build: (app) => {
+            // 在 build 中配置插件
+            const subscriber = new LogSubscriber();
+            app.insertResource(subscriber);
+        },
+
+        // ✅ 在配置中提供扩展工厂
+        extension: {
             // 工厂函数接收 (world, context, plugin) 参数
-            getLogManager: (world: World, context: AppContext, plugin: LogPlugin) => {
+            getLogManager: (world, context, plugin) => {
                 // 返回实际的扩展函数
                 return () => LogSubscriber.getGlobal();
             },
 
-            getLogLevel: (world: World, context: AppContext, plugin: LogPlugin) => {
-                // 使用 plugin 参数获取插件状态，避免 this 指针问题
-                const currentLevel = plugin.level;
+            getLogLevel: (world, context, plugin) => {
+                // 使用闭包捕获的 level 值
                 // 返回获取日志级别的函数
-                return () => currentLevel;
+                return () => level;
             },
-        };
-    }
-
-    build(app: App): void {
-        // 在 build 中配置插件
-        const subscriber = new LogSubscriber();
-        app.insertResource(subscriber);
-    }
-
-    name(): string {
-        return "LogPlugin";
-    }
+        },
+    });
 }
 ```
 
 **为什么**：
-1. 在 constructor 初始化扩展，确保扩展在 build 前可用
-2. 使用 `plugin` 参数而非 `this`，避免 roblox-ts 的 this 指针转换问题
+1. 使用闭包捕获配置数据，避免状态管理复杂性
+2. 工厂函数提供了灵活的扩展机制
 3. App 会自动调用工厂函数，将返回的实际函数注入到 context
 
 #### 使用标准扩展
@@ -473,10 +536,12 @@ export interface InputManagerExtension<A extends Actionlike> {
 #### 实现泛型扩展
 
 **必须**：
-- 在 `constructor` 中创建扩展对象（不是工厂函数）
+- 在工厂函数中创建扩展对象（不是工厂函数）
 - extension 属性类型是扩展接口类型（不是 ExtensionFactory）
 
 ```typescript
+import { plugin } from "@white-dragon-bevy/bevy_app";
+
 /**
  * 创建扩展对象的辅助函数
  */
@@ -506,33 +571,25 @@ function createExtensionObject<A extends Actionlike>(
 /**
  * 输入管理器插件 - 泛型扩展示例
  */
-export class InputManagerPlugin<A extends Actionlike> implements Plugin {
-    private components: ComponentDefinition<A>;
+export function createInputManagerPlugin<A extends Actionlike>(
+    config: InputManagerPluginConfig<A>
+) {
+    const components = createActionComponents<A>(config.actionTypeName);
+    const extensionObject = createExtensionObject<A>(components);
 
-    /**
-     * 扩展对象 - 注意：不是 ExtensionFactory 类型
-     */
-    readonly extension: InputManagerExtension<A>;
+    return plugin<InputManagerExtension<A>>({
+        name: `InputManagerPlugin<${config.actionTypeName}>`,
 
-    constructor(config: InputManagerPluginConfig<A>) {
-        this.components = createActionComponents<A>(config.actionTypeName);
+        build: (app) => {
+            // 注册系统
+            app.addSystems(MainScheduleLabel.UPDATE, updateSystem);
+        },
 
-        // ✅ 在 constructor 中创建扩展对象
-        this.extension = createExtensionObject<A>(this.components);
-    }
+        // ✅ 直接提供扩展对象
+        extension: extensionObject,
 
-    build(app: App): void {
-        // 注册系统
-        app.addSystems(MainScheduleLabel.UPDATE, this.updateSystem);
-    }
-
-    name(): string {
-        return `InputManagerPlugin<${this.config.actionTypeName}>`;
-    }
-
-    isUnique(): boolean {
-        return false; // 允许多个不同泛型参数的实例
-    }
+        unique: false, // 允许多个不同泛型参数的实例
+    });
 }
 ```
 
@@ -1304,68 +1361,78 @@ describe("comprehensive plugin test", () => {
 ### 最小插件示例
 
 ```typescript
-import { BasePlugin, App } from "@white-dragon-bevy/bevy_app";
+import { plugin } from "@white-dragon-bevy/bevy_app";
+import type { App } from "@white-dragon-bevy/bevy_app";
 
 /**
  * 最小可行插件
  */
-export class MinimalPlugin extends BasePlugin {
-    build(app: App): void {
-        // 最少需要的配置
-        print(`${this.name()} initialized`);
-    }
-
-    name(): string {
-        return "MinimalPlugin";
-    }
+export function createMinimalPlugin() {
+    return plugin({
+        name: "MinimalPlugin",
+        build: (app: App) => {
+            // 最少需要的配置
+            print("MinimalPlugin initialized");
+        },
+    });
 }
 ```
 
 ### 标准扩展示例
 
 ```typescript
-import { BasePlugin, App } from "@white-dragon-bevy/bevy_app";
+import { plugin } from "@white-dragon-bevy/bevy_app";
+import type { App, ExtensionFactory } from "@white-dragon-bevy/bevy_app";
+import type { World } from "@rbxts/matter";
+import type { AppContext } from "@white-dragon-bevy/bevy_app";
+
+/**
+ * 标准扩展接口
+ */
+export interface StandardExtensionFactories {
+    getData: ExtensionFactory<(key: string) => unknown | undefined>;
+    setData: ExtensionFactory<(key: string, value: unknown) => void>;
+}
 
 /**
  * 使用标准扩展的插件
  */
-export class StandardExtensionPlugin extends BasePlugin {
-    private data: Map<string, unknown> = new Map();
+export function createStandardExtensionPlugin() {
+    const dataMap = new Map<string, unknown>();
 
-    build(app: App): void {
-        // 注册扩展
-        this.registerExtensions(app, {
-            getValue: {
-                extension: (key: string) => {
-                    return this.data.get(key);
-                },
-                metadata: {
-                    description: "Get a value by key"
-                }
+    return plugin<StandardExtensionFactories>({
+        name: "StandardExtensionPlugin",
+
+        build: (app: App) => {
+            // 构建逻辑
+        },
+
+        /** 插件扩展 */
+        extension: {
+            getData: (world, context, plugin) => {
+                // 返回获取数据的函数
+                return (key: string) => dataMap.get(key);
             },
-            setValue: {
-                extension: (key: string, value: unknown) => {
-                    this.data.set(key, value);
-                },
-                metadata: {
-                    description: "Set a value by key"
-                }
-            }
-        });
-    }
 
-    name(): string {
-        return "StandardExtensionPlugin";
-    }
+            setData: (world, context, plugin) => {
+                // 返回设置数据的函数
+                return (key: string, value: unknown) => {
+                    dataMap.set(key, value);
+                };
+            },
+        },
+    });
 }
 ```
 
 ### 泛型扩展示例
 
 ```typescript
-import { BasePlugin, App, ExtensionFactory } from "@white-dragon-bevy/bevy_app";
-import { World } from "@rbxts/matter";
-import { AppContext } from "@white-dragon-bevy/bevy_app";
+import { plugin, BuiltinSchedules, getContextWithExtensions } from "@white-dragon-bevy/bevy_app";
+import type { App, ExtensionFactory } from "@white-dragon-bevy/bevy_app";
+import type { World } from "@rbxts/matter";
+import type { Context } from "@white-dragon-bevy/bevy_ecs";
+import type { AppContext } from "@white-dragon-bevy/bevy_app";
 
 /**
  * 状态管理插件扩展工厂
@@ -1380,64 +1447,58 @@ export interface StatePluginExtensionFactories {
 /**
  * 使用泛型扩展的状态管理插件
  */
-export class StatePlugin extends BasePlugin {
-    extension: StatePluginExtensionFactories;
-    private currentState: string = "idle";
-    private validTransitions: Map<string, Set<string>> = new Map();
+export function createStatePlugin() {
+    let currentState = "idle";
+    const validTransitions = new Map<string, Set<string>>();
 
-    constructor() {
-        super();
-        this.extension = {} as StatePluginExtensionFactories;
+    // 定义状态转换规则
+    validTransitions.set("idle", new Set(["running", "jumping"]));
+    validTransitions.set("running", new Set(["idle", "jumping"]));
+    validTransitions.set("jumping", new Set(["idle", "running"]));
 
-        // 定义状态转换规则
-        this.validTransitions.set("idle", new Set(["running", "jumping"]));
-        this.validTransitions.set("running", new Set(["idle", "jumping"]));
-        this.validTransitions.set("jumping", new Set(["idle", "running"]));
-    }
+    return plugin<StatePluginExtensionFactories>({
+        name: "StatePlugin",
 
-    build(app: App): void {
-        // 初始化扩展工厂
-        this.extension = {
-            getState: (world: World, context: AppContext, plugin: StatePlugin) => {
-                return () => this.currentState;
+        build: (app: App) => {
+            // 添加状态管理系统
+            app.addSystems(BuiltinSchedules.UPDATE, (world, context) => {
+                // 状态更新逻辑
+            });
+        },
+
+        // 扩展工厂
+        extension: {
+            getState: (world, context, plugin) => {
+                return () => currentState;
             },
 
-            setState: (world: World, context: AppContext, plugin: StatePlugin) => {
+            setState: (world, context, plugin) => {
                 return (newState: string) => {
-                    this.currentState = newState;
+                    currentState = newState;
                 };
             },
 
-            isInState: (world: World, context: AppContext, plugin: StatePlugin) => {
-                return (state: string) => this.currentState === state;
+            isInState: (world, context, plugin) => {
+                return (state: string) => currentState === state;
             },
 
-            transitionTo: (world: World, context: AppContext, plugin: StatePlugin) => {
+            transitionTo: (world, context, plugin) => {
                 return (newState: string) => {
-                    const currentTransitions = this.validTransitions.get(this.currentState);
-                    if (currentTransitions && currentTransitions.has(newState)) {
-                        this.currentState = newState;
+                    const transitions = validTransitions.get(currentState);
+                    if (transitions && transitions.has(newState)) {
+                        currentState = newState;
                         return true;
                     }
                     return false;
                 };
-            }
-        };
-
-        // 添加状态管理系统
-        app.addSystems(BuiltinSchedules.UPDATE, (world, context) => {
-            // 状态更新逻辑
-        });
-    }
-
-    name(): string {
-        return "StatePlugin";
-    }
+            },
+        },
+    });
 }
 
 // 使用示例
 function gameSystem(world: World, context: Context): void {
-    const ctx = getContextWithExtensions<StatePlugin>(app);
+    const ctx = getContextWithExtensions<StatePluginExtensionFactories>(app);
 
     if (ctx.isInState("idle")) {
         if (/* jump input */) {
@@ -1447,305 +1508,20 @@ function gameSystem(world: World, context: Context): void {
 }
 ```
 
-### 完整插件示例
+### 更多示例
 
-```typescript
-import { BasePlugin, App, ExtensionFactory, BuiltinSchedules } from "@white-dragon-bevy/bevy_app";
-import { World } from "@rbxts/matter";
-import { Context } from "@white-dragon-bevy/bevy_ecs";
-import { TypeDescriptor } from "@white-dragon-bevy/bevy_core";
-import { RobloxContext } from "@white-dragon-bevy/bevy_app";
-import { RunService, Players } from "@rbxts/services";
-import { hookDebugPrint } from "@white-dragon-bevy/utils/hooks";
+更复杂的插件示例可以通过组合上述模式来实现：
 
-// ============ 组件定义 ============
-interface Player {
-    player: Player;
-    joinTime: number;
-}
+1. **使用闭包捕获状态**：在工厂函数中定义变量，通过闭包在扩展方法中访问
+2. **组合多个系统**：在 `build` 方法中注册多个系统到不同调度阶段
+3. **资源管理**：创建资源类并插入到 App
+4. **生命周期钩子**：使用 `ready`, `finish`, `cleanup` 实现复杂的初始化和清理逻辑
+5. **条件执行**：使用 `when()` 辅助函数实现条件性系统注册
 
-interface Score {
-    value: number;
-    multiplier: number;
-}
-
-// ============ 资源定义 ============
-class ScoreboardResource {
-    static readonly TYPE_ID = new TypeDescriptor("ScoreboardResource");
-
-    private scores: Map<string, number> = new Map();
-
-    addScore(playerId: string, points: number): void {
-        const current = this.scores.get(playerId) || 0;
-        this.scores.set(playerId, current + points);
-    }
-
-    getScore(playerId: string): number {
-        return this.scores.get(playerId) || 0;
-    }
-
-    getTopScores(limit: number): Array<[string, number]> {
-        const sorted = [...this.scores.entries()]
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, limit);
-        return sorted;
-    }
-
-    reset(): void {
-        this.scores.clear();
-    }
-}
-
-// ============ 扩展接口 ============
-export interface ScorePluginExtensionFactories {
-    addPlayerScore: ExtensionFactory<(player: Player, points: number) => void>;
-    getPlayerScore: ExtensionFactory<(player: Player) => number>;
-    getLeaderboard: ExtensionFactory<(limit?: number) => Array<[string, number]>>;
-    resetScores: ExtensionFactory<() => void>;
-    getScoreMultiplier: ExtensionFactory<() => number>;
-    setScoreMultiplier: ExtensionFactory<(multiplier: number) => void>;
-}
-
-// ============ 插件配置 ============
-export interface ScorePluginConfig {
-    initialMultiplier?: number;
-    maxMultiplier?: number;
-    leaderboardSize?: number;
-    autoSave?: boolean;
-    saveInterval?: number;
-}
-
-// ============ 主插件类 ============
-/**
- * 分数管理插件
- * 提供玩家分数追踪、排行榜和倍数系统
- */
-export class ScorePlugin extends BasePlugin {
-    extension: ScorePluginExtensionFactories;
-    robloxContext = RobloxContext.Server; // 仅服务端运行
-
-    private config: Required<ScorePluginConfig>;
-    private scoreboard: ScoreboardResource;
-    private currentMultiplier: number;
-    private lastSaveTime: number = 0;
-
-    constructor(config: ScorePluginConfig = {}) {
-        super();
-
-        // 合并默认配置
-        this.config = {
-            initialMultiplier: config.initialMultiplier ?? 1,
-            maxMultiplier: config.maxMultiplier ?? 10,
-            leaderboardSize: config.leaderboardSize ?? 10,
-            autoSave: config.autoSave ?? true,
-            saveInterval: config.saveInterval ?? 60
-        };
-
-        this.currentMultiplier = this.config.initialMultiplier;
-        this.scoreboard = new ScoreboardResource();
-        this.extension = {} as ScorePluginExtensionFactories;
-    }
-
-    build(app: App): void {
-        // 插入资源
-        app.insertResource(this.scoreboard);
-
-        // 初始化扩展
-        this.initializeExtensions(app);
-
-        // 注册系统
-        this.registerSystems(app);
-
-        // 设置事件监听
-        this.setupEventListeners(app);
-
-        print(`[${this.name()}] Plugin initialized with config:`, this.config);
-    }
-
-    private initializeExtensions(app: App): void {
-        this.extension = {
-            addPlayerScore: (world: World, context: AppContext, plugin: ScorePlugin) => {
-                return (player: Player, points: number) => {
-                    const actualPoints = points * this.currentMultiplier;
-                    this.scoreboard.addScore(player.UserId, actualPoints);
-                    hookDebugPrint(`Added ${actualPoints} points to ${player.Name}`);
-                };
-            },
-
-            getPlayerScore: (world: World, context: AppContext, plugin: ScorePlugin) => {
-                return (player: Player) => {
-                    return this.scoreboard.getScore(player.UserId);
-                };
-            },
-
-            getLeaderboard: (world: World, context: AppContext, plugin: ScorePlugin) => {
-                return (limit?: number) => {
-                    return this.scoreboard.getTopScores(limit ?? this.config.leaderboardSize);
-                };
-            },
-
-            resetScores: (world: World, context: AppContext, plugin: ScorePlugin) => {
-                return () => {
-                    this.scoreboard.reset();
-                    this.currentMultiplier = this.config.initialMultiplier;
-                    print(`[${this.name()}] Scores reset`);
-                };
-            },
-
-            getScoreMultiplier: (world: World, context: AppContext, plugin: ScorePlugin) => {
-                return () => this.currentMultiplier;
-            },
-
-            setScoreMultiplier: (world: World, context: AppContext, plugin: ScorePlugin) => {
-                return (multiplier: number) => {
-                    this.currentMultiplier = math.clamp(
-                        multiplier,
-                        1,
-                        this.config.maxMultiplier
-                    );
-                };
-            }
-        };
-    }
-
-    private registerSystems(app: App): void {
-        // 初始化系统
-        app.addSystems(BuiltinSchedules.STARTUP, (world, context) => {
-            this.initializeScoreboard(world);
-        });
-
-        // 分数更新系统
-        app.addSystems(BuiltinSchedules.UPDATE, (world, context) => {
-            this.updateScoresSystem(world, context);
-        });
-
-        // 自动保存系统
-        if (this.config.autoSave) {
-            app.addSystems(BuiltinSchedules.LAST, (world, context) => {
-                this.autoSaveSystem(world, context);
-            });
-        }
-    }
-
-    private setupEventListeners(app: App): void {
-        // 玩家加入事件
-        app.addSystems(BuiltinSchedules.PRE_UPDATE, (world, context) => {
-            for (const player of world.useEvent(Players, "PlayerAdded")) {
-                world.spawn(
-                    { player: player, joinTime: os.clock() } as Player,
-                    { value: 0, multiplier: 1 } as Score
-                );
-                print(`[${this.name()}] Player ${player.Name} joined`);
-            }
-        });
-
-        // 玩家离开事件
-        app.addSystems(BuiltinSchedules.PRE_UPDATE, (world, context) => {
-            for (const player of world.useEvent(Players, "PlayerRemoving")) {
-                // 保存玩家分数
-                this.savePlayerScore(player);
-
-                // 移除实体
-                for (const [id, playerComp] of world.query(Player)) {
-                    if (playerComp.player === player) {
-                        world.despawn(id);
-                        break;
-                    }
-                }
-            }
-        });
-    }
-
-    private initializeScoreboard(world: World): void {
-        // 从数据存储加载分数
-        // 这里是示例，实际需要实现数据持久化
-        print(`[${this.name()}] Scoreboard initialized`);
-    }
-
-    private updateScoresSystem(world: World, context: Context): void {
-        // 更新玩家分数组件
-        for (const [id, player, score] of world.query(Player, Score)) {
-            const currentScore = this.scoreboard.getScore(player.player.UserId);
-            if (score.value !== currentScore) {
-                world.insert(id, {
-                    value: currentScore,
-                    multiplier: this.currentMultiplier
-                } as Score);
-            }
-        }
-    }
-
-    private autoSaveSystem(world: World, context: Context): void {
-        const now = os.clock();
-        if (now - this.lastSaveTime >= this.config.saveInterval) {
-            this.saveAllScores();
-            this.lastSaveTime = now;
-            hookDebugPrint(`[${this.name()}] Auto-saved scores`);
-        }
-    }
-
-    private savePlayerScore(player: Player): void {
-        const score = this.scoreboard.getScore(player.UserId);
-        // 实现数据持久化逻辑
-        print(`[${this.name()}] Saved score for ${player.Name}: ${score}`);
-    }
-
-    private saveAllScores(): void {
-        // 批量保存所有分数
-        // 实现数据持久化逻辑
-    }
-
-    ready(app: App): boolean {
-        // 检查数据存储服务是否就绪
-        return true;
-    }
-
-    finish(app: App): void {
-        // 完成初始化后的设置
-        print(`[${this.name()}] Plugin setup complete`);
-    }
-
-    cleanup(app: App): void {
-        // 清理资源
-        this.saveAllScores();
-        print(`[${this.name()}] Plugin cleaned up`);
-    }
-
-    name(): string {
-        return "ScorePlugin";
-    }
-
-    isUnique(): boolean {
-        return true; // 只允许一个实例
-    }
-}
-
-// ============ 使用示例 ============
-/*
-const app = App.create()
-    .addPlugin(new ScorePlugin({
-        initialMultiplier: 1,
-        maxMultiplier: 5,
-        autoSave: true
-    }));
-
-// 在系统中使用
-function gameplaySystem(world: World, context: Context): void {
-    const ctx = getContextWithExtensions<ScorePlugin>(app);
-
-    // 添加分数
-    for (const player of Players.GetPlayers()) {
-        ctx.addPlayerScore(player, 10);
-    }
-
-    // 获取排行榜
-    const leaderboard = ctx.getLeaderboard(5);
-    for (const [playerId, score] of leaderboard) {
-        print(`Player ${playerId}: ${score} points`);
-    }
-}
-*/
-```
+完整的生产级插件示例请参考框架内置插件的实现：
+- `src/bevy_log/lib.ts` - 日志插件
+- `src/bevy_time/time-plugin.ts` - 时间插件
+- `src/bevy_diagnostic/diagnostics-plugin.ts` - 诊断插件
 
 ## 检查清单
 
@@ -1760,11 +1536,11 @@ function gameplaySystem(world: World, context: Context): void {
 - [ ] 无 TypeScript 编译错误
 
 #### 插件结构
-- [ ] 继承自 `BasePlugin`
-- [ ] 实现 `build()` 和 `name()` 方法
+- [ ] 使用 `plugin<E>()` 函数创建插件
+- [ ] 提供 `name` 属性和 `build` 方法
 - [ ] 正确设置 `robloxContext`（如需要）
-- [ ] `isUnique()` 返回正确的值
-- [ ] 生命周期方法不包含 yield 操作
+- [ ] 正确设置 `unique` 值
+- [ ] 生命周期钩子不包含 yield 操作
 
 #### 扩展系统
 - [ ] 扩展工厂接口使用 `ExtensionFactory<T>`

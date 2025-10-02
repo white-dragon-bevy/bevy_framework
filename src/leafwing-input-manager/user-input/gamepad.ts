@@ -115,7 +115,7 @@ export class GamepadButton implements UserInput, Buttonlike {
 	}
 
 	hash(): string {
-		return `GamepadButton:${this.button.Name}`;
+		return `gamepad_${this.button.Name}`;
 	}
 
 	equals(other: UserInput): boolean {

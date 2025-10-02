@@ -2,6 +2,8 @@
 
 本文档介绍如何在 Bevy Framework 中创建和使用插件扩展系统，实现类型安全的插件功能扩展。
 
+> **注意**：本文档基于函数式插件 API。class plugin 已完全弃用，请使用 `plugin<E>()` 函数创建插件。
+
 ## 概述
 
 插件扩展系统允许插件向 `App.context` 添加类型安全的方法，这些方法可以在应用程序中直接访问，享受完整的 TypeScript 类型检查和 IDE 代码提示。
@@ -47,28 +49,32 @@ export interface MyPluginExtensionFactories {
 ### 2. 在插件中实现扩展
 
 ```typescript
-export class MyPlugin extends BasePlugin {
-    /** 插件扩展工厂 */
-    extension: MyPluginExtensionFactories;
-    
-    private config: MyConfig;
-    
-    constructor(config?: Partial<MyConfig>) {
-        super();
-        this.config = { ...defaultConfig, ...config };
-        
-        // 初始化扩展工厂
-        this.extension = {
-            getManager: (world: World, context: AppContext, plugin: MyPlugin) => {
-                // 使用 plugin 参数而不是 this，避免 roblox-ts 问题
-                return () => plugin.getManagerInstance();
+import { plugin } from "../bevy_app/plugin";
+
+export interface MyPluginConfig {
+    someOption?: string;
+}
+
+export function createMyPlugin(config?: MyPluginConfig) {
+    const myConfig = { ...defaultConfig, ...config };
+    const manager = new MyManager(myConfig);
+
+    return plugin<MyPluginExtensionFactories>({
+        name: "MyPlugin",
+        build: (app) => {
+            // 插件的构建逻辑...
+        },
+        extension: {
+            getManager: (world, context, plugin) => {
+                // 返回获取管理器的函数
+                return () => manager;
             },
-            
-            getConfig: (world: World, context: AppContext, plugin: MyPlugin) => {
-                return () => plugin.config;
+
+            getConfig: (world, context, plugin) => {
+                return () => myConfig;
             },
-            
-            doSomething: (world: World, context: AppContext, plugin: MyPlugin) => {
+
+            doSomething: (world, context, plugin) => {
                 // 可以访问 world, context 和 plugin 实例
                 return (param: string) => {
                     print(`Doing something with: ${param}`);
@@ -77,17 +83,9 @@ export class MyPlugin extends BasePlugin {
                     // 执行具体逻辑...
                 };
             },
-        };
-    }
-    
-    build(app: App): void {
-        // 插件的构建逻辑...
-    }
-    
-    private getManagerInstance(): MyManager | undefined {
-        // 返回管理器实例
-        return this.manager;
-    }
+        },
+        unique: true, // 可选，默认为 true
+    });
 }
 ```
 
@@ -109,11 +107,11 @@ type ExtensionFactory<T extends (...args: any[]) => any> =
 
 ```typescript
 import { App } from "../bevy_app/app";
-import { MyPlugin } from "./my-plugin";
+import { createMyPlugin } from "./my-plugin";
 
 // 创建 App 并添加插件
 const app = App.create()
-    .addPlugin(new MyPlugin({ someConfig: "value" }));
+    .addPlugin(createMyPlugin({ someConfig: "value" }));
 
 // 直接访问扩展方法，享受类型安全和代码提示！
 const manager = app.context.getManager();      // ✅ 有类型提示
@@ -125,11 +123,13 @@ app.context.doSomething("hello world");        // ✅ 有类型提示
 
 ```typescript
 import { getContextWithExtensions } from "../bevy_app/app";
+import { createMyPlugin } from "./my-plugin";
 
-const app = App.create().addPlugin(new MyPlugin());
+const app = App.create().addPlugin(createMyPlugin());
 
 // 使用辅助函数获取带扩展的 context
-const context = getContextWithExtensions<MyPlugin>(app);
+// 注意：传入的类型是扩展接口类型
+const context = getContextWithExtensions<MyPluginExtensionFactories>(app);
 
 const manager = context.getManager();
 const config = context.getConfig();
@@ -141,10 +141,14 @@ context.doSomething("hello world");
 ### 链式调用
 
 ```typescript
+import { createLogPlugin } from "@white-dragon-bevy/bevy_log";
+import { createMyPlugin } from "./my-plugin";
+import { createAnotherPlugin } from "./another-plugin";
+
 const app = App.create()
-    .addPlugin(new LogPlugin())           // 添加日志扩展
-    .addPlugin(new MyPlugin())            // 添加自定义扩展
-    .addPlugin(new AnotherPlugin());      // 添加另一个扩展
+    .addPlugin(createLogPlugin())           // 添加日志扩展
+    .addPlugin(createMyPlugin())            // 添加自定义扩展
+    .addPlugin(createAnotherPlugin());      // 添加另一个扩展
 
 // 现在 app.context 包含所有插件的扩展方法
 const logLevel = app.context.getLogLevel();      // 来自 LogPlugin
@@ -155,10 +159,14 @@ const data = app.context.getAnotherData();       // 来自 AnotherPlugin
 ### 类型合并
 
 ```typescript
-// 如果需要显式类型声明，可以创建联合类型
-type MyPlugins = LogPlugin | MyPlugin | AnotherPlugin;
+import type { LogPluginExtension } from "@white-dragon-bevy/bevy_log";
+import type { MyPluginExtensionFactories } from "./my-plugin";
+import type { AnotherPluginExtension } from "./another-plugin";
 
-const context = getContextWithExtensions<MyPlugins>(app);
+// 如果需要显式类型声明，可以创建联合类型
+type MyExtensions = LogPluginExtension & MyPluginExtensionFactories & AnotherPluginExtension;
+
+const context = getContextWithExtensions<MyExtensions>(app);
 // context 现在有所有插件的扩展方法
 ```
 
@@ -168,38 +176,50 @@ const context = getContextWithExtensions<MyPlugins>(app);
 
 ```typescript
 // src/bevy_log/lib.ts
+import { plugin } from "../bevy_app/plugin";
+import type { ExtensionFactory } from "../bevy_app/app";
+
 export interface LogPluginExtensionFactories {
     getLogManager: ExtensionFactory<() => LogSubscriber | undefined>;
     getLogLevel: ExtensionFactory<() => Level>;
 }
 
-export class LogPlugin extends BasePlugin {
-    extension: LogPluginExtensionFactories;
-    
-    constructor(config?: Partial<LogPlugin>) {
-        super();
-        // ... 初始化配置
-        
-        this.extension = {
-            getLogManager: (world: World, context: AppContext, plugin: LogPlugin) => {
+export interface LogPluginConfig {
+    level?: Level;
+}
+
+export function createLogPlugin(config?: LogPluginConfig) {
+    const level = config?.level ?? Level.INFO;
+
+    return plugin<LogPluginExtensionFactories>({
+        name: "LogPlugin",
+        build: (app) => {
+            // 初始化日志系统
+            const subscriber = new LogSubscriber();
+            app.insertResource(subscriber);
+        },
+        extension: {
+            getLogManager: (world, context, plugin) => {
                 return () => LogSubscriber.getGlobal();
             },
-            
-            getLogLevel: (world: World, context: AppContext, plugin: LogPlugin) => {
-                const currentLevel = plugin.level;
-                return () => currentLevel;
+
+            getLogLevel: (world, context, plugin) => {
+                return () => level;
             },
-        };
-    }
+        },
+        unique: true,
+    });
 }
 ```
 
 ### 使用示例
 
 ```typescript
+import { createLogPlugin } from "@white-dragon-bevy/bevy_log";
+
 // 在你的应用中
 const app = App.create()
-    .addPlugin(new LogPlugin({ level: Level.DEBUG }));
+    .addPlugin(createLogPlugin({ level: Level.DEBUG }));
 
 // 直接使用，有完整的类型安全！
 const currentLevel = app.context.getLogLevel();
