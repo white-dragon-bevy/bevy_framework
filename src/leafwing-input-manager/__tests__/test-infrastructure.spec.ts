@@ -3,21 +3,30 @@
  * 验证 test-utils 和 input-simulator 是否正常工作
  */
 
-import { createTestApp, advanceFrame, createTestWorld, getInputStore } from "./test-utils";
+import { createTestApp, advanceFrame, createTestWorld } from "./test-utils";
 import { KeyboardSimulator, MouseSimulator, GamepadSimulator } from "./input-simulator";
 import { CentralInputStore } from "../user-input/central-input-store";
+
+/**
+ * 为基础设施测试创建带有 CentralInputStore 的 App
+ * 注意：这只用于测试 Simulator 本身，不是完整的 InputManager 测试
+ * @returns 配置好的 App 实例
+ */
+function createInfrastructureTestApp() {
+	const app = createTestApp();
+	// 为 Simulator 测试创建最小的资源
+	app.insertResource(new CentralInputStore());
+	return app;
+}
 
 export = () => {
 	describe("Test Infrastructure", () => {
 		describe("test-utils", () => {
-			it("should create a test app with required resources", () => {
+			it("should create a test app", () => {
 				const app = createTestApp();
 
 				expect(app).to.be.ok();
-
-				const inputStore = app.getResource<CentralInputStore>();
-
-				expect(inputStore).to.be.ok();
+				// 注意：CentralInputStore 现在由插件创建，不再由 createTestApp 创建
 			});
 
 			it("should advance frame without errors", () => {
@@ -43,18 +52,11 @@ export = () => {
 
 				expect(world).to.be.ok();
 			});
-
-			it("should get input store from app", () => {
-				const app = createTestApp();
-				const inputStore = getInputStore(app);
-
-				expect(inputStore).to.be.ok();
-			});
 		});
 
 		describe("KeyboardSimulator", () => {
 			it("should simulate key press and release", () => {
-				const app = createTestApp();
+				const app = createInfrastructureTestApp();
 				const keyboard = KeyboardSimulator.fromApp(app);
 
 				keyboard.pressKey(Enum.KeyCode.Space);
@@ -67,7 +69,7 @@ export = () => {
 			});
 
 			it("should simulate typing multiple keys", () => {
-				const app = createTestApp();
+				const app = createInfrastructureTestApp();
 				const keyboard = KeyboardSimulator.fromApp(app);
 
 				keyboard.typeKeys(Enum.KeyCode.A, Enum.KeyCode.B, Enum.KeyCode.C);
@@ -79,7 +81,7 @@ export = () => {
 			});
 
 			it("should release all keys", () => {
-				const app = createTestApp();
+				const app = createInfrastructureTestApp();
 				const keyboard = KeyboardSimulator.fromApp(app);
 
 				keyboard.pressKey(Enum.KeyCode.W);
@@ -95,7 +97,7 @@ export = () => {
 
 		describe("MouseSimulator", () => {
 			it("should simulate mouse button press and release", () => {
-				const app = createTestApp();
+				const app = createInfrastructureTestApp();
 				const mouse = MouseSimulator.fromApp(app);
 
 				mouse.pressButton(Enum.UserInputType.MouseButton1);
@@ -105,7 +107,7 @@ export = () => {
 			});
 
 			it("should simulate mouse clicks", () => {
-				const app = createTestApp();
+				const app = createInfrastructureTestApp();
 				const mouse = MouseSimulator.fromApp(app);
 
 				mouse.clickLeft();
@@ -116,7 +118,7 @@ export = () => {
 			});
 
 			it("should track mouse position", () => {
-				const app = createTestApp();
+				const app = createInfrastructureTestApp();
 				const mouse = MouseSimulator.fromApp(app);
 
 				mouse.moveBy(new Vector2(10, 20));
@@ -128,7 +130,7 @@ export = () => {
 			});
 
 			it("should simulate mouse scroll", () => {
-				const app = createTestApp();
+				const app = createInfrastructureTestApp();
 				const mouse = MouseSimulator.fromApp(app);
 
 				mouse.scrollBy(5);
@@ -141,7 +143,7 @@ export = () => {
 			});
 
 			it("should reset mouse state", () => {
-				const app = createTestApp();
+				const app = createInfrastructureTestApp();
 				const mouse = MouseSimulator.fromApp(app);
 
 				mouse.moveBy(new Vector2(100, 100));
@@ -155,7 +157,7 @@ export = () => {
 
 		describe("GamepadSimulator", () => {
 			it("should simulate gamepad button press and release", () => {
-				const app = createTestApp();
+				const app = createInfrastructureTestApp();
 				const gamepad = GamepadSimulator.fromApp(app);
 
 				gamepad.pressButton(Enum.KeyCode.ButtonA);
@@ -168,7 +170,7 @@ export = () => {
 			});
 
 			it("should set left stick position", () => {
-				const app = createTestApp();
+				const app = createInfrastructureTestApp();
 				const gamepad = GamepadSimulator.fromApp(app);
 
 				gamepad.setLeftStick(new Vector2(0.5, -0.3));
@@ -180,7 +182,7 @@ export = () => {
 			});
 
 			it("should set right stick position", () => {
-				const app = createTestApp();
+				const app = createInfrastructureTestApp();
 				const gamepad = GamepadSimulator.fromApp(app);
 
 				gamepad.setRightStick(new Vector2(-0.8, 0.6));
@@ -192,7 +194,7 @@ export = () => {
 			});
 
 			it("should clamp stick values to valid range", () => {
-				const app = createTestApp();
+				const app = createInfrastructureTestApp();
 				const gamepad = GamepadSimulator.fromApp(app);
 
 				gamepad.setLeftStick(new Vector2(2.0, -3.0));
@@ -204,7 +206,7 @@ export = () => {
 			});
 
 			it("should reset gamepad state", () => {
-				const app = createTestApp();
+				const app = createInfrastructureTestApp();
 				const gamepad = GamepadSimulator.fromApp(app);
 
 				gamepad.setLeftStick(new Vector2(1.0, 1.0));

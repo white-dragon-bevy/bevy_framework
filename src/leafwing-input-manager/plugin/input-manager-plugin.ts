@@ -11,17 +11,44 @@ import { getKeyboardInput, getMouseInput, getMouseMotion, getMouseWheel } from "
 import type { InputManagerExtension } from "./extensions";
 import { ActionState } from "../action-state/action-state";
 import { InputMap } from "../input-map/input-map";
+import { Modding } from "@flamework/core";
+import { buildGenericType, getGenericTypeDescriptor, getNameFromId, getTypeDescriptor, getTypeDescriptorWithGenericParameter, TypeDescriptor } from "bevy_core";
+import { useHookState } from "@rbxts/matter";
+import { Instant } from "../instant";
+import { KeyCode } from "../user-input/keyboard";
 
 // =============================================================================
 // 辅助工具
 // =============================================================================
 
 /**
+ * 从 InputMap 收集所有绑定的键盘键
+ * @param inputMap - 输入映射
+ * @returns 绑定的键盘键集合
+ */
+function collectBoundKeyboardKeys<A extends Actionlike>(inputMap: InputMap<A>): Set<Enum.KeyCode> {
+	const boundKeys = new Set<Enum.KeyCode>();
+	const allInputs = inputMap.getAllInputs();
+
+	for (const input of allInputs) {
+		// Check if this is a KeyCode input
+		if (input instanceof KeyCode) {
+			boundKeys.add(input.getKeyCode());
+		}
+		// Note: ModifierKey is not directly handled here as it decomposes to KeyCodes
+		// We could also check for ModifierKey and add its decomposed keys if needed
+	}
+
+	return boundKeys;
+}
+
+/**
  * 同步bevy_input资源到CentralInputStore
  * @param world - Bevy世界实例
  * @param centralStore - 中央输入存储
+ * @param keysToSync - 要同步的键盘键（可选）
  */
-function syncFromBevyInput(world: BevyWorld, centralStore: CentralInputStore): void {
+function syncFromBevyInput(world: BevyWorld, centralStore: CentralInputStore, keysToSync?: ReadonlySet<Enum.KeyCode>): void {
 	// 获取bevy_input资源
 	const keyboardInput = getKeyboardInput(world);
 	const mouseInput = getMouseInput(world);
@@ -29,7 +56,7 @@ function syncFromBevyInput(world: BevyWorld, centralStore: CentralInputStore): v
 	const mouseWheel = getMouseWheel(world);
 
 	// 同步到中央存储
-	centralStore.syncFromBevyInput(keyboardInput, mouseInput, mouseMotion, mouseWheel);
+	centralStore.syncFromBevyInput(keyboardInput, mouseInput, mouseMotion, mouseWheel, keysToSync);
 }
 
 /**
@@ -49,6 +76,11 @@ export interface InputManagerPluginConfig<A extends Actionlike> {
 		syncRate?: number; // Hz
 		authority?: "client" | "server";
 	};
+}
+
+interface InnerDescriptors{
+	actionStateDescriptor: TypeDescriptor;
+	inputMapDescriptor: TypeDescriptor;
 }
 
 /**
@@ -96,47 +128,90 @@ function createExtensionObject<A extends Actionlike>(
 // =============================================================================
 
 /**
- * Tick all action states
+ * Tick all action states with precise timing
  * @param components - 组件定义
+ * @param actionStateDescriptor - Action state 类型描述符
  */
-function createTickActionStatesSystem<A extends Actionlike>(components: ComponentDefinition<A>) {
-	return (world: BevyWorld, context: Context): void => {
+function createTickActionStatesSystem<A extends Actionlike>(components: ComponentDefinition<A>, actionStateDescriptor: TypeDescriptor) {
+	return (world: BevyWorld, context: Context, discriminator?: unknown): void => {
+		// Use hook to store previous time across frames
+		type TimeStorage = { previousTime: number };
+		const storage = useHookState<TimeStorage>(discriminator, () => true);
+
 		const currentTime = os.clock();
-		const deltaTime = (context as { deltaTime?: number }).deltaTime;
-		const previousTime = deltaTime ? currentTime - deltaTime : currentTime;
+
+		// Initialize previousTime on first run
+		if (storage.previousTime === undefined) {
+			storage.previousTime = currentTime;
+		}
+
+		const currentInstant = Instant.fromTimestamp(currentTime);
+		const previousInstant = Instant.fromTimestamp(storage.previousTime);
 
 		// Query all entities with our action components
 		for (const [entityId, data] of components.query(world)) {
 			if (data.actionState && data.enabled) {
-				data.actionState.tick();
+				data.actionState.tickWithInstants(currentInstant, previousInstant);
 			}
 		}
 
 		// Also tick global resource if exists
-		const globalActionState = world.resources.getResource<ActionState<A>>();
+		const globalActionState = world.resources.getResourceByTypeDescriptor<ActionState<A>>(actionStateDescriptor);
 
 		if (globalActionState) {
-			globalActionState.tick();
+			globalActionState.tickWithInstants(currentInstant, previousInstant);
 		}
+
+		// Update previous time for next frame
+		storage.previousTime = currentTime;
 	};
 }
 
 /**
  * Sync inputs from bevy_input to CentralInputStore
+ * @param components - 组件定义
+ * @param inputMapDescriptor - InputMap 类型描述符
  */
-function syncBevyInputSystem(world: BevyWorld): void {
-	const centralStore = world.resources.getResource<CentralInputStore>();
+function createSyncBevyInputSystem<A extends Actionlike>(components: ComponentDefinition<A>, inputMapDescriptor: TypeDescriptor) {
+	return (world: BevyWorld): void => {
+		const centralStore = world.resources.getResource<CentralInputStore>();
 
-	if (centralStore) {
-		syncFromBevyInput(world, centralStore);
-	}
+		if (!centralStore) {
+			return;
+		}
+
+		// Collect all bound keyboard keys from all InputMaps
+		const allBoundKeys = new Set<Enum.KeyCode>();
+
+		// Collect from entity InputMaps
+		for (const [entityId, data] of components.query(world)) {
+			if (data.inputMap && data.enabled) {
+				const boundKeys = collectBoundKeyboardKeys(data.inputMap);
+				for (const key of boundKeys) {
+					allBoundKeys.add(key);
+				}
+			}
+		}
+
+		// Collect from global InputMap resource if exists
+		const globalInputMap = world.resources.getResourceByTypeDescriptor<InputMap<A>>(inputMapDescriptor);
+		if (globalInputMap) {
+			const boundKeys = collectBoundKeyboardKeys(globalInputMap);
+			for (const key of boundKeys) {
+				allBoundKeys.add(key);
+			}
+		}
+
+		// Sync with collected keys
+		syncFromBevyInput(world, centralStore, allBoundKeys);
+	};
 }
 
 /**
  * Update all action states based on input maps
  * @param components - 组件定义
  */
-function createUpdateActionStatesSystem<A extends Actionlike>(components: ComponentDefinition<A>) {
+function createUpdateActionStatesSystem<A extends Actionlike>(components: ComponentDefinition<A>, inputMapDescriptor: TypeDescriptor, actionStateDescriptor: TypeDescriptor) {
 	return (world: BevyWorld, context: Context): void => {
 		const centralStore = world.resources.getResource<CentralInputStore>();
 		const clashStrategy = world.resources.getResource<ClashStrategyResource>();
@@ -148,11 +223,11 @@ function createUpdateActionStatesSystem<A extends Actionlike>(components: Compon
 		// Query all entities with our action components
 		for (const [entityId, data] of components.query(world)) {
 			if (data.inputMap && data.actionState && data.enabled) {
+				// Get previous frame's state for change detection
+				const previousData = data.actionState.getPreviousProcessedData();
+
 				// Process inputs through the input map
-				const updatedActions = data.inputMap.processActions(
-					centralStore,
-					clashStrategy.strategy as never,
-				);
+				const updatedActions = data.inputMap.processActions(centralStore, previousData, world);
 
 				// Update the action state with processed actions
 				// Note: Since InputMap stores action hashes internally, we need to
@@ -165,11 +240,13 @@ function createUpdateActionStatesSystem<A extends Actionlike>(components: Compon
 		}
 
 		// Also update global resources if they exist
-		const globalInputMap = world.resources.getResource<InputMap<A>>();
-		const globalActionState = world.resources.getResource<ActionState<A>>();
+		const globalInputMap = world.resources.getResourceByTypeDescriptor<InputMap<A>>(inputMapDescriptor);
+		const globalActionState = world.resources.getResourceByTypeDescriptor<ActionState<A>>(actionStateDescriptor);
 
 		if (globalInputMap && globalActionState) {
-			const updatedActions = globalInputMap.processActions(centralStore, clashStrategy.strategy as never);
+			// Get previous frame's state for change detection
+			const previousData = globalActionState.getPreviousProcessedData();
+			const updatedActions = globalInputMap.processActions(centralStore, previousData, world);
 			// Update the global action state with processed actions
 			globalActionState.updateFromProcessed(updatedActions.actionData);
 		}
@@ -180,7 +257,7 @@ function createUpdateActionStatesSystem<A extends Actionlike>(components: Compon
  * Release actions when window loses focus
  * @param components - 组件定义
  */
-function createReleaseOnWindowFocusLostSystem<A extends Actionlike>(components: ComponentDefinition<A>) {
+function createReleaseOnWindowFocusLostSystem<A extends Actionlike>(components: ComponentDefinition<A>, actionStateDescriptor: TypeDescriptor) {
 	return (world: BevyWorld): void => {
 		// Check if window has focus (simplified for Roblox)
 		const UserInputService = game.GetService("UserInputService");
@@ -195,7 +272,7 @@ function createReleaseOnWindowFocusLostSystem<A extends Actionlike>(components: 
 			}
 
 			// Also release global action state if exists
-			const globalActionState = world.resources.getResource<ActionState<A>>();
+			const globalActionState = world.resources.getResourceByTypeDescriptor<ActionState<A>>(actionStateDescriptor);
 
 			if (globalActionState) {
 				globalActionState.releaseAll();
@@ -225,14 +302,24 @@ function clearInputStoreSystem(world: BevyWorld): void {
  * This plugin now uses dynamic component creation instead of InputInstanceManagerResource,
  * allowing for proper ECS queries while maintaining type safety.
  *
+ * @metadata macro
+ * 
  * @template A - Action 类型
  * @param config - 插件配置
  * @returns 插件实例
  */
-export function createInputManagerPlugin<A extends Actionlike>(config: InputManagerPluginConfig<A>) {
+export function createInputManagerPlugin<A extends Actionlike>(
+	config: InputManagerPluginConfig<A>,
+	id?: Modding.Generic<A, "id">,
+	text?: Modding.Generic<A, "text">,
+) {
 	// Create dynamic components for this Action type
 	const components = createActionComponents<A>(config.actionTypeName);
 	const extensionObject = createExtensionObject<A>(components);
+	const innerDescriptors: InnerDescriptors = {
+		actionStateDescriptor: getTypeDescriptorWithGenericParameter<ActionState<A>>(text as string)!,
+		inputMapDescriptor: getTypeDescriptorWithGenericParameter<InputMap<A>>(text as string)!,
+	}
 
 	// Store for cleanup
 	let centralStoreInstance: CentralInputStore | undefined;
@@ -258,13 +345,13 @@ export function createInputManagerPlugin<A extends Actionlike>(config: InputMana
 
 			if (isClient || isTestEnvironment) {
 				// Client mode or test environment: full input processing
-				registerClientSystems(app, components);
+				registerClientSystems(app, components, innerDescriptors);
 
 				// Store the central store instance for cleanup
 				centralStoreInstance = app.getWorld().resources.getResource<CentralInputStore>();
 			} else if (isServer) {
 				// Pure server mode: Only tick action states
-				registerServerSystems(app, components);
+				registerServerSystems(app, components, innerDescriptors);
 			}
 		},
 
@@ -273,10 +360,8 @@ export function createInputManagerPlugin<A extends Actionlike>(config: InputMana
 		 * @param app - 应用实例
 		 */
 		cleanup: (app: App) => {
-			// Clean up gamepad listeners from CentralInputStore
-			if (centralStoreInstance) {
-				centralStoreInstance.cleanupGamepadListeners();
-			}
+			// Note: Gamepad input now uses polling, no cleanup needed
+			// This is kept for backward compatibility
 		},
 
 		/**
@@ -289,6 +374,7 @@ export function createInputManagerPlugin<A extends Actionlike>(config: InputMana
 		 */
 		extension: extensionObject,
 	});
+
 }
 
 /**
@@ -296,9 +382,9 @@ export function createInputManagerPlugin<A extends Actionlike>(config: InputMana
  * @param app - 应用实例
  * @param components - 组件定义
  */
-function registerServerSystems<A extends Actionlike>(app: App, components: ComponentDefinition<A>): void {
-	// Server only needs to tick action states
-	app.addSystems(MainScheduleLabel.PRE_UPDATE, createTickActionStatesSystem(components));
+function registerServerSystems<A extends Actionlike>(app: App, components: ComponentDefinition<A>, innerDescriptors: InnerDescriptors): void {
+	// Server在每帧开始时tick action states来清除just pressed/released状态
+	app.addSystems(MainScheduleLabel.FIRST, createTickActionStatesSystem(components, innerDescriptors.actionStateDescriptor));
 }
 
 /**
@@ -306,10 +392,11 @@ function registerServerSystems<A extends Actionlike>(app: App, components: Compo
  * @param app - 应用实例
  * @param components - 组件定义
  */
-function registerClientSystems<A extends Actionlike>(app: App, components: ComponentDefinition<A>): void {
+function registerClientSystems<A extends Actionlike>(app: App, components: ComponentDefinition<A>, innerDescriptors: InnerDescriptors): void {
 	// Initialize CentralInputStore and register as resource
+	// 插件负责创建所有需要的资源，这符合 Bevy 的架构原则
 	const centralStore = new CentralInputStore();
-	centralStore.initializeGamepadListeners();
+	// Note: Gamepad input now uses polling in syncFromBevyInput, no need for event listeners
 	app.insertResource<CentralInputStore>(centralStore);
 
 	// Initialize ClashStrategy resource
@@ -317,16 +404,22 @@ function registerClientSystems<A extends Actionlike>(app: App, components: Compo
 	app.getWorld().resources.insertResource(clashStrategyResource);
 
 	// Register systems with proper ordering
-	// PreUpdate: tick, sync input, update action states
-	app.addSystems(MainScheduleLabel.PRE_UPDATE, [
-		createTickActionStatesSystem(components),
-		syncBevyInputSystem,
-		createUpdateActionStatesSystem(components),
-	]);
+	// First: tick (clear just pressed/released states from previous frame)
+	app.addSystems(MainScheduleLabel.FIRST, createTickActionStatesSystem(components, innerDescriptors.actionStateDescriptor));
 
-	// Last: clear input store for next frame
-	app.addSystems(MainScheduleLabel.LAST, clearInputStoreSystem);
+	// PreUpdate: sync input, update action states
+	app.addSystems(
+		MainScheduleLabel.PRE_UPDATE,
+		createSyncBevyInputSystem(components, innerDescriptors.inputMapDescriptor),
+		createUpdateActionStatesSystem(components, innerDescriptors.inputMapDescriptor, innerDescriptors.actionStateDescriptor),
+	);
 
 	// PostUpdate: cleanup and finalization
-	app.addSystems(MainScheduleLabel.POST_UPDATE, createReleaseOnWindowFocusLostSystem(components));
+	app.addSystems(MainScheduleLabel.POST_UPDATE, createReleaseOnWindowFocusLostSystem(components, innerDescriptors.actionStateDescriptor));
+
+	// Note: CentralInputStore is NOT cleared here because:
+	// 1. In production: syncFromBevyInput() always updates all button states (行 403-427)
+	// 2. In testing: Simulators need the state to persist across frames
+	// 3. bevy_input's ButtonInput.clear() already handles just_pressed/just_released cleanup
+	// Therefore clearInputStoreSystem is unnecessary and breaks testing.
 }

@@ -67,6 +67,23 @@ export function ___getTypeDescriptor<T>(id?: Modding.Generic<T, "id">, text?: Mo
 
 
 /**
+ * 
+ * @metadata macro
+ * 
+ * @param id - 类型描述符的 ID, 比如 "@white-dragon-bevy/bevy_framework:leafwing-input-manager/action-state/action-state@ActionState"
+ * @param genericParameter 泛型参数类型, 比如 number
+ * @returns 类型描述符对象, 比如 "
+ * {
+ *   id:"@white-dragon-bevy/bevy_framework:leafwing-input-manager/action-state/action-state@ActionState",
+ *   text:"ActionState<number>"
+ * }"
+ */
+export function getTypeDescriptorWithGenericParameter<T>(genericParameter:string,id?:Modding.Generic<T, "id">,){
+	return getTypeDescriptor(id,buildGenericType(getNameFromId(id as string), genericParameter));
+}
+
+
+/**
  * 创建类型描述符对象的工厂函数
  * @param id - 类型的唯一标识符
  * @param text - 类型的文本表示
@@ -87,6 +104,32 @@ export function getTypeDescriptor(
 		id,
 		text: text!,
 	};
+}
+
+/**
+ * 获取类型描述符的名称
+ * @param id - 类型描述符的 ID, 比如 "@white-dragon-bevy/bevy_framework:leafwing-input-manager/action-state/action-state@ActionState"
+ */
+export function getNameFromId(id:string){
+	// 从右往左查找第一个 @ 字符
+	let idx = -1;
+	for (let i = id.size(); i >= 1; i--) {
+		if (id.sub(i, i) === "@") {
+			idx = i;
+			break;
+		}
+	}
+	return idx !== -1 ? id.sub(idx + 1) : id;
+}
+
+/**
+ * 构建泛型类型
+ * @param genericName - 泛型名称, 比如 "ActionState"
+ * @param genericParameter - 泛型参数, 比如 "number"
+ * @returns 构建后的泛型类型, 比如 "ActionState<number>"
+ */
+export function buildGenericType(genericName:string,genericParameter:string){
+	return `${genericName}<${genericParameter}>`;
 }
 
 

@@ -58,11 +58,6 @@ export = () => {
 		});
 
 		describe("updateActionState", () => {
-
-				it("xxxx", () => {
-					
-				});
-
 			it("should update ActionState from InputMap", () => {
 				const actionState = new ActionState<TestAction>();
 				const inputMap = new InputMap<TestAction>();

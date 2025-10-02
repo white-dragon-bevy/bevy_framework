@@ -9,6 +9,8 @@ import { ExtensionConfig, ExtensionMetadata, ExtensionRegistry, PluginExtensions
 import type { ScheduleLabel } from "./types";
 import type { IntoSystemConfigs } from "../bevy_ecs/schedule";
 import type { Schedule } from "../bevy_ecs/schedule/schedule";
+import { Modding } from "@flamework/core";
+import { getTypeDescriptor, TypeDescriptor } from "bevy_core/reflect";
 
 /**
  * 插件接口定义
@@ -65,6 +67,7 @@ export interface Plugin {
 	 * - RobloxContext.Client: 仅客户端
 	 */
 	robloxContext?: RobloxContext;
+
 }
 
 /**
@@ -414,9 +417,14 @@ export type AppTransform = (app: App) => App;
 /**
  * 创建插件（纯函数）
  * 这是创建函数式插件的核心方法
+ * 
+ * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
+ * @metadata macro
+ * 
  * @template E - 扩展工厂类型
  * @param config - 插件配置对象
  * @returns Plugin 实例（带扩展类型）
+ * 
  *
  * @example
  * ```typescript
@@ -445,7 +453,9 @@ export type AppTransform = (app: App) => App;
  * });
  * ```
  */
-export function plugin<E = {}>(config: PluginConfig<E>): Plugin & { extension?: E } {
+export function plugin<E = {},T=any,X=any>(
+	config: PluginConfig<E>
+): Plugin & { extension?: E } {
 	const pluginObject: Plugin & { extension?: E } = {
 		build(app: App): void {
 			config.build(app);

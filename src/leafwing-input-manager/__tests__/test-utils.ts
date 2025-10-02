@@ -5,8 +5,6 @@
 
 import { World } from "@rbxts/matter";
 import { App } from "../../bevy_app/app";
-import { CentralInputStore } from "../user-input/central-input-store";
-import { ClashStrategyResource } from "../clashing-inputs/clash-strategy";
 import { BuiltinSchedules } from "../../bevy_app/main-schedule";
 
 /**
@@ -17,9 +15,8 @@ import { BuiltinSchedules } from "../../bevy_app/main-schedule";
 export function createTestApp(): App {
 	const app = App.create();
 
-	// 插入测试所需的基础资源
-	app.insertResource(new CentralInputStore());
-	app.insertResource(new ClashStrategyResource());
+	// 不再手动插入资源，让插件自己管理
+	// 这符合 Bevy 的架构原则：插件负责初始化所有需要的资源
 
 	// 禁用错误输出以避免测试时的噪音
 	app.setSilentErrors(true);
@@ -79,15 +76,6 @@ export function runUpdateSchedules(app: App): void {
 	app.runSchedule(BuiltinSchedules.PRE_UPDATE);
 	app.runSchedule(BuiltinSchedules.UPDATE);
 	app.runSchedule(BuiltinSchedules.POST_UPDATE);
-}
-
-/**
- * 获取 App 中的 CentralInputStore 资源
- * @param app - App 实例
- * @returns CentralInputStore 实例或 undefined
- */
-export function getInputStore(app: App): CentralInputStore | undefined {
-	return app.getResource<CentralInputStore>();
 }
 
 /**

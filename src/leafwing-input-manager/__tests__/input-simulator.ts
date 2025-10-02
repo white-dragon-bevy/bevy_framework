@@ -277,6 +277,8 @@ export class GamepadSimulator {
 	 */
 	constructor(inputStore: CentralInputStore) {
 		this.inputStore = inputStore;
+		// Disable gamepad polling in tests to allow manual simulation
+		this.inputStore.disableGamepadPolling();
 	}
 
 	/**
@@ -326,6 +328,28 @@ export class GamepadSimulator {
 			this.setLeftStick(new Vector2(clampedValue, this.leftStickPosition.Y));
 		} else if (axis === Enum.KeyCode.Thumbstick2) {
 			this.setRightStick(new Vector2(clampedValue, this.rightStickPosition.Y));
+		}
+
+		// 处理扳机按钮 - 将轴值转换为按钮状态
+		const isTriggerButton = axis === Enum.KeyCode.ButtonL2 || axis === Enum.KeyCode.ButtonR2;
+
+		if (isTriggerButton) {
+			const absoluteValue = math.abs(clampedValue);
+			const pressThreshold = 0.1;
+			const isPressed = absoluteValue > pressThreshold;
+			const key = `gamepad_${axis.Name}`;
+
+			this.inputStore.updateButtonlike(key, {
+				pressed: isPressed,
+				value: absoluteValue,
+			});
+
+			// 同步按钮状态记录
+			if (isPressed) {
+				this.pressedButtons.add(axis);
+			} else {
+				this.pressedButtons.delete(axis);
+			}
 		}
 	}
 

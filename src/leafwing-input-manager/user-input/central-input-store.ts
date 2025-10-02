@@ -35,6 +35,8 @@ export class CentralInputStore implements Resource {
 	private gamepadConfig: GamepadConfig = DEFAULT_GAMEPAD_CONFIG;
 	private gamepadConnections: Array<RBXScriptConnection> = [];
 	private isGamepadListenerActive = false;
+	/** Whether to use polling for gamepad input (disable in tests) */
+	private useGamepadPolling = true;
 
 	/**
 	 * Clears all existing values
@@ -251,22 +253,69 @@ export class CentralInputStore implements Resource {
 	}
 
 	/**
-	 * Initializes gamepad input listeners
-	 * This sets up UserInputService.InputChanged event handling for gamepad sticks
+	 * Polls gamepad state synchronously (replaces async event listeners)
+	 * This should be called once per frame during input sync
+	 * @param gamepadNum - The gamepad number (1-4), defaults to 1
 	 */
-	initializeGamepadListeners(): void {
-		if (this.isGamepadListenerActive) {
-			return; // Already initialized
+	pollGamepadState(gamepadNum: number = 1): void {
+		const gamepadType = this.getGamepadType(gamepadNum);
+		if (!gamepadType) {
+			return;
 		}
 
+		// Get all gamepad state for this gamepad
+		const gamepadStates = UserInputService.GetGamepadState(gamepadType);
 
-		// Listen for gamepad input changes
-		const inputChangedConnection = UserInputService.InputChanged.Connect((input: InputObject) => {
-			this.handleGamepadInputChanged(input);
-		});
+		for (const state of gamepadStates) {
+			// Handle thumbstick inputs
+			if (state.KeyCode === Enum.KeyCode.Thumbstick1 || state.KeyCode === Enum.KeyCode.Thumbstick2) {
+				const rawInput = new Vector2(state.Position.X, state.Position.Y);
+				const processedInput = this.processGamepadStickInput(rawInput);
+				const stickKey = this.getGamepadStickKey(gamepadType, state.KeyCode);
 
-		this.gamepadConnections.push(inputChangedConnection);
-		this.isGamepadListenerActive = true;
+				// Update dual axis value for the specific gamepad stick
+				this.updateDualAxislike(stickKey, processedInput);
+
+				// Also update the legacy gamepad stick keys for backwards compatibility
+				const legacyKey = state.KeyCode === Enum.KeyCode.Thumbstick1
+					? "gamepad_stick_left"
+					: "gamepad_stick_right";
+				this.updateDualAxislike(legacyKey, processedInput);
+			}
+			// Handle button inputs
+			else {
+				const pressed = state.Position.Magnitude > 0.5; // Trigger threshold
+				this.updateGamepadButton(state.KeyCode, pressed);
+			}
+		}
+	}
+
+	/**
+	 * Gets the gamepad type enum from gamepad number
+	 * @param gamepadNum - The gamepad number (1-4)
+	 * @returns The corresponding Enum.UserInputType or undefined
+	 */
+	private getGamepadType(gamepadNum: number): Enum.UserInputType | undefined {
+		switch (gamepadNum) {
+			case 1:
+				return Enum.UserInputType.Gamepad1;
+			case 2:
+				return Enum.UserInputType.Gamepad2;
+			case 3:
+				return Enum.UserInputType.Gamepad3;
+			case 4:
+				return Enum.UserInputType.Gamepad4;
+			default:
+				return undefined;
+		}
+	}
+
+	/**
+	 * @deprecated Use pollGamepadState() instead. This method is kept for backward compatibility but does nothing.
+	 */
+	initializeGamepadListeners(): void {
+		// No-op: We now use polling instead of event listeners
+		warn("CentralInputStore.initializeGamepadListeners() is deprecated. Gamepad input now uses polling.");
 	}
 
 	/**
@@ -279,33 +328,6 @@ export class CentralInputStore implements Resource {
 			inputType === Enum.UserInputType.Gamepad2 ||
 			inputType === Enum.UserInputType.Gamepad3 ||
 			inputType === Enum.UserInputType.Gamepad4;
-	}
-
-	/**
-	 * Handles gamepad input changes from UserInputService
-	 * @param input - The input object from UserInputService
-	 */
-	private handleGamepadInputChanged(input: InputObject): void {
-		// Check if this is a gamepad input
-		if (!this.isGamepadInputType(input.UserInputType)) {
-			return;
-		}
-
-		// Handle thumbstick inputs
-		if (input.KeyCode === Enum.KeyCode.Thumbstick1 || input.KeyCode === Enum.KeyCode.Thumbstick2) {
-			const rawInput = new Vector2(input.Position.X, input.Position.Y);
-			const processedInput = this.processGamepadStickInput(rawInput);
-			const stickKey = this.getGamepadStickKey(input.UserInputType, input.KeyCode);
-
-			// Update dual axis value for the specific gamepad stick
-			this.updateDualAxislike(stickKey, processedInput);
-
-			// Also update the legacy gamepad stick keys for backwards compatibility
-			const legacyKey = input.KeyCode === Enum.KeyCode.Thumbstick1
-				? "gamepad_stick_left"
-				: "gamepad_stick_right";
-			this.updateDualAxislike(legacyKey, processedInput);
-		}
 	}
 
 	/**
@@ -328,17 +350,34 @@ export class CentralInputStore implements Resource {
 	}
 
 	/**
-	 * Cleans up gamepad input listeners
+	 * Disables gamepad polling (for testing)
+	 * When disabled, gamepad state must be updated manually via updateGamepadButton/updateGamepadStick* methods
+	 */
+	disableGamepadPolling(): void {
+		this.useGamepadPolling = false;
+	}
+
+	/**
+	 * Enables gamepad polling (default)
+	 */
+	enableGamepadPolling(): void {
+		this.useGamepadPolling = true;
+	}
+
+	/**
+	 * Checks if gamepad polling is enabled
+	 * @returns True if polling is enabled
+	 */
+	isGamepadPollingEnabled(): boolean {
+		return this.useGamepadPolling;
+	}
+
+	/**
+	 * @deprecated Gamepad input now uses polling. This method is kept for backward compatibility but does nothing.
 	 */
 	cleanupGamepadListeners(): void {
-		if (!this.isGamepadListenerActive) {
-			return;
-		}
-
-
-		for (const connection of this.gamepadConnections) {
-			connection.Disconnect();
-		}
+		// No-op: We now use polling instead of event listeners
+		// Clear old connection tracking for safety
 		this.gamepadConnections.clear();
 		this.isGamepadListenerActive = false;
 	}
@@ -393,37 +432,45 @@ export class CentralInputStore implements Resource {
 	 * @param mouseInput - The mouse ButtonInput resource
 	 * @param mouseMotion - The mouse motion resource
 	 * @param mouseWheel - The mouse wheel resource
+	 * @param keysToSync - Optional set of keyboard keys to sync. If not provided, syncs all pressed keys.
+	 * @param pollGamepad - Whether to poll gamepad state (default true)
 	 */
 	syncFromBevyInput(
 		keyboardInput?: ButtonInput<Enum.KeyCode>,
 		mouseInput?: ButtonInput<Enum.UserInputType>,
 		mouseMotion?: AccumulatedMouseMotion,
 		mouseWheel?: AccumulatedMouseWheel,
+		keysToSync?: ReadonlySet<Enum.KeyCode>,
+		pollGamepad: boolean = true,
 	): void {
 		// Don't clear state - we need to preserve it for proper state tracking
 		// Only update the values that have changed
 
 		// Sync keyboard state
 		if (keyboardInput) {
-			// Only check commonly used keys to improve performance
-			const commonKeys = [
-				Enum.KeyCode.Space, Enum.KeyCode.Return, Enum.KeyCode.LeftShift, Enum.KeyCode.LeftControl,
-				Enum.KeyCode.A, Enum.KeyCode.D, Enum.KeyCode.W, Enum.KeyCode.S,
-				Enum.KeyCode.Left, Enum.KeyCode.Right, Enum.KeyCode.Up, Enum.KeyCode.Down,
-				Enum.KeyCode.Q, Enum.KeyCode.E, Enum.KeyCode.R, Enum.KeyCode.F,
-				Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four,
-				Enum.KeyCode.Tab, Enum.KeyCode.Escape,
-			];
+			// If specific keys are provided, sync only those
+			// Otherwise sync all pressed keys from ButtonInput
+			if (keysToSync && keysToSync.size() > 0) {
+				for (const keyCode of keysToSync) {
+					const key = `keyboard_${keyCode.Name}`;
+					const pressed = keyboardInput.isPressed(keyCode);
 
-			for (const keyCode of commonKeys) {
-				const key = `keyboard_${keyCode.Name}`;
-				const pressed = keyboardInput.isPressed(keyCode);
-
-				// Always update the state, whether pressed or not
-				this.updateButtonlike(key, {
-					pressed,
-					value: pressed ? 1 : 0
-				});
+					// Always update the state, whether pressed or not
+					this.updateButtonlike(key, {
+						pressed,
+						value: pressed ? 1 : 0
+					});
+				}
+			} else {
+				// Fallback: sync all currently pressed keys
+				const pressedKeys = keyboardInput.getPressed();
+				for (const keyCode of pressedKeys) {
+					const key = `keyboard_${keyCode.Name}`;
+					this.updateButtonlike(key, {
+						pressed: true,
+						value: 1
+					});
+				}
 			}
 		}
 
@@ -462,6 +509,15 @@ export class CentralInputStore implements Resource {
 			const delta = mouseWheel.consume();
 			if (delta !== undefined && delta !== 0) {
 				this.updateAxislike("mouse_wheel", delta);
+			}
+		}
+
+		// Poll gamepad state synchronously (replaces async event listeners)
+		// Only poll if enabled (disabled in tests where GamepadSimulator updates directly)
+		if (pollGamepad && this.useGamepadPolling) {
+			// Poll all connected gamepads
+			for (let gamepadNum = 1; gamepadNum <= 4; gamepadNum++) {
+				this.pollGamepadState(gamepadNum);
 			}
 		}
 	}

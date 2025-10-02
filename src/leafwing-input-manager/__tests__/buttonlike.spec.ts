@@ -97,7 +97,7 @@ export = () => {
 		describe("Keyboard Button Input", () => {
 			it("should update central input store when key pressed", () => {
 				// 按下空格键
-				keyboard.pressKey(Enum.KeyCode.Space);
+				keyboard.pressKey(KeyCode.Space.getKeyCode());
 				advanceFrame(app);
 
 				const actionState = app.getResource<ActionState<TestAction>>();
@@ -120,7 +120,7 @@ export = () => {
 				expect(buttonValue).to.equal(0.0);
 
 				// 按下按键
-				keyboard.pressKey(Enum.KeyCode.Space);
+				keyboard.pressKey(KeyCode.Space.getKeyCode());
 				advanceFrame(app);
 
 				buttonValue = actionState!.buttonValue(TestAction.Throttle);
@@ -129,7 +129,7 @@ export = () => {
 
 			it("should handle press and release states", () => {
 				// 按下按键
-				keyboard.pressKey(Enum.KeyCode.Space);
+				keyboard.pressKey(KeyCode.Space.getKeyCode());
 				advanceFrame(app);
 
 				const actionState = app.getResource<ActionState<TestAction>>();
@@ -142,7 +142,7 @@ export = () => {
 				expect(actionState!.justReleased(TestAction.Throttle)).to.equal(false);
 
 				// 释放按键
-				keyboard.releaseKey(Enum.KeyCode.Space);
+				keyboard.releaseKey(KeyCode.Space.getKeyCode());
 				advanceFrame(app);
 
 				// 验证刚释放状态
@@ -309,12 +309,12 @@ export = () => {
 				expect(actionState).to.be.ok();
 
 				// 测试键盘激活
-				keyboard.pressKey(Enum.KeyCode.Space);
+				keyboard.pressKey(KeyCode.Space.getKeyCode());
 				advanceFrame(app);
 				expect(actionState!.pressed(TestAction.Throttle)).to.equal(true);
 
 				// 释放键盘
-				keyboard.releaseKey(Enum.KeyCode.Space);
+				keyboard.releaseKey(KeyCode.Space.getKeyCode());
 				advanceFrame(app);
 				expect(actionState!.pressed(TestAction.Throttle)).to.equal(false);
 
@@ -339,7 +339,7 @@ export = () => {
 				expect(actionState).to.be.ok();
 
 				// 按下键盘
-				keyboard.pressKey(Enum.KeyCode.Space);
+				keyboard.pressKey(KeyCode.Space.getKeyCode());
 				advanceFrame(app);
 				expect(actionState!.pressed(TestAction.Throttle)).to.equal(true);
 
@@ -349,7 +349,7 @@ export = () => {
 				expect(actionState!.pressed(TestAction.Throttle)).to.equal(true);
 
 				// 释放键盘,但鼠标仍按下
-				keyboard.releaseKey(Enum.KeyCode.Space);
+				keyboard.releaseKey(KeyCode.Space.getKeyCode());
 				advanceFrame(app);
 				expect(actionState!.pressed(TestAction.Throttle)).to.equal(true);
 
