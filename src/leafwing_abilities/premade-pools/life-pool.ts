@@ -242,11 +242,12 @@ export class LifePool implements RegeneratingPool {
 
 	/**
 	 * Damages the pool by the specified amount
+	 * Unlike expend(), this will always succeed and clamp to minimum (0)
 	 *
 	 * @param damage - The damage to apply
 	 */
 	takeDamage(damage: Life): void {
-		this.expend(damage.value);
+		this.setCurrent(this.currentValue.value - damage.value);
 	}
 
 	/**

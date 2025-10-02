@@ -102,6 +102,16 @@ export class Charges {
 	}
 
 	/**
+	 * Creates a charge system for ammo-style charges (all at once, no cooldown interaction)
+	 *
+	 * @param maxCharges - The maximum number of charges
+	 * @returns A new charges instance
+	 */
+	static ammo(maxCharges: number): Charges {
+		return new Charges(maxCharges, ReplenishStrategy.AllAtOnce, CooldownStrategy.Ignore);
+	}
+
+	/**
 	 * Gets the current number of charges
 	 *
 	 * @returns The current charge count
@@ -156,31 +166,28 @@ export class Charges {
 	}
 
 	/**
-	 * Adds charges, returning the number that were actually added
+	 * Adds charges, capping at max charges
 	 *
 	 * @param count - The number of charges to add
-	 * @returns The number of charges that were actually added
+	 * @returns The number of excess charges (charges that couldn't be added due to the cap)
 	 */
 	addCharges(count: number): number {
-		const oldCharges = this.currentCharges;
 		const newCharges = this.currentCharges + count;
-
-		if (newCharges > this.maxCharges) {
-			this.currentCharges = this.maxCharges;
-			return this.maxCharges - oldCharges;
-		}
-
-		this.currentCharges = newCharges;
-		return count;
+		const excess = math.max(0, newCharges - this.maxCharges);
+		this.currentCharges = math.min(newCharges, this.maxCharges);
+		return excess;
 	}
 
 	/**
 	 * Sets the current charges directly
 	 *
 	 * @param charges - The new charge count
+	 * @returns The number of excess charges (charges that couldn't be set due to the cap)
 	 */
-	setCharges(charges: number): void {
+	setCharges(charges: number): number {
+		const excess = math.max(0, charges - this.maxCharges);
 		this.currentCharges = math.clamp(charges, 0, this.maxCharges);
+		return excess;
 	}
 
 	/**

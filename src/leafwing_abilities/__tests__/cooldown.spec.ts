@@ -88,16 +88,17 @@ export = () => {
 			expect(remaining.asSecsF32()).to.equal(7);
 		});
 
-		it("should refresh cooldown to zero", () => {
+		it("should refresh cooldown to ready state", () => {
 			const cooldown = Cooldown.fromSecs(5);
 			cooldown.trigger();
 
 			cooldown.tick(Duration.fromSecs(3));
 			expect(cooldown.getElapsed().asSecsF32()).to.equal(3);
 
+			// refresh() sets elapsed = maxTime, making it immediately ready
 			cooldown.refresh();
-			expect(cooldown.getElapsed().asSecsF32()).to.equal(0);
-			expect(cooldown.ready()).to.equal(CannotUseAbility.OnCooldown);
+			expect(cooldown.getElapsed().asSecsF32()).to.equal(5);
+			expect(cooldown.ready()).to.equal(undefined); // Ready to use
 		});
 
 		it("should calculate progress fraction correctly", () => {

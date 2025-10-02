@@ -143,6 +143,23 @@ export = () => {
 			pool.heal(new Life(20));
 			expect(pool.current()).to.equal(90);
 		});
+
+		it("should handle excessive damage correctly", () => {
+			const pool = LifePool.simple(50, 100);
+
+			// Damage exceeding current life should clamp to 0
+			pool.takeDamage(new Life(80));
+			expect(pool.current()).to.equal(0);
+			expect(pool.isEmpty()).to.equal(true);
+		});
+
+		it("should handle negative damage as healing", () => {
+			const pool = LifePool.simple(50, 100);
+
+			// Negative damage should increase life
+			pool.takeDamage(new Life(-20));
+			expect(pool.current()).to.equal(70);
+		});
 	});
 
 	describe("ManaPool", () => {
@@ -213,8 +230,12 @@ export = () => {
 			const stringRepresentation = pool.toString();
 
 			expect(stringRepresentation).to.be.a("string");
-			expect(stringRepresentation.find("50")).never.to.equal(undefined);
-			expect(stringRepresentation.find("100")).never.to.equal(undefined);
+			// Check that the string contains "50" and "100"
+			const contains50 = stringRepresentation.gsub("50", "")[0].size() !== stringRepresentation.size();
+			const contains100 = stringRepresentation.gsub("100", "")[0].size() !== stringRepresentation.size();
+
+			expect(contains50).to.equal(true);
+			expect(contains100).to.equal(true);
 		});
 	});
 };

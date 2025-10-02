@@ -12,6 +12,51 @@ import { createTickCooldownsSystem } from "./systems";
  * This plugin:
  * - Registers the tick_cooldowns system to PreUpdate
  * - Can be configured to register regenerate_resource_pool systems
+ *
+ * ## Resource-Only Support
+ *
+ * **IMPORTANT**: This plugin only supports ability states stored as **RESOURCES**, not components.
+ *
+ * ### Usage Example
+ *
+ * ```typescript
+ * import { AbilityPlugin } from "@rbxts/leafwing_abilities";
+ * import { App } from "@rbxts/bevy_app";
+ * import { getTypeDescriptor } from "@rbxts/bevy_core";
+ * import { CooldownState, ChargeState } from "@rbxts/leafwing_abilities";
+ *
+ * // 1. Define your ability enum
+ * enum PlayerAbility {
+ *   Jump,
+ *   Dash,
+ *   Attack,
+ * }
+ *
+ * // 2. Add the plugin to your app
+ * const app = new App();
+ * app.addPlugin(AbilityPlugin.create<PlayerAbility>());
+ *
+ * // 3. Store ability states as resources (not components!)
+ * const typeDescriptor = getTypeDescriptor(...);
+ * const cooldowns = new CooldownState<PlayerAbility>();
+ * const charges = new ChargeState<PlayerAbility>();
+ *
+ * app.world.resources.setResourceByTypeDescriptor(typeDescriptor, cooldowns);
+ * app.world.resources.setResourceByTypeDescriptor(typeDescriptor, charges);
+ * ```
+ *
+ * ### Why Not Component Support?
+ *
+ * Matter ECS requires concrete component constructors for queries, but `CooldownState<A>` is a
+ * generic type. TypeDescriptor cannot be mapped to Matter component constructors.
+ *
+ * For per-entity cooldowns, see the "Alternative for Per-Entity Cooldowns" section in
+ * `createTickCooldownsSystem` documentation.
+ *
+ * ## Rust Bevy Comparison
+ *
+ * - **Rust Bevy**: Supports both resources and components
+ * - **TypeScript/Matter**: Supports resources only (technical limitation)
  */
 export class AbilityPlugin<A extends Abilitylike> extends BasePlugin {
 	private abilityTypeDescriptor!: TypeDescriptor;

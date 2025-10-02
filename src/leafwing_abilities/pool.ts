@@ -159,6 +159,22 @@ export class AbilityCosts<A extends Abilitylike, P extends Pool> {
 	}
 
 	/**
+	 * Pays the ability cost for an action from the pool, if able
+	 *
+	 * @param action - The ability to pay for
+	 * @param pool - The resource pool to expend from
+	 * @returns undefined if successful, CannotUseAbility.PoolInsufficient if insufficient
+	 */
+	payCost(action: A, pool: P): CannotUseAbility | undefined {
+		const cost = this.get(action);
+		if (cost === undefined) {
+			return undefined; // No cost means always successful
+		}
+
+		return pool.expend(cost);
+	}
+
+	/**
 	 * Removes the cost for an ability
 	 *
 	 * @param action - The ability to remove cost for

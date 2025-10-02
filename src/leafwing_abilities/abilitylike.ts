@@ -48,7 +48,14 @@ export interface Abilitylike extends Actionlike {
 /**
  * Helper function to check if an ability is ready to be used
  *
- * This is the default implementation used by most abilities
+ * This is the default implementation used by most abilities.
+ *
+ * Logic (matching Rust version):
+ * - If ability has charges, check if charges > 0
+ * - Else if ability has cooldown, check if cooldown is ready
+ * - Else if pool exists, check if pool has enough resources
+ * - Else if cost exists but pool doesn't, return PoolInsufficient
+ * - Otherwise ready
  *
  * @param action - The ability to check
  * @param charges - The charge state for this ability type
@@ -64,36 +71,53 @@ export function abilityReady<A extends Abilitylike, P extends Pool>(
 	pool?: P,
 	costs?: AbilityCosts<A, P>,
 ): CannotUseAbility | undefined {
-	// Check charges first
-	const chargesError = charges.ready(action);
-	if (chargesError !== undefined) {
-		return chargesError;
-	}
+	const chargesObj = charges.get(action);
+	const cooldownObj = cooldowns.get(action);
+	const cost = costs?.get(action);
 
-	// Then check cooldowns
-	const cooldownError = cooldowns.ready(action);
-	if (cooldownError !== undefined) {
-		return cooldownError;
-	}
-
-	// Finally check resource pool if present
-	if (pool !== undefined && costs !== undefined) {
-		const cost = costs.get(action);
-		if (cost !== undefined) {
-			const poolError = pool.available(cost);
-			if (poolError !== undefined) {
-				return poolError;
-			}
+	// If this ability has charges, only check charges
+	if (chargesObj !== undefined) {
+		if (chargesObj.charges() > 0) {
+			return undefined;
 		}
+
+		return CannotUseAbility.NoCharges;
 	}
 
+	// Else if it has a cooldown but no charges, check cooldown
+	if (cooldownObj !== undefined) {
+		return cooldowns.ready(action);
+	}
+
+	// Else if we have a pool, check if it has enough resources
+	if (pool !== undefined) {
+		if (cost !== undefined) {
+			return pool.available(cost);
+		}
+
+		return undefined;
+	}
+
+	// Pool doesn't exist but cost does
+	if (cost !== undefined) {
+		// Assuming non-zero cost means insufficient
+		return CannotUseAbility.PoolInsufficient;
+	}
+
+	// No charges, no cooldown, no pool, no cost - always ready
 	return undefined;
 }
 
 /**
  * Helper function to trigger an ability
  *
- * This is the default implementation used by most abilities
+ * This is the default implementation used by most abilities.
+ *
+ * Logic (matching Rust version):
+ * - First check if ready
+ * - If ability has charges, expend one charge
+ * - Else if ability has cooldown, trigger cooldown
+ * - If pool and cost exist, deduct from pool
  *
  * @param action - The ability to trigger
  * @param charges - The charge state for this ability type
@@ -109,32 +133,38 @@ export function triggerAbility<A extends Abilitylike, P extends Pool>(
 	pool?: P,
 	costs?: AbilityCosts<A, P>,
 ): CannotUseAbility | undefined {
+	const chargesObj = charges.get(action);
+	const cooldownObj = cooldowns.get(action);
+	const cost = costs?.get(action);
+
 	// First check if we can trigger
 	const readyError = abilityReady(action, charges, cooldowns, pool, costs);
 	if (readyError !== undefined) {
 		return readyError;
 	}
 
-	// Expend a charge
-	const chargeError = charges.expend(action);
-	if (chargeError !== undefined) {
-		return chargeError;
+	// If ability has charges, expend one charge
+	if (chargesObj !== undefined) {
+		const chargeError = charges.expend(action);
+		if (chargeError !== undefined) {
+			return chargeError;
+		}
 	}
-
-	// Trigger the cooldown
-	const cooldownError = cooldowns.trigger(action);
-	if (cooldownError !== undefined) {
-		return cooldownError;
+	// Else if ability has cooldown, trigger cooldown
+	else if (cooldownObj !== undefined) {
+		const cooldownError = cooldowns.trigger(action);
+		if (cooldownError !== undefined) {
+			return cooldownError;
+		}
 	}
 
 	// Deduct from pool if present
-	if (pool !== undefined && costs !== undefined) {
-		const cost = costs.get(action);
-		if (cost !== undefined) {
-			const poolError = pool.expend(cost);
-			if (poolError !== undefined) {
-				return poolError;
-			}
+	if (pool !== undefined && cost !== undefined) {
+		const poolError = pool.expend(cost);
+		if (poolError !== undefined) {
+			// This should never happen because we checked in ready()
+			// but we return the error anyway for safety
+			return poolError;
 		}
 	}
 

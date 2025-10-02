@@ -84,8 +84,9 @@ export = () => {
 			charges.expend();
 			charges.expend();
 
-			const addedCount = charges.addCharges(2);
-			expect(addedCount).to.equal(2);
+			// addCharges() returns excess, not added count
+			const excess = charges.addCharges(2);
+			expect(excess).to.equal(0); // No excess since 3 + 2 = 5 (max)
 			expect(charges.charges()).to.equal(5);
 		});
 
@@ -93,8 +94,11 @@ export = () => {
 			const charges = Charges.simple(5);
 			charges.expend();
 
-			const addedCount = charges.addCharges(10);
-			expect(addedCount).to.equal(1);
+			// addCharges() returns excess, not added count
+			// Current: 4, adding 10, max: 5
+			// Result: 5 charges, excess: 9
+			const excess = charges.addCharges(10);
+			expect(excess).to.equal(9); // Excess charges that couldn't be added
 			expect(charges.charges()).to.equal(5);
 		});
 

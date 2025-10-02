@@ -35,22 +35,44 @@ export class Cooldown {
 	/**
 	 * Advances the cooldown timer by the specified delta time
 	 *
+	 * When charges are provided, this will calculate how many cooldown cycles have completed
+	 * and add the corresponding number of charges. This ensures correct behavior even with
+	 * large delta times (e.g., after a pause).
+	 *
 	 * @param deltaTime - The time elapsed since the last tick
 	 * @param charges - Optional charges that should be replenished when cooldown completes
 	 */
 	tick(deltaTime: Duration, charges?: Charges): void {
-		if (this.elapsedTime.lessThan(this.maxTime)) {
-			this.elapsedTime = this.elapsedTime.add(deltaTime);
+		// Don't tick cooldowns when they are fully elapsed
+		if (this.elapsedTime.equals(this.maxTime)) {
+			return;
+		}
 
-			// Clamp to max time
-			if (this.elapsedTime.greaterThan(this.maxTime)) {
+		if (charges !== undefined) {
+			const totalTime = this.elapsedTime.add(deltaTime);
+
+			const totalNanos = totalTime.asNanos();
+			const maxNanos = this.maxTime.asNanos();
+
+			// Calculate how many complete cycles occurred
+			const nCompleted = math.floor(totalNanos / maxNanos);
+			const extraNanos = totalNanos % maxNanos;
+
+			// Try to add the completed charges
+			const excessCompletions = charges.addCharges(nCompleted);
+
+			if (excessCompletions === 0) {
+				// All charges were added, set elapsed to the remainder
+				const remainderTime = Duration.fromNanos(extraNanos);
+				this.elapsedTime = remainderTime.lessThan(this.maxTime) ? remainderTime : this.maxTime;
+			} else {
+				// Charges are full, set elapsed to max
 				this.elapsedTime = this.maxTime;
-
-				// Replenish charges when cooldown completes
-				if (charges !== undefined) {
-					charges.replenish();
-				}
 			}
+		} else {
+			// No charges, just advance the timer
+			const newElapsed = this.elapsedTime.add(deltaTime);
+			this.elapsedTime = newElapsed.lessThan(this.maxTime) ? newElapsed : this.maxTime;
 		}
 	}
 
@@ -83,10 +105,10 @@ export class Cooldown {
 	}
 
 	/**
-	 * Refreshes the cooldown, resetting it regardless of current state
+	 * Refreshes the cooldown, causing the underlying action to be ready to use immediately
 	 */
 	refresh(): void {
-		this.elapsedTime = Duration.ZERO;
+		this.elapsedTime = this.maxTime;
 	}
 
 	/**
