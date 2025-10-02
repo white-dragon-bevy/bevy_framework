@@ -93,23 +93,6 @@ impl Plugin for MyPlugin {
 }
 ```
 
-**TypeScript 函数式实现**：
-
-```typescript
-import { plugin } from "../bevy_app/plugin";
-
-export function createMyPlugin(config?: MyPluginConfig) {
-    return plugin({
-        name: "MyPlugin",
-        build: (app) => {
-            // 插件只能在这里配置 App
-            app.insertResource(...);
-            app.addSystems(...);
-        },
-    });
-}
-```
-
 ### 统一注入，不同访问
 
 **核心原则**：插件提供的所有功能都注入到 World，通过不同机制访问。
@@ -290,30 +273,21 @@ function badSystem(world: World, app: App): void {
 ### 3. 插件架构
 
 ```typescript
-import { plugin } from "../bevy_app/plugin";
-
 // ✅ 推荐：插件在 build 中配置一切
-export function createMyPlugin(config?: MyPluginConfig) {
-    return plugin({
-        name: "MyPlugin",
-        build: (app) => {
-            // 所有配置都在这里
-            app.insertResource(...);
-            app.addSystems(...);
-        },
-    });
+class MyPlugin extends BasePlugin {
+    build(app: App): void {
+        // 所有配置都在这里
+        app.insertResource(...);
+        app.addSystems(...);
+    }
 }
 
 // ❌ 避免：插件提供多种初始化方式
-export function createBadPlugin() {
-    return {
-        initForApp() { },
-        initForSystem() { }  // 不需要！
-    };
+class BadPlugin {
+    initForApp() { }
+    initForSystem() { }  // 不需要！
 }
 ```
-
-> **注意**：class plugin 已完全弃用，请使用 `plugin()` 函数创建插件。
 
 ## 总结
 

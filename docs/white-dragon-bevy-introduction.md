@@ -1,7 +1,5 @@
 # White Dragon Bevy 框架介绍
 
-> **注意**：本文档基于函数式插件 API。class plugin 已完全弃用，请使用 `plugin<E>()` 函数创建插件。
-
 ## 目录
 
 1. [框架概述](#框架概述)
@@ -64,16 +62,16 @@ const app = App.create()
 插件是功能模块化的载体，每个插件封装了一组相关的功能。框架提供了丰富的内置插件：
 
 ```typescript
-import { createTimePlugin } from "@white-dragon-bevy/bevy_time";
-import { createDiagnosticsPlugin } from "@white-dragon-bevy/bevy_diagnostic";
-import { createInputPlugin } from "@white-dragon-bevy/bevy_input";
-import { createStatePlugin } from "@white-dragon-bevy/bevy_state";
+import { TimePlugin } from "@white-dragon-bevy/bevy_time";
+import { DiagnosticsPlugin } from "@white-dragon-bevy/bevy_diagnostic";
+import { InputPlugin } from "@white-dragon-bevy/bevy_input";
+import { StatePlugin } from "@white-dragon-bevy/bevy_state";
 
 // 添加插件到应用
-app.addPlugin(createTimePlugin());        // 时间管理
-app.addPlugin(createDiagnosticsPlugin()); // 性能诊断
-app.addPlugin(createInputPlugin());       // 输入处理
-app.addPlugin(createStatePlugin());       // 状态管理
+app.addPlugin(new TimePlugin());        // 时间管理
+app.addPlugin(new DiagnosticsPlugin()); // 性能诊断
+app.addPlugin(new InputPlugin());       // 输入处理
+app.addPlugin(new StatePlugin());       // 状态管理
 ```
 
 **插件特点**：
@@ -312,20 +310,20 @@ app.run();
 
 ```typescript
 import { App } from "@white-dragon-bevy/bevy_app";
-import { createTimePlugin } from "@white-dragon-bevy/bevy_time";
-import { createDiagnosticsPlugin } from "@white-dragon-bevy/bevy_diagnostic";
+import { TimePlugin } from "@white-dragon-bevy/bevy_time";
+import { DiagnosticsPlugin } from "@white-dragon-bevy/bevy_diagnostic";
 import { RobloxDefaultPlugins } from "@white-dragon-bevy/bevy_app";
 
 // 创建应用并添加插件
 const app = App.create();
 
 // 1. 添加单个插件
-app.addPlugin(createTimePlugin());
+app.addPlugin(new TimePlugin());
 
 // 2. 添加多个插件
 app.addPlugins(
-    createTimePlugin(),
-    createDiagnosticsPlugin()
+    new TimePlugin(),
+    new DiagnosticsPlugin()
 );
 
 // 3. 添加插件组
@@ -339,19 +337,18 @@ app.run();
 
 ```typescript
 import { App, getContextWithExtensions } from "@white-dragon-bevy/bevy_app";
-import { createTimePlugin } from "@white-dragon-bevy/bevy_time";
-import { createDiagnosticsPlugin } from "@white-dragon-bevy/bevy_diagnostic";
-import type { TimePluginExtension } from "@white-dragon-bevy/bevy_time";
+import { TimePlugin } from "@white-dragon-bevy/bevy_time";
+import { DiagnosticsPlugin } from "@white-dragon-bevy/bevy_diagnostic";
 
 // 创建应用并添加插件
 const app = App.create()
-    .addPlugin(createTimePlugin())
-    .addPlugin(createDiagnosticsPlugin());
+    .addPlugin(new TimePlugin())
+    .addPlugin(new DiagnosticsPlugin());
 
 // 在系统中使用扩展
 function gameSystem(world: World, context: Context): void {
     // 使用类型安全的扩展方法
-    const ctx = getContextWithExtensions<TimePluginExtension>(app);
+    const ctx = getContextWithExtensions<TimePlugin>(app);
     const deltaSeconds = ctx.getDeltaSeconds();
     const isPaused = ctx.isPaused();
 
@@ -414,7 +411,7 @@ function setupSystem(world: World, context: Context): void {
 // 创建和运行应用
 const app = App.create()
     .addPlugins(RobloxDefaultPlugins.create().build())
-    .addPlugin(createTimePlugin())
+    .addPlugin(new TimePlugin())
     .addSystems(BuiltinSchedules.STARTUP, setupSystem)
     .addSystems(BuiltinSchedules.UPDATE, bounceSystem, movementSystem)
     .run();
@@ -433,12 +430,12 @@ import { RunService } from "@rbxts/services";
 // 检查运行环境
 if (RunService.IsServer()) {
     // 添加服务端专用插件
-    app.addPlugin(createServerPlugin());
+    app.addPlugin(new ServerPlugin());
 }
 
 if (RunService.IsClient()) {
     // 添加客户端专用插件
-    app.addPlugin(createClientPlugin());
+    app.addPlugin(new ClientPlugin());
 }
 
 // 或者使用通用插件，在系统中判断环境
@@ -460,10 +457,10 @@ function clientOnlySystem(world: World, context: Context): void {
 框架与 Roblox RunService 深度集成：
 
 ```typescript
-import { createRobloxRunnerPlugin } from "@white-dragon-bevy/bevy_app";
+import { RobloxRunnerPlugin } from "@white-dragon-bevy/bevy_app";
 
 // RobloxRunnerPlugin 提供三种运行模式
-app.addPlugin(createRobloxRunnerPlugin({
+app.addPlugin(new RobloxRunnerPlugin({
     mode: "Heartbeat"     // 默认：每帧执行
     // mode: "Stepped"    // 物理步进前
     // mode: "RenderStepped" // 渲染前（仅客户端）
@@ -519,26 +516,21 @@ import { getContextWithExtensions } from "@white-dragon-bevy/bevy_app";
 import { TimePlugin } from "@white-dragon-bevy/bevy_time";
 import { DiagnosticsPlugin } from "@white-dragon-bevy/bevy_diagnostic";
 
-import { createTimePlugin } from "@white-dragon-bevy/bevy_time";
-import { createDiagnosticsPlugin } from "@white-dragon-bevy/bevy_diagnostic";
-import type { TimePluginExtension } from "@white-dragon-bevy/bevy_time";
-import type { DiagnosticsPluginExtension } from "@white-dragon-bevy/bevy_diagnostic";
-
 // 添加带扩展的插件
 const app = App.create()
-    .addPlugin(createTimePlugin())
-    .addPlugin(createDiagnosticsPlugin());
+    .addPlugin(new TimePlugin())
+    .addPlugin(new DiagnosticsPlugin());
 
 // 使用类型安全的扩展方法
 function gameSystem(world: World, context: Context): void {
     // 获取 TimePlugin 的扩展
-    const timeCtx = getContextWithExtensions<TimePluginExtension>(app);
+    const timeCtx = getContextWithExtensions<TimePlugin>(app);
     const deltaSeconds = timeCtx.getDeltaSeconds();
     const elapsedSeconds = timeCtx.getElapsedSeconds();
     const isPaused = timeCtx.isPaused();
 
     // 获取 DiagnosticsPlugin 的扩展
-    const diagCtx = getContextWithExtensions<DiagnosticsPluginExtension>(app);
+    const diagCtx = getContextWithExtensions<DiagnosticsPlugin>(app);
     const fpsDiagnostic = diagCtx.getDiagnostic("fps");
     diagCtx.updateDiagnostic("custom_metric", 42);
 
@@ -550,7 +542,7 @@ function gameSystem(world: World, context: Context): void {
 }
 
 // 扩展方法也可以在系统外使用
-const ctx = getContextWithExtensions<TimePluginExtension>(app);
+const ctx = getContextWithExtensions<TimePlugin>(app);
 ctx.pause();  // 暂停时间
 ctx.setTimeScale(0.5);  // 设置时间缩放
 ctx.resume();  // 恢复时间
@@ -597,7 +589,7 @@ function receiveEventSystem(world: World, context: Context): void {
 使用 StatePlugin 管理游戏状态：
 
 ```typescript
-import { createStatePlugin, State, NextState } from "@white-dragon-bevy/bevy_state";
+import { StatePlugin, State, NextState } from "@white-dragon-bevy/bevy_state";
 
 // 定义状态枚举
 enum GameState {
@@ -608,7 +600,7 @@ enum GameState {
 }
 
 // 配置状态插件
-app.addPlugin(createStatePlugin(GameState.Menu));
+app.addPlugin(new StatePlugin(GameState.Menu));
 
 // 状态转换系统
 function stateTransitionSystem(world: World, context: Context): void {
@@ -631,19 +623,19 @@ app.addSystems(
 框架提供丰富的调试工具：
 
 ```typescript
-import { createDiagnosticsPlugin } from "@white-dragon-bevy/bevy_diagnostic";
-import { createLogDiagnosticsPlugin } from "@white-dragon-bevy/bevy_diagnostic";
-import { createDebuggerPlugin } from "@white-dragon-bevy/bevy_ecs_debugger";
+import { DiagnosticsPlugin } from "@white-dragon-bevy/bevy_diagnostic";
+import { LogDiagnosticsPlugin } from "@white-dragon-bevy/bevy_diagnostic";
+import { DebuggerPlugin } from "@white-dragon-bevy/bevy_ecs_debugger";
 
 // 添加诊断插件
-app.addPlugin(createDiagnosticsPlugin())
-   .addPlugin(createLogDiagnosticsPlugin({
+app.addPlugin(new DiagnosticsPlugin())
+   .addPlugin(new LogDiagnosticsPlugin({
        interval: 1.0,  // 每秒输出一次
        filter: ["fps", "frame_time"]
    }));
 
 // 添加调试器插件
-app.addPlugin(createDebuggerPlugin({
+app.addPlugin(new DebuggerPlugin({
     enabled: true,
     showEntityCount: true,
     showSystemTiming: true
@@ -651,7 +643,7 @@ app.addPlugin(createDebuggerPlugin({
 
 // 自定义诊断
 function customDiagnostic(world: World, context: Context): void {
-    const ctx = getContextWithExtensions<DiagnosticsPluginExtension>(app);
+    const ctx = getContextWithExtensions<DiagnosticsPlugin>(app);
 
     // 更新自定义诊断值
     ctx.updateDiagnostic("custom_metric", performanceValue);
