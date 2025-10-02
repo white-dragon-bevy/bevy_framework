@@ -283,14 +283,18 @@ export class SummarizedActionState<A extends Actionlike> {
 
 		// Axis diffs
 		const currentAxes = this.axisStateMap.get(entityId);
+		const previousAxes = previous.axisStateMap.get(entityId);
+		const processedAxisHashes = new Set<string>();
+
+		// Process current axes
 		if (currentAxes) {
-			const previousAxes = previous.axisStateMap.get(entityId);
 			currentAxes.forEach((currentAxis, actionHash) => {
 				const action = hashToAction.get(actionHash);
 				if (!action) {
 					return;
 				}
 
+				processedAxisHashes.add(actionHash);
 				const previousAxis = previousAxes?.get(actionHash);
 				const diff = SummarizedActionState.axisDiff(action, previousAxis, currentAxis);
 				if (diff) {
@@ -299,16 +303,40 @@ export class SummarizedActionState<A extends Actionlike> {
 			});
 		}
 
+		// Process previous axes that are now zero (not in current)
+		if (previousAxes) {
+			previousAxes.forEach((previousAxis, actionHash) => {
+				if (processedAxisHashes.has(actionHash)) {
+					return; // Already processed
+				}
+
+				const action = hashToAction.get(actionHash);
+				if (!action) {
+					return;
+				}
+
+				// Generate diff for reset to zero
+				const diff = SummarizedActionState.axisDiff(action, previousAxis, 0);
+				if (diff) {
+					diffs.push(diff);
+				}
+			});
+		}
+
 		// Dual axis diffs
 		const currentDualAxes = this.dualAxisStateMap.get(entityId);
+		const previousDualAxes = previous.dualAxisStateMap.get(entityId);
+		const processedDualAxisHashes = new Set<string>();
+
+		// Process current dual axes
 		if (currentDualAxes) {
-			const previousDualAxes = previous.dualAxisStateMap.get(entityId);
 			currentDualAxes.forEach((currentDualAxis, actionHash) => {
 				const action = hashToAction.get(actionHash);
 				if (!action) {
 					return;
 				}
 
+				processedDualAxisHashes.add(actionHash);
 				const previousDualAxis = previousDualAxes?.get(actionHash);
 				const diff = SummarizedActionState.dualAxisDiff(action, previousDualAxis, currentDualAxis);
 				if (diff) {
@@ -317,18 +345,62 @@ export class SummarizedActionState<A extends Actionlike> {
 			});
 		}
 
+		// Process previous dual axes that are now zero (not in current)
+		if (previousDualAxes) {
+			previousDualAxes.forEach((previousDualAxis, actionHash) => {
+				if (processedDualAxisHashes.has(actionHash)) {
+					return; // Already processed
+				}
+
+				const action = hashToAction.get(actionHash);
+				if (!action) {
+					return;
+				}
+
+				// Generate diff for reset to zero
+				const diff = SummarizedActionState.dualAxisDiff(action, previousDualAxis, Vector2.zero);
+				if (diff) {
+					diffs.push(diff);
+				}
+			});
+		}
+
 		// Triple axis diffs
 		const currentTripleAxes = this.tripleAxisStateMap.get(entityId);
+		const previousTripleAxes = previous.tripleAxisStateMap.get(entityId);
+		const processedTripleAxisHashes = new Set<string>();
+
+		// Process current triple axes
 		if (currentTripleAxes) {
-			const previousTripleAxes = previous.tripleAxisStateMap.get(entityId);
 			currentTripleAxes.forEach((currentTripleAxis, actionHash) => {
 				const action = hashToAction.get(actionHash);
 				if (!action) {
 					return;
 				}
 
+				processedTripleAxisHashes.add(actionHash);
 				const previousTripleAxis = previousTripleAxes?.get(actionHash);
 				const diff = SummarizedActionState.tripleAxisDiff(action, previousTripleAxis, currentTripleAxis);
+				if (diff) {
+					diffs.push(diff);
+				}
+			});
+		}
+
+		// Process previous triple axes that are now zero (not in current)
+		if (previousTripleAxes) {
+			previousTripleAxes.forEach((previousTripleAxis, actionHash) => {
+				if (processedTripleAxisHashes.has(actionHash)) {
+					return; // Already processed
+				}
+
+				const action = hashToAction.get(actionHash);
+				if (!action) {
+					return;
+				}
+
+				// Generate diff for reset to zero
+				const diff = SummarizedActionState.tripleAxisDiff(action, previousTripleAxis, Vector3.zero);
 				if (diff) {
 					diffs.push(diff);
 				}

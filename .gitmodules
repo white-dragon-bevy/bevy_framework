@@ -1,15 +1,20 @@
 [submodule "bevy-origin"]
 	path = bevy-origin
 	url = git@github.com:bevyengine/bevy.git
+	ignore = all
 [submodule "bevy-origin-packages/bevy_replicon"]
 	path = bevy-origin-packages/bevy_replicon
 	url = git@github.com:simgine/bevy_replicon.git
+	ignore = all
 [submodule "bevy-origin-packages/leafwing-input-manager"]
 	path = bevy-origin-packages/leafwing-input-manager
 	url = git@github.com:Leafwing-Studios/leafwing-input-manager.git
+	ignore = all
 [submodule "bevy-origin-packages/rvo-ts"]
 	path = bevy-origin-packages/rvo-ts
 	url = git@github.com:kylin206/RVO2-TS.git
+	ignore = all
 [submodule "bevy-origin-packages/leafwing_abilities"]
 	path = bevy-origin-packages/leafwing_abilities
 	url = git@github.com:Leafwing-Studios/leafwing_abilities.git
+	ignore = all
