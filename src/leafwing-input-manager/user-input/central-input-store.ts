@@ -51,6 +51,22 @@ export class CentralInputStore implements Resource {
 	}
 
 	/**
+	 * 清除每帧输入数据（鼠标移动和滚轮）
+	 *
+	 * 此方法只清除每帧的移动数据，不清除按钮状态。
+	 * 应在每帧结束时调用，以防止数据在帧之间累积。
+	 */
+	clearFrameData(): void {
+		// 清除鼠标移动数据
+		this.dualAxisValues.delete("MouseMove");
+		this.dualAxisValues.delete("mouse_move");
+
+		// 清除鼠标滚轮数据
+		this.dualAxisValues.delete("MouseScroll");
+		this.axisValues.delete("mouse_wheel");
+	}
+
+	/**
 	 * Applies dead zone and sensitivity to a gamepad stick input
 	 * @param rawInput - Raw input from the gamepad stick
 	 * @returns Processed input with dead zone and sensitivity applied
@@ -241,7 +257,7 @@ export class CentralInputStore implements Resource {
 	 * @param delta - The mouse delta movement
 	 */
 	updateMouseMove(delta: Vector2): void {
-		this.updateDualAxislike("mouse_move", delta);
+		this.updateDualAxislike("MouseMove", delta);
 	}
 
 	/**
@@ -250,6 +266,17 @@ export class CentralInputStore implements Resource {
 	 */
 	updateMouseWheel(delta: number): void {
 		this.updateAxislike("mouse_wheel", delta);
+		// Also update as dual-axis (Y-axis only for backwards compatibility)
+		this.updateDualAxislike("MouseScroll", new Vector2(0, delta));
+	}
+
+	/**
+	 * Updates mouse wheel (dual-axis vector)
+	 * @param delta - The wheel delta vector
+	 */
+	updateMouseWheelVector(delta: Vector2): void {
+		this.updateAxislike("mouse_wheel", delta.Y);
+		this.updateDualAxislike("MouseScroll", delta);
 	}
 
 	/**
@@ -499,9 +526,8 @@ export class CentralInputStore implements Resource {
 			const deltaX = mouseMotion.getDeltaX();
 			const deltaY = mouseMotion.getDeltaY();
 			const delta = new Vector2(deltaX, deltaY);
-			if (delta.Magnitude > 0) {
-				this.updateDualAxislike("mouse_move", delta);
-			}
+			// Always update, even if delta is zero (to clear previous frame's data)
+			this.updateDualAxislike("MouseMove", delta);
 		}
 
 		// Sync mouse wheel

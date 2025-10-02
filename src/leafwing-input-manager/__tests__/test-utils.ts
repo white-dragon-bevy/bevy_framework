@@ -6,6 +6,8 @@
 import { World } from "@rbxts/matter";
 import { App } from "../../bevy_app/app";
 import { BuiltinSchedules } from "../../bevy_app/main-schedule";
+import { CentralInputStore } from "../user-input/central-input-store";
+import { AccumulatedMouseMotion, AccumulatedMouseWheel } from "../../bevy_input/mouse";
 
 /**
  * 创建用于测试的 App 实例
@@ -15,8 +17,13 @@ import { BuiltinSchedules } from "../../bevy_app/main-schedule";
 export function createTestApp(): App {
 	const app = App.create();
 
-	// 不再手动插入资源，让插件自己管理
-	// 这符合 Bevy 的架构原则：插件负责初始化所有需要的资源
+	// 手动初始化测试所需的输入资源
+	// 在测试环境中不使用 InputPlugin，因为它需要客户端环境
+	const mouseMotion = new AccumulatedMouseMotion();
+	const mouseWheel = new AccumulatedMouseWheel();
+
+	app.getWorld().resources.insertResource<AccumulatedMouseMotion>(mouseMotion);
+	app.getWorld().resources.insertResource<AccumulatedMouseWheel>(mouseWheel);
 
 	// 禁用错误输出以避免测试时的噪音
 	app.setSilentErrors(true);
@@ -34,6 +41,21 @@ export function advanceFrame(app: App, deltaTime?: number): void {
 
 	// 执行一次更新
 	app.update();
+
+	// 注意: 不在这里清除 CentralInputStore 的 frame data
+	// 因为测试需要在 update() 后立即读取输入状态
+	// 清除操作应该在下一帧的开始时进行（在下次 update() 前）
+
+	// 清除 bevy_input 的输入资源，防止数据在下一帧累积
+	const mouseMotion = app.getWorld().resources.getResource<import("../../bevy_input/mouse").AccumulatedMouseMotion>();
+	if (mouseMotion) {
+		mouseMotion.clear();
+	}
+
+	const mouseWheel = app.getWorld().resources.getResource<import("../../bevy_input/mouse").AccumulatedMouseWheel>();
+	if (mouseWheel) {
+		mouseWheel.clear();
+	}
 }
 
 /**

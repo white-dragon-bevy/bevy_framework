@@ -96,7 +96,7 @@ pnpm install
 
 ## 单元测试
 
-- 编码后主动编译 `npm run build`, 然后运行单元测试
+- 编码后主动编译 `npm run build`, 确保**修复所有错误**.
 - 使用 `npm test` 命令运行全部单元测试, 该命令将使用 `testez-companion.toml` 配置
 - 使用 `npm test <testName>` 测试制定用例, 服从 `testez-companion.toml` 的配置.
 - 测试的超时时间为 30秒, 请耐心等待

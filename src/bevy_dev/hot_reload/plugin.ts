@@ -1,4 +1,15 @@
-import { Context as RewireContext, HotReloader } from "@rbxts/rewire";
+// import { Context as RewireContext, HotReloader } from "@rbxts/rewire";
+
+// Temporary types until @rbxts/rewire is installed
+interface RewireContext {
+	originalModule: ModuleScript;
+	isReloading?: boolean;
+}
+
+class HotReloader {
+	listen(container: Instance, onLoad: (module: ModuleScript, context: RewireContext) => void, onUnload: (module: ModuleScript, context: RewireContext) => void): void {}
+	scan(container: Instance, onLoad: (module: ModuleScript, context: RewireContext) => void, onUnload: (module: ModuleScript, context: RewireContext) => void): void {}
+}
 import { RunService } from "@rbxts/services";
 import type { App } from "../../bevy_app/app";
 import type { Plugin } from "../../bevy_app/plugin";
@@ -147,15 +158,15 @@ class HotReloadServiceImpl implements HotReloadService {
 			// ModuleScript 容器：监听单个模块
 			this.hotReloader.listen(
 				config.container,
-				(module, context) => this.onModuleLoaded(module, context, config),
-				(module, context) => this.onModuleUnloaded(module, context, config),
+				(module: ModuleScript, context: RewireContext) => this.onModuleLoaded(module, context, config),
+				(module: ModuleScript, context: RewireContext) => this.onModuleUnloaded(module, context, config),
 			);
 		} else {
 			// Folder 容器：扫描所有子模块
 			this.hotReloader.scan(
 				config.container,
-				(module, context) => this.onModuleLoaded(module, context, config),
-				(module, context) => this.onModuleUnloaded(module, context, config),
+				(module: ModuleScript, context: RewireContext) => this.onModuleLoaded(module, context, config),
+				(module: ModuleScript, context: RewireContext) => this.onModuleUnloaded(module, context, config),
 			);
 		}
 	}

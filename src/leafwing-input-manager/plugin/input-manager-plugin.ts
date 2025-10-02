@@ -393,11 +393,15 @@ function registerServerSystems<A extends Actionlike>(app: App, components: Compo
  * @param components - 组件定义
  */
 function registerClientSystems<A extends Actionlike>(app: App, components: ComponentDefinition<A>, innerDescriptors: InnerDescriptors): void {
-	// Initialize CentralInputStore and register as resource
+	// Initialize CentralInputStore and register as resource (if not already exists)
 	// 插件负责创建所有需要的资源，这符合 Bevy 的架构原则
-	const centralStore = new CentralInputStore();
-	// Note: Gamepad input now uses polling in syncFromBevyInput, no need for event listeners
-	app.insertResource<CentralInputStore>(centralStore);
+	// 但如果已经存在（例如多个InputManagerPlugin实例），则复用现有实例
+	let centralStore = app.getResource<CentralInputStore>();
+	if (!centralStore) {
+		centralStore = new CentralInputStore();
+		// Note: Gamepad input now uses polling in syncFromBevyInput, no need for event listeners
+		app.insertResource<CentralInputStore>(centralStore);
+	}
 
 	// Initialize ClashStrategy resource
 	const clashStrategyResource = new ClashStrategyResource(ClashStrategy.PrioritizeLargest);

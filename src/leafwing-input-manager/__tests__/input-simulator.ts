@@ -127,6 +127,7 @@ export class KeyboardSimulator {
  */
 export class MouseSimulator {
 	private readonly inputStore: CentralInputStore;
+	private readonly world: import("../../bevy_ecs/types").BevyWorld;
 	private readonly pressedButtons: Set<Enum.UserInputType> = new Set();
 	private currentPosition: Vector2 = Vector2.zero;
 	private currentScroll: number = 0;
@@ -134,9 +135,11 @@ export class MouseSimulator {
 	/**
 	 * 创建鼠标模拟器
 	 * @param inputStore - 中央输入存储实例
+	 * @param world - Bevy World 实例
 	 */
-	constructor(inputStore: CentralInputStore) {
+	constructor(inputStore: CentralInputStore, world: import("../../bevy_ecs/types").BevyWorld) {
 		this.inputStore = inputStore;
+		this.world = world;
 	}
 
 	/**
@@ -151,7 +154,7 @@ export class MouseSimulator {
 			error("CentralInputStore not found in app resources");
 		}
 
-		return new MouseSimulator(inputStore);
+		return new MouseSimulator(inputStore, app.getWorld());
 	}
 
 	/**
@@ -178,7 +181,13 @@ export class MouseSimulator {
 	 */
 	moveBy(delta: Vector2): void {
 		this.currentPosition = this.currentPosition.add(delta);
-		this.inputStore.updateMouseMove(delta);
+
+		// 直接操作 bevy_input 的 AccumulatedMouseMotion 资源
+		// 这样 syncFromBevyInput 就能正确读取到模拟的移动数据
+		const mouseMotion = this.world.resources.getResource<import("../../bevy_input/mouse").AccumulatedMouseMotion>();
+		if (mouseMotion) {
+			mouseMotion.accumulate(delta.X, delta.Y);
+		}
 	}
 
 	/**
@@ -197,6 +206,28 @@ export class MouseSimulator {
 	scrollBy(delta: number): void {
 		this.currentScroll += delta;
 		this.inputStore.updateMouseWheel(delta);
+	}
+
+	/**
+	 * 模拟滚轮二维滚动
+	 * @param delta - 滚动增量向量 (X为水平, Y为垂直)
+	 */
+	scrollByVector(delta: Vector2): void {
+		this.currentScroll += delta.Y;
+		this.inputStore.updateMouseWheelVector(delta);
+	}
+
+	/**
+	 * 模拟单轴滚轮滚动
+	 * @param axis - 滚动轴 ("X" 或 "Y")
+	 * @param value - 滚动值
+	 */
+	scrollAxis(axis: "X" | "Y", value: number): void {
+		if (axis === "X") {
+			this.scrollByVector(new Vector2(value, 0));
+		} else {
+			this.scrollByVector(new Vector2(0, value));
+		}
 	}
 
 	/**
@@ -257,6 +288,18 @@ export class MouseSimulator {
 		this.releaseAll();
 		this.currentPosition = Vector2.zero;
 		this.currentScroll = 0;
+
+		// 清除鼠标移动状态 - 清空 bevy_input 资源
+		const mouseMotion = this.world.resources.getResource<import("../../bevy_input/mouse").AccumulatedMouseMotion>();
+		if (mouseMotion) {
+			mouseMotion.clear();
+		}
+
+		// 清除滚轮状态 - 清空 bevy_input 资源
+		const mouseWheel = this.world.resources.getResource<import("../../bevy_input/mouse").AccumulatedMouseWheel>();
+		if (mouseWheel) {
+			mouseWheel.clear();
+		}
 	}
 }
 

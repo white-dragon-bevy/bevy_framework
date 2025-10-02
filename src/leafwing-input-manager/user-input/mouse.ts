@@ -7,6 +7,7 @@ import { Buttonlike, ButtonValue } from "./traits/buttonlike";
 import { Axislike } from "./traits/axislike";
 import { DualAxislike } from "./traits/dual-axislike";
 import { CentralInputStore } from "./central-input-store";
+import { DualAxisDirection, DualAxisType } from "../axislike";
 
 /**
  * A mouse button that can be clicked
@@ -160,9 +161,174 @@ export class MouseMove implements UserInput, DualAxislike {
 }
 
 /**
- * Mouse scroll wheel as a single-axis input
+ * Provides button-like behavior for mouse wheel scrolling in cardinal directions.
+ * Based on Bevy's MouseScrollDirection.
  */
-export class MouseScroll implements UserInput, Axislike {
+export class MouseScrollDirection implements UserInput, Buttonlike {
+	/** Scrolling in the upward direction */
+	static readonly UP = new MouseScrollDirection(DualAxisDirection.Up, 0.0);
+
+	/** Scrolling in the downward direction */
+	static readonly DOWN = new MouseScrollDirection(DualAxisDirection.Down, 0.0);
+
+	/** Scrolling in the leftward direction */
+	static readonly LEFT = new MouseScrollDirection(DualAxisDirection.Left, 0.0);
+
+	/** Scrolling in the rightward direction */
+	static readonly RIGHT = new MouseScrollDirection(DualAxisDirection.Right, 0.0);
+
+	/**
+	 * Creates a new MouseScrollDirection
+	 * @param direction - The direction to monitor (up, down, left, or right)
+	 * @param threshold - The threshold value for the direction to be considered pressed (must be non-negative)
+	 */
+	constructor(
+		public readonly direction: DualAxisDirection,
+		public readonly threshold: number = 0.0,
+	) {
+		assert(threshold >= 0, "Threshold must be non-negative");
+	}
+
+	/**
+	 * Sets the threshold value
+	 * @param threshold - The new threshold (must be non-negative)
+	 * @returns A new MouseScrollDirection with the updated threshold
+	 */
+	withThreshold(threshold: number): MouseScrollDirection {
+		return new MouseScrollDirection(this.direction, threshold);
+	}
+
+	kind(): InputControlKind {
+		return InputControlKind.Button;
+	}
+
+	decompose(): BasicInputs {
+		return BasicInputs.single(this.withThreshold(0.0));
+	}
+
+	hash(): string {
+		return `MouseScrollDirection:${this.direction}:${this.threshold}`;
+	}
+
+	equals(other: UserInput): boolean {
+		if (!(other instanceof MouseScrollDirection)) return false;
+		return this.direction === other.direction && this.threshold === other.threshold;
+	}
+
+	pressed(inputStore: CentralInputStore, _gamepad?: number): boolean {
+		return this.getPressed(inputStore, _gamepad) ?? false;
+	}
+
+	getPressed(inputStore: CentralInputStore, _gamepad?: number): boolean | undefined {
+		const scrollValue = MouseScroll.get().getAxisPair(inputStore);
+		if (!scrollValue) return undefined;
+
+		return DualAxisDirection.isActive(this.direction, scrollValue, this.threshold);
+	}
+
+	released(inputStore: CentralInputStore, gamepad?: number): boolean {
+		return !this.pressed(inputStore, gamepad);
+	}
+
+	value(inputStore: CentralInputStore, gamepad?: number): number {
+		return this.pressed(inputStore, gamepad) ? 1 : 0;
+	}
+
+	getValue(inputStore: CentralInputStore, gamepad?: number): number | undefined {
+		const pressed = this.getPressed(inputStore, gamepad);
+		return pressed === undefined ? undefined : pressed ? 1 : 0;
+	}
+
+	press(_world: World): void {
+		warn("MouseScrollDirection.press() is not implemented for testing");
+	}
+
+	release(_world: World): void {
+		// No action needed - scroll directions are determined by frame delta
+	}
+
+	setValue(_world: World, value: number): void {
+		if (value > 0) {
+			this.press(_world);
+		} else {
+			this.release(_world);
+		}
+	}
+
+	toString(): string {
+		return `MouseScrollDirection::${this.direction}`;
+	}
+}
+
+/**
+ * Amount of mouse wheel scrolling on a single axis (X or Y).
+ * Based on Bevy's MouseScrollAxis.
+ */
+export class MouseScrollAxis implements UserInput, Axislike {
+	/** Horizontal scrolling of the mouse wheel */
+	static readonly X = new MouseScrollAxis(DualAxisType.X);
+
+	/** Vertical scrolling of the mouse wheel */
+	static readonly Y = new MouseScrollAxis(DualAxisType.Y);
+
+	/**
+	 * Creates a new MouseScrollAxis
+	 * @param axis - The axis that this input tracks
+	 */
+	constructor(public readonly axis: DualAxisType) {}
+
+	kind(): InputControlKind {
+		return InputControlKind.Axis;
+	}
+
+	decompose(): BasicInputs {
+		const inputs = new Set<UserInput>([
+			new MouseScrollDirection(
+				this.axis === DualAxisType.X ? DualAxisDirection.Left : DualAxisDirection.Down,
+				0.0,
+			),
+			new MouseScrollDirection(
+				this.axis === DualAxisType.X ? DualAxisDirection.Right : DualAxisDirection.Up,
+				0.0,
+			),
+		]);
+		return BasicInputs.composite(inputs);
+	}
+
+	hash(): string {
+		return `MouseScrollAxis:${this.axis}`;
+	}
+
+	equals(other: UserInput): boolean {
+		if (!(other instanceof MouseScrollAxis)) return false;
+		return this.axis === other.axis;
+	}
+
+	value(inputStore: CentralInputStore, gamepad?: number): number {
+		return this.getValue(inputStore, gamepad) ?? 0;
+	}
+
+	getValue(inputStore: CentralInputStore, _gamepad?: number): number | undefined {
+		const scrollPair = MouseScroll.get().getAxisPair(inputStore);
+		if (!scrollPair) return undefined;
+
+		return DualAxisType.getValue(this.axis, scrollPair);
+	}
+
+	setValue(_world: World, _value: number): void {
+		warn(`MouseScrollAxis.setValue() is not implemented for axis ${this.axis}`);
+	}
+
+	toString(): string {
+		return `MouseScrollAxis::${this.axis}`;
+	}
+}
+
+/**
+ * Amount of mouse wheel scrolling on both axes.
+ * Based on Bevy's MouseScroll (DualAxislike).
+ */
+export class MouseScroll implements UserInput, DualAxislike {
 	private static instance?: MouseScroll;
 
 	private constructor() {}
@@ -179,11 +345,17 @@ export class MouseScroll implements UserInput, Axislike {
 	}
 
 	kind(): InputControlKind {
-		return InputControlKind.Axis;
+		return InputControlKind.DualAxis;
 	}
 
 	decompose(): BasicInputs {
-		return BasicInputs.single(this);
+		const inputs = new Set<UserInput>([
+			MouseScrollDirection.UP,
+			MouseScrollDirection.DOWN,
+			MouseScrollDirection.LEFT,
+			MouseScrollDirection.RIGHT,
+		]);
+		return BasicInputs.composite(inputs);
 	}
 
 	hash(): string {
@@ -194,20 +366,130 @@ export class MouseScroll implements UserInput, Axislike {
 		return other instanceof MouseScroll;
 	}
 
-	value(inputStore: CentralInputStore, _gamepad?: number): number {
-		return inputStore.axisValue(this.hash());
+	axisPair(inputStore: CentralInputStore, _gamepad?: number): Vector2 {
+		return this.getAxisPair(inputStore, _gamepad) ?? Vector2.zero;
 	}
 
-	getValue(inputStore: CentralInputStore, _gamepad?: number): number | undefined {
-		return inputStore.getAxisValue(this.hash());
+	getAxisPair(inputStore: CentralInputStore, _gamepad?: number): Vector2 | undefined {
+		return inputStore.getDualAxisValue(this.hash());
 	}
 
-	setValue(_world: World, _value: number): void {
-		warn("MouseScroll.setValue() is not implemented");
+	x(inputStore: CentralInputStore, gamepad?: number): number {
+		const pair = this.axisPair(inputStore, gamepad);
+		return pair.X;
+	}
+
+	y(inputStore: CentralInputStore, gamepad?: number): number {
+		const pair = this.axisPair(inputStore, gamepad);
+		return pair.Y;
+	}
+
+	setAxisPair(_world: World, _value: Vector2): void {
+		warn("MouseScroll.setAxisPair() is not implemented");
 	}
 
 	toString(): string {
 		return "MouseScroll";
+	}
+}
+
+/**
+ * Provides button-like behavior for mouse movement in cardinal directions.
+ * Based on Bevy's MouseMoveDirection.
+ */
+export class MouseMoveDirection implements UserInput, Buttonlike {
+	/** Movement in the upward direction */
+	static readonly UP = new MouseMoveDirection(DualAxisDirection.Up, 0.0);
+
+	/** Movement in the downward direction */
+	static readonly DOWN = new MouseMoveDirection(DualAxisDirection.Down, 0.0);
+
+	/** Movement in the leftward direction */
+	static readonly LEFT = new MouseMoveDirection(DualAxisDirection.Left, 0.0);
+
+	/** Movement in the rightward direction */
+	static readonly RIGHT = new MouseMoveDirection(DualAxisDirection.Right, 0.0);
+
+	/**
+	 * Creates a new MouseMoveDirection
+	 * @param direction - The direction to monitor (up, down, left, or right)
+	 * @param threshold - The threshold value for the direction to be considered pressed (must be non-negative)
+	 */
+	constructor(
+		public readonly direction: DualAxisDirection,
+		public readonly threshold: number = 0.0,
+	) {
+		assert(threshold >= 0, "Threshold must be non-negative");
+	}
+
+	/**
+	 * Sets the threshold value
+	 * @param threshold - The new threshold (must be non-negative)
+	 * @returns A new MouseMoveDirection with the updated threshold
+	 */
+	withThreshold(threshold: number): MouseMoveDirection {
+		return new MouseMoveDirection(this.direction, threshold);
+	}
+
+	kind(): InputControlKind {
+		return InputControlKind.Button;
+	}
+
+	decompose(): BasicInputs {
+		return BasicInputs.single(this.withThreshold(0.0));
+	}
+
+	hash(): string {
+		return `MouseMoveDirection:${this.direction}:${this.threshold}`;
+	}
+
+	equals(other: UserInput): boolean {
+		if (!(other instanceof MouseMoveDirection)) return false;
+		return this.direction === other.direction && this.threshold === other.threshold;
+	}
+
+	pressed(inputStore: CentralInputStore, _gamepad?: number): boolean {
+		return this.getPressed(inputStore, _gamepad) ?? false;
+	}
+
+	getPressed(inputStore: CentralInputStore, _gamepad?: number): boolean | undefined {
+		const mouseMovement = MouseMove.get().getAxisPair(inputStore);
+		if (!mouseMovement) return undefined;
+
+		return DualAxisDirection.isActive(this.direction, mouseMovement, this.threshold);
+	}
+
+	released(inputStore: CentralInputStore, gamepad?: number): boolean {
+		return !this.pressed(inputStore, gamepad);
+	}
+
+	value(inputStore: CentralInputStore, gamepad?: number): number {
+		return this.pressed(inputStore, gamepad) ? 1 : 0;
+	}
+
+	getValue(inputStore: CentralInputStore, gamepad?: number): number | undefined {
+		const pressed = this.getPressed(inputStore, gamepad);
+		return pressed === undefined ? undefined : pressed ? 1 : 0;
+	}
+
+	press(_world: World): void {
+		warn("MouseMoveDirection.press() is not implemented for testing");
+	}
+
+	release(_world: World): void {
+		// No action needed - directions are determined by frame delta
+	}
+
+	setValue(_world: World, value: number): void {
+		if (value > 0) {
+			this.press(_world);
+		} else {
+			this.release(_world);
+		}
+	}
+
+	toString(): string {
+		return `MouseMoveDirection::${this.direction}`;
 	}
 }
 

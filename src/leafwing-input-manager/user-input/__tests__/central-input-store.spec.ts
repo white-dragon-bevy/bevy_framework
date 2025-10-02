@@ -221,7 +221,7 @@ export = () => {
 				const delta = new Vector2(10, -5);
 				store.updateMouseMove(delta);
 
-				const retrieved = store.dualAxisValue("mouse_move");
+				const retrieved = store.dualAxisValue("MouseMove");
 				expect(retrieved.X).to.equal(10);
 				expect(retrieved.Y).to.equal(-5);
 			});

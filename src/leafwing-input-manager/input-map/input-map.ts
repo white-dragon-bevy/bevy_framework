@@ -255,7 +255,11 @@ export class InputMap<Action extends Actionlike> {
 
 					if (math.abs(axisValue) > 0.01) {
 						pressed = true;
-						value = math.max(value, math.abs(axisValue));
+						// For axis inputs, preserve the sign (positive or negative)
+						// Use the value with larger magnitude, but keep its sign
+						if (math.abs(axisValue) > math.abs(value)) {
+							value = axisValue;
+						}
 					}
 				} else if (controlKind === InputControlKind.DualAxis && this.isDualAxislike(input)) {
 					const dualAxisValue = input.axisPair(inputStore, this.gamepadAssociation);
