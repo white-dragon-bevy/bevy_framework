@@ -3,10 +3,10 @@
  * 对应 Rust bevy_diagnostic 的 entity_count_diagnostics_plugin.rs
  */
 
-import { Plugin } from "../../src/bevy_app/plugin";
-import { App } from "../../src/bevy_app/app";
+import { Plugin } from "bevy_app/plugin";
+import { App } from "bevy_app/app";
 import { World, Context } from "../bevy_ecs";
-import { Update } from "../../src/bevy_app/main-schedule";
+import { Update } from "bevy_app/main-schedule";
 import {
 	Diagnostic,
 	DiagnosticPath,

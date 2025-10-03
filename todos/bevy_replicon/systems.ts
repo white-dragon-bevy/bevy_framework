@@ -3,7 +3,7 @@
  */
 
 import { World } from "@rbxts/matter";
-import { AppContext } from "../../src/bevy_app";
+import { Context } from "../../src/bevy_app";
 import { ReplicationManager } from "./replication";
 import { RobloxNetworkAdapter } from "./roblox-network";
 
@@ -13,9 +13,9 @@ import { RobloxNetworkAdapter } from "./roblox-network";
  * @param world - Matter世界实例
  * @param context - 应用上下文
  */
-export function processOutgoingMessagesSystem(world: World, context: AppContext): void {
+export function processOutgoingMessagesSystem(world: World, context: Context): void {
 	// TODO: 待完善资源管理系统后实现
 	// 需要:
-	// 1. 从 AppContext 获取 ReplicationManager 和 RobloxNetworkAdapter
+	// 1. 从 Context 获取 ReplicationManager 和 RobloxNetworkAdapter
 	// 2. 发送队列中的所有网络消息
 }

@@ -3,15 +3,11 @@
  * 提供核心类型别名和类型导出
  */
 
-import { AppContext } from "../bevy_app";
 import { World } from "./bevy-world";
+import { Context } from "./context";
 import { BevySystemStruct } from "./schedule/loop";
 
-/**
- * 应用程序上下文类型别名
- * 提供对应用程序全局状态和配置的访问
- */
-export type Context = AppContext;
+
 
 /**
  * BevyWorld 类型导出

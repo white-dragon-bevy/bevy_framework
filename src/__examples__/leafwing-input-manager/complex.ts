@@ -13,7 +13,7 @@
 import { App } from "../../bevy_app";
 import { MainScheduleLabel } from "../../bevy_app";
 import { DefaultPlugins } from "../../bevy_internal";
-import { BevyWorld, Context } from "../../bevy_ecs/types";
+import { BevyWorld, Context } from "../../bevy_ecs";
 import { component } from "@rbxts/matter";
 import { RunService, Players } from "@rbxts/services";
 

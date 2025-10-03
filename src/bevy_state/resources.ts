@@ -5,7 +5,7 @@
 
 import { Modding } from "@flamework/core";
 import { getGenericTypeDescriptor, getTypeDescriptor, TypeDescriptor } from "../bevy_core";
-import { Resource } from "../../src/bevy_ecs/resource";
+import { Resource } from "bevy_ecs/resource";
 import { States } from "./states";
 
 /**

@@ -14,7 +14,7 @@
 import { App } from "../../bevy_app/app";
 import { MainScheduleLabel } from "../../bevy_app/main-schedule";
 import { DefaultPlugins } from "../../bevy_internal";
-import { BevyWorld, Context } from "../../bevy_ecs/types";
+import { BevyWorld, Context } from "../../bevy_ecs";
 import { component } from "@rbxts/matter";
 
 // 导入输入管理器相关类型
@@ -114,12 +114,12 @@ class AbilityActionlike implements Actionlike {
 // 类型扩展声明
 // =====================================
 
-declare module "../../bevy_app/context" {
-	interface AppContext {
-		slotInput: InputManagerExtension<SlotActionlike>;
-		abilityInput: InputManagerExtension<AbilityActionlike>;
-	}
-}
+// declare module "../../bevy_ecs" {
+// 	interface Context {
+// 		slotInput: InputManagerExtension<SlotActionlike>;
+// 		abilityInput: InputManagerExtension<AbilityActionlike>;
+// 	}
+// }
 
 // =====================================
 // 组件定义

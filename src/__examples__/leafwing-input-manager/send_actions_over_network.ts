@@ -36,7 +36,7 @@
 import { App } from "../../bevy_app";
 import { MainScheduleLabel } from "../../bevy_app";
 import { DefaultPlugins } from "../../bevy_internal";
-import { BevyWorld } from "../../bevy_ecs/types";
+import { BevyWorld } from "../../bevy_ecs";
 import { ActionState } from "../../leafwing-input-manager/action-state/action-state";
 import { ActionDiff, ActionDiffMessage } from "../../leafwing-input-manager/action-diff";
 import { ActionlikeEnum } from "../../leafwing-input-manager/actionlike";

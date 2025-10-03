@@ -4,7 +4,7 @@
  */
 
 import type { World } from "@rbxts/matter";
-import { BevySystem, BevyWorld, Context } from "../types";
+import { BevySystem, BevyWorld, Context } from "../";
 
 /**
  * 系统函数签名 - 接收 World 和 deltaTime

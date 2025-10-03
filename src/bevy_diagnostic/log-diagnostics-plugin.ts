@@ -3,12 +3,12 @@
  * 对应 Rust bevy_diagnostic 的 log_diagnostics_plugin.rs
  */
 
-import { Plugin } from "../../src/bevy_app/plugin";
-import { App } from "../../src/bevy_app/app";
-import { PostUpdate } from "../../src/bevy_app/main-schedule";
+import { Plugin } from "bevy_app/plugin";
+import { App } from "bevy_app/app";
+import { PostUpdate } from "bevy_app/main-schedule";
 import { Diagnostic, DiagnosticPath, DiagnosticsStore } from "./diagnostic";
-import { padEnd, padStart, numberToFixed } from "../../src/utils/string-polyfills";
-import { Resource } from "../../src/bevy_ecs/resource";
+import { padEnd, padStart, numberToFixed } from "utils/string-polyfills";
+import { Resource } from "bevy_ecs/resource";
 import { World, Context } from "../bevy_ecs";
 
 /**

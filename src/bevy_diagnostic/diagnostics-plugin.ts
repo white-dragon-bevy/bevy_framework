@@ -3,11 +3,11 @@
  * 对应 Rust bevy_diagnostic 的 lib.rs 中的 DiagnosticsPlugin
  */
 
-import { BasePlugin } from "../../src/bevy_app/plugin";
-import { App, ExtensionFactory } from "../../src/bevy_app/app";
+import { BasePlugin } from "../bevy_app/plugin";
+import { App, ExtensionFactory } from "../bevy_app/app";
 import { Diagnostic, DiagnosticPath, DiagnosticsStore, installDiagnosticSystem } from "./diagnostic";
-import type { World } from "../../src/bevy_ecs";
-import type { AppContext } from "../../src/bevy_app/context";
+import type { World } from "../bevy_ecs";
+import type { Context } from "../bevy_ecs";
 
 /**
  * 简化的诊断项配置接口
@@ -156,10 +156,10 @@ export class DiagnosticsPlugin extends BasePlugin {
 
 		// 初始化扩展工厂
 		this.extension = {
-			getStore: (world: World, context: AppContext, plugin: DiagnosticsPlugin) => {
+			getStore: (world: World, context: Context, plugin: DiagnosticsPlugin) => {
 				return () => store;
 			},
-			registerDiagnostic: (world: World, context: AppContext, plugin: DiagnosticsPlugin) => {
+			registerDiagnostic: (world: World, context: Context, plugin: DiagnosticsPlugin) => {
 				return (config: DiagnosticConfig | Diagnostic) => {
 					if ("getPath" in config) {
 						store.add(config as Diagnostic);
@@ -178,18 +178,18 @@ export class DiagnosticsPlugin extends BasePlugin {
 					}
 				};
 			},
-			getDiagnostic: (world: World, context: AppContext, plugin: DiagnosticsPlugin) => {
+			getDiagnostic: (world: World, context: Context, plugin: DiagnosticsPlugin) => {
 				return (id: string) => {
 					const path = new DiagnosticPath(id);
 					return store.get(path);
 				};
 			},
-			clearDiagnostics: (world: World, context: AppContext, plugin: DiagnosticsPlugin) => {
+			clearDiagnostics: (world: World, context: Context, plugin: DiagnosticsPlugin) => {
 				return () => {
 					store.clear();
 				};
 			},
-			updateDiagnostic: (world: World, context: AppContext, plugin: DiagnosticsPlugin) => {
+			updateDiagnostic: (world: World, context: Context, plugin: DiagnosticsPlugin) => {
 				return (id: string, value: number) => {
 					const path = new DiagnosticPath(id);
 					const diagnostic = store.get(path);
@@ -201,24 +201,24 @@ export class DiagnosticsPlugin extends BasePlugin {
 					}
 				};
 			},
-			getAllDiagnostics: (world: World, context: AppContext, plugin: DiagnosticsPlugin) => {
+			getAllDiagnostics: (world: World, context: Context, plugin: DiagnosticsPlugin) => {
 				return () => store.getAll();
 			},
-			getDiagnosticsCount: (world: World, context: AppContext, plugin: DiagnosticsPlugin) => {
+			getDiagnosticsCount: (world: World, context: Context, plugin: DiagnosticsPlugin) => {
 				return () => store.getAll().size();
 			},
-			renderToConsole: (world: World, context: AppContext, plugin: DiagnosticsPlugin) => {
+			renderToConsole: (world: World, context: Context, plugin: DiagnosticsPlugin) => {
 				return () => renderer.renderToConsole();
 			},
-			renderToUI: (world: World, context: AppContext, plugin: DiagnosticsPlugin) => {
+			renderToUI: (world: World, context: Context, plugin: DiagnosticsPlugin) => {
 				return () => renderer.renderToUI();
 			},
-			setRenderFormat: (world: World, context: AppContext, plugin: DiagnosticsPlugin) => {
+			setRenderFormat: (world: World, context: Context, plugin: DiagnosticsPlugin) => {
 				return (format: "json" | "text" | "table") => {
 					renderer.setFormat(format);
 				};
 			},
-			getRenderFormat: (world: World, context: AppContext, plugin: DiagnosticsPlugin) => {
+			getRenderFormat: (world: World, context: Context, plugin: DiagnosticsPlugin) => {
 				return () => renderer.getFormat();
 			},
 		};

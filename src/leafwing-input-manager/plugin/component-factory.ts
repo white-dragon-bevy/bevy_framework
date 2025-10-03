@@ -1,7 +1,7 @@
 import { Actionlike } from "../actionlike";
 import { InputMap } from "../input-map/input-map";
 import { ActionState } from "../action-state/action-state";
-import { BevyWorld } from "../../bevy_ecs/types";
+import { BevyWorld } from "../../bevy_ecs";
 import { component } from "@rbxts/matter";
 
 /**

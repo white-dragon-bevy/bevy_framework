@@ -8,12 +8,11 @@ import { AppExit, AppExitCode, AppLabel, ErrorHandler } from "./types";
 import { BuiltinSchedules } from "./main-schedule";
 import { DuplicatePluginError, isPluginGroup, Plugin, PluginGroup, PluginState } from "./plugin";
 import { SubApp, SubApps } from "./sub-app";
-import { World, WorldContainer } from "../bevy_ecs";
+import { Context, World, WorldContainer } from "../bevy_ecs";
 import { Schedule } from "../bevy_ecs/schedule/schedule";
 import type { ScheduleLabel, SystemFunction } from "../bevy_ecs/schedule/types";
 import type { IntoSystemConfigs } from "../bevy_ecs/schedule";
 import type { Diagnostic, DiagnosticsStore } from "../bevy_diagnostic/diagnostic";
-import { AppContext } from "./context";
 import { RunService } from "@rbxts/services";
 import { isMatchRobloxContext, RobloxContext } from "../utils/roblox-utils";
 import { Message, MessageReader, MessageWriter } from "../bevy_ecs/message";
@@ -29,7 +28,7 @@ import { TypeDescriptor } from "../bevy_core/reflect";
  * @param plugin - 插件实例
  * @returns 实际的扩展函数
  */
-export type ExtensionFactory<T extends (...args: any[]) => any> = (world: World, context: AppContext, plugin: any) => T;
+export type ExtensionFactory<T extends (...args: any[]) => any> = (world: World, context: Context, plugin: any) => T;
 
 /**
  * 插件扩展工厂接口
@@ -72,7 +71,7 @@ export type ExtractAllPluginExtensions<P extends readonly (Plugin | PluginGroup)
  * 带扩展的Context类型
  * @template E - 插件扩展类型
  */
-export type ContextWithExtensions<E = {}> = AppContext & ExtractExtensionTypes<ExtractPluginExtensions<E>>;
+export type ContextWithExtensions<E = {}> = Context & ExtractExtensionTypes<ExtractPluginExtensions<E>>;
 
 /**
  * 获取带扩展的Context的辅助函数
@@ -90,7 +89,7 @@ export function getContextWithExtensions<E = {}>(app: App): ContextWithExtension
  * 对应 Rust 的 App struct
  * @template T - App上下文类型，继承自AppContext
  */
-export class App<T extends AppContext = AppContext> {
+export class App<T extends Context = Context> {
 	private subApps: SubApps;
 	private runner: (app: App) => AppExit;
 	private defaultErrorHandler?: ErrorHandler;
@@ -727,9 +726,9 @@ export class App<T extends AppContext = AppContext> {
 
 	/**
 	 * 获取应用上下文
-	 * @returns AppContext 实例
+	 * @returns Context 实例
 	 */
-	getContext(): AppContext {
+	getContext(): Context {
 		return this.context;
 	}
 

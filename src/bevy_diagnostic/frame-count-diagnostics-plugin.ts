@@ -3,10 +3,10 @@
  * 对应 Rust bevy_diagnostic 的 frame_count_diagnostics_plugin.rs
  */
 
-import { Plugin } from "../../src/bevy_app/plugin";
-import { App } from "../../src/bevy_app/app";
-import { Last } from "../../src/bevy_app/main-schedule";
-import { Resource } from "../../src/bevy_ecs/resource";
+import { Plugin } from "bevy_app/plugin";
+import { App } from "bevy_app/app";
+import { Last } from "bevy_app/main-schedule";
+import { Resource } from "bevy_ecs/resource";
 import { World, Context } from "../bevy_ecs";
 
 /**

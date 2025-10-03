@@ -20,7 +20,7 @@ import { KeyCode } from "../../user-input/keyboard";
 import { VirtualDPad } from "../../user-input/virtual-controls";
 import { createInputManagerPlugin } from "../../plugin/input-manager-plugin";
 import { MainScheduleLabel } from "../../../bevy_app";
-import { BevyWorld } from "../../../bevy_ecs/types";
+import { BevyWorld } from "../../../bevy_ecs";
 
 /**
  * 玩家动作枚举

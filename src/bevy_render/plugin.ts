@@ -9,7 +9,7 @@ import { BuiltinSchedules } from "../bevy_app/main-schedule";
 // import { TransformSystems } from "../bevy_transform/src";
 import { visibilitySystem, robloxSyncSystem, cleanupRemovedEntities } from "./systems";
 import { World } from "../bevy_ecs/bevy-world";
-import { Context } from "../bevy_ecs/types";
+import { Context } from "../bevy_ecs";
 
 /**
  * 渲染系统集枚举

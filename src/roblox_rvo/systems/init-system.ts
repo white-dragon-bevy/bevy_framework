@@ -4,7 +4,7 @@
  */
 
 import { World } from "../../bevy_ecs/bevy-world";
-import { Context } from "../../bevy_ecs/types";
+import { Context } from "../../bevy_ecs";
 import { RVOConfig } from "../resources/rvo-config";
 import { RVOSimulatorResource } from "../resources/rvo-simulator";
 

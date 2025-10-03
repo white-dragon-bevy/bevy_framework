@@ -24,7 +24,7 @@ export type BoxedLayer = Layer;
 export type BoxedFmtLayer = Layer;
 
 import type { World } from "../bevy_ecs";
-import type { AppContext } from "../bevy_app/context";
+import type { Context } from "../bevy_ecs";
 import { LogPluginExtension } from "./extension";
 
 
@@ -356,10 +356,10 @@ export function createLogPlugin(
 			}
 		},
 		extension: {
-			getLogManager: (world: World, context: AppContext, pluginInstance: Plugin) => {
+			getLogManager: (world: World, context: Context, pluginInstance: Plugin) => {
 				return () => LogSubscriber.getGlobal();
 			},
-			getLogLevel: (world: World, context: AppContext, pluginInstance: Plugin) => {
+			getLogLevel: (world: World, context: Context, pluginInstance: Plugin) => {
 				return () => level;
 			},
 		},

@@ -429,10 +429,10 @@ export class ClientPredictionManager implements Resource {
  * @param world - Matter世界实例
  * @param context - 应用上下文
  */
-export function clientPredictionSystem(world: World, appContext: import("../../src/bevy_app").AppContext): void {
+export function clientPredictionSystem(world: World, appContext: import("../../src/bevy_app").Context): void {
 	// TODO: 待完善资源管理系统后实现
 	// 需要:
-	// 1. 从 AppContext 获取 ClientPredictionManager 和 ReplicationManager
+	// 1. 从 Context 获取 ClientPredictionManager 和 ReplicationManager
 	// 2. 处理客户端预测逻辑
 	// 3. 保存预测快照和处理回滚
 }

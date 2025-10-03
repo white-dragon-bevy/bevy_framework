@@ -5,7 +5,7 @@
 
 import type { SystemFunction, RunCondition, SystemSet, SystemConfig } from "./types";
 import type { World } from "@rbxts/matter";
-import type { Context } from "../types";
+import type { Context } from "../";
 
 /**
  * 系统配置元数据

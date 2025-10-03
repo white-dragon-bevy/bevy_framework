@@ -61,7 +61,7 @@ export class InputManagerStateResource<A extends Actionlike> implements Resource
 ```typescript
 // 从上下文获取实例管理器
 function getInstanceManagerFromContext<A extends Actionlike>(
-    context: AppContext, 
+    context: Context, 
     actionType: (new (...args: any[]) => A) & { name: string }
 ): InputInstanceManagerResource<A> | undefined
 

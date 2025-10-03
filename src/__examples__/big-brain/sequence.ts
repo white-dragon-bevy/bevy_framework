@@ -14,7 +14,7 @@
 import { World, component } from "@rbxts/matter";
 import type { AnyEntity } from "@rbxts/matter";
 import { App, BuiltinSchedules, getContextWithExtensions } from "../../bevy_app";
-import type { AppContext } from "../../bevy_app/context";
+import type { Context } from "../../bevy_ecs";
 import { TimePlugin } from "../../bevy_time";
 import {
 	BigBrainPlugin,
@@ -61,7 +61,7 @@ type Thirst = ReturnType<typeof Thirst>;
 /**
  * 口渴系统
  */
-function thirstSystem(world: World, context: AppContext, app: App): void {
+function thirstSystem(world: World, context: Context, app: App): void {
 	const timeContext = getContextWithExtensions<TimePlugin>(app);
 	const deltaTime = timeContext.getDeltaSeconds();
 
@@ -90,7 +90,7 @@ class ThirstyScorerBuilder implements ScorerBuilder {
 	}
 }
 
-function thirstyScorerSystem(world: World, context: AppContext): void {
+function thirstyScorerSystem(world: World, context: Context): void {
 	for (const [scorerEntityId, thirstyScorer, actor] of world.query(ThirstyScorer, Actor)) {
 		const thirst = world.get(actor.entityId, Thirst);
 		if (thirst !== undefined) {
@@ -153,7 +153,7 @@ function findClosestWaterSource(world: World, actorPosition: Position): Position
 /**
  * 移动到水源系统
  */
-function moveToWaterSourceSystem(world: World, context: AppContext, app: App): void {
+function moveToWaterSourceSystem(world: World, context: Context, app: App): void {
 	const timeContext = getContextWithExtensions<TimePlugin>(app);
 	const deltaTime = timeContext.getDeltaSeconds();
 
@@ -250,7 +250,7 @@ class DrinkActionBuilder implements ActionBuilder {
 /**
  * 喝水动作系统
  */
-function drinkActionSystem(world: World, context: AppContext, app: App): void {
+function drinkActionSystem(world: World, context: Context, app: App): void {
 	const timeContext = getContextWithExtensions<TimePlugin>(app);
 	const deltaTime = timeContext.getDeltaSeconds();
 
@@ -313,7 +313,7 @@ function drinkActionSystem(world: World, context: AppContext, app: App): void {
 /**
  * 初始化系统：创建水源和口渴的实体
  */
-function initEntitiesSystem(world: World, context: AppContext): void {
+function initEntitiesSystem(world: World, context: Context): void {
 	// 创建两个水源
 	world.spawn(WaterSource(), Position({ x: 10.0, y: 10.0 }));
 	world.spawn(WaterSource(), Position({ x: -10.0, y: 0.0 }));
@@ -350,15 +350,15 @@ function main(): App {
 	app.addPlugin(new BigBrainPlugin());
 
 	app.addSystems(BuiltinSchedules.STARTUP, initEntitiesSystem);
-	app.addSystems(BuiltinSchedules.UPDATE, (world: World, context: AppContext) => {
+	app.addSystems(BuiltinSchedules.UPDATE, (world: World, context: Context) => {
 		thirstSystem(world, context, app);
 	});
 	app.addSystems(BuiltinSchedules.PRE_UPDATE, [
 		thirstyScorerSystem,
-		(world: World, context: AppContext) => {
+		(world: World, context: Context) => {
 			moveToWaterSourceSystem(world, context, app);
 		},
-		(world: World, context: AppContext) => {
+		(world: World, context: Context) => {
 			drinkActionSystem(world, context, app);
 		},
 	]);

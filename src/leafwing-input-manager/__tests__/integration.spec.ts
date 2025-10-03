@@ -5,7 +5,7 @@
 
 import { World, component } from "@rbxts/matter";
 import { App } from "../../bevy_app/app";
-import { Context } from "../../bevy_ecs/types";
+import { Context } from "../../bevy_ecs";
 import { BuiltinSchedules } from "../../bevy_app/main-schedule";
 import { Actionlike } from "../actionlike";
 import { ActionState } from "../action-state/action-state";

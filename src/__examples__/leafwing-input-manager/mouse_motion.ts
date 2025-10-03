@@ -22,7 +22,7 @@ import { ActionState } from "../../leafwing-input-manager/action-state/action-st
 import { MouseMove } from "../../leafwing-input-manager/user-input/mouse";
 import { Actionlike, ActionlikeEnum } from "../../leafwing-input-manager/actionlike";
 import { InputControlKind } from "../../leafwing-input-manager/input-control-kind";
-import { BevyWorld } from "../../bevy_ecs/types";
+import { BevyWorld } from "../../bevy_ecs";
 
 /**
  * 相机移动动作枚举

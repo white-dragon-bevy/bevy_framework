@@ -53,10 +53,10 @@ class Input  {
 
 ### 系统函数
 
-系统函数接收 `BevyWorld` 和 `AppContext` 参数：
+系统函数接收 `BevyWorld` 和 `Context` 参数：
 
 ```typescript
-function printSystem(world: BevyWorld, context: AppContext): void {
+function printSystem(world: BevyWorld, context: Context): void {
     const resources = world.resources;
     const inputResource = resources.getResource<Input>();
 

@@ -6,7 +6,7 @@
 import { BasePlugin } from "../bevy_app/plugin";
 import { App, ExtensionFactory } from "../bevy_app/app";
 import { World } from "@rbxts/matter";
-import type { AppContext } from "../bevy_app/context";
+import type { Context } from "../bevy_ecs";
 import { RobloxContext } from "../utils/roblox-utils";
 import { Workspace, RunService } from "@rbxts/services";
 import { PrimaryCamera } from "./components";
@@ -87,7 +87,7 @@ export class CameraPlugin extends BasePlugin {
 			/**
 			 * 获取 Roblox Camera 实例
 			 */
-			getCamera: (world: World, context: AppContext, plugin: CameraPlugin) => {
+			getCamera: (world: World, context: Context, plugin: CameraPlugin) => {
 				return () => {
 					if (!RunService.IsClient()) {
 						return undefined;
@@ -100,7 +100,7 @@ export class CameraPlugin extends BasePlugin {
 			/**
 			 * 设置相机类型
 			 */
-			setCameraType: (world: World, context: AppContext, plugin: CameraPlugin) => {
+			setCameraType: (world: World, context: Context, plugin: CameraPlugin) => {
 				return (cameraType: Enum.CameraType) => {
 					const camera = Workspace.CurrentCamera;
 					if (camera) {
@@ -112,7 +112,7 @@ export class CameraPlugin extends BasePlugin {
 			/**
 			 * 设置相机主体
 			 */
-			setCameraSubject: (world: World, context: AppContext, plugin: CameraPlugin) => {
+			setCameraSubject: (world: World, context: Context, plugin: CameraPlugin) => {
 				return (subject: Humanoid | BasePart) => {
 					const camera = Workspace.CurrentCamera;
 					if (camera) {
@@ -124,7 +124,7 @@ export class CameraPlugin extends BasePlugin {
 			/**
 			 * 设置视野角度
 			 */
-			setFieldOfView: (world: World, context: AppContext, plugin: CameraPlugin) => {
+			setFieldOfView: (world: World, context: Context, plugin: CameraPlugin) => {
 				return (fov: number) => {
 					const camera = Workspace.CurrentCamera;
 					if (camera) {
@@ -136,7 +136,7 @@ export class CameraPlugin extends BasePlugin {
 			/**
 			 * 获取主相机实体
 			 */
-			getPrimaryCameraEntity: (world: World, context: AppContext, plugin: CameraPlugin) => {
+			getPrimaryCameraEntity: (world: World, context: Context, plugin: CameraPlugin) => {
 				return () => {
 					// 在 World 中查找主相机实体
 					for (const [entity, _] of world.query(PrimaryCamera)) {

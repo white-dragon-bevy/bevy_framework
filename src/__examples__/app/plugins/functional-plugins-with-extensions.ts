@@ -7,8 +7,7 @@ import { App, ExtensionFactory, getContextWithExtensions } from "../../../bevy_a
 import { plugin, simplePlugin } from "../../../bevy_app/plugin";
 import { BuiltinSchedules } from "../../../bevy_app/main-schedule";
 import { World } from "../../../bevy_ecs/bevy-world";
-import { Context } from "../../../bevy_ecs/types";
-import { AppContext } from "../../../bevy_app/context";
+import { Context } from "../../../bevy_ecs";
 
 // ============================================================================
 // 示例 1: LogPlugin - 日志插件扩展
@@ -219,7 +218,7 @@ export const statePluginFunctional = plugin<StatePluginExtension>({
 /**
  * 带日志扩展的 Context 类型
  */
-type ContextWithLog = AppContext & {
+type ContextWithLog = Context & {
 	getLogLevel: () => string;
 	setLogLevel: (level: string) => void;
 };
@@ -227,7 +226,7 @@ type ContextWithLog = AppContext & {
 /**
  * 带性能指标扩展的 Context 类型
  */
-type ContextWithMetrics = AppContext & {
+type ContextWithMetrics = Context & {
 	getFps: () => number;
 	getFrameTime: () => number;
 	getEntityCount: () => number;
@@ -236,7 +235,7 @@ type ContextWithMetrics = AppContext & {
 /**
  * 带状态扩展的 Context 类型
  */
-type ContextWithState = AppContext & {
+type ContextWithState = Context & {
 	getCurrentState: () => GameState;
 	setState: (state: GameState) => void;
 	getPreviousState: () => GameState | undefined;
@@ -283,8 +282,8 @@ export function singlePluginTypeAccumulation(): void {
 export function multiplePluginsTypeAccumulation(): void {
 	// 依次添加多个带扩展的插件
 	const app = new App()
-		.addPlugin(logPluginFunctional) // App<AppContext & LogPluginExtension>
-		.addPlugin(metricsPluginFunctional); // App<AppContext & LogPluginExtension & MetricsPluginExtension>
+		.addPlugin(logPluginFunctional) // App<Context & LogPluginExtension>
+		.addPlugin(metricsPluginFunctional); // App<Context & LogPluginExtension & MetricsPluginExtension>
 
 	// 使用类型断言访问多个插件的扩展方法
 	const context = app.context as ContextWithLog & ContextWithMetrics;
@@ -391,7 +390,7 @@ const advancedPluginFunctional = plugin<AdvancedPluginExtension>({
 		getStatus: (world, context, plugin) => {
 			return () => {
 				// 可以访问 context 上的其他扩展方法
-				const appContext = context as AppContext & {
+				const appContext = context as Context & {
 					getLogLevel?: () => string;
 					getFps?: () => number;
 				};

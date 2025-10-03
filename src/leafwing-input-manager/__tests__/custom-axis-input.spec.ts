@@ -17,7 +17,7 @@ import { CentralInputStore } from "../user-input/central-input-store";
 import { BasicInputs } from "../clashing-inputs/basic-inputs";
 import { Resource, World } from "../../bevy_ecs";
 import { BuiltinSchedules } from "../../bevy_app/main-schedule";
-import type { Context } from "../../bevy_ecs/types";
+import type { Context } from "../../bevy_ecs";
 
 /**
  * 模拟 MIDI 控制器状态资源

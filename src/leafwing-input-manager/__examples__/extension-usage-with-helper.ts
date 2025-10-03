@@ -7,9 +7,9 @@ import { App, MainScheduleLabel } from "../../bevy_app";
 import { createInputManagerPlugin } from "../plugin/input-manager-plugin";
 import { Actionlike } from "../actionlike";
 import { InputMap } from "../input-map/input-map";
-import type { AppContext } from "../../bevy_app/context";
+import type { Context } from "../../bevy_ecs";
 import type { InputManagerExtension } from "../plugin/extensions";
-import type { BevyWorld } from "../../bevy_ecs/types";
+import type { BevyWorld } from "../../bevy_ecs";
 import { KeyCode } from "../user-input/keyboard";
 
 // =============================================================================
@@ -54,7 +54,7 @@ export class PlayerAction implements Actionlike {
  * ```
  */
 export function getInputExtension<A extends Actionlike>(
-	context: AppContext,
+	context: Context,
 	namespace: string,
 ): InputManagerExtension<A> {
 	return (context as unknown as Record<string, unknown>)[namespace] as InputManagerExtension<A>;
@@ -68,7 +68,7 @@ export function getInputExtension<A extends Actionlike>(
  * 玩家移动系统
  * 使用辅助函数获得完整的类型提示
  */
-function playerMovementSystem(world: BevyWorld, context: AppContext): void {
+function playerMovementSystem(world: BevyWorld, context: Context): void {
 	// ✅ 使用辅助函数,获得完整的类型提示!
 	const playerInput = getInputExtension<PlayerAction>(context, "playerInput");
 	//    ^^^^^^^^^^^ 类型: InputManagerExtension<PlayerAction>
@@ -110,7 +110,7 @@ const ENEMY_INPUT_NS = "enemyInput";
 /**
  * 改进的系统实现
  */
-function improvedPlayerSystem(world: BevyWorld, context: AppContext): void {
+function improvedPlayerSystem(world: BevyWorld, context: Context): void {
 	// 使用常量,避免硬编码字符串
 	const playerInput = getInputExtension<PlayerAction>(context, PLAYER_INPUT_NS);
 

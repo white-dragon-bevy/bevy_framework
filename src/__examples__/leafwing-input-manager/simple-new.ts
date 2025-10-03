@@ -10,7 +10,7 @@
 import { App } from "../../bevy_app";
 import { MainScheduleLabel } from "../../bevy_app";
 import { DefaultPlugins } from "../../bevy_internal";
-import { BevyWorld, Context } from "../../bevy_ecs/types";
+import { BevyWorld, Context } from "../../bevy_ecs";
 import { component } from "@rbxts/matter";
 
 // 导入输入管理器相关类型
@@ -54,11 +54,11 @@ class PlayerActionlike implements Actionlike {
 // =====================================
 // 类型扩展声明 - 让 IDE 识别 context.playerInput
 // =====================================
-declare module "../../bevy_app/context" {
-	interface AppContext {
-		playerInput: InputManagerExtension<PlayerActionlike>;
-	}
-}
+// declare module "../../bevy_ecs" {
+// 	interface Context {
+// 		playerInput: InputManagerExtension<PlayerActionlike>;
+// 	}
+// }
 
 // =====================================
 // 定义组件
@@ -166,15 +166,15 @@ export function createApp() {
 	const typedApp = app.addPlugin(inputPlugin);
 
 
-	// ✅ 现在 typedApp.context.playerInput 有完整的类型提示
-	typedApp.context.playerInput.getComponents()
+	// // ✅ 现在 typedApp.context.playerInput 有完整的类型提示
+	// typedApp.context.playerInput.getComponents()
 
 
-	// 添加系统
-	typedApp.addSystems(MainScheduleLabel.STARTUP, spawnPlayer);
-	typedApp.addSystems(MainScheduleLabel.UPDATE, handlePlayerActions);
+	// // 添加系统
+	// typedApp.addSystems(MainScheduleLabel.STARTUP, spawnPlayer);
+	// typedApp.addSystems(MainScheduleLabel.UPDATE, handlePlayerActions);
 
-	typedApp.context.playerInput.getComponents()
+	// typedApp.context.playerInput.getComponents()
 
 	return typedApp;
 }

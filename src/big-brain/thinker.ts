@@ -4,7 +4,7 @@
 
 import { World, component } from "@rbxts/matter";
 import type { AnyEntity, Component } from "@rbxts/matter";
-import type { AppContext } from "../bevy_app/context";
+import type { Context } from "../bevy_ecs";
 import type { Picker } from "./pickers";
 import type { Choice } from "./choices";
 import { ChoiceBuilder } from "./choices";
@@ -120,7 +120,7 @@ export class ThinkerBuilder implements ActionBuilder {
 /**
  * Attach thinker to entities with ThinkerBuilder
  */
-export function thinkerComponentAttachSystem(world: World, context: AppContext): void {
+export function thinkerComponentAttachSystem(world: World, context: Context): void {
 	// Find entities with ThinkerBuilder but no HasThinker
 	for (const [entityId, thinkerBuilderComp] of world.query(ThinkerBuilderComponent)) {
 		const hasThinker = world.get(entityId, HasThinker);
@@ -135,7 +135,7 @@ export function thinkerComponentAttachSystem(world: World, context: AppContext):
 /**
  * Detach thinker from entities without ThinkerBuilder
  */
-export function thinkerComponentDetachSystem(world: World, context: AppContext): void {
+export function thinkerComponentDetachSystem(world: World, context: Context): void {
 	// Find entities with HasThinker but no ThinkerBuilder
 	for (const [entityId, hasThinker] of world.query(HasThinker)) {
 		const thinkerBuilder = world.get(entityId, ThinkerBuilderComponent);
@@ -150,7 +150,7 @@ export function thinkerComponentDetachSystem(world: World, context: AppContext):
 /**
  * Main thinker system - executes thinking logic
  */
-export function thinkerSystem(world: World, context: AppContext): void {
+export function thinkerSystem(world: World, context: Context): void {
 	for (const [thinkerEntityId, thinker] of world.query(ThinkerComponent)) {
 		const state = getActionState(world, thinkerEntityId);
 		if (state === undefined) {

@@ -7,7 +7,7 @@ import { App } from "../app";
 import { BuiltinSchedules } from "../main-schedule";
 import { system, chain, when, after, before, inSet } from "../../bevy_ecs/schedule";
 import type { World } from "@rbxts/matter";
-import type { Context } from "../../bevy_ecs/types";
+import type { Context } from "../../bevy_ecs";
 
 export = () => {
 describe("System Configs API", () => {

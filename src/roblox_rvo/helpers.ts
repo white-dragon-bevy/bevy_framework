@@ -3,7 +3,7 @@
  * 提供便捷的 API 访问 RVO 系统
  */
 
-import { BevyWorld, Context } from "../bevy_ecs/types";
+import { BevyWorld, Context } from "../bevy_ecs";
 import { RVOConfig } from "./resources/rvo-config";
 import { RVOSimulatorResource } from "./resources/rvo-simulator";
 import Simulator from "./core/Simulator";

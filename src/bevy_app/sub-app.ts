@@ -16,7 +16,6 @@ import { Schedules } from "../bevy_ecs/schedule/schedules";
 import type { SystemFunction, SystemConfig, ScheduleLabel } from "../bevy_ecs/schedule/types";
 import { intoSystemConfigs } from "../bevy_ecs/schedule/system-configs";
 import type { IntoSystemConfigs } from "../bevy_ecs/schedule";
-import { AppContext } from "./context";
 import { Modding } from "@flamework/core";
 
 // 前向声明 App 类型
@@ -53,7 +52,7 @@ export class SubApp {
 		this._world = createWorldContainer();
 
 		// Initialize context 
-		this.context = context ?? new AppContext(this._world.getWorld());
+		this.context = context ?? new Context(this._world.getWorld());
 
 		this.resourceManager = this.world().world.resources;
 		this.commandBuffer = this.world().world.commands;
@@ -569,7 +568,7 @@ export class SubApps {
 	 * 创建SubApps集合
 	 * @param context - 应用上下文（可选）
 	 */
-	constructor(context?:AppContext) {
+	constructor(context?:Context) {
 		this._main = new SubApp(context);
 	}
 

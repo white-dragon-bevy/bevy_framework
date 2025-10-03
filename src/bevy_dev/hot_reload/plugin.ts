@@ -14,7 +14,7 @@ import { RunService } from "@rbxts/services";
 import type { App } from "../../bevy_app/app";
 import type { Plugin } from "../../bevy_app/plugin";
 import type { World } from "../../bevy_ecs";
-import type { Context } from "../../bevy_ecs/types";
+import type { Context } from "../../bevy_ecs";
 import type { RunCondition, ScheduleLabel, SystemFunction } from "../../bevy_ecs/schedule/types";
 import { intoSystemConfigs, type IntoSystemConfigs } from "../../bevy_ecs/schedule/system-configs";
 import type { ContainerConfig, HotReloadConfig, HotSystemModule } from "./config";

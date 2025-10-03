@@ -9,7 +9,7 @@
  */
 
 import type { World } from "../../../../bevy_ecs";
-import type { Context } from "../../../../bevy_ecs/types";
+import type { Context } from "../../../../bevy_ecs";
 import { BuiltinSchedules } from "../../../../bevy_app/main-schedule";
 
 /**

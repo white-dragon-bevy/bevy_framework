@@ -2,12 +2,12 @@
  * InputManager Context Helper Functions
  * 提供新的组件系统访问方法
  *
- * @deprecated 推荐使用通过 AppContext 扩展访问,这些辅助函数将在未来版本中移除
+ * @deprecated 推荐使用通过 Context 扩展访问,这些辅助函数将在未来版本中移除
  * 新方式: context.playerInput.spawnWithInput(world, inputMap)
  * 旧方式: spawnWithInput(context, plugin, inputMap)
  */
 
-import { AppContext } from "../../bevy_app/context";
+import { Context } from "../../bevy_ecs";
 import { Actionlike } from "../actionlike";
 import type { InputManagerExtension } from "./extensions";
 import { ComponentDefinition } from "./component-factory";
@@ -61,7 +61,7 @@ export function getActionComponents<A extends Actionlike>(
  * ```
  */
 export function spawnWithInput<A extends Actionlike>(
-	context: AppContext,
+	context: Context,
 	plugin: InputManagerPlugin<A>,
 	inputMap: InputMap<A>,
 	actionState?: ActionState<A>,
@@ -86,7 +86,7 @@ export function spawnWithInput<A extends Actionlike>(
  * ```
  */
 export function getEntityInputData<A extends Actionlike>(
-	context: AppContext,
+	context: Context,
 	plugin: InputManagerPlugin<A>,
 	entityId: number,
 ) {
@@ -112,7 +112,7 @@ export function getEntityInputData<A extends Actionlike>(
  * ```
  */
 export function addInputToEntity<A extends Actionlike>(
-	context: AppContext,
+	context: Context,
 	plugin: InputManagerPlugin<A>,
 	entityId: number,
 	inputMap: InputMap<A>,
@@ -134,7 +134,7 @@ export function addInputToEntity<A extends Actionlike>(
  * ```
  */
 export function removeInputFromEntity<A extends Actionlike>(
-	context: AppContext,
+	context: Context,
 	plugin: InputManagerPlugin<A>,
 	entityId: number,
 ): void {
@@ -158,7 +158,7 @@ export function removeInputFromEntity<A extends Actionlike>(
  * ```
  */
 export function queryInputEntities<A extends Actionlike>(
-	context: AppContext,
+	context: Context,
 	plugin: InputManagerPlugin<A>,
 ) {
 	const components = plugin.extension.getComponents();

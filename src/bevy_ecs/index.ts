@@ -16,3 +16,8 @@ export * from "./query";
 export * from "./change-detection";
 export * from "./hierarchy";
 export * from "./component"
+
+
+import { World } from "./bevy-world";
+
+export {Context} from "./context";

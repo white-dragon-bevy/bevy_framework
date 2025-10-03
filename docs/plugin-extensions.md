@@ -21,7 +21,7 @@
 ```typescript
 import type { ExtensionFactory } from "../bevy_app/app";
 import type { World } from "../bevy_ecs";
-import type { AppContext } from "../bevy_app/context";
+import type { Context } from "../bevy_app/context";
 
 /**
  * 你的插件扩展工厂接口
@@ -59,16 +59,16 @@ export class MyPlugin extends BasePlugin {
         
         // 初始化扩展工厂
         this.extension = {
-            getManager: (world: World, context: AppContext, plugin: MyPlugin) => {
+            getManager: (world: World, context: Context, plugin: MyPlugin) => {
                 // 使用 plugin 参数而不是 this，避免 roblox-ts 问题
                 return () => plugin.getManagerInstance();
             },
             
-            getConfig: (world: World, context: AppContext, plugin: MyPlugin) => {
+            getConfig: (world: World, context: Context, plugin: MyPlugin) => {
                 return () => plugin.config;
             },
             
-            doSomething: (world: World, context: AppContext, plugin: MyPlugin) => {
+            doSomething: (world: World, context: Context, plugin: MyPlugin) => {
                 // 可以访问 world, context 和 plugin 实例
                 return (param: string) => {
                     print(`Doing something with: ${param}`);
@@ -95,7 +95,7 @@ export class MyPlugin extends BasePlugin {
 
 ```typescript
 type ExtensionFactory<T extends (...args: any[]) => any> = 
-    (world: World, context: AppContext, plugin: any) => T;
+    (world: World, context: Context, plugin: any) => T;
 ```
 
 **参数说明：**
@@ -181,11 +181,11 @@ export class LogPlugin extends BasePlugin {
         // ... 初始化配置
         
         this.extension = {
-            getLogManager: (world: World, context: AppContext, plugin: LogPlugin) => {
+            getLogManager: (world: World, context: Context, plugin: LogPlugin) => {
                 return () => LogSubscriber.getGlobal();
             },
             
-            getLogLevel: (world: World, context: AppContext, plugin: LogPlugin) => {
+            getLogLevel: (world: World, context: Context, plugin: LogPlugin) => {
                 const currentLevel = plugin.level;
                 return () => currentLevel;
             },
@@ -214,12 +214,12 @@ print("Current log level:", Level[currentLevel]);
 
 - 扩展接口以 `PluginExtensionFactories` 结尾
 - 方法名使用动词开头，如 `getManager`, `setConfig`, `doAction`
-- 避免与现有 AppContext 方法冲突
+- 避免与现有 Context 方法冲突
 
 ### 2. 错误处理
 
 ```typescript
-getManager: (world: World, context: AppContext, plugin: MyPlugin) => {
+getManager: (world: World, context: Context, plugin: MyPlugin) => {
     return () => {
         const manager = plugin.getManagerInstance();
         if (!manager) {
@@ -233,7 +233,7 @@ getManager: (world: World, context: AppContext, plugin: MyPlugin) => {
 ### 3. 资源访问
 
 ```typescript
-getData: (world: World, context: AppContext, plugin: MyPlugin) => {
+getData: (world: World, context: Context, plugin: MyPlugin) => {
     return () => {
         // 访问 ECS 资源
         const resource = world.getResource(MyResource);
@@ -259,7 +259,7 @@ export type { MyPluginExtensionFactories };
 
 ```typescript
 // 扩展工厂函数类型
-type ExtensionFactory<T> = (world: World, context: AppContext, plugin: any) => T;
+type ExtensionFactory<T> = (world: World, context: Context, plugin: any) => T;
 
 // 从插件提取扩展
 type ExtractPluginExtensions<P> = P extends { extension: infer E } ? E : {};
@@ -270,7 +270,7 @@ type ExtractExtensionTypes<F> = {
 };
 
 // 带扩展的 Context 类型
-type ContextWithExtensions<E> = AppContext & ExtractExtensionTypes<ExtractPluginExtensions<E>>;
+type ContextWithExtensions<E> = Context & ExtractExtensionTypes<ExtractPluginExtensions<E>>;
 ```
 
 ### 类型推导流程

@@ -8,7 +8,7 @@ import { App } from "../bevy_app/app";
 import { BuiltinSchedules } from "../bevy_app/main-schedule";
 import { markDirtyTrees, propagateParentTransforms, syncSimpleTransforms, ensureGlobalTransforms } from "./systems";
 import { World } from "../bevy_ecs/bevy-world";
-import { Context } from "../bevy_ecs/types";
+import { Context } from "../bevy_ecs";
 
 /**
  * Transform 系统集枚举

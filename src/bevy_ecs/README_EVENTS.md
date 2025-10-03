@@ -63,7 +63,7 @@ const EntityDamageEvent = createEntityEvent("EntityDamageEvent", {
 });
 ```
 
-### 3. 在 AppContext 中使用
+### 3. 在 Context 中使用
 
 ```typescript
 const app = new App();
@@ -134,10 +134,10 @@ const observerConfig = context.observerBuilder<DamageEvent>()
 
 ## API 参考
 
-### AppContext 扩展
+### Context 扩展
 
 ```typescript
-class AppContext {
+class Context {
     // 事件管理器
     events: EventManager;
 

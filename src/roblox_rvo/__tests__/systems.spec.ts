@@ -6,7 +6,7 @@
 
 import { App } from "../../bevy_app/app";
 import { World } from "../../bevy_ecs/bevy-world";
-import { Context } from "../../bevy_ecs/types";
+import { Context } from "../../bevy_ecs";
 import { Transform, transformFromPosition } from "../../bevy_transform/components/transform";
 import { TransformPlugin } from "../../bevy_transform/plugin";
 import { RVOPlugin } from "../plugin";

@@ -19,7 +19,7 @@ import { InputControlKind } from "../../input-control-kind";
 import { KeyCode } from "../../user-input/keyboard";
 import { createInputManagerPlugin } from "../../plugin/input-manager-plugin";
 import { MainScheduleLabel } from "../../../bevy_app";
-import { BevyWorld } from "../../../bevy_ecs/types";
+import { BevyWorld } from "../../../bevy_ecs";
 
 /**
  * 定义游戏动作枚举

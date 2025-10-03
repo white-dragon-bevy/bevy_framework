@@ -6,7 +6,7 @@
 
 import { World, component } from "@rbxts/matter";
 import type { AnyEntity, Component } from "@rbxts/matter";
-import type { AppContext } from "../bevy_app/context";
+import type { Context } from "../bevy_ecs";
 
 // ============================================================================
 // Core Components
@@ -102,7 +102,7 @@ export class FixedScorerBuilder implements ScorerBuilder {
 	}
 }
 
-export function fixedScoreSystem(world: World, context: AppContext): void {
+export function fixedScoreSystem(world: World, context: Context): void {
 	for (const [entityId, fixedScore] of world.query(FixedScore)) {
 		setScore(world, entityId, fixedScore.fixedValue);
 	}
@@ -143,7 +143,7 @@ export class AllOrNothingBuilder implements ScorerBuilder {
 	}
 }
 
-export function allOrNothingSystem(world: World, context: AppContext): void {
+export function allOrNothingSystem(world: World, context: Context): void {
 	for (const [entityId, aon] of world.query(AllOrNothing)) {
 		let sum = 0.0;
 		let allAboveThreshold = true;
@@ -196,7 +196,7 @@ export class SumOfScorersBuilder implements ScorerBuilder {
 	}
 }
 
-export function sumOfScorersSystem(world: World, context: AppContext): void {
+export function sumOfScorersSystem(world: World, context: Context): void {
 	for (const [entityId, sos] of world.query(SumOfScorers)) {
 		let sum = 0.0;
 		for (const childId of sos.scorerIds) {
@@ -261,7 +261,7 @@ export class ProductOfScorersBuilder implements ScorerBuilder {
 	}
 }
 
-export function productOfScorersSystem(world: World, context: AppContext): void {
+export function productOfScorersSystem(world: World, context: Context): void {
 	for (const [entityId, pos] of world.query(ProductOfScorers)) {
 		let product = 1.0;
 		let numScorers = 0;
@@ -319,7 +319,7 @@ export class WinningScorerBuilder implements ScorerBuilder {
 	}
 }
 
-export function winningScorerSystem(world: World, context: AppContext): void {
+export function winningScorerSystem(world: World, context: Context): void {
 	for (const [entityId, ws] of world.query(WinningScorer)) {
 		let highestScore = 0.0;
 		for (const childId of ws.scorerIds) {
@@ -364,7 +364,7 @@ export class EvaluatingScorerBuilder implements ScorerBuilder {
 	}
 }
 
-export function evaluatingScorerSystem(world: World, context: AppContext): void {
+export function evaluatingScorerSystem(world: World, context: Context): void {
 	for (const [entityId, es] of world.query(EvaluatingScorer)) {
 		const innerScore = getScore(world, es.scorerEntityId);
 		if (innerScore !== undefined) {
@@ -440,7 +440,7 @@ export class MeasuredScorerBuilder implements ScorerBuilder {
 	}
 }
 
-export function measuredScorerSystem(world: World, context: AppContext): void {
+export function measuredScorerSystem(world: World, context: Context): void {
 	for (const [entityId, ms] of world.query(MeasuredScorer)) {
 		const inputs: Array<readonly [{ value: number }, number]> = [];
 		for (const [childId, weight] of ms.scorerWeights) {

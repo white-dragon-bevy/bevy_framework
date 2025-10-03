@@ -236,10 +236,10 @@ export class ReplicationManager implements Resource {
  * @param world - Matter世界实例
  * @param context - 应用上下文
  */
-export function replicationSystem(world: World, appContext: import("../../src/bevy_app").AppContext): void {
+export function replicationSystem(world: World, appContext: import("../../src/bevy_app").Context): void {
 	// TODO: 待完善资源管理系统后实现
 	// 需要:
-	// 1. 从 AppContext 获取 ReplicationManager 资源
+	// 1. 从 Context 获取 ReplicationManager 资源
 	// 2. 根据网络角色调用对应的处理逻辑
 	// 3. 处理实体和组件的网络同步
 }

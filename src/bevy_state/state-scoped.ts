@@ -10,7 +10,7 @@ import type { World, Entity } from "@rbxts/matter";
 import type { States } from "./states";
 import { SystemFunction } from "../bevy_ecs/schedule/types";
 import { State, NextState } from "./resources";
-import { BevyWorld, Context } from "../bevy_ecs/types";
+import { BevyWorld, Context } from "../bevy_ecs";
 
 /**
  * 清理策略枚举

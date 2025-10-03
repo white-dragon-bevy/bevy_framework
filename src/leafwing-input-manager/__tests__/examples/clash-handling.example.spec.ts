@@ -21,7 +21,7 @@ import { InputChord } from "../../user-input/chord";
 import { createInputManagerPlugin } from "../../plugin/input-manager-plugin";
 import { ClashStrategy, ClashStrategyResource } from "../../clashing-inputs/clash-strategy";
 import { MainScheduleLabel } from "../../../bevy_app";
-import { BevyWorld } from "../../../bevy_ecs/types";
+import { BevyWorld } from "../../../bevy_ecs";
 
 /**
  * 测试动作枚举

@@ -4,8 +4,7 @@
 
 /// <reference types="@rbxts/testez/globals" />
 
-import { App } from "../../../src/bevy_app/app";
-import { AppContext } from "../../../src/bevy_app/context";
+import { App } from "bevy_app/app";
 import { World } from "@rbxts/matter";
 import {
 	DiagnosticsPlugin,

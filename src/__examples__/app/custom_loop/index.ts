@@ -9,10 +9,10 @@
  * 2. 可扩展为使用 Roblox 聊天系统或 GUI 输入
  */
 
-import { App, AppExit, AppExitCode, AppContext } from "../../../bevy_app";
+import { App, AppExit, AppExitCode } from "../../../bevy_app";
 import { BuiltinSchedules } from "../../../bevy_app";
 import { Resource } from "../../../bevy_ecs/resource";
-import type { World } from "../../../bevy_ecs";
+import type { Context, World } from "../../../bevy_ecs";
 
 /**
  * Input 资源 - 存储当前输入字符串
@@ -104,7 +104,7 @@ function myRunner(app: App): AppExit {
  * @param world - Bevy World 实例
  * @param context - App 上下文，提供扩展访问
  */
-function printSystem(world: World, context: AppContext): void {
+function printSystem(world: World, context: Context): void {
 	// 通过上下文访问资源扩展
 	const resources = world.resources;
 	const inputResource = resources.getResource<Input>();
@@ -119,7 +119,7 @@ function printSystem(world: World, context: AppContext): void {
  * @param world - Bevy World 实例
  * @param context - App 上下文，提供扩展访问
  */
-function exitSystem(world: World, context: AppContext): void {
+function exitSystem(world: World, context: Context): void {
 	// 通过上下文访问资源扩展
 	const resources = world.resources;
 	const inputResource = resources.getResource<Input>();

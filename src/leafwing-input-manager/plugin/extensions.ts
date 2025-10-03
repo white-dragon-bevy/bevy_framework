@@ -7,7 +7,7 @@ import type { Actionlike } from "../actionlike";
 import type { ComponentDefinition } from "./component-factory";
 import type { InputMap } from "../input-map/input-map";
 import type { ActionState } from "../action-state/action-state";
-import type { BevyWorld } from "../../bevy_ecs/types";
+import type { BevyWorld } from "../../bevy_ecs";
 
 /**
  * 输入管理器扩展接口

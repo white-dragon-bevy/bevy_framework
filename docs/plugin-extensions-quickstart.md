@@ -73,7 +73,7 @@ app.context.doSomething("World");
 
 ```typescript
 // 工厂函数签名
-(world: World, context: AppContext, plugin: PluginInstance) => ActualFunction
+(world: World, context: Context, plugin: PluginInstance) => ActualFunction
 ```
 
 - `world`: ECS World，访问游戏数据

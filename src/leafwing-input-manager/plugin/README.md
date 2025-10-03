@@ -56,7 +56,7 @@ export class PlayerAction implements Actionlike {
  * 获取输入管理器扩展 - 提供完整的类型提示
  */
 export function getInputExtension<A extends Actionlike>(
-    context: AppContext,
+    context: Context,
     namespace: string,
 ): InputManagerExtension<A> {
     return (context as unknown as Record<string, unknown>)[namespace] as InputManagerExtension<A>;
@@ -82,7 +82,7 @@ app.addPlugin(
 #### 步骤4: 在系统中使用
 
 ```typescript
-function gameSystem(world: BevyWorld, context: AppContext): void {
+function gameSystem(world: BevyWorld, context: Context): void {
     // ✅ 使用辅助函数,获得完整的类型提示!
     const playerInput = getInputExtension<PlayerAction>(context, PLAYER_INPUT_NS);
     //    ^^^^^^^^^^^ 完整的 IDE 智能提示
@@ -109,7 +109,7 @@ function gameSystem(world: BevyWorld, context: AppContext): void {
 #### 步骤2: 定义上下文类型
 
 ```typescript
-interface GameAppContext extends AppContext {
+interface GameAppContext extends Context {
     playerInput: InputManagerExtension<PlayerAction>;
     enemyInput: InputManagerExtension<EnemyAction>;
 }
@@ -246,7 +246,7 @@ const plugin = new InputManagerPlugin<PlayerAction>(...);
 app.addPlugin(plugin);
 
 // 在系统中使用
-function system(world: BevyWorld, context: AppContext): void {
+function system(world: BevyWorld, context: Context): void {
     // ❌ 需要从外部传入插件实例
     const data = getEntityInputData(context, plugin, entityId);
 

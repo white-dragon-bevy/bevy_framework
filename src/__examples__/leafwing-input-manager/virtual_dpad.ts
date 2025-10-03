@@ -12,7 +12,7 @@
 import { App } from "../../bevy_app";
 import { MainScheduleLabel } from "../../bevy_app";
 import { DefaultPlugins } from "../../bevy_internal";
-import type { BevyWorld, Context } from "../../bevy_ecs/types";
+import type { BevyWorld, Context } from "../../bevy_ecs";
 import { component } from "@rbxts/matter";
 
 // 导入输入管理器相关类型

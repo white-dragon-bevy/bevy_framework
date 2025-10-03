@@ -15,7 +15,7 @@
 import { World, component } from "@rbxts/matter";
 import type { AnyEntity } from "@rbxts/matter";
 import { App, BuiltinSchedules, getContextWithExtensions } from "../../bevy_app";
-import type { AppContext } from "../../bevy_app/context";
+import type { Context } from "../../bevy_ecs";
 import { TimePlugin } from "../../bevy_time";
 import {
 	BigBrainPlugin,
@@ -49,7 +49,7 @@ type Thirst = ReturnType<typeof Thirst>;
  * 口渴系统 - 让实体随时间变得更渴
  * 这是普通的 Bevy 系统，不涉及 AI 逻辑
  */
-function thirstSystem(world: World, context: AppContext, app: App): void {
+function thirstSystem(world: World, context: Context, app: App): void {
 	const timeContext = getContextWithExtensions<TimePlugin>(app);
 	const deltaTime = timeContext.getDeltaSeconds();
 
@@ -91,7 +91,7 @@ class ThirstyScorerBuilder implements ScorerBuilder {
  * 口渴评分系统
  * 根据实体的口渴值计算分数 (0.0-1.0)
  */
-function thirstyScorerSystem(world: World, context: AppContext): void {
+function thirstyScorerSystem(world: World, context: Context): void {
 	for (const [scorerEntityId, thirstyScorer, actor] of world.query(ThirstyScorer, Actor)) {
 		// 获取 Actor 的口渴组件
 		const thirst = world.get(actor.entityId, Thirst);
@@ -147,7 +147,7 @@ class DrinkActionBuilder implements ActionBuilder {
  * 喝水动作系统
  * 根据 ActionState 状态机执行不同逻辑
  */
-function drinkActionSystem(world: World, context: AppContext, app: App): void {
+function drinkActionSystem(world: World, context: Context, app: App): void {
 	const timeContext = getContextWithExtensions<TimePlugin>(app);
 	const deltaTime = timeContext.getDeltaSeconds();
 
@@ -196,7 +196,7 @@ function drinkActionSystem(world: World, context: AppContext, app: App): void {
 /**
  * 初始化系统：创建一个口渴的实体，并为其添加 Thinker
  */
-function initEntitiesSystem(world: World, context: AppContext): void {
+function initEntitiesSystem(world: World, context: Context): void {
 	// 创建实体
 	const entityId = world.spawn(
 		// 添加口渴组件：初始值 75，每秒增加 2
@@ -239,7 +239,7 @@ function main(): App {
 	app.addSystems(BuiltinSchedules.STARTUP, initEntitiesSystem);
 
 	// 添加游戏逻辑系统（在 UPDATE 阶段每帧执行）
-	app.addSystems(BuiltinSchedules.UPDATE, (world: World, context: AppContext) => {
+	app.addSystems(BuiltinSchedules.UPDATE, (world: World, context: Context) => {
 		thirstSystem(world, context, app);
 	});
 
@@ -248,7 +248,7 @@ function main(): App {
 	// 我们只需要添加自定义的 Scorer 和 Action 系统
 	app.addSystems(BuiltinSchedules.PRE_UPDATE, [
 		thirstyScorerSystem,
-		(world: World, context: AppContext) => {
+		(world: World, context: Context) => {
 			drinkActionSystem(world, context, app);
 		},
 	]);

@@ -5,7 +5,7 @@ import { plugin } from "../../bevy_app/plugin";
 import { App } from "../../bevy_app";
 import { MainScheduleLabel } from "../../bevy_app";
 import { ClashStrategy, ClashStrategyResource } from "../clashing-inputs/clash-strategy";
-import { BevyWorld, Context } from "../../bevy_ecs/types";
+import { BevyWorld, Context } from "../../bevy_ecs";
 import { createActionComponents, ComponentDefinition } from "./component-factory";
 import { getKeyboardInput, getMouseInput, getMouseMotion, getMouseWheel } from "../../bevy_input/plugin";
 import type { InputManagerExtension } from "./extensions";

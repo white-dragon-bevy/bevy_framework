@@ -4,7 +4,7 @@
  */
 
 import { World } from "../../bevy_ecs/bevy-world";
-import { Context } from "../../bevy_ecs/types";
+import { Context } from "../../bevy_ecs";
 import { MessageWriter } from "../../bevy_ecs/message";
 import { Transform } from "../../bevy_transform/components/transform";
 import { RVOAgent, hasReachedGoal } from "../components/rvo-agent";

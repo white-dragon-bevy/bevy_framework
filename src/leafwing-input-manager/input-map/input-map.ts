@@ -8,7 +8,7 @@ import { CentralInputStore } from "../user-input/central-input-store";
 import { usePrintDebounce } from "../../utils";
 import { ClashDetector } from "../clashing-inputs/clash-detection";
 import { ClashStrategyResource } from "../clashing-inputs/clash-strategy";
-import type { BevyWorld } from "../../bevy_ecs/types";
+import type { BevyWorld } from "../../bevy_ecs";
 
 import { component } from "@rbxts/matter";
 

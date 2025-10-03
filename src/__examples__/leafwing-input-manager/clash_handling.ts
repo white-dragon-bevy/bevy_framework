@@ -12,7 +12,7 @@
 import { App } from "../../bevy_app";
 import { MainScheduleLabel } from "../../bevy_app";
 import { DefaultPlugins } from "../../bevy_internal";
-import { BevyWorld, Context } from "../../bevy_ecs/types";
+import { BevyWorld, Context } from "../../bevy_ecs";
 import { component } from "@rbxts/matter";
 
 // 导入输入管理器相关类型
@@ -65,11 +65,11 @@ class TestActionlike implements Actionlike {
 // =====================================
 // 类型扩展声明
 // =====================================
-declare module "../../bevy_app/context" {
-	interface AppContext {
-		testInput: InputManagerExtension<TestActionlike>;
-	}
-}
+// declare module "../../bevy_ecs" {
+// 	interface Context {
+// 		testInput: InputManagerExtension<TestActionlike>;
+// 	}
+// }
 
 // =====================================
 // 系统定义

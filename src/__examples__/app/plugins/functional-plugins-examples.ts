@@ -20,7 +20,7 @@ import {
 import { BuiltinSchedules } from "../../../bevy_app/main-schedule";
 import { RunService } from "@rbxts/services";
 import { World } from "../../../bevy_ecs/bevy-world";
-import { Context } from "../../../bevy_ecs/types";
+import { Context } from "../../../bevy_ecs";
 
 // 导入 Transform 系统
 import {
@@ -178,9 +178,9 @@ export const diagnosticsPluginFunctional = plugin({
  */
 export function typeAccumulationExample(): void {
 	const app = new App()
-		.addPlugin(transformPluginFunctional) // App<AppContext>
-		.addPlugin(renderPluginFunctional) // App<AppContext>
-		.addPlugin(diagnosticsPluginFunctional); // App<AppContext>
+		.addPlugin(transformPluginFunctional) // App<Context>
+		.addPlugin(renderPluginFunctional) // App<Context>
+		.addPlugin(diagnosticsPluginFunctional); // App<Context>
 
 	// 这些插件没有扩展，因此类型不变
 	// 要查看类型累积的实际效果，请参见：

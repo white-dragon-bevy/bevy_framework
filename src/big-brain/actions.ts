@@ -5,7 +5,7 @@
 
 import { World, component } from "@rbxts/matter";
 import type { AnyEntity, Component } from "@rbxts/matter";
-import type { AppContext } from "../bevy_app/context";
+import type { Context } from "../bevy_ecs";
 import { Actor } from "./scorers";
 
 // Re-export Actor for use in other modules
@@ -155,7 +155,7 @@ export class StepsBuilder implements ActionBuilder {
 /**
  * System to execute Steps composite actions
  */
-export function stepsSystem(world: World, context: AppContext): void {
+export function stepsSystem(world: World, context: Context): void {
 	for (const [entityId, steps, actionState, actor] of world.query(Steps, ActionStateComponent, Actor)) {
 		const currentState = actionState.state;
 
@@ -294,7 +294,7 @@ export class ConcurrentlyBuilder implements ActionBuilder {
 /**
  * System to execute Concurrently composite actions
  */
-export function concurrentlySystem(world: World, context: AppContext): void {
+export function concurrentlySystem(world: World, context: Context): void {
 	for (const [entityId, concurrent, actionState] of world.query(Concurrently, ActionStateComponent)) {
 		const currentState = actionState.state;
 

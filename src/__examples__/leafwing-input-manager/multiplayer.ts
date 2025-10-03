@@ -14,7 +14,7 @@
 import { App } from "../../bevy_app/app";
 import { MainScheduleLabel } from "../../bevy_app/main-schedule";
 import { DefaultPlugins } from "../../bevy_internal";
-import { BevyWorld } from "../../bevy_ecs/types";
+import { BevyWorld } from "../../bevy_ecs";
 import { component } from "@rbxts/matter";
 
 // 导入输入管理器相关类型

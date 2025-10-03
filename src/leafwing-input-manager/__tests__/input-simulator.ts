@@ -127,7 +127,7 @@ export class KeyboardSimulator {
  */
 export class MouseSimulator {
 	private readonly inputStore: CentralInputStore;
-	private readonly world: import("../../bevy_ecs/types").BevyWorld;
+	private readonly world: import("../../bevy_ecs").BevyWorld;
 	private readonly pressedButtons: Set<Enum.UserInputType> = new Set();
 	private currentPosition: Vector2 = Vector2.zero;
 	private currentScroll: number = 0;
@@ -137,7 +137,7 @@ export class MouseSimulator {
 	 * @param inputStore - 中央输入存储实例
 	 * @param world - Bevy World 实例
 	 */
-	constructor(inputStore: CentralInputStore, world: import("../../bevy_ecs/types").BevyWorld) {
+	constructor(inputStore: CentralInputStore, world: import("../../bevy_ecs").BevyWorld) {
 		this.inputStore = inputStore;
 		this.world = world;
 	}

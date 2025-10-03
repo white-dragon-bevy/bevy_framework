@@ -15,7 +15,7 @@ import type {
 	SchedulerState,
 	ScheduleStats,
 } from "./types";
-import type { BevySystem, BevyWorld, Context } from "../types";
+import type { BevySystem, BevyWorld, Context } from "../";
 
 /**
  * 系统调度器 - 管理单个调度阶段的系统执行

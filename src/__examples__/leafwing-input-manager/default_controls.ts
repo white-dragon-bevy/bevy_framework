@@ -21,7 +21,7 @@
 
 import { App } from "../../bevy_app";
 import { MainScheduleLabel } from "../../bevy_app/main-schedule";
-import { BevyWorld } from "../../bevy_ecs/types";
+import { BevyWorld } from "../../bevy_ecs";
 import { RobloxRunnerPlugin } from "../../bevy_app/roblox-adapters";
 import { ActionlikeEnum } from "../../leafwing-input-manager/actionlike";
 import { InputControlKind } from "../../leafwing-input-manager/input-control-kind";

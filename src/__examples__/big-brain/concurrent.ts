@@ -15,7 +15,7 @@
 import { World, component } from "@rbxts/matter";
 import type { AnyEntity } from "@rbxts/matter";
 import { App, BuiltinSchedules } from "../../bevy_app";
-import type { AppContext } from "../../bevy_app/context";
+import type { Context } from "../../bevy_ecs";
 import {
 	BigBrainPlugin,
 	ThinkerBuilder,
@@ -82,7 +82,7 @@ function pseudoRandom(seed: number, min: number, max: number): number {
 /**
  * 猜数字系统
  */
-function guessNumberSystem(world: World, context: AppContext): void {
+function guessNumberSystem(world: World, context: Context): void {
 	for (const [actionEntityId, guessAction, actionState] of world.query(GuessNumberAction, ActionStateComponent)) {
 		const currentState = actionState.state;
 
@@ -132,7 +132,7 @@ class DummyScorerBuilder implements ScorerBuilder {
 	}
 }
 
-function dummyScorerSystem(world: World, context: AppContext): void {
+function dummyScorerSystem(world: World, context: Context): void {
 	for (const [scorerEntityId] of world.query(DummyScorer)) {
 		setScore(world, scorerEntityId, 1.0);
 	}
@@ -145,7 +145,7 @@ function dummyScorerSystem(world: World, context: AppContext): void {
 /**
  * 初始化系统：创建猜数字的 AI
  */
-function initEntitiesSystem(world: World, context: AppContext): void {
+function initEntitiesSystem(world: World, context: Context): void {
 	const numberToGuess = 5;
 
 	// 场景 1: Race 模式 - 任意一个猜对就成功

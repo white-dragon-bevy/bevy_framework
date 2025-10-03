@@ -38,13 +38,13 @@ function main(): void {
 	);
 
 	// 测试:这里应该有代码提示
-	const ext = app.context.playerInput;
+	//const ext = app.context.playerInput;
 	//                      ^^^^^^^^^^^ 应该有智能提示
 
-	if (ext) {
-		ext.getComponents();
-		//  ^^^^^^^^^^^^^^ 应该有智能提示
-	}
+	// if (ext) {
+	// 	ext.getComponents();
+	// 	//  ^^^^^^^^^^^^^^ 应该有智能提示
+	// }
 }
 
 main();

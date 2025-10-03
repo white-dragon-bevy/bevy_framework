@@ -14,7 +14,7 @@ import type {
 	SchedulerState,
 	ScheduleGraph,
 } from "./types";
-import { BevySystem, Context } from "../types";
+import { BevySystem, Context } from "..";
 
 /**
  * 调度器管理器 - 管理多个调度阶段的执行

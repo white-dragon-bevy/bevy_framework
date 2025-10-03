@@ -315,12 +315,12 @@ White Dragon Bevy 提供两种扩展机制：**标准扩展**（ExtensionFactory
 
 **必须**：
 - 定义扩展接口，所有方法使用 `ExtensionFactory<T>` 类型
-- 工厂函数签名为 `(world: World, context: AppContext, plugin: PluginType) => 实际函数`
+- 工厂函数签名为 `(world: World, context: Context, plugin: PluginType) => 实际函数`
 
 ```typescript
 import { ExtensionFactory } from "@white-dragon-bevy/bevy_app";
 import type { World } from "@rbxts/matter";
-import type { AppContext } from "@white-dragon-bevy/bevy_app";
+import type { Context } from "@white-dragon-bevy/bevy_app";
 
 /**
  * LogPlugin 扩展工厂接口
@@ -363,12 +363,12 @@ export class LogPlugin extends BasePlugin {
         // ✅ 在 constructor 中初始化扩展工厂
         this.extension = {
             // 工厂函数接收 (world, context, plugin) 参数
-            getLogManager: (world: World, context: AppContext, plugin: LogPlugin) => {
+            getLogManager: (world: World, context: Context, plugin: LogPlugin) => {
                 // 返回实际的扩展函数
                 return () => LogSubscriber.getGlobal();
             },
 
-            getLogLevel: (world: World, context: AppContext, plugin: LogPlugin) => {
+            getLogLevel: (world: World, context: Context, plugin: LogPlugin) => {
                 // 使用 plugin 参数获取插件状态，避免 this 指针问题
                 const currentLevel = plugin.level;
                 // 返回获取日志级别的函数
@@ -550,14 +550,14 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin {
  * 提供完整的类型提示
  */
 export function getInputExtension<A extends Actionlike>(
-    context: AppContext,
+    context: Context,
     namespace: string
 ): InputManagerExtension<A> {
     return (context as unknown as Record<string, unknown>)[namespace] as InputManagerExtension<A>;
 }
 
 // 在系统中使用
-function playerMovementSystem(world: BevyWorld, context: AppContext): void {
+function playerMovementSystem(world: BevyWorld, context: Context): void {
     // ✅ 使用辅助函数获得类型提示
     const playerInput = getInputExtension<PlayerAction>(context, "playerInput");
     //    ^^^^^^^^^^^ 类型: InputManagerExtension<PlayerAction>
@@ -1334,11 +1334,11 @@ export class StandardExtensionPlugin extends BasePlugin {
 
 	/** 插件扩展 */
 	extension = {
-		getLogManager: (world: World, context: AppContext, plugin: LogPlugin) => {
+		getLogManager: (world: World, context: Context, plugin: LogPlugin) => {
 			// 返回获取日志管理器的函数，使用 plugin 参数而不是 this
 			return () => LogSubscriber.getGlobal();
 		},
-		getLogLevel: (world: World, context: AppContext, plugin: LogPlugin) => {
+		getLogLevel: (world: World, context: Context, plugin: LogPlugin) => {
 			// 使用 plugin 参数获取 level 值，避免 this 指针问题
 			const currentLevel = plugin.level;
 			// 返回获取日志级别的函数
@@ -1361,7 +1361,7 @@ export class StandardExtensionPlugin extends BasePlugin {
 ```typescript
 import { BasePlugin, App, ExtensionFactory } from "@white-dragon-bevy/bevy_app";
 import { World } from "@rbxts/matter";
-import { AppContext } from "@white-dragon-bevy/bevy_app";
+import { Context } from "@white-dragon-bevy/bevy_app";
 
 /**
  * 状态管理插件扩展工厂
@@ -1394,21 +1394,21 @@ export class StatePlugin extends BasePlugin {
     build(app: App): void {
         // 初始化扩展工厂
         this.extension = {
-            getState: (world: World, context: AppContext, plugin: StatePlugin) => {
+            getState: (world: World, context: Context, plugin: StatePlugin) => {
                 return () => this.currentState;
             },
 
-            setState: (world: World, context: AppContext, plugin: StatePlugin) => {
+            setState: (world: World, context: Context, plugin: StatePlugin) => {
                 return (newState: string) => {
                     this.currentState = newState;
                 };
             },
 
-            isInState: (world: World, context: AppContext, plugin: StatePlugin) => {
+            isInState: (world: World, context: Context, plugin: StatePlugin) => {
                 return (state: string) => this.currentState === state;
             },
 
-            transitionTo: (world: World, context: AppContext, plugin: StatePlugin) => {
+            transitionTo: (world: World, context: Context, plugin: StatePlugin) => {
                 return (newState: string) => {
                     const currentTransitions = this.validTransitions.get(this.currentState);
                     if (currentTransitions && currentTransitions.has(newState)) {
@@ -1560,7 +1560,7 @@ export class ScorePlugin extends BasePlugin {
 
     private initializeExtensions(app: App): void {
         this.extension = {
-            addPlayerScore: (world: World, context: AppContext, plugin: ScorePlugin) => {
+            addPlayerScore: (world: World, context: Context, plugin: ScorePlugin) => {
                 return (player: Player, points: number) => {
                     const actualPoints = points * this.currentMultiplier;
                     this.scoreboard.addScore(player.UserId, actualPoints);
@@ -1568,19 +1568,19 @@ export class ScorePlugin extends BasePlugin {
                 };
             },
 
-            getPlayerScore: (world: World, context: AppContext, plugin: ScorePlugin) => {
+            getPlayerScore: (world: World, context: Context, plugin: ScorePlugin) => {
                 return (player: Player) => {
                     return this.scoreboard.getScore(player.UserId);
                 };
             },
 
-            getLeaderboard: (world: World, context: AppContext, plugin: ScorePlugin) => {
+            getLeaderboard: (world: World, context: Context, plugin: ScorePlugin) => {
                 return (limit?: number) => {
                     return this.scoreboard.getTopScores(limit ?? this.config.leaderboardSize);
                 };
             },
 
-            resetScores: (world: World, context: AppContext, plugin: ScorePlugin) => {
+            resetScores: (world: World, context: Context, plugin: ScorePlugin) => {
                 return () => {
                     this.scoreboard.reset();
                     this.currentMultiplier = this.config.initialMultiplier;
@@ -1588,11 +1588,11 @@ export class ScorePlugin extends BasePlugin {
                 };
             },
 
-            getScoreMultiplier: (world: World, context: AppContext, plugin: ScorePlugin) => {
+            getScoreMultiplier: (world: World, context: Context, plugin: ScorePlugin) => {
                 return () => this.currentMultiplier;
             },
 
-            setScoreMultiplier: (world: World, context: AppContext, plugin: ScorePlugin) => {
+            setScoreMultiplier: (world: World, context: Context, plugin: ScorePlugin) => {
                 return (multiplier: number) => {
                     this.currentMultiplier = math.clamp(
                         multiplier,

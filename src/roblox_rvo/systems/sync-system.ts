@@ -4,7 +4,7 @@
  */
 
 import { World } from "../../bevy_ecs/bevy-world";
-import { Context } from "../../bevy_ecs/types";
+import { Context } from "../../bevy_ecs";
 import { Transform } from "../../bevy_transform/components/transform";
 import { RVOAgent, RVOAgentData, setAgentGoal } from "../components/rvo-agent";
 import { RVOObstacle, transformObstacleVertices } from "../components/rvo-obstacle";

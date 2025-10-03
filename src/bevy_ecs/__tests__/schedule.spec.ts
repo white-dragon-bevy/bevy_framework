@@ -8,8 +8,7 @@ import { Schedule, Schedules, SystemConfig, SystemSetConfig } from "../schedule/
 import { MainScheduleLabel, CoreSystemSet } from "../../bevy_app/main-schedule";
 import { ResourceManager } from "../resource";
 import { CommandBuffer } from "../command-buffer";
-import { AppContext } from "../../bevy_app";
-import { Context } from "../types";
+import { Context } from "../";
 
 export = () => {
 	describe("Schedule", () => {
@@ -94,7 +93,7 @@ export = () => {
 
 				// 执行系统模拟
 				for (const loopSystem of compiledSystems) {
-					loopSystem.system(world, new AppContext(world));
+					loopSystem.system(world, new Context(world));
 				}
 
 				expect(executionOrder[0]).to.equal("high");
@@ -189,7 +188,7 @@ export = () => {
 				world = new World();
 				// 执行系统
 				for (const loopSystem of compiledSystems) {
-					loopSystem.system(world, new AppContext(world));
+					loopSystem.system(world, new Context(world));
 				}
 
 				expect(executionOrder[0]).to.equal("Input");
@@ -287,7 +286,7 @@ export = () => {
 				// 捕获错误
 				for (const loopSystem of compiledSystems) {
 					try {
-						loopSystem.system(world, new AppContext(world));
+						loopSystem.system(world, new Context(world));
 					} catch {
 						errorCaught = true;
 					}
@@ -304,7 +303,7 @@ export = () => {
 
 		beforeEach(() => {
 			world = new World();
-			schedules = new Schedules(world, new AppContext(world));
+			schedules = new Schedules(world, new Context(world));
 		});
 
 		afterEach(() => {
