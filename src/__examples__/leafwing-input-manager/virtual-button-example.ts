@@ -16,7 +16,7 @@ import { RunService, Players } from "@rbxts/services";
 
 // 导入输入管理器
 import {
-	createInputManagerPlugin,
+	InputManagerPlugin,
 	InputMap,
 	ActionState,
 	KeyCode,
@@ -277,7 +277,7 @@ function createVirtualButtonUI(virtualJumpButton: VirtualButton, virtualAttackBu
 // 系统定义
 // =====================================
 
-let inputPlugin: ReturnType<typeof createInputManagerPlugin<PlayerActionlike>>;
+let inputPlugin: ReturnType<typeof InputManagerPlugin.create<PlayerActionlike>>;
 
 /**
  * 生成玩家
@@ -418,7 +418,7 @@ function createApp(): App {
 	app.addPlugins(new DefaultPlugins());
 
 	// 添加输入管理器插件
-	inputPlugin = createInputManagerPlugin<PlayerActionlike>({} as any) as any;
+	inputPlugin = InputManagerPlugin.create<PlayerActionlike>({} as any) as any;
 	app.addPlugin(inputPlugin);
 
 	// 添加系统

@@ -15,7 +15,7 @@ import { component } from "@rbxts/matter";
 
 // 导入输入管理器相关类型
 import {
-	createInputManagerPlugin,
+	InputManagerPlugin,
 	InputMap,
 	ActionState,
 	KeyCode,
@@ -254,7 +254,7 @@ function wallCollisions(world: BevyWorld): void {
 // =====================================
 
 // 保存插件实例供系统使用
-let inputPlugin: ReturnType<typeof createInputManagerPlugin<Action>>;
+let inputPlugin: ReturnType<typeof InputManagerPlugin.create<Action>>;
 
 // 时间追踪变量
 let lastUpdateTime = os.clock();
@@ -275,7 +275,7 @@ export function createApp(): App {
 
 	// 创建并添加输入管理器插件
 	// 对应 Rust: .add_plugins(InputManagerPlugin::<Action>::default())
-	inputPlugin = createInputManagerPlugin<Action>({
+	inputPlugin = InputManagerPlugin.create<Action>({
 		actionTypeName: "Action",
 	});
 	app.addPlugin(inputPlugin);

@@ -18,7 +18,7 @@ import { ActionlikeEnum } from "../../actionlike";
 import { InputControlKind } from "../../input-control-kind";
 import { KeyCode } from "../../user-input/keyboard";
 import { InputChord } from "../../user-input/chord";
-import { createInputManagerPlugin } from "../../plugin/input-manager-plugin";
+import { InputManagerPlugin } from "../../plugin/input-manager-plugin";
 import { ClashStrategy, ClashStrategyResource } from "../../clashing-inputs/clash-strategy";
 import { MainScheduleLabel } from "../../../bevy_app";
 import { BevyWorld } from "../../../bevy_ecs";
@@ -97,7 +97,7 @@ export = () => {
 			const app = createTestApp();
 
 			// 添加 InputManagerPlugin
-			const plugin = createInputManagerPlugin<TestAction>({
+			const plugin = InputManagerPlugin.create<TestAction>({
 				actionTypeName: "TestAction",
 			});
 			app.addPlugins(plugin);
@@ -137,7 +137,7 @@ export = () => {
 		it("should prioritize longest chord when using PrioritizeLongest strategy", () => {
 			const app = createTestApp();
 
-			const plugin = createInputManagerPlugin<TestAction>({
+			const plugin = InputManagerPlugin.create<TestAction>({
 				actionTypeName: "TestAction",
 			});
 			app.addPlugins(plugin);
@@ -186,7 +186,7 @@ export = () => {
 		it("should handle three-key chord vs two-key chord clash", () => {
 			const app = createTestApp();
 
-			const plugin = createInputManagerPlugin<TestAction>({
+			const plugin = InputManagerPlugin.create<TestAction>({
 				actionTypeName: "TestAction",
 			});
 			app.addPlugins(plugin);
@@ -232,7 +232,7 @@ export = () => {
 		it("should report pressed actions with system query", () => {
 			const app = createTestApp();
 
-			const plugin = createInputManagerPlugin<TestAction>({
+			const plugin = InputManagerPlugin.create<TestAction>({
 				actionTypeName: "TestAction",
 			});
 			app.addPlugins(plugin);
@@ -295,7 +295,7 @@ export = () => {
 		it("should handle multiple overlapping chords", () => {
 			const app = createTestApp();
 
-			const plugin = createInputManagerPlugin<TestAction>({
+			const plugin = InputManagerPlugin.create<TestAction>({
 				actionTypeName: "TestAction",
 			});
 			app.addPlugins(plugin);
@@ -345,7 +345,7 @@ export = () => {
 		it("should allow non-overlapping chords to trigger simultaneously", () => {
 			const app = createTestApp();
 
-			const plugin = createInputManagerPlugin<TestAction>({
+			const plugin = InputManagerPlugin.create<TestAction>({
 				actionTypeName: "TestAction",
 			});
 			app.addPlugins(plugin);

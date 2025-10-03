@@ -12,9 +12,9 @@
 export * from "../bevy_app/prelude";
 
 /**
- * 日志插件 - 提供日志记录和过滤功能（函数式）
+ * 日志插件 - 提供日志记录和过滤功能
  */
-export { createLogPlugin } from "../bevy_log";
+export { LogPlugin } from "../bevy_log";
 
 /**
  * 诊断插件集合

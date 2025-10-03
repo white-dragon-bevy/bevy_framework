@@ -31,7 +31,7 @@ import { KeyCode } from "../../leafwing-input-manager/user-input/keyboard";
 import { MouseButton } from "../../leafwing-input-manager/user-input/mouse";
 import { VirtualDPad } from "../../leafwing-input-manager/user-input/virtual-controls";
 import { GamepadButton, GamepadStick } from "../../leafwing-input-manager/user-input/gamepad";
-import { createInputManagerPlugin } from "../../leafwing-input-manager/plugin/input-manager-plugin";
+import { InputManagerPlugin } from "../../leafwing-input-manager/plugin/input-manager-plugin";
 
 /**
  * Player action enum
@@ -123,7 +123,7 @@ class PlayerAction extends ActionlikeEnum {
 function spawnPlayer(world: BevyWorld): void {
 	// Get the InputManager plugin extension to access components
 	// 获取 InputManager 插件扩展以访问组件
-	const plugin = createInputManagerPlugin<PlayerAction>({
+	const plugin = InputManagerPlugin.create<PlayerAction>({
 		actionTypeName: "PlayerAction",
 	});
 
@@ -164,7 +164,7 @@ function spawnPlayer(world: BevyWorld): void {
  * @param world - Bevy world
  */
 function useActions(world: BevyWorld): void {
-	const plugin = createInputManagerPlugin<PlayerAction>({
+	const plugin = InputManagerPlugin.create<PlayerAction>({
 		actionTypeName: "PlayerAction",
 	});
 
@@ -227,7 +227,7 @@ export function runDefaultControlsExample(): void {
 	// Add InputManager plugin
 	// 添加 InputManager 插件
 	app.addPlugins(
-		createInputManagerPlugin<PlayerAction>({
+		InputManagerPlugin.create<PlayerAction>({
 			actionTypeName: "PlayerAction",
 		}),
 	);

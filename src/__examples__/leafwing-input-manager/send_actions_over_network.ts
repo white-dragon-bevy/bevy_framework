@@ -44,7 +44,7 @@ import { InputControlKind } from "../../leafwing-input-manager/input-control-kin
 import { InputMap } from "../../leafwing-input-manager/input-map/input-map";
 import { KeyCode } from "../../leafwing-input-manager/user-input/keyboard";
 import { MouseButton } from "../../leafwing-input-manager/user-input/mouse";
-import { createInputManagerPlugin } from "../../leafwing-input-manager/plugin/input-manager-plugin";
+import { InputManagerPlugin } from "../../leafwing-input-manager/plugin/input-manager-plugin";
 import { MessageReader, MessageWriter } from "../../bevy_ecs/message";
 import { Messages } from "../../bevy_ecs/message/messages";
 import { RunService, ReplicatedStorage } from "@rbxts/services";
@@ -79,7 +79,7 @@ class FpsAction extends ActionlikeEnum {
 // ============================================================================
 
 // 客户端插件全局变量
-let clientInputPlugin: ReturnType<typeof createInputManagerPlugin<FpsAction>>;
+let clientInputPlugin: ReturnType<typeof InputManagerPlugin.create<FpsAction>>;
 
 /**
  * 生成玩家实体（客户端）
@@ -195,7 +195,7 @@ function createClientApp(): App {
 	app.addPlugins(...DefaultPlugins.create().build().getPlugins());
 
 	// 添加 InputManagerPlugin
-	clientInputPlugin = createInputManagerPlugin<FpsAction>({
+	clientInputPlugin = InputManagerPlugin.create<FpsAction>({
 		actionTypeName: "FpsAction",
 	});
 	app.addPlugin(clientInputPlugin);
@@ -216,7 +216,7 @@ function createClientApp(): App {
 // ============================================================================
 
 // 服务端插件全局变量
-let serverInputPlugin: ReturnType<typeof createInputManagerPlugin<FpsAction>>;
+let serverInputPlugin: ReturnType<typeof InputManagerPlugin.create<FpsAction>>;
 
 /**
  * 生成玩家实体（服务端）
@@ -295,7 +295,7 @@ function createServerApp(): App {
 	app.addPlugins(...DefaultPlugins.create().build().getPlugins());
 
 	// 添加 InputManagerPlugin
-	serverInputPlugin = createInputManagerPlugin<FpsAction>({
+	serverInputPlugin = InputManagerPlugin.create<FpsAction>({
 		actionTypeName: "FpsAction",
 	});
 	app.addPlugin(serverInputPlugin);

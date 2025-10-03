@@ -18,7 +18,7 @@ import { component } from "@rbxts/matter";
 import { App } from "../../bevy_app/app";
 import { RobloxRunnerPlugin } from "../../bevy_app/roblox-adapters";
 import { MainScheduleLabel } from "../../bevy_app";
-import { createInputManagerPlugin } from "../../leafwing-input-manager/plugin/input-manager-plugin";
+import { InputManagerPlugin } from "../../leafwing-input-manager/plugin/input-manager-plugin";
 import { InputMap } from "../../leafwing-input-manager/input-map/input-map";
 import { ActionState } from "../../leafwing-input-manager/action-state/action-state";
 import { MouseScrollAxis, MouseScrollDirection, MouseScroll } from "../../leafwing-input-manager/user-input/mouse";
@@ -115,7 +115,7 @@ const CAMERA_PAN_RATE = 10.0;
  * 存储组件定义的全局变量
  */
 type InputComponentsType = ReturnType<
-	NonNullable<ReturnType<typeof createInputManagerPlugin<CameraMovement>>["extension"]>["getComponents"]
+	NonNullable<ReturnType<typeof InputManagerPlugin.create<CameraMovement>>["extension"]>["getComponents"]
 >;
 let inputComponents: InputComponentsType | undefined;
 
@@ -317,7 +317,7 @@ export function main(): App {
 
 	// 添加输入管理器插件
 	// 对应 Rust: .add_plugins(InputManagerPlugin::<CameraMovement>::default())
-	const inputPlugin = createInputManagerPlugin<CameraMovement>({
+	const inputPlugin = InputManagerPlugin.create<CameraMovement>({
 		actionTypeName: "CameraMovement",
 	});
 	app.addPlugins(inputPlugin);

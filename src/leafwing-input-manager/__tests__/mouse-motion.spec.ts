@@ -7,7 +7,7 @@ import { App } from "../../bevy_app/app";
 import { ActionState } from "../action-state/action-state";
 import { InputMap } from "../input-map/input-map";
 import { MouseMove, MouseMoveAxis, MouseMoveDirection } from "../user-input/mouse";
-import { createInputManagerPlugin } from "../plugin/input-manager-plugin";
+import { InputManagerPlugin } from "../plugin/input-manager-plugin";
 import { advanceFrame, createTestApp } from "./test-utils";
 import { MouseSimulator } from "./input-simulator";
 import { Actionlike } from "../actionlike";
@@ -98,10 +98,10 @@ function createMouseTestApp(): App {
 	app.getWorld().resources.insertResource<ButtonInput<Enum.UserInputType>>(mouseButtonInput);
 
 	// 添加插件
-	const buttonPlugin = createInputManagerPlugin<ButtonlikeTestAction>({
+	const buttonPlugin = InputManagerPlugin.create<ButtonlikeTestAction>({
 		actionTypeName: "ButtonlikeTestAction",
 	});
-	const axisPlugin = createInputManagerPlugin<AxislikeTestAction>({
+	const axisPlugin = InputManagerPlugin.create<AxislikeTestAction>({
 		actionTypeName: "AxislikeTestAction",
 	});
 

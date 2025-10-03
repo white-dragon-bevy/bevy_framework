@@ -11,7 +11,7 @@ import { DiagnosticsPlugin } from "../bevy_diagnostic/diagnostics-plugin";
 import { FrameCountPlugin } from "../bevy_diagnostic/frame-count-diagnostics-plugin";
 import { DebuggerPlugin } from "../bevy_ecs_debugger";
 import { InputPlugin } from "../bevy_input/plugin";
-import { createLogPlugin } from "../bevy_log/lib";
+import { LogPlugin } from "../bevy_log/lib";
 import { TimePlugin } from "../bevy_time/time-plugin";
 import { TransformPlugin } from "../bevy_transform/plugin";
 
@@ -28,8 +28,8 @@ export class DefaultPlugins extends BasePluginGroup {
 	build(): PluginGroupBuilder {
 		const builder = new PluginGroupBuilder();
 
-		// 基础插件（使用函数式 LogPlugin）
-		builder.add(createLogPlugin());
+		// 基础插件
+		builder.add(new LogPlugin());
 		builder.add(new TimePlugin());
 		builder.add(new TransformPlugin());
 		builder.add(new DiagnosticsPlugin());

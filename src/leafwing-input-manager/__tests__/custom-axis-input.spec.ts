@@ -10,7 +10,7 @@ import { InputControlKind } from "../input-control-kind";
 import { InputMap } from "../input-map/input-map";
 import { advanceFrame, createTestApp } from "./test-utils";
 import { App } from "../../bevy_app/app";
-import { createInputManagerPlugin } from "../plugin/input-manager-plugin";
+import { InputManagerPlugin } from "../plugin/input-manager-plugin";
 import { UserInput } from "../user-input/traits/user-input";
 import { Axislike } from "../user-input/traits/axislike";
 import { CentralInputStore } from "../user-input/central-input-store";
@@ -174,7 +174,7 @@ function createCustomAxisTestApp(): App {
 	app.insertResource(new MidiControllerState());
 
 	// 添加 InputManagerPlugin
-	const plugin = createInputManagerPlugin<TestAction>({
+	const plugin = InputManagerPlugin.create<TestAction>({
 		actionTypeName: "TestAction",
 	});
 	app.addPlugins(plugin);

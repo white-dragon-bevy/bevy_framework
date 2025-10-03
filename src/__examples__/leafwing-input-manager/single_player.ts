@@ -20,7 +20,7 @@ import { MessageReader, MessageWriter } from "../../bevy_ecs/message";
 
 // 导入输入管理器相关类型
 import {
-	createInputManagerPlugin,
+	InputManagerPlugin,
 	InputMap,
 	ActionState,
 	KeyCode,
@@ -328,7 +328,7 @@ function playerWalks(world: BevyWorld): void {
 // =====================================
 
 // 保存插件实例供系统使用
-let inputPlugin: ReturnType<typeof createInputManagerPlugin<ArpgAction>>;
+let inputPlugin: ReturnType<typeof InputManagerPlugin.create<ArpgAction>>;
 
 /**
  * 创建并配置应用程序
@@ -345,7 +345,7 @@ export function createApp(): App {
 
 	// 创建并添加输入管理器插件
 	// 对应 Rust: .add_plugins(InputManagerPlugin::<ArpgAction>::default())
-	inputPlugin = createInputManagerPlugin<ArpgAction>({
+	inputPlugin = InputManagerPlugin.create<ArpgAction>({
 		actionTypeName: "ArpgAction",
 	});
 	app.addPlugin(inputPlugin);

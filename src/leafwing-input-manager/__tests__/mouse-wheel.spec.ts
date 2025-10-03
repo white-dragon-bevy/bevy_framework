@@ -11,7 +11,7 @@
 import { createTestApp } from "./test-utils";
 import { MouseSimulator } from "./input-simulator";
 import { App } from "../../bevy_app/app";
-import { createInputManagerPlugin } from "../plugin/input-manager-plugin";
+import { InputManagerPlugin } from "../plugin/input-manager-plugin";
 import { MouseScrollAxis, MouseScroll } from "../user-input/mouse";
 import { CentralInputStore } from "../user-input/central-input-store";
 import { Actionlike } from "../actionlike";
@@ -55,7 +55,7 @@ class AxislikeTestAction implements Actionlike {
 function createMouseWheelTestApp(): App {
 	const app = createTestApp();
 
-	const axisPlugin = createInputManagerPlugin<AxislikeTestAction>({
+	const axisPlugin = InputManagerPlugin.create<AxislikeTestAction>({
 		actionTypeName: "AxislikeTestAction",
 	});
 	app.addPlugins(axisPlugin);

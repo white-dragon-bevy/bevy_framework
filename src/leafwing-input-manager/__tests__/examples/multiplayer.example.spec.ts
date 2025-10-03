@@ -17,7 +17,7 @@ import { ActionState } from "../../action-state/action-state";
 import { ActionlikeEnum } from "../../actionlike";
 import { InputControlKind } from "../../input-control-kind";
 import { KeyCode } from "../../user-input/keyboard";
-import { createInputManagerPlugin } from "../../plugin/input-manager-plugin";
+import { InputManagerPlugin } from "../../plugin/input-manager-plugin";
 import { MainScheduleLabel } from "../../../bevy_app";
 import { BevyWorld } from "../../../bevy_ecs";
 
@@ -84,7 +84,7 @@ export = () => {
 			const app = createTestApp();
 
 			// 添加 InputManagerPlugin
-			const plugin = createInputManagerPlugin<Action>({
+			const plugin = InputManagerPlugin.create<Action>({
 				actionTypeName: "Action",
 			});
 			app.addPlugins(plugin);
@@ -136,7 +136,7 @@ export = () => {
 		it("should handle player 2 arrow key input independently", () => {
 			const app = createTestApp();
 
-			const plugin = createInputManagerPlugin<Action>({
+			const plugin = InputManagerPlugin.create<Action>({
 				actionTypeName: "Action",
 			});
 			app.addPlugins(plugin);
@@ -182,7 +182,7 @@ export = () => {
 		it("should handle simultaneous input from both players", () => {
 			const app = createTestApp();
 
-			const plugin = createInputManagerPlugin<Action>({
+			const plugin = InputManagerPlugin.create<Action>({
 				actionTypeName: "Action",
 			});
 			app.addPlugins(plugin);
@@ -233,7 +233,7 @@ export = () => {
 		it("should support querying multiple players in a system", () => {
 			const app = createTestApp();
 
-			const plugin = createInputManagerPlugin<Action>({
+			const plugin = InputManagerPlugin.create<Action>({
 				actionTypeName: "Action",
 			});
 			app.addPlugins(plugin);
@@ -306,7 +306,7 @@ export = () => {
 		it("should handle player movement with continuous input", () => {
 			const app = createTestApp();
 
-			const plugin = createInputManagerPlugin<Action>({
+			const plugin = InputManagerPlugin.create<Action>({
 				actionTypeName: "Action",
 			});
 			app.addPlugins(plugin);

@@ -19,7 +19,7 @@ import { BevyWorld, Context } from "../../bevy_ecs";
 import {
 	Actionlike,
 	ActionState,
-	createInputManagerPlugin,
+	InputManagerPlugin,
 	InputMap,
 	InputManagerExtension,
 	KeyCode,
@@ -282,7 +282,7 @@ export function createApp(): App {
 	app.addPlugins(...DefaultPlugins.create().build().getPlugins());
 
 	// Add InputManagerPlugin
-	const inputPlugin = createInputManagerPlugin<PlayerAction>({
+	const inputPlugin = InputManagerPlugin.create<PlayerAction>({
 		actionTypeName: "PlayerAction",
 	});
 	const typedApp = app.addPlugin(inputPlugin);

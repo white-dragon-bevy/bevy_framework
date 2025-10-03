@@ -5,7 +5,7 @@
  * and context helpers for integrating the input manager with the Bevy app framework.
  */
 
-export { createInputManagerPlugin, InputManagerPluginConfig } from "./input-manager-plugin";
+export { InputManagerPlugin, InputManagerPluginConfig } from "./input-manager-plugin";
 export { createActionComponents, ComponentDefinition, InputSystemData } from "./component-factory";
 export { clearComponentCache, getComponentCacheSize } from "./component-factory";
 export { InputManagerExtension } from "./extensions";

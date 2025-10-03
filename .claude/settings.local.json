@@ -26,7 +26,8 @@
       "Bash(tail:*)",
       "Bash(done)",
       "Bash(find:*)",
-      "Read(//d/**)"
+      "Read(//d/**)",
+      "Bash(pkill:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

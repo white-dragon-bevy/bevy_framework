@@ -3,7 +3,7 @@
  */
 
 import { App } from "../../../bevy_app";
-import { createInputManagerPlugin } from "../../../leafwing-input-manager/plugin/input-manager-plugin";
+import { InputManagerPlugin } from "../../../leafwing-input-manager/plugin/input-manager-plugin";
 import { Actionlike } from "../../../leafwing-input-manager/actionlike";
 
 /**
@@ -32,7 +32,7 @@ class PlayerAction implements Actionlike {
  */
 function main(): void {
 	const app = App.create().addPlugin(
-		createInputManagerPlugin<PlayerAction>(
+		InputManagerPlugin.create<PlayerAction>(
 			{ actionTypeName: "PlayerAction" }
 		),
 	);

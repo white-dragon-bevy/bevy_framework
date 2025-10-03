@@ -19,7 +19,7 @@ import { RunService, Players } from "@rbxts/services";
 
 // 导入输入管理器相关类型
 import {
-	createInputManagerPlugin,
+	InputManagerPlugin,
 	InputMap,
 	ActionState,
 	KeyCode,
@@ -339,7 +339,7 @@ function setSkillCooldown(cooldowns: Map<string, number>, skillName: string, dur
 // 系统定义
 // =====================================
 
-let inputPlugin: ReturnType<typeof createInputManagerPlugin<GameActionlike>>;
+let inputPlugin: ReturnType<typeof InputManagerPlugin.create<GameActionlike>>;
 
 /**
  * 生成玩家实体
@@ -828,7 +828,7 @@ export function createApp(): App {
 	app.addPlugins(...DefaultPlugins.create().build().getPlugins());
 
 	// 创建输入管理器插件
-	inputPlugin = createInputManagerPlugin<GameActionlike>({
+	inputPlugin = InputManagerPlugin.create<GameActionlike>({
 		actionTypeName: "GameAction",
 	});
 	app.addPlugin(inputPlugin);

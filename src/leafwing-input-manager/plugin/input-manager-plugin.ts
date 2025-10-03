@@ -1,7 +1,7 @@
 import { RunService } from "@rbxts/services";
 import { CentralInputStore } from "../user-input/central-input-store";
 import { Actionlike } from "../actionlike";
-import { plugin } from "../../bevy_app/plugin";
+import { plugin, Plugin } from "../../bevy_app/plugin";
 import { App } from "../../bevy_app";
 import { MainScheduleLabel } from "../../bevy_app";
 import { ClashStrategy, ClashStrategyResource } from "../clashing-inputs/clash-strategy";
@@ -290,11 +290,11 @@ function clearInputStoreSystem(world: BevyWorld): void {
 }
 
 // =============================================================================
-// 插件工厂函数
+// 插件类
 // =============================================================================
 
 /**
- * 创建 InputManagerPlugin 实例
+ * InputManagerPlugin 插件类
  *
  * Main plugin for the leafwing input manager
  * Integrates with bevy_input for input handling and provides action mapping
@@ -302,79 +302,87 @@ function clearInputStoreSystem(world: BevyWorld): void {
  * This plugin now uses dynamic component creation instead of InputInstanceManagerResource,
  * allowing for proper ECS queries while maintaining type safety.
  *
- * @metadata macro
- * 
  * @template A - Action 类型
- * @param config - 插件配置
- * @returns 插件实例
  */
-export function createInputManagerPlugin<A extends Actionlike>(
-	config: InputManagerPluginConfig<A>,
-	id?: Modding.Generic<A, "id">,
-	text?: Modding.Generic<A, "text">,
-) {
-	// Create dynamic components for this Action type
-	const components = createActionComponents<A>(config.actionTypeName);
-	const extensionObject = createExtensionObject<A>(components);
-	const innerDescriptors: InnerDescriptors = {
-		actionStateDescriptor: getTypeDescriptorWithGenericParameter<ActionState<A>>(text as string)!,
-		inputMapDescriptor: getTypeDescriptorWithGenericParameter<InputMap<A>>(text as string)!,
+export class InputManagerPlugin<A extends Actionlike> {
+	private constructor() {}
+
+	/**
+	 * 创建 InputManagerPlugin 实例
+	 *
+	 * @metadata macro
+	 *
+	 * @template A - Action 类型
+	 * @param config - 插件配置
+	 * @returns 插件实例
+	 */
+	static create<A extends Actionlike>(
+		config: InputManagerPluginConfig<A>,
+		id?: Modding.Generic<A, "id">,
+		text?: Modding.Generic<A, "text">,
+	): Plugin & { extension?: InputManagerExtension<A> } {
+		// Create dynamic components for this Action type
+		const components = createActionComponents<A>(config.actionTypeName);
+		const extensionObject = createExtensionObject<A>(components);
+		const innerDescriptors: InnerDescriptors = {
+			actionStateDescriptor: getTypeDescriptorWithGenericParameter<ActionState<A>>(text as string)!,
+			inputMapDescriptor: getTypeDescriptorWithGenericParameter<InputMap<A>>(text as string)!,
+		};
+
+		// Store for cleanup
+		let centralStoreInstance: CentralInputStore | undefined;
+
+		return plugin<InputManagerExtension<A>>({
+			/**
+			 * 插件名称
+			 */
+			name: `InputManagerPlugin<${config.actionTypeName}>`,
+
+			/**
+			 * 构建插件
+			 * @param app - 应用实例
+			 */
+			build: (app: App) => {
+				const isServer = RunService.IsServer();
+				const isClient = RunService.IsClient();
+
+				// In Studio test environment, IsServer and IsClient may both be true
+				// or we may want to test input processing even in server mode
+				// So we always register client systems if they're needed
+				const isTestEnvironment = RunService.IsStudio();
+
+				if (isClient || isTestEnvironment) {
+					// Client mode or test environment: full input processing
+					registerClientSystems(app, components, innerDescriptors);
+
+					// Store the central store instance for cleanup
+					centralStoreInstance = app.getWorld().resources.getResource<CentralInputStore>();
+				} else if (isServer) {
+					// Pure server mode: Only tick action states
+					registerServerSystems(app, components, innerDescriptors);
+				}
+			},
+
+			/**
+			 * 清理资源
+			 * @param app - 应用实例
+			 */
+			cleanup: (app: App) => {
+				// Note: Gamepad input now uses polling, no cleanup needed
+				// This is kept for backward compatibility
+			},
+
+			/**
+			 * 插件不唯一，允许多个不同泛型参数的实例
+			 */
+			unique: false,
+
+			/**
+			 * 插件扩展 - 直接提供扩展对象
+			 */
+			extension: extensionObject,
+		});
 	}
-
-	// Store for cleanup
-	let centralStoreInstance: CentralInputStore | undefined;
-
-	return plugin<InputManagerExtension<A>>({
-		/**
-		 * 插件名称
-		 */
-		name: `InputManagerPlugin<${config.actionTypeName}>`,
-
-		/**
-		 * 构建插件
-		 * @param app - 应用实例
-		 */
-		build: (app: App) => {
-			const isServer = RunService.IsServer();
-			const isClient = RunService.IsClient();
-
-			// In Studio test environment, IsServer and IsClient may both be true
-			// or we may want to test input processing even in server mode
-			// So we always register client systems if they're needed
-			const isTestEnvironment = RunService.IsStudio();
-
-			if (isClient || isTestEnvironment) {
-				// Client mode or test environment: full input processing
-				registerClientSystems(app, components, innerDescriptors);
-
-				// Store the central store instance for cleanup
-				centralStoreInstance = app.getWorld().resources.getResource<CentralInputStore>();
-			} else if (isServer) {
-				// Pure server mode: Only tick action states
-				registerServerSystems(app, components, innerDescriptors);
-			}
-		},
-
-		/**
-		 * 清理资源
-		 * @param app - 应用实例
-		 */
-		cleanup: (app: App) => {
-			// Note: Gamepad input now uses polling, no cleanup needed
-			// This is kept for backward compatibility
-		},
-
-		/**
-		 * 插件不唯一，允许多个不同泛型参数的实例
-		 */
-		unique: false,
-
-		/**
-		 * 插件扩展 - 直接提供扩展对象
-		 */
-		extension: extensionObject,
-	});
-
 }
 
 /**

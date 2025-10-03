@@ -1,37 +1,36 @@
 /**
- * 函数式 LogPlugin 使用示例
- * 演示如何使用 createLogPlugin 函数式 API
- * 对比 class 方式与函数式方式的使用
+ * LogPlugin 使用示例
+ * 演示如何使用 LogPlugin class
  */
 
 import { App } from "../../../bevy_app/app";
-import { createLogPlugin, Level } from "../../../bevy_log";
+import { LogPlugin, Level } from "../../../bevy_log";
 import { info, debug, warn } from "../../../bevy_log";
 
 /**
- * 示例 1: 使用默认配置的函数式插件
+ * 示例 1: 使用默认配置的插件
  */
 function example1DefaultConfig(): void {
 	print("=== 示例 1: 默认配置 ===");
 
-	// 函数式方式
-	const app = App.create().addPlugin(createLogPlugin());
+	// 使用 class 方式
+	const app = App.create().addPlugin(new LogPlugin());
 
 	// 测试日志输出
-	info("函数式 LogPlugin 已初始化（默认配置）");
+	info("LogPlugin 已初始化（默认配置）");
 
 	app.cleanup();
 }
 
 /**
- * 示例 2: 使用自定义配置的函数式插件
+ * 示例 2: 使用自定义配置的插件
  */
 function example2CustomConfig(): void {
 	print("=== 示例 2: 自定义配置 ===");
 
-	// 函数式方式 - 自定义日志级别和过滤器
+	// 使用 class 方式 - 自定义日志级别和过滤器
 	const app = App.create().addPlugin(
-		createLogPlugin({
+		new LogPlugin({
 			level: Level.DEBUG,
 			filter: "wgpu=error,bevy_render=info,bevy_ecs=trace",
 		}),
@@ -51,7 +50,7 @@ function example2CustomConfig(): void {
 function example3Extensions(): void {
 	print("=== 示例 3: 使用扩展方法 ===");
 
-	const app = App.create().addPlugin(createLogPlugin({ level: Level.WARN }));
+	const app = App.create().addPlugin(new LogPlugin({ level: Level.WARN }));
 
 	// 通过 context 访问扩展方法
 	const contextWithExt = app.context as typeof app.context & {
@@ -81,13 +80,13 @@ function example4Multiple(): void {
 
 	const app = App.create()
 		.addPlugin(
-			createLogPlugin({
+			new LogPlugin({
 				level: Level.INFO,
 				filter: "test=debug",
 			}),
 		)
 		.addPlugin(
-			createLogPlugin({
+			new LogPlugin({
 				level: Level.DEBUG,
 				filter: "another=trace",
 			}),
@@ -102,7 +101,7 @@ function example4Multiple(): void {
  */
 function main(): void {
 	print("=====================================");
-	print("函数式 LogPlugin 示例");
+	print("LogPlugin 示例");
 	print("=====================================");
 
 	example1DefaultConfig();

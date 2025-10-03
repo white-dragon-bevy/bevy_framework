@@ -20,7 +20,7 @@ import {
 	Actionlike,
 	ActionState,
 	InputMap,
-	createInputManagerPlugin,
+	InputManagerPlugin,
 	VirtualDPad,
 	MouseMove,
 } from "../../leafwing-input-manager";
@@ -87,7 +87,7 @@ const Player = component<{
 // 插件实例
 // =====================================
 
-let inputPlugin: ReturnType<typeof createInputManagerPlugin<ActionlikeImpl>>;
+let inputPlugin: ReturnType<typeof InputManagerPlugin.create<ActionlikeImpl>>;
 
 // =====================================
 // 系统定义
@@ -241,7 +241,7 @@ export function createApp(): App {
 
 	// 创建并添加 InputManagerPlugin
 	// 对应 Rust: .add_plugins(InputManagerPlugin::<Action>::default())
-	inputPlugin = createInputManagerPlugin<ActionlikeImpl>({
+	inputPlugin = InputManagerPlugin.create<ActionlikeImpl>({
 		actionTypeName: "Action",
 	});
 

@@ -19,7 +19,7 @@ import { component } from "@rbxts/matter";
 
 // 导入输入管理器相关类型
 import {
-	createInputManagerPlugin,
+	InputManagerPlugin,
 	InputMap,
 	ActionState,
 	KeyCode,
@@ -144,8 +144,8 @@ const AbilitySlotMap = component<{
 // 插件实例
 // =====================================
 
-let slotPlugin: ReturnType<typeof createInputManagerPlugin<SlotActionlike>>;
-let abilityPlugin: ReturnType<typeof createInputManagerPlugin<AbilityActionlike>>;
+let slotPlugin: ReturnType<typeof InputManagerPlugin.create<SlotActionlike>>;
+let abilityPlugin: ReturnType<typeof InputManagerPlugin.create<AbilityActionlike>>;
 
 // =====================================
 // 系统函数
@@ -309,12 +309,12 @@ export function createApp() {
 	app.addPlugins(...DefaultPlugins.create().build().getPlugins());
 
 	// 创建并添加槽位输入管理插件
-	slotPlugin = createInputManagerPlugin<SlotActionlike>({
+	slotPlugin = InputManagerPlugin.create<SlotActionlike>({
 		actionTypeName: "Slot",
 	});
 
 	// 创建并添加技能输入管理插件
-	abilityPlugin = createInputManagerPlugin<AbilityActionlike>({
+	abilityPlugin = InputManagerPlugin.create<AbilityActionlike>({
 		actionTypeName: "Ability",
 	});
 

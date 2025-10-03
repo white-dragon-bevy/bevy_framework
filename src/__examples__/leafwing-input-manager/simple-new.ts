@@ -15,7 +15,7 @@ import { component } from "@rbxts/matter";
 
 // 导入输入管理器相关类型
 import {
-	createInputManagerPlugin,
+	InputManagerPlugin,
 	InputMap,
 	ActionState,
 	KeyCode,
@@ -73,7 +73,7 @@ const Player = component<{
 // =====================================
 
 // 保存插件实例供系统使用
-let inputPlugin: ReturnType<typeof createInputManagerPlugin<PlayerActionlike>>;
+let inputPlugin: ReturnType<typeof InputManagerPlugin.create<PlayerActionlike>>;
 
 /**
  * 生成玩家实体并设置输入映射
@@ -156,7 +156,7 @@ export function createApp() {
 	app.addPlugins(...DefaultPlugins.create().build().getPlugins());
 
 	// 创建并添加 InputManagerPlugin
-	inputPlugin = createInputManagerPlugin<PlayerActionlike>(
+	inputPlugin = InputManagerPlugin.create<PlayerActionlike>(
 		{
 			actionTypeName: "PlayerAction",
 		}

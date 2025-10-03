@@ -18,7 +18,7 @@ import { ActionlikeEnum } from "../../actionlike";
 import { InputControlKind } from "../../input-control-kind";
 import { KeyCode } from "../../user-input/keyboard";
 import { VirtualDPad } from "../../user-input/virtual-controls";
-import { createInputManagerPlugin } from "../../plugin/input-manager-plugin";
+import { InputManagerPlugin } from "../../plugin/input-manager-plugin";
 import { MainScheduleLabel } from "../../../bevy_app";
 import { BevyWorld } from "../../../bevy_ecs";
 
@@ -78,7 +78,7 @@ export = () => {
 			const app = createTestApp();
 
 			// 添加 InputManagerPlugin
-			const plugin = createInputManagerPlugin<PlayerAction>({
+			const plugin = InputManagerPlugin.create<PlayerAction>({
 				actionTypeName: "PlayerAction",
 			});
 			app.addPlugins(plugin);
@@ -108,7 +108,7 @@ export = () => {
 		it("should handle WASD movement input", () => {
 			const app = createTestApp();
 
-			const plugin = createInputManagerPlugin<PlayerAction>({
+			const plugin = InputManagerPlugin.create<PlayerAction>({
 				actionTypeName: "PlayerAction",
 			});
 			app.addPlugins(plugin);
@@ -147,7 +147,7 @@ export = () => {
 		it("should handle jump action with Space key", () => {
 			const app = createTestApp();
 
-			const plugin = createInputManagerPlugin<PlayerAction>({
+			const plugin = InputManagerPlugin.create<PlayerAction>({
 				actionTypeName: "PlayerAction",
 			});
 			app.addPlugins(plugin);
@@ -186,7 +186,7 @@ export = () => {
 		it("should handle UseItem action with E key", () => {
 			const app = createTestApp();
 
-			const plugin = createInputManagerPlugin<PlayerAction>({
+			const plugin = InputManagerPlugin.create<PlayerAction>({
 				actionTypeName: "PlayerAction",
 			});
 			app.addPlugins(plugin);
@@ -225,7 +225,7 @@ export = () => {
 		it("should work with system checking all actions", () => {
 			const app = createTestApp();
 
-			const plugin = createInputManagerPlugin<PlayerAction>({
+			const plugin = InputManagerPlugin.create<PlayerAction>({
 				actionTypeName: "PlayerAction",
 			});
 			app.addPlugins(plugin);
@@ -292,7 +292,7 @@ export = () => {
 		it("should handle diagonal movement with WASD", () => {
 			const app = createTestApp();
 
-			const plugin = createInputManagerPlugin<PlayerAction>({
+			const plugin = InputManagerPlugin.create<PlayerAction>({
 				actionTypeName: "PlayerAction",
 			});
 			app.addPlugins(plugin);
@@ -333,7 +333,7 @@ export = () => {
 		it("should handle continuous movement across frames", () => {
 			const app = createTestApp();
 
-			const plugin = createInputManagerPlugin<PlayerAction>({
+			const plugin = InputManagerPlugin.create<PlayerAction>({
 				actionTypeName: "PlayerAction",
 			});
 			app.addPlugins(plugin);

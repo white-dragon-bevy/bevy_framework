@@ -4,7 +4,7 @@
  */
 
 import { App } from "../bevy_app/app";
-import { Plugin, plugin } from "../bevy_app/plugin";
+import { Plugin, plugin, BasePlugin } from "../bevy_app/plugin";
 import { Level } from "./level";
 import { EnvFilter, DEFAULT_FILTER } from "./filter";
 import { Layer, LogRecord, LogSubscriber, RobloxLayer } from "./roblox-tracing";
@@ -278,96 +278,116 @@ export function traceSpan(name: string): (fn: () => void) => void {
 }
 
 // ============================================================================
-// 函数式 LogPlugin API
+// Class LogPlugin
 // ============================================================================
 
 /**
- * 创建函数式 LogPlugin
- * 提供与 class LogPlugin 完全相同的功能，但使用函数式 API
- * @param config - 日志插件配置（可选）
- * @returns 函数式日志插件实例
+ * LogPlugin 类
+ * 提供日志功能的插件，基于 class 实现
  * @example
  * ```typescript
  * // 默认配置
- * const app = new App().addPlugin(createLogPlugin());
+ * const app = new App().addPlugin(new LogPlugin());
  *
  * // 自定义配置
  * const app = new App().addPlugin(
- *   createLogPlugin({
+ *   new LogPlugin({
  *     level: Level.DEBUG,
  *     filter: "wgpu=error,bevy_render=info",
  *   })
  * );
- *
- * // 使用扩展方法
- * const logLevel = app.context.getLogLevel();
- * const logManager = app.context.getLogManager();
  * ```
  */
-export function createLogPlugin(
-	config?: LogPluginConfig,
-): Plugin & { extension: LogPluginExtension } {
-	const filter = config?.filter ?? DEFAULT_FILTER;
-	const level = config?.level ?? Level.INFO;
-	const customLayer = config?.customLayer;
-	const fmtLayer = config?.fmtLayer;
+export class LogPlugin implements Plugin {
+	public readonly extension: LogPluginExtension;
+	private readonly config: LogPluginConfig;
+	private readonly logLevel: Level;
 
+	/**
+	 * 创建 LogPlugin 实例
+	 * @param config - 日志插件配置（可选）
+	 */
+	constructor(config?: LogPluginConfig) {
+		this.config = config ?? {};
+		this.logLevel = config?.level ?? Level.INFO;
 
-	const pluginInstance = plugin<LogPluginExtension>({
-		name: "LogPlugin",
-		build: (app: App) => {
-			// 创建订阅器
-			const subscriber = new LogSubscriber();
-
-			// 添加用户自定义层
-			if (customLayer) {
-				const layer = customLayer(app);
-
-				if (layer) {
-					subscriber.addLayer(layer);
-				}
-			}
-
-			// 构建默认过滤器
-			const levelString = Level[level] as keyof typeof Level;
-			const defaultFilter = `${levelString.lower()},${filter}`;
-
-			// 尝试从环境创建过滤器（在 Roblox 中直接使用默认值）
-			const envFilter = EnvFilter.tryFromDefaultEnv(defaultFilter);
-
-			// 添加格式化层或默认的 Roblox 层
-			if (fmtLayer) {
-				const layer = fmtLayer(app);
-
-				if (layer) {
-					subscriber.addLayer(layer);
-				}
-			} else {
-				// 使用默认的 Roblox 层
-				const robloxLayer = new RobloxLayer(envFilter);
-				subscriber.addLayer(robloxLayer);
-			}
-
-			// 设置全局默认订阅器
-			const subscriberAlreadySet = !LogSubscriber.setGlobalDefault(subscriber);
-
-			if (subscriberAlreadySet && RunService.IsStudio()) {
-				// 只在 Studio 模式下输出警告，避免在生产环境中产生噪音
-			}
-		},
-		extension: {
+		// 初始化扩展
+		const level = this.logLevel;
+		this.extension = {
 			getLogManager: (world: World, context: Context, pluginInstance: Plugin) => {
 				return () => LogSubscriber.getGlobal();
 			},
 			getLogLevel: (world: World, context: Context, pluginInstance: Plugin) => {
 				return () => level;
 			},
-		},
-		unique: true,
-	});
+		};
+	}
 
-	// 确保扩展属性存在
-	return pluginInstance as Plugin & { extension: LogPluginExtension };
+	/**
+	 * 构建插件
+	 * @param app - App 实例
+	 */
+	build(app: App): void {
+		const filter = this.config.filter ?? DEFAULT_FILTER;
+		const level = this.logLevel;
+		const customLayer = this.config.customLayer;
+		const fmtLayer = this.config.fmtLayer;
+
+		// 创建订阅器
+		const subscriber = new LogSubscriber();
+
+		// 添加用户自定义层
+		if (customLayer) {
+			const layer = customLayer(app);
+
+			if (layer) {
+				subscriber.addLayer(layer);
+			}
+		}
+
+		// 构建默认过滤器
+		const levelString = Level[level] as keyof typeof Level;
+		const defaultFilter = `${levelString.lower()},${filter}`;
+
+		// 尝试从环境创建过滤器（在 Roblox 中直接使用默认值）
+		const envFilter = EnvFilter.tryFromDefaultEnv(defaultFilter);
+
+		// 添加格式化层或默认的 Roblox 层
+		if (fmtLayer) {
+			const layer = fmtLayer(app);
+
+			if (layer) {
+				subscriber.addLayer(layer);
+			}
+		} else {
+			// 使用默认的 Roblox 层
+			const robloxLayer = new RobloxLayer(envFilter);
+			subscriber.addLayer(robloxLayer);
+		}
+
+		// 设置全局默认订阅器
+		const subscriberAlreadySet = !LogSubscriber.setGlobalDefault(subscriber);
+
+		if (subscriberAlreadySet && RunService.IsStudio()) {
+			// 只在 Studio 模式下输出警告，避免在生产环境中产生噪音
+		}
+	}
+
+	/**
+	 * 获取插件名称
+	 * @returns 插件名称
+	 */
+	name(): string {
+		return "LogPlugin";
+	}
+
+	/**
+	 * 插件是否唯一
+	 * @returns 是否唯一
+	 */
+	isUnique(): boolean {
+		return true;
+	}
 }
 
 // 导出所有公共类型

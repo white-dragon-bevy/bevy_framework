@@ -8,7 +8,7 @@
 
 import { App, BuiltinSchedules } from "../../../bevy_app";
 import { DefaultPlugins } from "../../../bevy_internal";
-import { createLogPlugin, Level } from "../../../bevy_log";
+import { LogPlugin, Level } from "../../../bevy_log";
 import { error as logError, warn, info, debug, trace } from "../../../bevy_log";
 import { errorOnce, warnOnce, infoOnce, debugOnce, traceOnce, once } from "../../../bevy_log";
 import { getKeyboardInput } from "../../../bevy_input";
@@ -144,8 +144,8 @@ function main(): void {
 		// 如需自定义日志设置，取消注释以下代码：
 		// .addPlugins(
 		//     new DefaultPluginsBuilder()
-		//         .disable(createLogPlugin())
-		//         .add(createLogPlugin({
+		//         .disable(LogPlugin)
+		//         .add(new LogPlugin({
 		//             level: Level.TRACE,
 		//             filter: "wgpu=warn,bevy_ecs=info",
 		//         }))

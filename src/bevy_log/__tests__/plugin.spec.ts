@@ -5,28 +5,28 @@
 /// <reference types="@rbxts/testez/globals" />
 
 import { App } from "../../bevy_app/app";
-import { createLogPlugin, Level } from "../index";
+import { LogPlugin, Level } from "../index";
 import { LogSubscriber, Layer, LogRecord } from "../roblox-tracing";
 
 export = () => {
-	describe("createLogPlugin (函数式)", () => {
+	describe("LogPlugin (class)", () => {
 		afterEach(() => {
 			LogSubscriber.clearGlobal();
 		});
 
 		it("应该使用默认配置创建插件", () => {
-			const plugin = createLogPlugin();
+			const plugin = new LogPlugin();
 			expect(plugin.name()).to.equal("LogPlugin");
 			expect(plugin.isUnique()).to.equal(true);
 		});
 
 		it("应该接受自定义配置", () => {
-			const plugin = createLogPlugin({
+			const plugin = new LogPlugin({
 				level: Level.DEBUG,
 				filter: "custom=trace",
 			});
 
-			// 函数式插件应该有扩展
+			// 插件应该有扩展
 			expect(plugin.extension).to.be.ok();
 			expect(plugin.extension.getLogLevel).to.be.a("function");
 			expect(plugin.extension.getLogManager).to.be.a("function");
@@ -34,10 +34,12 @@ export = () => {
 
 		it("应该在 App 中正确构建", () => {
 			const app = new App();
-			const plugin = createLogPlugin({
+			const plugin = new LogPlugin({
 				level: Level.WARN,
 				filter: "test=debug",
 			});
+
+			app.addPlugin(plugin);
 
 			// 验证全局订阅器已设置
 			const subscriber = LogSubscriber.getGlobal();
@@ -55,7 +57,7 @@ export = () => {
 				},
 			};
 
-			const plugin = createLogPlugin({
+			const plugin = new LogPlugin({
 				customLayer: () => customLayer,
 			});
 
@@ -86,7 +88,7 @@ export = () => {
 				},
 			};
 
-			const plugin = createLogPlugin({
+			const plugin = new LogPlugin({
 				fmtLayer: () => fmtLayer,
 			});
 
@@ -108,7 +110,7 @@ export = () => {
 		});
 
 		it("应该暴露扩展方法", () => {
-			const plugin = createLogPlugin({ level: Level.ERROR });
+			const plugin = new LogPlugin({ level: Level.ERROR });
 
 			expect(plugin.extension).to.be.ok();
 			expect(plugin.extension.getLogManager).to.be.a("function");
@@ -117,12 +119,12 @@ export = () => {
 
 		it("应该防止重复设置全局订阅器", () => {
 			const app1 = new App();
-			const plugin1 = createLogPlugin();
+			const plugin1 = new LogPlugin();
 			app1.addPlugin(plugin1);
 
 			// 第二次尝试应该失败
 			const app2 = new App();
-			const plugin2 = createLogPlugin();
+			const plugin2 = new LogPlugin();
 
 			// 这会产生一个预期的警告，但不会崩溃
 			app2.addPlugin(plugin2);
@@ -132,7 +134,7 @@ export = () => {
 		});
 
 		it("应该正确设置过滤器", () => {
-			const plugin = createLogPlugin({
+			const plugin = new LogPlugin({
 				level: Level.ERROR,
 				filter: "bevy_app=warn,bevy_ecs=info",
 			});

@@ -10,7 +10,7 @@
  * - 运行应用程序
  */
 
-import { createLogPlugin } from "../../bevy_log";
+import { LogPlugin } from "../../bevy_log";
 import { App } from "../../bevy_app";
 import { DefaultPlugins } from "../../bevy_internal";
 
@@ -21,7 +21,7 @@ import { DefaultPlugins } from "../../bevy_internal";
 function main(): void {
 	// 创建新的 App 实例并添加 Roblox 默认插件集
 	// 这相当于 Rust Bevy 中的：App::new().add_plugins(DefaultPlugins).run()
-	const app = App.create().addPlugin(createLogPlugin());
+	const app = App.create().addPlugin(new LogPlugin());
 
 	// 扩展方法现在直接挂载到 context 上
 	const contextWithExt = app.context as typeof app.context & {

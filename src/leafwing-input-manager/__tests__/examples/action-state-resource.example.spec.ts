@@ -17,7 +17,7 @@ import { ActionlikeEnum } from "../../actionlike";
 import { InputControlKind } from "../../input-control-kind";
 import { KeyCode } from "../../user-input/keyboard";
 import { VirtualDPad } from "../../user-input/virtual-controls";
-import { createInputManagerPlugin } from "../../plugin/input-manager-plugin";
+import { InputManagerPlugin } from "../../plugin/input-manager-plugin";
 import { MainScheduleLabel } from "../../../bevy_app";
 import { BevyWorld } from "../../../bevy_ecs";
 
@@ -69,7 +69,7 @@ export = () => {
 			const app = createTestApp();
 
 			// 添加 InputManagerPlugin
-			const plugin = createInputManagerPlugin<PlayerAction>({
+			const plugin = InputManagerPlugin.create<PlayerAction>({
 				actionTypeName: "PlayerAction",
 			});
 			app.addPlugins(plugin);
@@ -111,7 +111,7 @@ export = () => {
 			const app = createTestApp();
 
 			// 添加 InputManagerPlugin
-			const plugin = createInputManagerPlugin<PlayerAction>({
+			const plugin = InputManagerPlugin.create<PlayerAction>({
 				actionTypeName: "PlayerAction",
 			});
 			app.addPlugins(plugin);
@@ -154,7 +154,7 @@ export = () => {
 			const app = createTestApp();
 
 			// 添加 InputManagerPlugin
-			const plugin = createInputManagerPlugin<PlayerAction>({
+			const plugin = InputManagerPlugin.create<PlayerAction>({
 				actionTypeName: "PlayerAction",
 			});
 			app.addPlugins(plugin);
@@ -198,7 +198,7 @@ export = () => {
 			const app = createTestApp();
 
 			// 添加 InputManagerPlugin
-			const plugin = createInputManagerPlugin<PlayerAction>({
+			const plugin = InputManagerPlugin.create<PlayerAction>({
 				actionTypeName: "PlayerAction",
 			});
 			app.addPlugins(plugin);
@@ -254,7 +254,7 @@ export = () => {
 		it("should handle multiple actions simultaneously", () => {
 			const app = createTestApp();
 
-			const plugin = createInputManagerPlugin<PlayerAction>({
+			const plugin = InputManagerPlugin.create<PlayerAction>({
 				actionTypeName: "PlayerAction",
 			});
 			app.addPlugins(plugin);

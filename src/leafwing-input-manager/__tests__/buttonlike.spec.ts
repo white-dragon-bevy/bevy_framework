@@ -13,7 +13,7 @@ import { App } from "../../bevy_app/app";
 import { KeyCode } from "../user-input/keyboard";
 import { MouseButton } from "../user-input/mouse";
 import { GamepadButton } from "../user-input/gamepad";
-import { createInputManagerPlugin } from "../plugin/input-manager-plugin";
+import { InputManagerPlugin } from "../plugin/input-manager-plugin";
 
 /**
  * 测试用动作枚举
@@ -48,7 +48,7 @@ function createButtonTestApp(): App {
 	const app = createTestApp();
 
 	// 添加 InputManagerPlugin 以注册输入处理系统
-	const plugin = createInputManagerPlugin<TestAction>({
+	const plugin = InputManagerPlugin.create<TestAction>({
 		actionTypeName: "TestAction",
 	});
 	app.addPlugins(plugin);

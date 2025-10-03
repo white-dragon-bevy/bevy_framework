@@ -15,7 +15,7 @@ import { Resource } from "../../bevy_ecs";
 import { advanceFrame, createTestApp } from "./test-utils";
 import { KeyboardSimulator } from "./input-simulator";
 import { KeyCode } from "../user-input/keyboard";
-import { createInputManagerPlugin } from "../plugin/input-manager-plugin";
+import { InputManagerPlugin } from "../plugin/input-manager-plugin";
 
 /**
  * 测试用动作
@@ -99,7 +99,7 @@ export = () => {
 				app = createTestApp();
 
 				// 添加 InputManagerPlugin 以注册输入处理系统
-				const plugin = createInputManagerPlugin<Action>({
+				const plugin = InputManagerPlugin.create<Action>({
 					actionTypeName: "Action",
 				});
 				app.addPlugins(plugin);
@@ -239,7 +239,7 @@ export = () => {
 				app = createTestApp();
 
 				// 添加 InputManagerPlugin 以注册输入处理系统
-				const plugin = createInputManagerPlugin<Action>({
+				const plugin = InputManagerPlugin.create<Action>({
 					actionTypeName: "Action",
 				});
 				app.addPlugins(plugin);

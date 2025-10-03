@@ -9,7 +9,7 @@ import { ActionState } from "../action-state/action-state";
 import { InputControlKind } from "../input-control-kind";
 import { InputMap } from "../input-map/input-map";
 import { GamepadButton } from "../user-input/gamepad";
-import { createInputManagerPlugin } from "../plugin/input-manager-plugin";
+import { InputManagerPlugin } from "../plugin/input-manager-plugin";
 import { advanceFrame, createTestApp as baseCreateTestApp } from "./test-utils";
 import { GamepadSimulator } from "./input-simulator";
 
@@ -46,7 +46,7 @@ function createMultiGamepadTestApp(): App {
 	const app = baseCreateTestApp();
 
 	// 添加 InputManagerPlugin 以注册输入处理系统
-	const plugin = createInputManagerPlugin<MyAction>({
+	const plugin = InputManagerPlugin.create<MyAction>({
 		actionTypeName: "MyAction",
 	});
 	app.addPlugins(plugin);

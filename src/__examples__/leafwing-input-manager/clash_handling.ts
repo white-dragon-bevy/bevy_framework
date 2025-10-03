@@ -17,7 +17,7 @@ import { component } from "@rbxts/matter";
 
 // 导入输入管理器相关类型
 import {
-	createInputManagerPlugin,
+	InputManagerPlugin,
 	InputMap,
 	ActionState,
 	KeyCode,
@@ -75,7 +75,7 @@ class TestActionlike implements Actionlike {
 // 系统定义
 // =====================================
 
-let inputPlugin: ReturnType<typeof createInputManagerPlugin<TestActionlike>>;
+let inputPlugin: ReturnType<typeof InputManagerPlugin.create<TestActionlike>>;
 
 /**
  * 生成输入映射
@@ -196,7 +196,7 @@ export function createApp(): App {
 	app.addPlugins(...DefaultPlugins.create().build().getPlugins());
 
 	// 对应 Rust: .add_plugins(InputManagerPlugin::<TestAction>::default())
-	inputPlugin = createInputManagerPlugin<TestActionlike>({
+	inputPlugin = InputManagerPlugin.create<TestActionlike>({
 		actionTypeName: "TestAction",
 	});
 	app.addPlugin(inputPlugin);
