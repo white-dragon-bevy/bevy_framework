@@ -48,6 +48,7 @@ import { InputManagerPlugin } from "../../leafwing-input-manager/plugin/input-ma
 import { MessageReader, MessageWriter } from "../../bevy_ecs/message";
 import { Messages } from "../../bevy_ecs/message/messages";
 import { RunService, ReplicatedStorage } from "@rbxts/services";
+import { InputManagerExtension } from "leafwing-input-manager";
 
 // ============================================================================
 // 动作定义
@@ -85,7 +86,8 @@ let clientInputPlugin: ReturnType<typeof InputManagerPlugin.create<FpsAction>>;
  * 生成玩家实体（客户端）
  */
 function clientSpawnPlayer(world: BevyWorld): void {
-	const components = clientInputPlugin.extension!.getComponents();
+	const extension = world.resources.getResource<InputManagerExtension<FpsAction>>()!;
+	const components = extension.getComponents();
 
 	// 创建输入映射
 	const inputMap = new InputMap<FpsAction>();
@@ -113,7 +115,8 @@ function clientGenerateActionDiffs(world: BevyWorld): void {
 	if (!messages) return;
 
 	const writer = new MessageWriter<ActionDiffMessage<FpsAction>>(messages);
-	const components = clientInputPlugin.extension!.getComponents();
+	const extension = world.resources.getResource<InputManagerExtension<FpsAction>>()!;
+	const components = extension.getComponents();
 
 	// 查询所有实体的 ActionState
 	for (const [entityId, data] of components.query(world)) {
@@ -168,7 +171,8 @@ function clientSendActionDiffs(world: BevyWorld): void {
  * 调试输入状态（客户端）
  */
 function clientDebugInput(world: BevyWorld): void {
-	const components = clientInputPlugin.extension!.getComponents();
+	const extension = world.resources.getResource<InputManagerExtension<FpsAction>>()!;
+	const components = extension.getComponents();
 
 	for (const [entityId, data] of components.query(world)) {
 		if (data.actionState) {
@@ -222,7 +226,8 @@ let serverInputPlugin: ReturnType<typeof InputManagerPlugin.create<FpsAction>>;
  * 生成玩家实体（服务端）
  */
 function serverSpawnPlayer(world: BevyWorld): void {
-	const components = serverInputPlugin.extension!.getComponents();
+	const extension = world.resources.getResource<InputManagerExtension<FpsAction>>()!;
+	const components = extension.getComponents();
 
 	// 创建空的输入映射（服务端不需要实际输入）
 	const inputMap = new InputMap<FpsAction>();
@@ -246,7 +251,8 @@ function serverProcessActionDiffs(world: BevyWorld): void {
 	const actionDiffReader = world.resources.getResource<MessageReader<ActionDiffMessage<FpsAction>>>();
 	if (!actionDiffReader) return;
 
-	const components = serverInputPlugin.extension!.getComponents();
+	const extension = world.resources.getResource<InputManagerExtension<FpsAction>>()!;
+	const components = extension.getComponents();
 
 	// 读取所有 ActionDiff 消息
 	const messages = actionDiffReader.read();
@@ -270,7 +276,8 @@ function serverProcessActionDiffs(world: BevyWorld): void {
  * 验证服务端状态
  */
 function serverVerifyState(world: BevyWorld): void {
-	const components = serverInputPlugin.extension!.getComponents();
+	const extension = world.resources.getResource<InputManagerExtension<FpsAction>>()!;
+	const components = extension.getComponents();
 
 	for (const [entityId, data] of components.query(world)) {
 		if (data.actionState) {

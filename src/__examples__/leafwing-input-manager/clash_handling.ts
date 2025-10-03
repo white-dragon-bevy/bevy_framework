@@ -129,7 +129,7 @@ function spawnInputMap(world: BevyWorld, context: Context): void {
 
 	// 使用插件扩展创建带有输入组件的实体
 	// 对应 Rust: commands.spawn(input_map);
-	const entity = inputPlugin.extension!.spawnWithInput(world, inputMap, actionState);
+	const entity = world.resources.getResource<InputManagerExtension<TestActionlike>>()!.spawnWithInput(world, inputMap, actionState);
 
 	print(`Input map spawned with entity ID: ${entity}`);
 	print("========================================");
@@ -152,7 +152,7 @@ function spawnInputMap(world: BevyWorld, context: Context): void {
  */
 function reportPressedActions(world: BevyWorld, context: Context): void {
 	// 对应 Rust: fn report_pressed_actions(action_state: Single<&ActionState<TestAction>, Changed<ActionState<TestAction>>>)
-	for (const [entityId, inputData] of inputPlugin.extension!.queryInputEntities(world)) {
+	for (const [entityId, inputData] of world.resources.getResource<InputManagerExtension<TestActionlike>>()!.queryInputEntities(world)) {
 		const actionState = inputData.actionState;
 		if (!actionState || !inputData.enabled) {
 			continue;

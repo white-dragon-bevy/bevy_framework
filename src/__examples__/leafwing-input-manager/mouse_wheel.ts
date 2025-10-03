@@ -25,6 +25,7 @@ import { MouseScrollAxis, MouseScrollDirection, MouseScroll } from "../../leafwi
 import { Actionlike, ActionlikeEnum } from "../../leafwing-input-manager/actionlike";
 import { InputControlKind } from "../../leafwing-input-manager/input-control-kind";
 import { BevyWorld } from "../../bevy_ecs";
+import { InputManagerExtension } from "leafwing-input-manager";
 
 /**
  * 相机移动动作枚举
@@ -114,9 +115,7 @@ const CAMERA_PAN_RATE = 10.0;
 /**
  * 存储组件定义的全局变量
  */
-type InputComponentsType = ReturnType<
-	NonNullable<ReturnType<typeof InputManagerPlugin.create<CameraMovement>>["extension"]>["getComponents"]
->;
+type InputComponentsType = ReturnType<InputManagerExtension<CameraMovement>["getComponents"]>
 let inputComponents: InputComponentsType | undefined;
 
 /**
@@ -322,12 +321,6 @@ export function main(): App {
 	});
 	app.addPlugins(inputPlugin);
 
-	// 保存组件定义用于系统访问
-	if (inputPlugin.extension) {
-		inputComponents = inputPlugin.extension.getComponents();
-	} else {
-		warn("InputManagerPlugin extension is undefined");
-	}
 
 	// 添加初始化系统
 	// 对应 Rust: .add_systems(Startup, setup)

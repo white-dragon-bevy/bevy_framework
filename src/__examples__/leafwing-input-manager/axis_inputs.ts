@@ -24,6 +24,7 @@ import {
 	GamepadStick,
 	InputMap,
 	InputManagerPlugin,
+	InputManagerExtension,
 } from "../../leafwing-input-manager";
 import { CircleDeadzone } from "../../leafwing-input-manager/input-processing/deadzone";
 
@@ -112,7 +113,7 @@ function spawnPlayer(world: BevyWorld, context: Context): void {
 	actionState.registerAction(new ActionlikeImpl(Action.Rudder));
 
 	// 使用插件扩展创建带有输入组件的实体
-	const entity = inputPlugin.extension!.spawnWithInput(world, inputMap, actionState);
+	const entity = world.resources.getResource<InputManagerExtension<ActionlikeImpl>>()!.spawnWithInput(world, inputMap, actionState);
 
 	// 添加 Player 组件
 	world.insert(entity as any, Player({ name: "Player1" }));
@@ -135,7 +136,7 @@ function spawnPlayer(world: BevyWorld, context: Context): void {
 function movePlayer(world: BevyWorld, context: Context): void {
 	// 查询所有具有 Player 组件和输入组件的实体
 	// 对应 Rust: Query<&ActionState<Action>, With<Player>>
-	for (const [entityId, inputData] of inputPlugin.extension!.queryInputEntities(world)) {
+	for (const [entityId, inputData] of world.resources.getResource<InputManagerExtension<ActionlikeImpl>>()!.queryInputEntities(world)) {
 		// 检查是否是 Player 实体
 		const player = world.get(entityId as any, Player);
 		if (!player) continue;

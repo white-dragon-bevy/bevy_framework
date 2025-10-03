@@ -5,7 +5,7 @@
 
 import { AppLabel, ErrorHandler } from "./types";
 import { Plugin, PluginState } from "./plugin";
-import { WorldContainer, createWorldContainer, World, Context } from "../bevy_ecs";
+import { WorldContainer, World, Context, createWorldAndContext } from "../bevy_ecs";
 import { ResourceManager, Resource } from "../bevy_ecs/resource";
 import { CommandBuffer } from "../bevy_ecs/command-buffer";
 import { Message, MessageRegistry } from "../bevy_ecs/message";
@@ -48,18 +48,24 @@ export class SubApp {
 	private loopConnections?: { [scheduleLabel: string]: RBXScriptConnection };
 	private isLoopRunning = false;
 
-	constructor(context?:Context) {
-		this._world = createWorldContainer();
+	constructor() {
+
+		const [world,context] = createWorldAndContext();
+
+		this._world = {
+			world,
+			
+		};
 
 		// Initialize context 
-		this.context = context ?? new Context(this._world.getWorld());
+		this.context = context ?? new Context(this._world.world);
 
 		this.resourceManager = this.world().world.resources;
 		this.commandBuffer = this.world().world.commands;
 		this.messageRegistry = this.world().world.messages;
 
 
-		this.schedules = new Schedules(this._world.getWorld(), this.context);
+		this.schedules = new Schedules(this._world.world, this.context);
 		this.scheduleOrder = new MainScheduleOrder();
 		this.fixedScheduleOrder = new FixedMainScheduleOrder();
 
@@ -192,11 +198,11 @@ export class SubApp {
 		if (this.isLoopRunning) {
 			// Loop 正在运行，系统通过 Loop 执行
 			// 执行命令缓冲
-			this.commandBuffer.flush(this._world.getWorld());
+			this.commandBuffer.flush(this._world.world);
 			// 清理事件
 			this.messageRegistry.cleanup();
 			// 清除内部跟踪器 - 对应 Rust: world.clear_trackers()
-			this._world.getWorld().clearTrackers();
+			this._world.world.clearTrackers();
 			return;
 		}
 
@@ -225,13 +231,13 @@ export class SubApp {
 		}
 
 		// 执行命令缓冲
-		this.commandBuffer.flush(this._world.getWorld());
+		this.commandBuffer.flush(this._world.world);
 
 		// 清理事件
 		this.messageRegistry.cleanup();
 
 		// 清除内部跟踪器 - 对应 Rust: world.clear_trackers()
-		this._world.getWorld().clearTrackers();
+		this._world.world.clearTrackers();
 	}
 
 	/**
@@ -275,13 +281,13 @@ export class SubApp {
 		}
 
 		// 执行命令缓冲
-		this.commandBuffer.flush(this._world.getWorld());
+		this.commandBuffer.flush(this._world.world);
 
 		// 清理事件
 		this.messageRegistry.cleanup();
 
 		// 清除内部跟踪器
-		this._world.getWorld().clearTrackers();
+		this._world.world.clearTrackers();
 	}
 
 	/**
@@ -294,7 +300,7 @@ export class SubApp {
 			const compiledSystems = schedule.compile();
 			for (const systemStruct of compiledSystems) {
 				try {
-					systemStruct.system(this._world.getWorld(), this.context);
+					systemStruct.system(this._world.world, this.context);
 				} catch (err) {
 					// 如果有错误处理器，调用它；否则抛出错误
 					if (this.errorHandler) {
@@ -566,10 +572,9 @@ export class SubApps {
 
 	/**
 	 * 创建SubApps集合
-	 * @param context - 应用上下文（可选）
 	 */
-	constructor(context?:Context) {
-		this._main = new SubApp(context);
+	constructor() {
+		this._main = new SubApp();
 	}
 
 	/**

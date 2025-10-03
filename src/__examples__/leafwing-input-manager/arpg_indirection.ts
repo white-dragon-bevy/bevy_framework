@@ -19,13 +19,13 @@ import { component } from "@rbxts/matter";
 
 // 导入输入管理器相关类型
 import {
-	InputManagerPlugin,
 	InputMap,
 	ActionState,
 	KeyCode,
 	MouseButton,
 	Actionlike,
 	InputManagerExtension,
+	InputManagerPlugin,
 } from "../../leafwing-input-manager";
 
 // =====================================
@@ -192,10 +192,10 @@ function spawnPlayer(world: BevyWorld, context: Context): void {
 	}
 
 	// 使用槽位插件创建实体（带槽位输入组件）
-	const entity = slotPlugin.extension!.spawnWithInput(world, slotInputMap, slotActionState);
+	const entity = world.resources.getResource<InputManagerExtension<SlotActionlike>>()!.spawnWithInput(world, slotInputMap, slotActionState);
 
 	// 手动添加技能 ActionState 组件
-	const abilityComponents = abilityPlugin.extension!.getComponents();
+	const abilityComponents = world.resources.getResource<InputManagerExtension<AbilityActionlike>>()!.getComponents();
 	world.insert(entity as any, abilityComponents.component({
 		actionState: abilityActionState,
 		enabled: true,
@@ -222,8 +222,8 @@ function spawnPlayer(world: BevyWorld, context: Context): void {
  * 这是核心系统，负责同步两个动作状态层
  */
 function copyActionState(world: BevyWorld, context: Context): void {
-	const slotComponents = slotPlugin.extension!.getComponents();
-	const abilityComponents = abilityPlugin.extension!.getComponents();
+	const slotComponents = world.resources.getResource<InputManagerExtension<SlotActionlike>>()!.getComponents()
+	const abilityComponents = world.resources.getResource<InputManagerExtension<AbilityActionlike>>()!.getComponents()
 
 	// 遍历所有具有技能槽位映射的实体
 	for (const [entityId, abilitySlotMap] of world.query(AbilitySlotMap)) {
@@ -276,7 +276,7 @@ function copyActionState(world: BevyWorld, context: Context): void {
  */
 function reportAbilitiesUsed(world: BevyWorld, context: Context): void {
 	// 遍历所有具有技能 ActionState 的实体
-	for (const [entityId, inputData] of abilityPlugin.extension!.queryInputEntities(world)) {
+	for (const [entityId, inputData] of world.resources.getResource<InputManagerExtension<AbilityActionlike>>()!.queryInputEntities(world)) {
 		const abilityActionState = inputData.actionState;
 
 		if (!abilityActionState || !inputData.enabled) {

@@ -9,18 +9,26 @@ import type { IntoSystemConfigs, ScheduleLabel } from "../bevy_ecs/schedule";
 import type { Schedule } from "../bevy_ecs/schedule/schedule";
 import { Modding } from "@flamework/core";
 import { getTypeDescriptor, TypeDescriptor } from "bevy_core/reflect";
+import { BevyWorld, Context } from "bevy_ecs";
 
 /**
  * 插件接口定义
  * 对应 Rust 的 Plugin trait
  */
-export interface Plugin {
+export interface Plugin<T=undefined> {
 	/**
 	 * 配置App - 插件的主要逻辑
 	 * 对应 Rust Plugin::build
 	 * @param app - App实例
 	 */
 	build(app: App): void;
+
+	readonly extensionDescriptor?:TypeDescriptor<T>;
+
+	/**
+	 * 插件扩展
+	 */
+	getExtension?(app:App):T;
 
 	/**
 	 * 插件是否准备完成
@@ -83,13 +91,15 @@ export enum PluginState {
  * 基础插件抽象类
  * 提供默认实现和扩展支持
  */
-export abstract class BasePlugin implements Plugin {
+export abstract class BasePlugin<T=undefined> implements Plugin<T> {
+	robloxContext?: RobloxContext | undefined;
 	/**
 	 * 配置App - 插件的主要逻辑
 	 * 子类必须实现此方法
 	 * @param app - App实例
 	 */
 	abstract build(app: App): void;
+
 
 	/**
 	 * 插件是否准备完成
@@ -162,14 +172,14 @@ export interface PluginGroup {
  * 用于管理和配置插件组中的插件
  */
 export class PluginGroupBuilder {
-	private plugins: Plugin[] = [];
+	private plugins: Plugin<any>[] = [];
 
 	/**
 	 * 添加插件到组中
 	 * @param plugin - 要添加的插件
 	 * @returns 当前构建器实例，支持链式调用
 	 */
-	add(plugin: Plugin): this {
+	add<T>(plugin: Plugin<T>): this {
 		this.plugins.push(plugin);
 		return this;
 	}
@@ -325,29 +335,7 @@ export class DuplicatePluginError extends PluginError {
 // 函数式 Plugin API
 // ============================================================================
 
-/**
- * 插件配置对象（纯数据）
- * 用于创建函数式插件的配置
- * @template E - 扩展工厂类型
- */
-export interface PluginConfig<E = {}> {
-	/** 插件名称 */
-	readonly name: string;
-	/** 构建函数 */
-	readonly build: (app: App) => void;
-	/** 准备检查函数（可选） */
-	readonly ready?: (app: App) => boolean;
-	/** 完成回调（可选） */
-	readonly finish?: (app: App) => void;
-	/** 清理回调（可选） */
-	readonly cleanup?: (app: App) => void;
-	/** 是否唯一（默认true） */
-	readonly unique?: boolean;
-	/** Roblox执行域（可选） */
-	readonly robloxContext?: RobloxContext;
-	/** 扩展定义（可选） */
-	readonly extension?: E;
-}
+
 
 /**
  * 构建函数类型
@@ -360,107 +348,6 @@ export type BuildFn = (app: App) => void;
  */
 export type AppTransform = (app: App) => App;
 
-/**
- * 创建插件（纯函数）
- * 这是创建函数式插件的核心方法
- * 
- * **注意**: @claudecode , @cursor ,  这是一个宏文件, 所有 Modding.* 的类型, 不要主动调用.
- * @metadata macro
- * 
- * @template E - 扩展工厂类型
- * @param config - 插件配置对象
- * @returns Plugin 实例（带扩展类型）
- * 
- *
- * @example
- * ```typescript
- * const myPlugin = plugin({
- *   name: "MyPlugin",
- *   build: (app) => {
- *     app.addSystems(Update, mySystem);
- *   },
- *   unique: true,
- * });
- * ```
- *
- * @example
- * ```typescript
- * // 带扩展的插件
- * const myPlugin = plugin<MyExtension>({
- *   name: "MyPlugin",
- *   build: (app) => {
- *     app.addSystems(Update, mySystem);
- *   },
- *   extension: {
- *     myMethod: (world, context, plugin) => {
- *       return () => { ... };
- *     },
- *   },
- * });
- * ```
- */
-export function plugin<E = undefined,T=any,X=any>(
-	config: PluginConfig<E>
-): Plugin & { extension?: E } {
-	const pluginObject: Plugin & { extension?: E } = {
-		build(app: App): void {
-			config.build(app);
-		},
-		name(): string {
-			return config.name;
-		},
-		isUnique(): boolean {
-			return config.unique ?? true;
-		},
-		robloxContext: config.robloxContext,
-	};
-
-
-	// 可选方法：只有在配置中提供时才添加
-	if (config.ready) {
-		pluginObject.ready = (app: App): boolean => {
-			return config.ready!(app);
-		};
-	}
-
-	if (config.finish) {
-		pluginObject.finish = (app: App): void => {
-			config.finish!(app);
-		};
-	}
-
-	if (config.cleanup) {
-		pluginObject.cleanup = (app: App): void => {
-			config.cleanup!(app);
-		};
-	}
-
-	
-	// 添加扩展
-	if (config.extension) {
-		pluginObject.extension = config.extension;
-	}
-
-	return pluginObject;
-}
-
-/**
- * 快速创建简单插件（只需要 name 和 build）
- * 用于创建只需要构建函数的简单插件
- * @param name - 插件名称
- * @param build - 构建函数
- * @returns Plugin 实例
- *
- * @example
- * ```typescript
- * const myPlugin = simplePlugin("MyPlugin", (app) => {
- *   app.addSystems(Update, mySystem);
- * });
- * ```
- */
-export function simplePlugin(name: string, build: BuildFn): Plugin {
-	return plugin({ name, build });
-}
 
 /**
  * 组合多个构建函数（顺序执行）

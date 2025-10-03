@@ -159,24 +159,6 @@ export class World extends MatterWorld {
 export interface WorldContainer {
 	/** World 实例 */
 	world: World;
-	/**
-	 * 获取 World 实例的方法
-	 * @returns World 实例
-	 */
-	getWorld(): World;
+	
 }
 
-/**
- * 创建 WorldContainer 实例
- * 便捷函数，用于创建包含新 World 实例的容器
- * @returns 包含 World 实例的容器对象
- */
-export function createWorldContainer(): WorldContainer {
-	const world = new World();
-	return {
-		world,
-		getWorld() {
-			return world;
-		},
-	};
-}

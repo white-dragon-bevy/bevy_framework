@@ -157,7 +157,7 @@ export = () => {
 			const plugin = InputManagerPlugin.create<PlayerAction>({
 				actionTypeName: "PlayerAction",
 			});
-			app.addPlugins(plugin);
+			app.addPluginTest(plugin);
 
 			const world = app.getWorld();
 

@@ -23,6 +23,7 @@ import {
 	Actionlike,
 	spawnWithInput,
 	queryInputEntities,
+	InputManagerExtension,
 } from "../../leafwing-input-manager";
 
 // =====================================
@@ -174,7 +175,8 @@ function spawnPlayer(world: BevyWorld): void {
  * 处理玩家输入（包括虚拟按钮）
  */
 function handlePlayerInput(world: BevyWorld): void {
-	for (const [entityId, inputData] of inputPlugin.extension!.queryInputEntities(world)) {
+	const extension = world.resources.getResource<InputManagerExtension<PlayerActionlike>>()!;
+	for (const [entityId, inputData] of extension.queryInputEntities(world)) {
 		const player = world.get(entityId as any, Player);
 		if (!player) continue;
 

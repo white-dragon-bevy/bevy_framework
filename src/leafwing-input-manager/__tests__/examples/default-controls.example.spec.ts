@@ -21,6 +21,7 @@ import { VirtualDPad } from "../../user-input/virtual-controls";
 import { InputManagerPlugin } from "../../plugin/input-manager-plugin";
 import { MainScheduleLabel } from "../../../bevy_app";
 import { BevyWorld } from "../../../bevy_ecs";
+import { InputManagerExtension } from "leafwing-input-manager";
 
 /**
  * 玩家动作枚举
@@ -83,7 +84,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<PlayerAction>>().getComponents();
 			const world = app.getWorld();
 
 			// 使用默认输入映射创建玩家 (对应 spawn_player 系统)
@@ -113,7 +114,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<PlayerAction>>().getComponents();
 			const world = app.getWorld();
 
 			const playerEntity = world.spawn();
@@ -152,7 +153,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<PlayerAction>>().getComponents();
 			const world = app.getWorld();
 
 			const playerEntity = world.spawn();
@@ -191,7 +192,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<PlayerAction>>().getComponents();
 			const world = app.getWorld();
 
 			const playerEntity = world.spawn();
@@ -230,7 +231,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<PlayerAction>>().getComponents();
 			const world = app.getWorld();
 
 			const playerEntity = world.spawn();
@@ -297,7 +298,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<PlayerAction>>().getComponents();
 			const world = app.getWorld();
 
 			const playerEntity = world.spawn();
@@ -338,7 +339,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<PlayerAction>>().getComponents();
 			const world = app.getWorld();
 
 			const playerEntity = world.spawn();

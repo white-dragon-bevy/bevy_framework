@@ -20,6 +20,7 @@ import { KeyCode } from "../../user-input/keyboard";
 import { InputManagerPlugin } from "../../plugin/input-manager-plugin";
 import { MainScheduleLabel } from "../../../bevy_app";
 import { BevyWorld } from "../../../bevy_ecs";
+import { InputManagerExtension } from "leafwing-input-manager";
 
 /**
  * 多人游戏动作枚举
@@ -89,7 +90,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<Action>>().getComponents();
 			const world = app.getWorld();
 
 			// 创建玩家1 (WASD)
@@ -141,7 +142,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<Action>>().getComponents();
 			const world = app.getWorld();
 
 			// 创建两个玩家
@@ -187,7 +188,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<Action>>().getComponents();
 			const world = app.getWorld();
 
 			// 创建两个玩家
@@ -238,7 +239,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<Action>>().getComponents();
 			const world = app.getWorld();
 
 			// 创建两个玩家
@@ -311,7 +312,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<Action>>().getComponents();
 			const world = app.getWorld();
 
 			// 创建玩家1

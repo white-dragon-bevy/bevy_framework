@@ -25,6 +25,7 @@ import {
 	KeyCode,
 	ActionlikeEnum,
 	InputControlKind,
+	InputManagerExtension,
 } from "../../leafwing-input-manager";
 
 // =====================================
@@ -76,7 +77,7 @@ const Player = component<{
  */
 function spawnPlayer(world: BevyWorld): void {
 	// 获取插件组件工厂
-	const components = inputPlugin.extension!.getComponents();
+	const components = world.resources.getResource<InputManagerExtension<Action>>()!.getComponents();
 
 	// 创建输入映射 - 将动作绑定到具体按键
 	// 对应 Rust: InputMap::new([(Action::Jump, KeyCode::Space)])
@@ -108,7 +109,7 @@ function spawnPlayer(world: BevyWorld): void {
  */
 function jump(world: BevyWorld): void {
 	// 获取插件组件工厂
-	const components = inputPlugin.extension!.getComponents();
+	const components = world.resources.getResource<InputManagerExtension<Action>>()!.getComponents();
 
 	// 查询所有具有 Player 和 ActionState 的实体
 	// 对应 Rust: action_state: Single<&ActionState<Action>, With<Player>>

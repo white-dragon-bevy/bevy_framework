@@ -51,7 +51,7 @@ export = () => {
 
 			const frameCount = new DiagnosticFrameCount();
 			app.insertResource( frameCount);
-			const world = app.main().world().getWorld();
+			const world = app.main().world().world;
 			const context = app.context;
 
 			updateDiagnosticsFrameCount(world, context);
@@ -67,7 +67,7 @@ export = () => {
 
 			const frameCount = new DiagnosticFrameCount(2 ** 32 - 1);
 			app.insertResource( frameCount);
-			const world = app.main().world().getWorld();
+			const world = app.main().world().world;
 			const context = app.context;
 
 			updateDiagnosticsFrameCount(world, context);

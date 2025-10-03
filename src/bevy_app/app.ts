@@ -106,8 +106,8 @@ export class App<T extends Context = Context> {
 	 * 创建App实例
 	 * @param context - 应用上下文，如果未提供则使用默认上下文
 	 */
-	constructor(context?:T) {
-		this.subApps = new SubApps(context);
+	constructor() {
+		this.subApps = new SubApps();
 		this.runner = (app: App) => this.runOnce(app);
 
 		// 设置主SubApp的App引用
@@ -304,7 +304,7 @@ export class App<T extends Context = Context> {
 	 * @returns 带有插件扩展类型的App实例
 	 * @throws 如果在cleanup或finish之后调用
 	 */
-	addPlugin<P extends Plugin>(plugin: P): App<T & ExtractExtensionTypes<ExtractPluginExtensions<P>>> {
+	addPlugin<X,P extends Plugin<X>>(plugin: P): App<T & ExtractExtensionTypes<ExtractPluginExtensions<P>>> {
 		if (this.getPluginState() === PluginState.Cleaned || this.getPluginState() === PluginState.Finished) {
 			error("Plugins cannot be added after App.cleanup() or App.finish() has been called.");
 		}
@@ -313,13 +313,13 @@ export class App<T extends Context = Context> {
 		return this as unknown as App<T & ExtractExtensionTypes<ExtractPluginExtensions<P>>>;
 	}
 
-	addPluginTest<P extends Plugin>(plugin: P): App<T & ExtractExtensionTypes<ExtractPluginExtensions<P>>> {
+	addPluginTest<X,P extends Plugin<X>>(plugin: P): App<T> {
 		if (this.getPluginState() === PluginState.Cleaned || this.getPluginState() === PluginState.Finished) {
 			error("Plugins cannot be added after App.cleanup() or App.finish() has been called.");
 		}
 
 		this.addBoxedPlugin(plugin);
-		return this as unknown as App<T & ExtractExtensionTypes<ExtractPluginExtensions<P>>>;
+		return this;
 	}
 
 	/**
@@ -328,7 +328,7 @@ export class App<T extends Context = Context> {
 	 * @param plugins - 要添加的插件或插件组
 	 * @returns 带有所有插件扩展类型的App实例
 	 */
-	addPlugins<P extends readonly (Plugin | PluginGroup)[]>(...plugins: P): App<T & ExtractAllPluginExtensions<P>> {
+	addPlugins<P extends readonly (Plugin<any> | PluginGroup)[]>(...plugins: P): App<T & ExtractAllPluginExtensions<P>> {
 		for (const plugin of plugins) {
 			if (isPluginGroup(plugin)) {
 				// 是PluginGroup
@@ -347,7 +347,7 @@ export class App<T extends Context = Context> {
 	 * 处理插件注册和扩展工厂转换
 	 * @param plugin - 要添加的插件实例
 	 */
-	private addBoxedPlugin(plugin: Plugin): void {
+	private addBoxedPlugin<T>(plugin: Plugin<T>): void {
 		const mainApp = this.subApps.main();
 
 		if (plugin.isUnique() && mainApp.hasPlugin(plugin.name())) {
@@ -357,17 +357,13 @@ export class App<T extends Context = Context> {
 		// add by roblox context
 		if (isMatchRobloxContext(plugin.robloxContext)) {
 			// 添加到插件注册表
-			mainApp.addPlugin(plugin);
+			mainApp.addPlugin(plugin as Plugin);
 
-			// 如果插件有扩展对象，直接复制到 context 上（函数式插件）
-			if ('extension' in plugin && plugin.extension) {
-				const extension = plugin.extension as Record<string, unknown>;
-				const contextInstance = this.context as unknown as Record<string, unknown>;
-
-				// 直接将扩展对象的方法复制到 context 上
-				for (const [key, value] of pairs(extension)) {
-					contextInstance[key] = value;
-				}
+			// 如果插件有扩展工厂, 则注入 resource
+			if ((plugin as unknown as Plugin<any>&{getExtension:unknown}).getExtension!==undefined) {
+				const extension = plugin.getExtension!(this);
+				assert(extension,"the return value of getExtension() is undefined:"+plugin.name());
+				this.insertResourceByTypeDescriptor(extension,plugin.extensionDescriptor!);
 			}
 		}
 	}

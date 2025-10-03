@@ -3,9 +3,8 @@
  * 提供状态管理功能的集成
  */
 
-import { World } from "@rbxts/matter";
 import { App } from "../bevy_app/app";
-import { Plugin } from "../bevy_app/plugin";
+import { BasePlugin, Plugin } from "../bevy_app/plugin";
 import { BuiltinSchedules } from "../bevy_app/main-schedule";
 import { ResourceManager } from "../bevy_ecs/resource";
 import { EnumStates, States } from "./states";
@@ -15,7 +14,8 @@ import { ComputedStates, ComputedStateManager } from "./computed-states";
 import { SubStates, SubStateManager } from "./sub-states";
 import { Modding } from "@flamework/core";
 import { getGenericTypeDescriptor, getTypeDescriptor, TypeDescriptor } from "../bevy_core";
-import { MessageRegistry } from "../bevy_ecs";
+import { Context, MessageRegistry, World } from "../bevy_ecs";
+import { RobloxContext } from "utils";
 
 /**
  * 状态转换系统集合
@@ -95,7 +95,7 @@ export interface StatePluginConfig<S extends States> {
  *
  * @template S - 状态类型，必须实现 States 接口
  */
-export class StatesPlugin<S extends States> implements Plugin {
+export class StatesPlugin<S extends States> extends BasePlugin {
 	private config: StatePluginConfig<S>;
 	private transitionManager: StateTransitionManager<S> = undefined as unknown as StateTransitionManager<S> ;
 	private resourceManager?: ResourceManager;
@@ -107,6 +107,7 @@ export class StatesPlugin<S extends States> implements Plugin {
 	 * @param config - 插件配置对象
 	 */
 	private constructor(config: StatePluginConfig<S>) {
+		super()
 		this.config = config;
 
 	}
@@ -383,6 +384,16 @@ export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TPar
 		this.nextStateType = nextStateType;
 		this.manager = new SubStateManager(parentType, stateType, nextStateType, subStateClass);
 	}
+	ready?(app: App): boolean {
+		error("Method not implemented.");
+	}
+	finish?(app: App): void {
+		error("Method not implemented.");
+	}
+	cleanup?(app: App): void {
+		error("Method not implemented.");
+	}
+	robloxContext?: RobloxContext | undefined;
 
 
 	/**

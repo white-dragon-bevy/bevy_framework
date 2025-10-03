@@ -27,6 +27,7 @@ import {
 	Actionlike,
 	spawnWithInput,
 	queryInputEntities,
+	InputManagerExtension,
 } from "../../leafwing-input-manager";
 
 // =====================================
@@ -374,7 +375,7 @@ function spawnPlayers(world: BevyWorld, context: Context): void {
 		}
 
 		// 创建实体
-		const entity = inputPlugin.extension!.spawnWithInput(world, inputMap, actionState);
+		const entity = world.resources.getResource<InputManagerExtension<GameActionlike>>()!.spawnWithInput(world, inputMap, actionState);
 
 		// 添加游戏组件
 		world.insert(
@@ -436,7 +437,7 @@ function spawnPlayers(world: BevyWorld, context: Context): void {
  * 处理移动输入
  */
 function handleMovement(world: BevyWorld, context: Context): void {
-	for (const [entityId, inputData] of inputPlugin.extension!.queryInputEntities(world)) {
+	for (const [entityId, inputData] of world.resources.getResource<InputManagerExtension<GameActionlike>>()!.queryInputEntities(world)) {
 		const player = world.get(entityId as any, Player);
 		if (!player) continue;
 
@@ -553,7 +554,7 @@ function handleMovement(world: BevyWorld, context: Context): void {
  * 处理战斗输入
  */
 function handleCombat(world: BevyWorld, context: Context): void {
-	for (const [entityId, inputData] of inputPlugin.extension!.queryInputEntities(world)) {
+	for (const [entityId, inputData] of world.resources.getResource<InputManagerExtension<GameActionlike>>()!.queryInputEntities(world)) {
 		const player = world.get(entityId as any, Player);
 		if (!player) continue;
 
@@ -683,7 +684,7 @@ function handleCombat(world: BevyWorld, context: Context): void {
  * 处理UI输入
  */
 function handleUI(world: BevyWorld, context: Context): void {
-	for (const [entityId, inputData] of inputPlugin.extension!.queryInputEntities(world)) {
+	for (const [entityId, inputData] of world.resources.getResource<InputManagerExtension<GameActionlike>>()!.queryInputEntities(world)) {
 		const player = world.get(entityId as any, Player);
 		if (!player) continue;
 

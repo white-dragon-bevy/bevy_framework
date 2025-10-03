@@ -26,6 +26,7 @@ import {
 	ActionlikeEnum,
 	InputControlKind,
 	GamepadButton,
+	InputManagerExtension,
 } from "../../leafwing-input-manager";
 
 // =====================================
@@ -134,7 +135,7 @@ function createPlayerInputMap(
  */
 function spawnPlayers(world: BevyWorld): void {
 	// 获取插件组件工厂
-	const components = inputPlugin.extension!.getComponents();
+	const components = world.resources.getResource<InputManagerExtension<Action>>()!.getComponents();
 
 	// 创建手柄实体（简化实现，实际项目中应该使用 Gamepads 资源）
 	// 对应 Rust: commands.spawn(()).id()
@@ -192,7 +193,7 @@ function spawnPlayers(world: BevyWorld): void {
  */
 function movePlayers(world: BevyWorld): void {
 	// 获取插件组件工厂
-	const components = inputPlugin.extension!.getComponents();
+	const components = world.resources.getResource<InputManagerExtension<Action>>()!.getComponents();
 
 	// 查询所有具有 Player 和 ActionState 的实体
 	// 对应 Rust: player_query: Query<(&Player, &ActionState<Action>)>

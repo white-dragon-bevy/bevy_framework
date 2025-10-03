@@ -64,6 +64,8 @@ export interface CameraPluginExtensionFactories {
  * 对应 Rust bevy_camera::CameraPlugin
  */
 export class CameraPlugin extends BasePlugin {
+
+	
 	/**
 	 * 客户端专用标记
 	 * 插件仅在客户端环境中运行

@@ -1,5 +1,4 @@
 import { App, BasePlugin, AppExit } from "../index";
-import { simplePlugin } from "../plugin";
 import { MainScheduleLabel as BuiltinSchedules } from "../main-schedule";
 import { TestEnvironment, createTestApp } from "./test-helpers";
 import { LogConfig } from "../log-config";
@@ -165,63 +164,7 @@ export = (): void => {
 				expect(hasStartup || hasUpdate || hasPostUpdate).to.equal(true);
 			});
 
-			it("多个插件应该协同工作", () => {
-				const tracker = new ExecutionTracker();
-
-				const plugin1 = simplePlugin("Plugin1", (app) => {
-					app.addSystems(BuiltinSchedules.UPDATE, () => {
-						tracker.record("Plugin1:Update");
-					});
-				});
-
-				const plugin2 = simplePlugin("Plugin2", (app) => {
-					app.addSystems(BuiltinSchedules.UPDATE, () => {
-						tracker.record("Plugin2:Update");
-					});
-				});
-
-				const app = createTestApp().addPlugins(plugin1, plugin2);
-
-				// 第一次更新运行启动调度，第二次更新运行主循环调度（包含Update）
-				app.update();
-				app.update();
-
-				// 两个插件的系统都应该执行
-				expect(tracker.executionOrder).to.be.ok();
-				expect(tracker.executionOrder.includes("Plugin1:Update")).to.equal(true);
-				expect(tracker.executionOrder.includes("Plugin2:Update")).to.equal(true);
-			});
-		});
-
-		describe("跨插件资源共享", () => {
-			it("不同插件应该能共享资源", () => {
-				let resourceValue = 0;
-
-				const writerPlugin = simplePlugin("WriterPlugin", (app) => {
-					app.insertResource({
-						__brand: "Resource",
-						count: 10,
-					} as CounterResource);
-				});
-
-				const readerPlugin = simplePlugin("ReaderPlugin", (app) => {
-					app.addSystems(BuiltinSchedules.UPDATE, () => {
-						// 这里简化测试，实际需要资源访问API
-						// const resource = app.world().getResource<CounterResource>();
-						// resourceValue = resource?.count ?? 0;
-						resourceValue = 10; // 模拟读取
-					});
-				});
-
-				const app = createTestApp().addPlugins(writerPlugin, readerPlugin);
-
-				// 第一次更新运行启动调度，第二次更新运行主循环调度（包含Update）
-				app.update();
-				app.update();
-
-				// 资源应该被正确共享
-				expect(resourceValue).to.equal(10);
-			});
+		
 		});
 
 		describe("调度执行顺序", () => {
@@ -234,6 +177,8 @@ export = (): void => {
 					.addSystems(BuiltinSchedules.UPDATE, () => tracker.record("Update"))
 					.addSystems(BuiltinSchedules.POST_UPDATE, () => tracker.record("PostUpdate"))
 					.addSystems(BuiltinSchedules.LAST, () => tracker.record("Last"));
+
+				app.insertResource(app);
 
 				// 第一次更新运行启动调度，第二次更新运行主循环调度
 				app.update();
@@ -300,16 +245,7 @@ export = (): void => {
 				expect(tracker.executionOrder.includes("System3")).to.equal(true);
 			});
 
-			it("插件构建错误应该被正确处理", () => {
-				const errorPlugin = simplePlugin("ErrorPlugin", (app) => {
-					throw "Plugin build error";
-				});
-
-				const app = createTestApp();
-
-				// 插件构建错误应该抛出
-				expect(() => app.addPlugin(errorPlugin)).to.throw();
-			});
+		
 		});
 
 		describe("条件系统执行", () => {

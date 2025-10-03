@@ -21,6 +21,7 @@ import {
 	KeyCode,
 	ActionlikeEnum,
 	InputControlKind,
+	InputManagerExtension,
 } from "../../leafwing-input-manager";
 
 // =====================================
@@ -80,7 +81,7 @@ const Player = component<{
  */
 function spawnPlayer(world: BevyWorld): void {
 	// 获取插件组件工厂
-	const components = inputPlugin.extension!.getComponents();
+	const components = world.resources.getResource<InputManagerExtension<Action>>()!.getComponents();
 
 	// 创建输入映射 - 将动作绑定到具体按键
 	// 对应 Rust: InputMap::new([
@@ -123,7 +124,7 @@ function holdDash(world: BevyWorld): void {
 	const VELOCITY_RATIO = 1000.0;
 
 	// 获取插件组件工厂
-	const components = inputPlugin.extension!.getComponents();
+	const components = world.resources.getResource<InputManagerExtension<Action>>()!.getComponents();
 
 	// 查询所有具有 Player、ActionState 和 Velocity 的实体
 	for (const [entityId, inputData] of components.query(world)) {

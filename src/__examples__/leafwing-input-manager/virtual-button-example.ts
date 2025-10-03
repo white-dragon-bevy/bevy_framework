@@ -25,6 +25,7 @@ import {
 	queryInputEntities,
 	InputControlKind,
 	CentralInputStore,
+	InputManagerExtension,
 } from "../../leafwing-input-manager";
 
 import { UserInput } from "../../leafwing-input-manager/user-input/traits/user-input";
@@ -339,7 +340,8 @@ function spawnPlayer(world: BevyWorld): void {
  * 处理玩家输入
  */
 function handlePlayerInput(world: BevyWorld): void {
-	for (const [entityId, inputData] of inputPlugin.extension!.queryInputEntities(world)) {
+	const extension = world.resources.getResource<InputManagerExtension<PlayerActionlike>>()!;
+	for (const [entityId, inputData] of extension.queryInputEntities(world)) {
 		const player = world.get(entityId as any, Player);
 		if (!player) continue;
 
@@ -387,7 +389,8 @@ function handlePlayerInput(world: BevyWorld): void {
  * 显示状态信息
  */
 function displayStatus(world: BevyWorld): void {
-	for (const [entityId, inputData] of inputPlugin.extension!.queryInputEntities(world)) {
+	const extension = world.resources.getResource<InputManagerExtension<PlayerActionlike>>()!;	
+	for (const [entityId, inputData] of extension.queryInputEntities(world)) {
 		const player = world.get(entityId as any, Player);
 		if (!player) continue;
 

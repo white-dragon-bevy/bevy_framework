@@ -22,6 +22,7 @@ import { InputManagerPlugin } from "../../plugin/input-manager-plugin";
 import { ClashStrategy, ClashStrategyResource } from "../../clashing-inputs/clash-strategy";
 import { MainScheduleLabel } from "../../../bevy_app";
 import { BevyWorld } from "../../../bevy_ecs";
+import { InputManagerExtension } from "leafwing-input-manager";
 
 /**
  * 测试动作枚举
@@ -102,7 +103,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<TestAction>>().getComponents();
 			const world = app.getWorld();
 
 			// 设置冲突策略 (对应 insert_resource)
@@ -142,7 +143,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<TestAction>>().getComponents();
 			const world = app.getWorld();
 
 			// 使用 PrioritizeLongest 策略
@@ -191,7 +192,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<TestAction>>().getComponents();
 			const world = app.getWorld();
 
 			const clashStrategy = new ClashStrategyResource(ClashStrategy.PrioritizeLargest);
@@ -237,7 +238,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<TestAction>>().getComponents();
 			const world = app.getWorld();
 
 			const clashStrategy = new ClashStrategyResource(ClashStrategy.PrioritizeLargest);
@@ -300,7 +301,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<TestAction>>().getComponents();
 			const world = app.getWorld();
 
 			const clashStrategy = new ClashStrategyResource(ClashStrategy.PrioritizeLargest);
@@ -350,7 +351,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<TestAction>>().getComponents();
 			const world = app.getWorld();
 
 			const clashStrategy = new ClashStrategyResource(ClashStrategy.PrioritizeLargest);

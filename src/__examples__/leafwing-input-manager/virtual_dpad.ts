@@ -24,6 +24,7 @@ import {
 	KeyCode,
 	VirtualDPad,
 	InputManagerPlugin,
+	InputManagerExtension,
 } from "../../leafwing-input-manager";
 
 // =====================================
@@ -109,7 +110,8 @@ function spawnPlayer(world: BevyWorld, _context: Context): void {
 	actionState.registerAction(new ActionlikeImpl(Action.Move));
 
 	// 使用插件扩展创建带有输入组件的实体
-	const entity = inputPlugin.extension!.spawnWithInput(world, inputMap, actionState);
+	const extension = world.resources.getResource<InputManagerExtension<ActionlikeImpl>>()!;
+	const entity = extension.spawnWithInput(world, inputMap, actionState);
 
 	// 添加 Player 组件
 	// 对应 Rust: commands.spawn(input_map).insert(Player)
@@ -135,8 +137,8 @@ function spawnPlayer(world: BevyWorld, _context: Context): void {
  */
 function movePlayer(world: BevyWorld, _context: Context): void {
 	// 查询所有具有 Player 组件和输入组件的实体
-	// 对应 Rust: Query<&ActionState<Action>, With<Player>>
-	for (const [entityId, inputData] of inputPlugin.extension!.queryInputEntities(world)) {
+	const components = world.resources.getResource<InputManagerExtension<ActionlikeImpl>>()!;
+	for (const [entityId, inputData] of components.queryInputEntities(world)) {
 		// 检查是否是 Player 实体
 		const player = world.get(entityId as any, Player);
 		if (!player) continue;
@@ -188,7 +190,7 @@ export function createApp(): App {
 	// 创建并添加 InputManagerPlugin
 	// 对应 Rust: .add_plugins(InputManagerPlugin::<Action>::default())
 	inputPlugin = InputManagerPlugin.create<ActionlikeImpl>({
-		actionTypeName: "Action",
+		actionTypeName: "ActionlikeImpl",
 	});
 
 	app.addPlugin(inputPlugin);

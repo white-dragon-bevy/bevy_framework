@@ -1,4 +1,5 @@
 import { World } from "./bevy-world";
+import { Modding } from "@flamework/core";
 
 /**
  * 应用程序上下文类型别名
@@ -19,5 +20,14 @@ export class Context {
 		this.world = world;
 	}
 
+	/**
+	 * 
+	 * @metadata macro
+	 * 
+	 * @returns 
+	 */
+	getExtension<T extends defined>(id?:Modding.Generic<T, "id">, text?:Modding.Generic<T, "text">):T{
+		return this.world.resources.getResource(id,text) as T
+	}
 
 }

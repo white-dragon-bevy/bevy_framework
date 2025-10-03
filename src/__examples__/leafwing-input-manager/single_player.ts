@@ -27,6 +27,7 @@ import {
 	ActionlikeEnum,
 	InputControlKind,
 	MouseButton,
+	InputManagerExtension,
 } from "../../leafwing-input-manager";
 
 // =====================================
@@ -167,7 +168,8 @@ function createDefaultInputMap(): InputMap<ArpgAction> {
  */
 function spawnPlayer(world: BevyWorld): void {
 	// 获取插件组件工厂
-	const components = inputPlugin.extension!.getComponents();
+	const extension = world.resources.getResource<InputManagerExtension<ArpgAction>>()!;
+	const components = extension.getComponents();
 
 	// 创建输入映射
 	const inputMap = createDefaultInputMap();
@@ -211,7 +213,8 @@ function spawnPlayer(world: BevyWorld): void {
  */
 function castFireball(world: BevyWorld): void {
 	// 获取插件组件工厂
-	const components = inputPlugin.extension!.getComponents();
+		const extension = world.resources.getResource<InputManagerExtension<ArpgAction>>()!;
+	const components = extension.getComponents();
 
 	// 查询所有具有 Player 和 ActionState 的实体
 	// 对应 Rust: action_state: Single<&ActionState<ArpgAction>, With<Player>>
@@ -239,7 +242,8 @@ function castFireball(world: BevyWorld): void {
  */
 function playerDash(world: BevyWorld): void {
 	// 获取插件组件工厂
-	const components = inputPlugin.extension!.getComponents();
+	const extension = world.resources.getResource<InputManagerExtension<ArpgAction>>()!;
+	const components = extension.getComponents();
 
 	// 查询所有具有 Player 和 ActionState 的实体
 	for (const [entityId, inputData] of components.query(world)) {
@@ -284,7 +288,8 @@ function playerDash(world: BevyWorld): void {
  */
 function playerWalks(world: BevyWorld): void {
 	// 获取插件组件工厂
-	const components = inputPlugin.extension!.getComponents();
+	const extension = world.resources.getResource<InputManagerExtension<ArpgAction>>()!;
+	const components = extension.getComponents();
 
 	// 创建消息写入器
 	// 对应 Rust: message_writer: MessageWriter<PlayerWalk>

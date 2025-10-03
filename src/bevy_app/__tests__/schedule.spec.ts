@@ -23,7 +23,6 @@ import {
 } from "../main-schedule";
 import { App } from "../app";
 import { SubApp } from "../sub-app";
-import { createWorldContainer } from "../../bevy_ecs";
 import { createTestApp, TestEnvironment, runTestQuietly } from "./test-helpers";
 import type { ScheduleLabel, SystemSet } from "../../bevy_ecs/schedule";
 

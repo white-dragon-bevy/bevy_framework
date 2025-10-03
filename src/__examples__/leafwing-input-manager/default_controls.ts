@@ -21,7 +21,7 @@
 
 import { App } from "../../bevy_app";
 import { MainScheduleLabel } from "../../bevy_app/main-schedule";
-import { BevyWorld } from "../../bevy_ecs";
+import { BevyWorld, Context } from "../../bevy_ecs";
 import { RobloxRunnerPlugin } from "../../bevy_app/roblox-adapters";
 import { ActionlikeEnum } from "../../leafwing-input-manager/actionlike";
 import { InputControlKind } from "../../leafwing-input-manager/input-control-kind";
@@ -32,6 +32,7 @@ import { MouseButton } from "../../leafwing-input-manager/user-input/mouse";
 import { VirtualDPad } from "../../leafwing-input-manager/user-input/virtual-controls";
 import { GamepadButton, GamepadStick } from "../../leafwing-input-manager/user-input/gamepad";
 import { InputManagerPlugin } from "../../leafwing-input-manager/plugin/input-manager-plugin";
+import { InputManagerExtension } from "leafwing-input-manager";
 
 /**
  * Player action enum
@@ -127,8 +128,7 @@ function spawnPlayer(world: BevyWorld): void {
 		actionTypeName: "PlayerAction",
 	});
 
-	const extension = plugin.extension;
-
+	const extension = world.resources.getResource<InputManagerExtension<PlayerAction>>()!;
 	if (!extension) {
 		warn("InputManagerPlugin extension not found");
 		return;
@@ -163,17 +163,14 @@ function spawnPlayer(world: BevyWorld): void {
  *
  * @param world - Bevy world
  */
-function useActions(world: BevyWorld): void {
+function useActions(world: BevyWorld,context:Context): void {
 	const plugin = InputManagerPlugin.create<PlayerAction>({
 		actionTypeName: "PlayerAction",
 	});
 
-	const extension = plugin.extension;
+	const extension = world.resources.getResource<InputManagerExtension<PlayerAction>>()!;
 
-	if (!extension) {
-		return;
-	}
-
+	
 	const components = extension.getComponents();
 
 	// Query all entities with PlayerAction components

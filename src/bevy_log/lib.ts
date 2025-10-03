@@ -4,7 +4,7 @@
  */
 
 import { App } from "../bevy_app/app";
-import { Plugin, plugin, BasePlugin } from "../bevy_app/plugin";
+import { Plugin } from "../bevy_app/plugin";
 import { Level } from "./level";
 import { EnvFilter, DEFAULT_FILTER } from "./filter";
 import { Layer, LogRecord, LogSubscriber, RobloxLayer } from "./roblox-tracing";
@@ -26,6 +26,7 @@ export type BoxedFmtLayer = Layer;
 import type { World } from "../bevy_ecs";
 import type { Context } from "../bevy_ecs";
 import { LogPluginExtension } from "./extension";
+import { ___getTypeDescriptor, getTypeDescriptor } from "bevy_core";
 
 
 
@@ -298,10 +299,10 @@ export function traceSpan(name: string): (fn: () => void) => void {
  * );
  * ```
  */
-export class LogPlugin implements Plugin {
-	public readonly extension: LogPluginExtension;
+export class LogPlugin implements Plugin<LogPluginExtension> {
 	private readonly config: LogPluginConfig;
 	private readonly logLevel: Level;
+    extensionDescriptor = ___getTypeDescriptor<LogPluginExtension>()!;
 
 	/**
 	 * 创建 LogPlugin 实例
@@ -311,19 +312,17 @@ export class LogPlugin implements Plugin {
 		this.config = config ?? {};
 		this.logLevel = config?.level ?? Level.INFO;
 
-		// 初始化扩展
-		const level = this.logLevel;
-		this.extension = {
-			getLogManager: (world: World, context: Context, pluginInstance: Plugin) => {
-				return () => LogSubscriber.getGlobal();
-			},
-			getLogLevel: (world: World, context: Context, pluginInstance: Plugin) => {
-				return () => level;
-			},
-		};
+	}
+
+	getExtension(app: App)  {
+		return  {
+			logManager:LogSubscriber.getGlobal()!,
+			logLevel: this.logLevel
+		}
 	}
 
 	/**
+	 * 
 	 * 构建插件
 	 * @param app - App 实例
 	 */

@@ -20,6 +20,7 @@ import { KeyCode } from "../../user-input/keyboard";
 import { InputManagerPlugin } from "../../plugin/input-manager-plugin";
 import { MainScheduleLabel } from "../../../bevy_app";
 import { BevyWorld } from "../../../bevy_ecs";
+import { InputManagerExtension } from "leafwing-input-manager";
 
 /**
  * ARPG 风格的动作枚举
@@ -113,7 +114,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<ArpgAction>>().getComponents();
 			const world = app.getWorld();
 
 			// 创建玩家实体 (对应 spawn_player 系统)
@@ -159,7 +160,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<ArpgAction>>().getComponents();
 			const world = app.getWorld();
 
 			// 创建玩家
@@ -230,7 +231,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<ArpgAction>>().getComponents();
 			const world = app.getWorld();
 
 			// 创建玩家
@@ -307,7 +308,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<ArpgAction>>().getComponents();
 			const world = app.getWorld();
 
 			const playerEntity = world.spawn();
@@ -355,7 +356,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<ArpgAction>>().getComponents();
 			const world = app.getWorld();
 
 			const playerEntity = world.spawn();

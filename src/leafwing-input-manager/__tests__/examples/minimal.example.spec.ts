@@ -20,6 +20,7 @@ import { KeyCode } from "../../user-input/keyboard";
 import { InputManagerPlugin } from "../../plugin/input-manager-plugin";
 import { MainScheduleLabel } from "../../../bevy_app";
 import { BevyWorld } from "../../../bevy_ecs";
+import { InputManagerExtension } from "leafwing-input-manager";
 
 /**
  * 定义游戏动作枚举
@@ -62,7 +63,7 @@ export = () => {
 			app.addPlugins(plugin);
 
 			// 获取组件定义
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<Action>>().getComponents();
 
 			// Setup: 创建玩家实体和输入映射 (对应 spawn_player 系统)
 			const world = app.getWorld();
@@ -124,7 +125,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<Action>>().getComponents();
 			const world = app.getWorld();
 			const playerEntity = world.spawn();
 
@@ -183,7 +184,7 @@ export = () => {
 			});
 			app.addPlugins(plugin);
 
-			const components = plugin.extension!.getComponents();
+			const components = app.context.getExtension<InputManagerExtension<Action>>().getComponents();
 
 			// 创建玩家实体
 			const world = app.getWorld();

@@ -24,6 +24,7 @@ import {
 	ActionState,
 	ActionlikeEnum,
 	InputControlKind,
+	InputManagerExtension,
 } from "../../leafwing-input-manager";
 
 import { GamepadButton } from "../../leafwing-input-manager/user-input/gamepad";
@@ -149,7 +150,7 @@ function joinSystem(world: BevyWorld): void {
 	}
 
 	// 获取插件组件工厂
-	const components = inputPlugin.extension!.getComponents();
+	const components = world.resources.getResource<InputManagerExtension<Action>>()!.getComponents();
 
 	// 检测所有可用的游戏手柄
 	const connectedGamepads = UserInputService.GetConnectedGamepads();
@@ -196,7 +197,7 @@ function joinSystem(world: BevyWorld): void {
  */
 function jumpSystem(world: BevyWorld): void {
 	// 获取插件组件工厂
-	const components = inputPlugin.extension!.getComponents();
+	const components = world.resources.getResource<InputManagerExtension<Action>>()!.getComponents();
 
 	// 查询所有玩家实体
 	// 对应 Rust: action_query: Query<(&ActionState<Action>, &Player)>
@@ -231,7 +232,7 @@ function disconnectSystem(world: BevyWorld): void {
 	}
 
 	// 获取插件组件工厂
-	const components = inputPlugin.extension!.getComponents();
+	const components = world.resources.getResource<InputManagerExtension<Action>>()!.getComponents();
 
 	// 需要断开的玩家列表
 	const toDisconnect: Array<{ entityId: number; gamepadId: Enum.UserInputType }> = [];

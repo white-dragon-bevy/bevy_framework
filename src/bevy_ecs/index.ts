@@ -16,6 +16,7 @@ export * from "./query";
 export * from "./change-detection";
 export * from "./hierarchy";
 export * from "./component"
+export * from "./ecs-provider"
 
 
 import { World } from "./bevy-world";
