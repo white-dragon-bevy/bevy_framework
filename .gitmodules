@@ -18,3 +18,6 @@
 	path = bevy-origin-packages/leafwing_abilities
 	url = git@github.com:Leafwing-Studios/leafwing_abilities.git
 	ignore = all
+[submodule "bevy-origin-packages/big-brain"]
+	path = bevy-origin-packages/big-brain
+	url = https://github.com/zkat/big-brain

@@ -4,7 +4,7 @@
 
 ## 任务描述
 
-将 Bevy 引擎的  模块 `1:1` 迁移到 roblox-ts 生态，实现应用框架和插件系统。
+使用 TDD, 将 Bevy 引擎的  模块 `1:1` 迁移到 roblox-ts 生态，实现应用框架和插件系统。
 
 ## 输入目录
 
@@ -17,7 +17,24 @@
 
 ## 任务要求
 
-### 1. 使用`roblox-ts-pro`代理进行 核心功能迁移
+### Step 1: RED - Write failing test
+Use Task tool with subagent_type="test-automator"
+Prompt: "迁移源代码中单元测试"
+
+### Step 2: GREEN - Minimal implementation
+Use Task tool with subagent_type="bevy-pro"
+Prompt: "Implement module to make the test pass"
+
+### Step 3: REFACTOR - Improve code
+Use Task tool with subagent_type="code-reviewer"
+Prompt: "Refactor module implementation for performance while keeping tests green"
+
+
+### Step 4: migrate examples
+Use Task tool with subagent_type="bevy-pro"
+Prompt: "migrate examples to folder `src\__examples__\<module>\`"
+
+## 其他
 - 必读文档:
     - docs\white-dragon-bevy-introduction.md
     - docs\generic-type-handling.md
@@ -27,6 +44,8 @@
 - 支持插件的注册、初始化和生命周期管理
 - 建立插件间的依赖关系处理
 - 严格符合源代码设计逻辑, 接口命名应基本一致
+- 随时随地编译, 排除错误. 
+
 
 ## 验证标准
 
