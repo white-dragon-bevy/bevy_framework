@@ -451,7 +451,7 @@ export type AppTransform = (app: App) => App;
  * });
  * ```
  */
-export function plugin<E = {},T=any,X=any>(
+export function plugin<E = undefined,T=any,X=any>(
 	config: PluginConfig<E>
 ): Plugin & { extension?: E } {
 	const pluginObject: Plugin & { extension?: E } = {
@@ -467,10 +467,6 @@ export function plugin<E = {},T=any,X=any>(
 		robloxContext: config.robloxContext,
 	};
 
-	// 添加扩展
-	if (config.extension) {
-		pluginObject.extension = config.extension;
-	}
 
 	// 可选方法：只有在配置中提供时才添加
 	if (config.ready) {
@@ -489,6 +485,12 @@ export function plugin<E = {},T=any,X=any>(
 		pluginObject.cleanup = (app: App): void => {
 			config.cleanup!(app);
 		};
+	}
+
+	
+	// 添加扩展
+	if (config.extension) {
+		pluginObject.extension = config.extension;
 	}
 
 	return pluginObject;

@@ -39,8 +39,6 @@ export = () => {
 				filter: "test=debug",
 			});
 
-			app.addPlugin(plugin);
-
 			// 验证全局订阅器已设置
 			const subscriber = LogSubscriber.getGlobal();
 			expect(subscriber).to.be.ok();
@@ -61,8 +59,7 @@ export = () => {
 				customLayer: () => customLayer,
 			});
 
-			const app = new App();
-			app.addPlugin(plugin);
+			const app = new App().addPlugin(plugin);
 
 			// 触发日志事件
 			const subscriber = LogSubscriber.getGlobal();

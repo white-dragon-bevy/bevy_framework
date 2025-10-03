@@ -1,0 +1,192 @@
+import { App, ExtensionFactory } from "../index";
+import { Plugin, plugin } from "../plugin";
+import { MainScheduleLabel as BuiltinSchedules } from "../main-schedule";
+import { Context } from "../../bevy_ecs";
+
+/**
+ * 测试扩展接口定义
+ */
+interface TestExtension {
+	getTestValue: ExtensionFactory<() => string>;
+	calculateSum: ExtensionFactory<(valueA: number, valueB: number) => number>;
+}
+
+/**
+ * 带测试扩展的 Context 类型
+ */
+type ContextWithTestExtension = Context & TestExtension;
+
+export = (): void => {
+	describe("Plugin Extensions", () => {
+		describe("简单扩展插件", () => {
+			it("应该成功创建带扩展的插件", () => {
+				const testPlugin = plugin<TestExtension>({
+					name: "TestExtensionPlugin",
+					build: (app) => {
+						// 添加一个简单的系统
+						app.addSystems(BuiltinSchedules.UPDATE, () => {
+							// 测试系统
+						});
+					},
+					extension: {
+						getTestValue: (world, context, plugin) => {
+							return ()=>"test-value-123";
+						},
+						calculateSum: (world, context, plugin) => {
+							return (valueA: number, valueB: number) => valueA + valueB;
+						},
+					},
+				});
+
+				expect(testPlugin.name()).to.equal("TestExtensionPlugin");
+				expect(testPlugin.extension).to.be.ok();
+			});
+
+			it("应该将扩展方法注册到 App context", () => {
+				const testPlugin = plugin<TestExtension>({
+					name: "TestExtensionPlugin",
+					build: (app) => {
+						app.addSystems(BuiltinSchedules.UPDATE, () => {
+							// 测试系统
+						});
+					},
+					extension: {
+						getTestValue: (world, context, plugin) => {
+							return ()=>"test-value-123";
+						},
+						calculateSum: (world, context, plugin) => {
+							return (valueA: number, valueB: number) => valueA + valueB;
+						},
+					},
+				});
+
+				// extension 必须被定义
+				const app = App.create().addPlugin(testPlugin as Plugin & {
+					extension: TestExtension | undefined;
+				});
+
+				// 验证扩展方法存在
+				expect(app.context.getTestValue).to.be.a("function");
+				expect(app.context.calculateSum).to.be.a("function");
+			});
+
+			it("应该能够调用扩展方法并获取正确的返回值", () => {
+				const testPlugin = plugin<TestExtension>({
+					name: "TestExtensionPlugin",
+					build: (app) => {
+						app.addSystems(BuiltinSchedules.UPDATE, () => {
+							// 测试系统
+						});
+					},
+					extension: {
+						getTestValue: (world, context, plugin) => {
+							return ()=>"test-value-123";
+						},
+						calculateSum: (world, context, plugin) => {
+							return (valueA: number, valueB: number) => valueA + valueB;
+						},
+					},
+				});
+
+				const app = App.create().addPlugin(testPlugin);
+
+				// 调用扩展方法
+				const testValue = context.getTestValue();
+				expect(testValue).to.equal("test-value-123");
+
+				// 调用带参数的扩展方法
+				const sumResult = context.calculateSum(10, 20);
+				expect(sumResult).to.equal(30);
+
+				const anotherSum = context.calculateSum(5, 7);
+				expect(anotherSum).to.equal(12);
+			});
+
+			it("应该能够在多个插件中使用不同的扩展", () => {
+				interface FirstExtension {
+					getFirstValue: () => string;
+				}
+
+				interface SecondExtension {
+					getSecondValue: () => number;
+				}
+
+				type ContextWithBothExtensions = Context & FirstExtension & SecondExtension;
+
+				const firstPlugin = plugin<FirstExtension>({
+					name: "FirstPlugin",
+					build: (app) => {
+						// 第一个插件逻辑
+					},
+					extension: {
+						getFirstValue: (world: World, context: Context, pluginInstance: Plugin) => {
+							return () => "xx";
+						},
+					},
+				});
+
+				const secondPlugin = plugin<SecondExtension>({
+					name: "SecondPlugin",
+					build: (app) => {
+						// 第二个插件逻辑
+					},
+					extension: {
+						getSecondValue: () => {
+							return 42;
+						},
+					},
+				});
+
+				const app = App.create();
+				app.addPlugin(firstPlugin);
+				app.addPlugin(secondPlugin);
+
+				const context = app.getContext() as unknown as ContextWithBothExtensions;
+
+				// 验证两个扩展都存在
+				expect(context.getFirstValue).to.be.a("function");
+				expect(context.getSecondValue).to.be.a("function");
+
+				// 调用扩展方法
+				expect(context.getFirstValue()).to.equal("first");
+				expect(context.getSecondValue()).to.equal(42);
+			});
+		});
+
+		describe("不带扩展的插件", () => {
+			it("应该能够创建不带扩展的插件", () => {
+				const simplePlugin = plugin({
+					name: "SimplePlugin",
+					build: (app) => {
+						app.addSystems(BuiltinSchedules.UPDATE, () => {
+							// 简单系统
+						});
+					},
+				});
+
+				expect(simplePlugin.name()).to.equal("SimplePlugin");
+				expect(simplePlugin.extension).to.never.be.ok();
+			});
+
+			it("不带扩展的插件不应该添加额外方法到 context", () => {
+				const simplePlugin = plugin({
+					name: "SimplePlugin",
+					build: (app) => {
+						app.addSystems(BuiltinSchedules.UPDATE, () => {
+							// 简单系统
+						});
+					},
+				});
+
+				const app = App.create();
+				app.addPlugin(simplePlugin);
+
+				const context = app.getContext() as unknown as Record<string, unknown>;
+
+				// 验证没有添加额外的方法（context 应该只有原有的方法）
+				expect(context.getTestValue).to.never.be.ok();
+				expect(context.calculateSum).to.never.be.ok();
+			});
+		});
+	});
+};

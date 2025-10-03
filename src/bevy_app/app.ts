@@ -51,6 +51,12 @@ export type ExtractExtensionTypes<F> = {
 		: never;
 };
 
+export type Test<X extends string> = {
+	[K in X]: string;
+  };
+
+
+
 /**
  * 从插件类型中提取扩展工厂类型
  * @template P - 插件类型
@@ -299,6 +305,15 @@ export class App<T extends Context = Context> {
 	 * @throws 如果在cleanup或finish之后调用
 	 */
 	addPlugin<P extends Plugin>(plugin: P): App<T & ExtractExtensionTypes<ExtractPluginExtensions<P>>> {
+		if (this.getPluginState() === PluginState.Cleaned || this.getPluginState() === PluginState.Finished) {
+			error("Plugins cannot be added after App.cleanup() or App.finish() has been called.");
+		}
+
+		this.addBoxedPlugin(plugin);
+		return this as unknown as App<T & ExtractExtensionTypes<ExtractPluginExtensions<P>>>;
+	}
+
+	addPluginTest<P extends Plugin>(plugin: P): App<T & ExtractExtensionTypes<ExtractPluginExtensions<P>>> {
 		if (this.getPluginState() === PluginState.Cleaned || this.getPluginState() === PluginState.Finished) {
 			error("Plugins cannot be added after App.cleanup() or App.finish() has been called.");
 		}
