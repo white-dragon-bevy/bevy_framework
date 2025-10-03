@@ -218,8 +218,12 @@ export function generateActionDiffs<A extends Actionlike>(
 	}
 
 	// Generate diffs for all entities
-	const allEntities = currentSnapshot.allEntities();
-	allEntities.forEach((entityId) => {
+	// Collect entities from both current and previous snapshots
+	const allEntityIds = new Set<string>();
+	currentSnapshot.allEntities().forEach((entityId) => allEntityIds.add(entityId));
+	previousSnapshot.allEntities().forEach((entityId) => allEntityIds.add(entityId));
+
+	allEntityIds.forEach((entityId) => {
 		const entityDiffs = currentSnapshot.entityDiffs(entityId, previousSnapshot, hashToAction);
 		for (const diff of entityDiffs) {
 			diffs.push(diff);

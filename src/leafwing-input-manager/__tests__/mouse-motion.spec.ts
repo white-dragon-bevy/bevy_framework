@@ -12,6 +12,7 @@ import { advanceFrame, createTestApp } from "./test-utils";
 import { MouseSimulator } from "./input-simulator";
 import { Actionlike } from "../actionlike";
 import { InputControlKind } from "../input-control-kind";
+import { ButtonInput } from "../../bevy_input/button-input";
 
 /**
  * 按钮式动作测试枚举
@@ -88,6 +89,13 @@ class AxislikeTestAction implements Actionlike {
  */
 function createMouseTestApp(): App {
 	const app = createTestApp();
+
+	// mouse-motion 测试需要 ButtonInput 资源用于 syncFromBevyInput
+	const keyboardInput = new ButtonInput<Enum.KeyCode>();
+	const mouseButtonInput = new ButtonInput<Enum.UserInputType>();
+
+	app.getWorld().resources.insertResource<ButtonInput<Enum.KeyCode>>(keyboardInput);
+	app.getWorld().resources.insertResource<ButtonInput<Enum.UserInputType>>(mouseButtonInput);
 
 	// 添加插件
 	const buttonPlugin = createInputManagerPlugin<ButtonlikeTestAction>({
