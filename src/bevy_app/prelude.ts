@@ -21,7 +21,6 @@ export {
 	PluginGroup,
 	PluginState,
 	BasePlugin,
-	createPlugin,
 	PluginGroupBuilder,
 	BasePluginGroup,
 	PluginError,

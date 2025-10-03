@@ -2,7 +2,6 @@ import { App } from "../index";
 import {
 	Plugin,
 	BasePlugin,
-	createPlugin,
 	PluginState,
 	PluginGroup,
 	PluginGroupBuilder,
@@ -105,28 +104,6 @@ export = (): void => {
 
 				// 默认 ready 应该返回 true
 				expect(plugin.ready!(app)).to.equal(true);
-			});
-		});
-
-
-		describe("createPlugin", () => {
-			it("应该创建函数式插件", () => {
-				let called = false;
-				const plugin = createPlugin((app: App) => {
-					called = true;
-				}, "CreatedPlugin");
-
-				expect(plugin.name()).to.equal("CreatedPlugin");
-
-				const app = App.create();
-				plugin.build(app);
-				expect(called).to.equal(true);
-			});
-
-			it("应该使用默认参数", () => {
-				const plugin = createPlugin((app: App) => {});
-
-				expect(plugin.isUnique()).to.equal(true);
 			});
 		});
 

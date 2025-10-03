@@ -1,4 +1,5 @@
-import { App, BasePlugin, createPlugin, AppExit } from "../index";
+import { App, BasePlugin, AppExit } from "../index";
+import { simplePlugin } from "../plugin";
 import { MainScheduleLabel as BuiltinSchedules } from "../main-schedule";
 import { TestEnvironment, createTestApp } from "./test-helpers";
 import { LogConfig } from "../log-config";
@@ -167,17 +168,17 @@ export = (): void => {
 			it("多个插件应该协同工作", () => {
 				const tracker = new ExecutionTracker();
 
-				const plugin1 = createPlugin((app) => {
+				const plugin1 = simplePlugin("Plugin1", (app) => {
 					app.addSystems(BuiltinSchedules.UPDATE, () => {
 						tracker.record("Plugin1:Update");
 					});
-				}, "Plugin1");
+				});
 
-				const plugin2 = createPlugin((app) => {
+				const plugin2 = simplePlugin("Plugin2", (app) => {
 					app.addSystems(BuiltinSchedules.UPDATE, () => {
 						tracker.record("Plugin2:Update");
 					});
-				}, "Plugin2");
+				});
 
 				const app = createTestApp().addPlugins(plugin1, plugin2);
 
@@ -196,21 +197,21 @@ export = (): void => {
 			it("不同插件应该能共享资源", () => {
 				let resourceValue = 0;
 
-				const writerPlugin = createPlugin((app) => {
+				const writerPlugin = simplePlugin("WriterPlugin", (app) => {
 					app.insertResource({
 						__brand: "Resource",
 						count: 10,
 					} as CounterResource);
-				}, "WriterPlugin");
+				});
 
-				const readerPlugin = createPlugin((app) => {
+				const readerPlugin = simplePlugin("ReaderPlugin", (app) => {
 					app.addSystems(BuiltinSchedules.UPDATE, () => {
 						// 这里简化测试，实际需要资源访问API
 						// const resource = app.world().getResource<CounterResource>();
 						// resourceValue = resource?.count ?? 0;
 						resourceValue = 10; // 模拟读取
 					});
-				}, "ReaderPlugin");
+				});
 
 				const app = createTestApp().addPlugins(writerPlugin, readerPlugin);
 
@@ -300,9 +301,9 @@ export = (): void => {
 			});
 
 			it("插件构建错误应该被正确处理", () => {
-				const errorPlugin = createPlugin((app) => {
+				const errorPlugin = simplePlugin("ErrorPlugin", (app) => {
 					throw "Plugin build error";
-				}, "ErrorPlugin");
+				});
 
 				const app = createTestApp();
 

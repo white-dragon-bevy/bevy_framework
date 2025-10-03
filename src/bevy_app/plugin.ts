@@ -137,58 +137,6 @@ export abstract class BasePlugin implements Plugin {
 	
 }
 
-/**
- * 函数式插件
- * 对应 Rust 的 impl Plugin for Fn(&mut App)
- */
-export class FunctionPlugin implements Plugin {
-	/**
-	 * 创建函数式插件
-	 * @param buildFn - 插件构建函数
-	 * @param pluginName - 插件名称（可选）
-	 * @param unique - 是否唯一，默认为true
-	 */
-	constructor(
-		private buildFn: (app: App) => void,
-		private pluginName?: string,
-		private unique: boolean = true,
-	) {}
-
-	/**
-	 * 配置App
-	 * @param app - App实例
-	 */
-	build(app: App): void {
-		this.buildFn(app);
-	}
-
-	/**
-	 * 获取插件名称
-	 * @returns 插件名称
-	 */
-	name(): string {
-		return this.pluginName ?? "FunctionPlugin";
-	}
-
-	/**
-	 * 插件是否唯一
-	 * @returns 是否唯一
-	 */
-	isUnique(): boolean {
-		return this.unique;
-	}
-}
-
-/**
- * 创建函数式插件的便捷方法
- * @param buildFn - 插件构建函数
- * @param name - 插件名称（可选）
- * @param unique - 是否唯一，默认为true
- * @returns 插件实例
- */
-export function createPlugin(buildFn: (app: App) => void, name?: string, unique: boolean = true): Plugin {
-	return new FunctionPlugin(buildFn, name, unique);
-}
 
 /**
  * 插件组接口
