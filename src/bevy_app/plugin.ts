@@ -5,9 +5,7 @@
 
 import { RobloxContext } from "../utils/roblox-utils";
 import { App } from "./app";
-import { ExtensionConfig, ExtensionMetadata, ExtensionRegistry, PluginExtensions } from "./extensions";
-import type { ScheduleLabel } from "./types";
-import type { IntoSystemConfigs } from "../bevy_ecs/schedule";
+import type { IntoSystemConfigs, ScheduleLabel } from "../bevy_ecs/schedule";
 import type { Schedule } from "../bevy_ecs/schedule/schedule";
 import { Modding } from "@flamework/core";
 import { getTypeDescriptor, TypeDescriptor } from "bevy_core/reflect";

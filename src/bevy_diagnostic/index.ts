@@ -19,7 +19,7 @@ export {
 export { DiagnosticsPlugin } from "./diagnostics-plugin";
 
 // 帧计数诊断
-export { FrameCount, FrameCountPlugin, updateFrameCount } from "./frame-count-diagnostics-plugin";
+export { DiagnosticFrameCount, FrameCountPlugin, updateDiagnosticsFrameCount} from "./frame-count-diagnostics-plugin";
 
 // 帧时间诊断
 export { FrameTimeDiagnosticsPlugin } from "./frame-time-diagnostics-plugin";

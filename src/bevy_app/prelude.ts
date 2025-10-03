@@ -10,7 +10,7 @@ export { App } from "./app";
 export { SubApp, SubApps } from "./sub-app";
 
 // 类型定义
-export { AppLabel, createAppLabel, AppExit, AppExitCode, ScheduleLabel, Message, ErrorHandler } from "./types";
+export { AppLabel, createAppLabel, AppExit, AppExitCode,  ErrorHandler } from "./types";
 
 // Resource 类型从 bevy_ecs 导出
 export type { Resource } from "../bevy_ecs/resource";

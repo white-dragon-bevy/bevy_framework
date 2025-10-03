@@ -8,7 +8,6 @@
 // 核心组件导出
 export * from "./command-buffer";
 export * from "./resource";
-export * from "./schedule/index";
 export * from "./bevy-world";
 export * from "./message";
 export * from "./name";

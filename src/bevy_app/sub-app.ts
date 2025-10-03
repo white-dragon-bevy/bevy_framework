@@ -3,17 +3,17 @@
  * 对应 Rust bevy_app 的 SubApp struct 和 SubApps
  */
 
-import { AppLabel, ErrorHandler, Message, ScheduleLabel } from "./types";
+import { AppLabel, ErrorHandler } from "./types";
 import { Plugin, PluginState } from "./plugin";
 import { WorldContainer, createWorldContainer, World, Context } from "../bevy_ecs";
 import { ResourceManager, Resource } from "../bevy_ecs/resource";
 import { CommandBuffer } from "../bevy_ecs/command-buffer";
-import { MessageRegistry } from "../bevy_ecs/message";
+import { Message, MessageRegistry } from "../bevy_ecs/message";
 import { MainScheduleOrder, FixedMainScheduleOrder, BuiltinSchedules } from "./main-schedule";
 import { App } from "./app";
 import { Schedule } from "../bevy_ecs/schedule/schedule";
 import { Schedules } from "../bevy_ecs/schedule/schedules";
-import type { SystemFunction, SystemConfig } from "../bevy_ecs/schedule/types";
+import type { SystemFunction, SystemConfig, ScheduleLabel } from "../bevy_ecs/schedule/types";
 import { intoSystemConfigs } from "../bevy_ecs/schedule/system-configs";
 import type { IntoSystemConfigs } from "../bevy_ecs/schedule";
 import { AppContext } from "./context";

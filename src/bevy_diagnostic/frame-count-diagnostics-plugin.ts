@@ -20,7 +20,7 @@ import { World, Context } from "../bevy_ecs";
  * FrameCount 在超过 2^32-1 后会回绕到 0
  * 可以利用回绕算术来确定两次观察之间经过的帧数
  */
-export class FrameCount implements Resource {
+export class DiagnosticFrameCount implements Resource {
 	readonly __brand = "Resource" as const;
 	/** 帧计数值 */
 	value: number = 0;
@@ -48,11 +48,11 @@ export class FrameCountPlugin implements Plugin {
 	 */
 	build(app: App): void {
 		// 直接插入资源实例，使用类构造函数作为标识
-		const frameCount = new FrameCount();
+		const frameCount = new DiagnosticFrameCount();
 		app.main()
 			.getResourceManager()
 			.insertResource(frameCount);
-		app.addSystems(Last, updateFrameCount);
+		app.addSystems(Last, updateDiagnosticsFrameCount);
 	}
 
 	/**
@@ -79,12 +79,12 @@ export class FrameCountPlugin implements Plugin {
  * @param context - 系统上下文
  * @returns 无返回值
  */
-export function updateFrameCount(world: World, context: Context): void {
+export function updateDiagnosticsFrameCount(world: World, context: Context): void {
 	const resources = world.resources;
 	if (!resources) {
 		return;
 	}
-	const frameCount = resources.getResource<FrameCount>();
+	const frameCount = resources.getResource<DiagnosticFrameCount>();
 	if (frameCount) {
 		// 使用位运算确保32位无符号整数的回绕行为
 		const MAX_U32 = 0xffffffff;

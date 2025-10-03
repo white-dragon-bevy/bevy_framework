@@ -86,19 +86,7 @@ export class AppExit implements BevyMessage {
 	}
 }
 
-/**
- * 调度标签类型
- * 用于标识和引用不同的调度
- * 对应 Rust 的 ScheduleLabel trait
- */
-export type ScheduleLabel = string;
 
-/**
- * 消息类型
- * 应用程序内部通信的基础类型
- * 对应 Rust 的 Event/Message trait
- */
-export type Message = BevyMessage;
 
 /**
  * 错误处理器类型

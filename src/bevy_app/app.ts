@@ -4,19 +4,19 @@ import { Modding } from "@flamework/core";
  * 对应 Rust bevy_app 的 App struct
  */
 
-import { AppExit, AppExitCode, AppLabel, ErrorHandler, Message, ScheduleLabel } from "./types";
+import { AppExit, AppExitCode, AppLabel, ErrorHandler } from "./types";
 import { BuiltinSchedules } from "./main-schedule";
 import { DuplicatePluginError, isPluginGroup, Plugin, PluginGroup, PluginState } from "./plugin";
 import { SubApp, SubApps } from "./sub-app";
 import { World, WorldContainer } from "../bevy_ecs";
 import { Schedule } from "../bevy_ecs/schedule/schedule";
-import type { SystemFunction } from "../bevy_ecs/schedule/types";
+import type { ScheduleLabel, SystemFunction } from "../bevy_ecs/schedule/types";
 import type { IntoSystemConfigs } from "../bevy_ecs/schedule";
 import type { Diagnostic, DiagnosticsStore } from "../bevy_diagnostic/diagnostic";
 import { AppContext } from "./context";
 import { RunService } from "@rbxts/services";
 import { isMatchRobloxContext, RobloxContext } from "../utils/roblox-utils";
-import { MessageReader, MessageWriter } from "../bevy_ecs/message";
+import { Message, MessageReader, MessageWriter } from "../bevy_ecs/message";
 import { TypeDescriptor } from "../bevy_core/reflect";
 
 /**
@@ -523,6 +523,10 @@ export class App<T extends AppContext = AppContext> {
 	 */
 	main(): SubApp {
 		return this.subApps.main();
+	}
+
+	withServer(handler:(app:App) => App): App {
+		error(1)
 	}
 
 	/**
