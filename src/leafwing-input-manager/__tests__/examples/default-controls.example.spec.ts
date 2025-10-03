@@ -80,7 +80,7 @@ export = () => {
 
 			// 添加 InputManagerPlugin
 			const plugin = InputManagerPlugin.create<PlayerAction>({
-				actionTypeName: "PlayerAction",
+				
 			});
 			app.addPlugins(plugin);
 
@@ -110,7 +110,7 @@ export = () => {
 			const app = createTestApp();
 
 			const plugin = InputManagerPlugin.create<PlayerAction>({
-				actionTypeName: "PlayerAction",
+				
 			});
 			app.addPlugins(plugin);
 
@@ -149,7 +149,7 @@ export = () => {
 			const app = createTestApp();
 
 			const plugin = InputManagerPlugin.create<PlayerAction>({
-				actionTypeName: "PlayerAction",
+				
 			});
 			app.addPlugins(plugin);
 
@@ -188,7 +188,7 @@ export = () => {
 			const app = createTestApp();
 
 			const plugin = InputManagerPlugin.create<PlayerAction>({
-				actionTypeName: "PlayerAction",
+				
 			});
 			app.addPlugins(plugin);
 
@@ -227,7 +227,7 @@ export = () => {
 			const app = createTestApp();
 
 			const plugin = InputManagerPlugin.create<PlayerAction>({
-				actionTypeName: "PlayerAction",
+				
 			});
 			app.addPlugins(plugin);
 
@@ -294,7 +294,7 @@ export = () => {
 			const app = createTestApp();
 
 			const plugin = InputManagerPlugin.create<PlayerAction>({
-				actionTypeName: "PlayerAction",
+				
 			});
 			app.addPlugins(plugin);
 
@@ -335,7 +335,7 @@ export = () => {
 			const app = createTestApp();
 
 			const plugin = InputManagerPlugin.create<PlayerAction>({
-				actionTypeName: "PlayerAction",
+				
 			});
 			app.addPlugins(plugin);
 

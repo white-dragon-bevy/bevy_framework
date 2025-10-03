@@ -132,7 +132,7 @@ export function main(): void {
 	// 注册插件
 	app.addPlugin(
 		InputManagerPlugin.create<PlayerAction>(
-			{ actionTypeName: "PlayerAction" }
+			{ }
 		),
 	);
 

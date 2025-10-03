@@ -100,7 +100,7 @@ export = () => {
 
 				// 添加 InputManagerPlugin 以注册输入处理系统
 				const plugin = InputManagerPlugin.create<Action>({
-					actionTypeName: "Action",
+					
 				});
 				app.addPlugins(plugin);
 
@@ -240,7 +240,7 @@ export = () => {
 
 				// 添加 InputManagerPlugin 以注册输入处理系统
 				const plugin = InputManagerPlugin.create<Action>({
-					actionTypeName: "Action",
+					
 				});
 				app.addPlugins(plugin);
 

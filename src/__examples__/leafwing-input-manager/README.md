@@ -194,7 +194,7 @@ const app = new App();
 
 // 添加输入管理插件
 const inputPlugin = InputManagerPlugin.create<Action>({
-    actionTypeName: "Action",
+    
 });
 app.addPlugin(inputPlugin);
 

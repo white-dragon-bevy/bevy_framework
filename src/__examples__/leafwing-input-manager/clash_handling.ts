@@ -197,7 +197,7 @@ export function createApp(): App {
 
 	// 对应 Rust: .add_plugins(InputManagerPlugin::<TestAction>::default())
 	inputPlugin = InputManagerPlugin.create<TestActionlike>({
-		actionTypeName: "TestAction",
+		
 	});
 	app.addPlugin(inputPlugin);
 

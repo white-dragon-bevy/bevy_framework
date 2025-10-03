@@ -317,7 +317,7 @@ export function main(): App {
 	// 添加输入管理器插件
 	// 对应 Rust: .add_plugins(InputManagerPlugin::<CameraMovement>::default())
 	const inputPlugin = InputManagerPlugin.create<CameraMovement>({
-		actionTypeName: "CameraMovement",
+		
 	});
 	app.addPlugins(inputPlugin);
 

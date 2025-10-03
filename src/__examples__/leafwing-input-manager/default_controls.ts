@@ -125,7 +125,7 @@ function spawnPlayer(world: BevyWorld): void {
 	// Get the InputManager plugin extension to access components
 	// 获取 InputManager 插件扩展以访问组件
 	const plugin = InputManagerPlugin.create<PlayerAction>({
-		actionTypeName: "PlayerAction",
+		
 	});
 
 	const extension = world.resources.getResource<InputManagerExtension<PlayerAction>>()!;
@@ -165,7 +165,7 @@ function spawnPlayer(world: BevyWorld): void {
  */
 function useActions(world: BevyWorld,context:Context): void {
 	const plugin = InputManagerPlugin.create<PlayerAction>({
-		actionTypeName: "PlayerAction",
+		
 	});
 
 	const extension = world.resources.getResource<InputManagerExtension<PlayerAction>>()!;
@@ -225,7 +225,7 @@ export function runDefaultControlsExample(): void {
 	// 添加 InputManager 插件
 	app.addPlugins(
 		InputManagerPlugin.create<PlayerAction>({
-			actionTypeName: "PlayerAction",
+			
 		}),
 	);
 

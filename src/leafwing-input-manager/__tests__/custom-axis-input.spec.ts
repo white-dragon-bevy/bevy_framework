@@ -175,7 +175,7 @@ function createCustomAxisTestApp(): App {
 
 	// 添加 InputManagerPlugin
 	const plugin = InputManagerPlugin.create<TestAction>({
-		actionTypeName: "TestAction",
+		
 	});
 	app.addPlugins(plugin);
 

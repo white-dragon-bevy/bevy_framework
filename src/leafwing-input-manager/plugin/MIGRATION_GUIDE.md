@@ -32,7 +32,7 @@ const plugin = InputManagerPlugin.create(
 **New Way:**
 ```typescript
 const plugin = new InputManagerPlugin<PlayerAction>({
-    actionTypeName: "PlayerAction",
+    
     networkSync: {
         enabled: false
     }
@@ -150,7 +150,7 @@ class PlayerActionlike implements Actionlike {
 
 // Create the plugin
 const inputPlugin = new InputManagerPlugin<PlayerActionlike>({
-    actionTypeName: "PlayerAction",
+    
 });
 
 // Add plugin to app

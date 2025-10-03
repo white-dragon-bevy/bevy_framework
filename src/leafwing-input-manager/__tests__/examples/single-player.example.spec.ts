@@ -110,7 +110,7 @@ export = () => {
 
 			// 添加 InputManagerPlugin
 			const plugin = InputManagerPlugin.create<ArpgAction>({
-				actionTypeName: "ArpgAction",
+				
 			});
 			app.addPlugins(plugin);
 
@@ -156,7 +156,7 @@ export = () => {
 			const app = createTestApp();
 
 			const plugin = InputManagerPlugin.create<ArpgAction>({
-				actionTypeName: "ArpgAction",
+				
 			});
 			app.addPlugins(plugin);
 
@@ -227,7 +227,7 @@ export = () => {
 			const app = createTestApp();
 
 			const plugin = InputManagerPlugin.create<ArpgAction>({
-				actionTypeName: "ArpgAction",
+				
 			});
 			app.addPlugins(plugin);
 
@@ -304,7 +304,7 @@ export = () => {
 			const app = createTestApp();
 
 			const plugin = InputManagerPlugin.create<ArpgAction>({
-				actionTypeName: "ArpgAction",
+				
 			});
 			app.addPlugins(plugin);
 
@@ -352,7 +352,7 @@ export = () => {
 			const app = createTestApp();
 
 			const plugin = InputManagerPlugin.create<ArpgAction>({
-				actionTypeName: "ArpgAction",
+				
 			});
 			app.addPlugins(plugin);
 

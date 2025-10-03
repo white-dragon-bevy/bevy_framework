@@ -33,7 +33,7 @@ class PlayerAction implements Actionlike {
 function main(): void {
 	const app = App.create().addPlugin(
 		InputManagerPlugin.create<PlayerAction>(
-			{ actionTypeName: "PlayerAction" }
+			{  }
 		),
 	);
 

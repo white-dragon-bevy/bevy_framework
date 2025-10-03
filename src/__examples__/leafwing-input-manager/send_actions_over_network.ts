@@ -200,7 +200,7 @@ function createClientApp(): App {
 
 	// 添加 InputManagerPlugin
 	clientInputPlugin = InputManagerPlugin.create<FpsAction>({
-		actionTypeName: "FpsAction",
+		
 	});
 	app.addPlugin(clientInputPlugin);
 
@@ -303,7 +303,7 @@ function createServerApp(): App {
 
 	// 添加 InputManagerPlugin
 	serverInputPlugin = InputManagerPlugin.create<FpsAction>({
-		actionTypeName: "FpsAction",
+		
 	});
 	app.addPlugin(serverInputPlugin);
 

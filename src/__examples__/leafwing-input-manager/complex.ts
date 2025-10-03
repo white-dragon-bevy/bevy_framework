@@ -830,7 +830,7 @@ export function createApp(): App {
 
 	// 创建输入管理器插件
 	inputPlugin = InputManagerPlugin.create<GameActionlike>({
-		actionTypeName: "GameAction",
+		
 	});
 	app.addPlugin(inputPlugin);
 

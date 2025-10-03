@@ -99,10 +99,10 @@ function createMouseTestApp(): App {
 
 	// 添加插件
 	const buttonPlugin = InputManagerPlugin.create<ButtonlikeTestAction>({
-		actionTypeName: "ButtonlikeTestAction",
+		
 	});
 	const axisPlugin = InputManagerPlugin.create<AxislikeTestAction>({
-		actionTypeName: "AxislikeTestAction",
+		
 	});
 
 	app.addPlugins(buttonPlugin);

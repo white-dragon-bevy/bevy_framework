@@ -160,7 +160,7 @@ export function createApp() {
 	// 创建并添加 InputManagerPlugin
 	inputPlugin = InputManagerPlugin.create<PlayerActionlike>(
 		{
-			actionTypeName: "PlayerAction",
+			
 		}
 	);
 

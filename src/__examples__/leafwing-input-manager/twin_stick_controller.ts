@@ -283,7 +283,7 @@ export function createApp(): App {
 
 	// Add InputManagerPlugin
 	const inputPlugin = InputManagerPlugin.create<PlayerAction>({
-		actionTypeName: "PlayerAction",
+		
 	});
 	const typedApp = app.addPlugin(inputPlugin);
 

@@ -49,7 +49,7 @@ function createButtonTestApp(): App {
 
 	// 添加 InputManagerPlugin 以注册输入处理系统
 	const plugin = InputManagerPlugin.create<TestAction>({
-		actionTypeName: "TestAction",
+		
 	});
 	app.addPlugins(plugin);
 

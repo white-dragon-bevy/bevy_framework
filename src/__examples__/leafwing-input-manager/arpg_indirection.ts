@@ -310,12 +310,12 @@ export function createApp() {
 
 	// 创建并添加槽位输入管理插件
 	slotPlugin = InputManagerPlugin.create<SlotActionlike>({
-		actionTypeName: "Slot",
+		
 	});
 
 	// 创建并添加技能输入管理插件
 	abilityPlugin = InputManagerPlugin.create<AbilityActionlike>({
-		actionTypeName: "Ability",
+		
 	});
 
 	// 添加插件

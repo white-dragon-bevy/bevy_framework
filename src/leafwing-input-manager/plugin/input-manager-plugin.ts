@@ -63,10 +63,6 @@ function syncFromBevyInput(world: BevyWorld, centralStore: CentralInputStore, ke
  * Configuration for the InputManagerPlugin
  */
 export interface InputManagerPluginConfig<A extends Actionlike> {
-	/**
-	 * The action type name (used for component identification)
-	 */
-	actionTypeName: string;
 
 	/**
 	 * Network sync configuration
@@ -310,6 +306,7 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin<InputMan
 	private readonly innerDescriptors: InnerDescriptors;
 	private centralStoreInstance?: CentralInputStore;
 	extensionDescriptor?: TypeDescriptor<InputManagerExtension<A>> ;
+	actionTypeName:string
 
 	/**
 	 * 创建 InputManagerPlugin 实例
@@ -324,15 +321,17 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin<InputMan
 		id?: Modding.Generic<A, "id">,
 		text?: Modding.Generic<A, "text">,
 	) {
+		const typeText = text as string;
+		this.actionTypeName = typeText
 		// Create dynamic components for this Action type
-		this.components = createActionComponents<A>(config.actionTypeName);
+		this.components = createActionComponents<A>(typeText);
 		this.extensionObject = createExtensionObject<A>(this.components);
 		this.innerDescriptors = {
-			actionStateDescriptor: getTypeDescriptorWithGenericParameter<ActionState<A>>(text as string)!,
-			inputMapDescriptor: getTypeDescriptorWithGenericParameter<InputMap<A>>(text as string)!,
-		};
+			actionStateDescriptor: getTypeDescriptorWithGenericParameter<ActionState<A>>(typeText)!,
+			inputMapDescriptor: getTypeDescriptorWithGenericParameter<InputMap<A>>(typeText)!,
+			};
 		this.extensionDescriptor = getTypeDescriptorWithGenericParameter<InputManagerExtension<A>>(
-			this.config.actionTypeName,
+			typeText
 		)!;
 	}
 
@@ -340,7 +339,7 @@ export class InputManagerPlugin<A extends Actionlike> implements Plugin<InputMan
 	 * 插件名称
 	 */
 	name(): string {
-		return `InputManagerPlugin<${this.config.actionTypeName}>`;
+		return `InputManagerPlugin<${this.actionTypeName}>`;
 	}
 
 	/**

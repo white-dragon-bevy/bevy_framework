@@ -351,7 +351,7 @@ export function createApp(): App {
 	// 创建并添加输入管理器插件
 	// 对应 Rust: .add_plugins(InputManagerPlugin::<ArpgAction>::default())
 	inputPlugin = InputManagerPlugin.create<ArpgAction>({
-		actionTypeName: "ArpgAction",
+		
 	});
 	app.addPlugin(inputPlugin);
 

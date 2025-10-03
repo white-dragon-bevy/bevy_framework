@@ -190,7 +190,7 @@ export function createApp(): App {
 	// 创建并添加 InputManagerPlugin
 	// 对应 Rust: .add_plugins(InputManagerPlugin::<Action>::default())
 	inputPlugin = InputManagerPlugin.create<ActionlikeImpl>({
-		actionTypeName: "ActionlikeImpl",
+		
 	});
 
 	app.addPlugin(inputPlugin);

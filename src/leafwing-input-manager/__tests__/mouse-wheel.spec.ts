@@ -56,7 +56,6 @@ function createMouseWheelTestApp(): App {
 	const app = createTestApp();
 
 	const axisPlugin = InputManagerPlugin.create<AxislikeTestAction>({
-		actionTypeName: "AxislikeTestAction",
 	});
 	app.addPlugins(axisPlugin);
 

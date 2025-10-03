@@ -139,7 +139,7 @@ export function createApp(): App {
 
 	// 添加 InputManagerPlugin
 	const inputPlugin = InputManagerPlugin.create<PlayerActionlike>({
-		actionTypeName: "PlayerAction",
+		
 	});
 	const typedApp = app.addPlugin(inputPlugin);
 

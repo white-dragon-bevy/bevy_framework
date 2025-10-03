@@ -58,7 +58,7 @@ export = () => {
 
 			// 添加 InputManagerPlugin
 			const plugin = InputManagerPlugin.create<Action>({
-				actionTypeName: "Action",
+				
 			});
 			app.addPlugins(plugin);
 
@@ -121,7 +121,7 @@ export = () => {
 
 			// 添加 InputManagerPlugin
 			const plugin = InputManagerPlugin.create<Action>({
-				actionTypeName: "Action",
+				
 			});
 			app.addPlugins(plugin);
 
@@ -180,7 +180,7 @@ export = () => {
 
 			// 添加 InputManagerPlugin
 			const plugin = InputManagerPlugin.create<Action>({
-				actionTypeName: "Action",
+				
 			});
 			app.addPlugins(plugin);
 
