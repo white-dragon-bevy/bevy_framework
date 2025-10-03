@@ -26,5 +26,5 @@ export * from "./abilities-bundle";
 export * from "./premade-pools";
 
 // Plugin and systems
-export * from "./plugin";
+export * from "./abilities-plugin";
 export * from "./systems";

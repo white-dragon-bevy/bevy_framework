@@ -88,4 +88,4 @@ export { clientReceiveSystem, createClientReceiveSystem } from "./client-receive
  * - SimpleReplicationPlugin: 插件类
  * - createSimpleReplicationPlugin: 插件工厂函数
  */
-export { SimpleReplicationPlugin, createSimpleReplicationPlugin } from "./plugin";
+export { SimpleReplicationPlugin, createSimpleReplicationPlugin } from "./simple-replication-plugin";

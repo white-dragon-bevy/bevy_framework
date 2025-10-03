@@ -29,10 +29,10 @@ export * from "./pickers";
 export * from "./choices";
 export * from "./evaluators";
 export * from "./measures";
-export * from "./plugin";
+export * from "./big-brain-plugin";
 
 // Re-export commonly used items for convenience
-export { BigBrainPlugin, BigBrainSet } from "./plugin";
+export { BigBrainPlugin, BigBrainSet } from "./big-brain-plugin";
 export { ThinkerBuilder, ThinkerBuilderComponent, ThinkerComponent, HasThinker } from "./thinker";
 export { FirstToScore, Highest, HighestToScore } from "./pickers";
 export { ActionState, StepsBuilder, ConcurrentlyBuilder, ConcurrentMode } from "./actions";

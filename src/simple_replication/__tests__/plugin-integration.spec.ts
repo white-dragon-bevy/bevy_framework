@@ -6,7 +6,7 @@
 
 import { App, BuiltinSchedules } from "../../bevy_app";
 import { World, component } from "@rbxts/matter";
-import { SimpleReplicationPlugin } from "../plugin";
+import { SimpleReplicationPlugin } from "../simple-replication-plugin";
 import { MockNetworkAdapter } from "../network";
 import { ComponentCtor } from "../types";
 import { TypeDescriptor } from "../../bevy_core/reflect";

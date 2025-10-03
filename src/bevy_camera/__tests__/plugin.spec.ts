@@ -2,7 +2,7 @@
  * bevy_camera 插件单元测试
  */
 
-import { CameraPlugin } from "../plugin";
+import { CameraPlugin } from "../camera-plugin";
 import { PrimaryCamera, CameraConfig, createPrimaryCameraData, createCameraConfigData } from "../components";
 import { App } from "../../bevy_app/app";
 import { RobloxContext } from "../../utils/roblox-utils";
