@@ -9,6 +9,12 @@ import { States } from "./states";
 import { State, StateConstructor } from "./resources";
 import { TypeDescriptor } from "../bevy_core";
 
+/**
+ * 全局 WeakMap 存储每个 World 的状态变化追踪数据
+ *
+ * **用途**: 使用 WeakMap 实现自动内存管理，当 World 被垃圾回收时自动清理追踪数据
+ */
+const stateChangeTracking = new WeakMap<World, Map<string, unknown>>();
 
 /**
  * 运行条件函数类型
@@ -56,38 +62,64 @@ export function stateExists<S extends States>(stateType: TypeDescriptor): RunCon
 /**
  * 检查状态是否发生了变化
  *
- * **注意**: 此函数使用闭包来保持状态历史，应该在应用初始化时创建一次并复用，
- * 而不是每帧重新创建。重复创建会导致内存增长和状态检测失效。
+ * **用途**: 创建一个运行条件，仅在状态发生变化时返回 true
  *
- * @param stateType - 状态类型
+ * **内存管理**: 使用 WeakMap 存储状态追踪数据，当 World 被垃圾回收时自动清理，避免内存泄漏
+ *
+ * @param stateType - 状态类型描述符
  * @returns 运行条件函数
  */
 export function stateChanged<S extends States>(stateType: TypeDescriptor): RunCondition {
-	let lastState: S | undefined;
-	let hasInitialized = false;
+	const stateKey = `${stateType.id}_${stateType.text}`;
 
 	return (world: World, resourceManager: ResourceManager): boolean => {
 		const stateResource = resourceManager.getResourceByTypeDescriptor<State<S>>(stateType);
 
+		// 获取或创建当前 World 的追踪 Map
+		let tracking = stateChangeTracking.get(world);
+
+		if (tracking === undefined) {
+			tracking = new Map<string, unknown>();
+			stateChangeTracking.set(world, tracking);
+		}
+
+		// 获取追踪数据（包含 lastState 和 hasInitialized）
+		interface TrackingData {
+			hasInitialized: boolean;
+			lastState: S | undefined;
+		}
+
+		let trackingData = tracking.get(stateKey) as TrackingData | undefined;
+
+		if (trackingData === undefined) {
+			trackingData = {
+				hasInitialized: false,
+				lastState: undefined,
+			};
+			tracking.set(stateKey, trackingData);
+		}
+
 		if (!stateResource) {
 			// 状态不存在时，如果之前存在过则认为发生了变化
-			const changed = lastState !== undefined;
-			lastState = undefined;
+			const changed = trackingData.lastState !== undefined;
+			trackingData.lastState = undefined;
+			trackingData.hasInitialized = false;
 			return changed;
 		}
 
 		const currentState = stateResource.get();
 
 		// 初次初始化时认为发生了变化
-		if (!hasInitialized) {
-			hasInitialized = true;
-			lastState = currentState.clone() as S;
+		if (!trackingData.hasInitialized) {
+			trackingData.hasInitialized = true;
+			trackingData.lastState = currentState.clone() as S;
 			return true;
 		}
 
 		// 检查状态是否改变
-		const changed = lastState === undefined || !lastState.equals(currentState);
-		lastState = currentState.clone() as S;
+		const changed =
+			trackingData.lastState === undefined || !trackingData.lastState.equals(currentState);
+		trackingData.lastState = currentState.clone() as S;
 		return changed;
 	};
 }
@@ -95,25 +127,41 @@ export function stateChanged<S extends States>(stateType: TypeDescriptor): RunCo
 /**
  * 检查是否正在从特定状态退出
  *
- * **注意**: 此函数使用闭包来跟踪状态，应该在应用初始化时创建一次并复用。
+ * **用途**: 创建一个运行条件，仅在正在退出特定状态时返回 true
  *
- * @param stateType - 状态类型
- * @param exitingState - 正在退出的状态
+ * **内存管理**: 使用 WeakMap 存储状态追踪数据，当 World 被垃圾回收时自动清理，避免内存泄漏
+ *
+ * @param stateType - 状态类型描述符
+ * @param exitingStateValue - 正在退出的状态
  * @returns 运行条件函数
  */
 export function exitingState<S extends States>(
 	stateType: TypeDescriptor,
-	exitingState: S,
+	exitingStateValue: S,
 ): RunCondition {
-	let wasInState = false;
+	const stateKey = `${stateType.id}_${stateType.text}_exiting_${exitingStateValue.getStateId()}`;
 
 	return (world: World, resourceManager: ResourceManager): boolean => {
-		// 使用统一的资源键生成方式
-		const stateResource = resourceManager.getResourceByTypeDescriptor<State<S>>(stateType);
-		const isInState = stateResource ? stateResource.is(exitingState) : false;
+		// 获取或创建当前 World 的追踪 Map
+		let tracking = stateChangeTracking.get(world);
 
+		if (tracking === undefined) {
+			tracking = new Map<string, unknown>();
+			stateChangeTracking.set(world, tracking);
+		}
+
+		// 获取上次状态
+		const wasInState = (tracking.get(stateKey) as boolean | undefined) ?? false;
+
+		// 检查当前状态
+		const stateResource = resourceManager.getResourceByTypeDescriptor<State<S>>(stateType);
+		const isInState = stateResource ? stateResource.is(exitingStateValue) : false;
+
+		// 更新追踪数据
+		tracking.set(stateKey, isInState);
+
+		// 检查是否正在退出
 		const exiting = wasInState && !isInState;
-		wasInState = isInState;
 		return exiting;
 	};
 }
@@ -121,24 +169,41 @@ export function exitingState<S extends States>(
 /**
  * 检查是否正在进入特定状态
  *
- * **注意**: 此函数使用闭包来跟踪状态，应该在应用初始化时创建一次并复用。
+ * **用途**: 创建一个运行条件，仅在正在进入特定状态时返回 true
  *
- * @param stateType - 状态类型
- * @param enteringState - 正在进入的状态
+ * **内存管理**: 使用 WeakMap 存储状态追踪数据，当 World 被垃圾回收时自动清理，避免内存泄漏
+ *
+ * @param stateType - 状态类型描述符
+ * @param enteringStateValue - 正在进入的状态
  * @returns 运行条件函数
  */
 export function enteringState<S extends States>(
 	stateType: TypeDescriptor,
-	enteringState: S,
+	enteringStateValue: S,
 ): RunCondition {
-	let wasInState = false;
+	const stateKey = `${stateType.id}_${stateType.text}_entering_${enteringStateValue.getStateId()}`;
 
 	return (world: World, resourceManager: ResourceManager): boolean => {
-		const stateResource = resourceManager.getResourceByTypeDescriptor<State<S>>(stateType);
-		const isInState = stateResource ? stateResource.is(enteringState) : false;
+		// 获取或创建当前 World 的追踪 Map
+		let tracking = stateChangeTracking.get(world);
 
+		if (tracking === undefined) {
+			tracking = new Map<string, unknown>();
+			stateChangeTracking.set(world, tracking);
+		}
+
+		// 获取上次状态
+		const wasInState = (tracking.get(stateKey) as boolean | undefined) ?? false;
+
+		// 检查当前状态
+		const stateResource = resourceManager.getResourceByTypeDescriptor<State<S>>(stateType);
+		const isInState = stateResource ? stateResource.is(enteringStateValue) : false;
+
+		// 更新追踪数据
+		tracking.set(stateKey, isInState);
+
+		// 检查是否正在进入
 		const entering = !wasInState && isInState;
-		wasInState = isInState;
 		return entering;
 	};
 }

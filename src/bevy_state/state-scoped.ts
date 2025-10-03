@@ -126,10 +126,13 @@ function despawnEntityRecursive(world: World, entityId: Entity): void {
 
 /**
  * 标记实体在状态退出时被清理
- * @param world - ECS 世界
- * @param entityId - 实体ID
- * @param state - 状态
- * @param recursive - 是否递归清理子实体
+ *
+ * **用途**: 为实体添加 StateScoped 组件，使其在指定状态退出时自动清理
+ *
+ * @param world - ECS 世界实例
+ * @param entityId - 要标记的实体ID
+ * @param state - 关联的状态实例
+ * @param recursive - 是否递归清理子实体（默认 false）
  */
 export function markForDespawnOnExit<S extends States>(
 	world: World,
@@ -149,10 +152,13 @@ export function markForDespawnOnExit<S extends States>(
 
 /**
  * 标记实体在状态进入时被清理
- * @param world - ECS 世界
- * @param entityId - 实体ID
- * @param state - 状态
- * @param recursive - 是否递归清理子实体
+ *
+ * **用途**: 为实体添加 StateScoped 组件，使其在指定状态进入时自动清理
+ *
+ * @param world - ECS 世界实例
+ * @param entityId - 要标记的实体ID
+ * @param state - 关联的状态实例
+ * @param recursive - 是否递归清理子实体（默认 false）
  */
 export function markForDespawnOnEnter<S extends States>(
 	world: World,
@@ -175,10 +181,12 @@ export function markForDespawnOnEnter<S extends States>(
  *
  * **性能优势**: 相比循环调用单个标记函数，批量操作减少了函数调用开销
  *
- * @param world - ECS 世界
- * @param entities - 实体ID数组
- * @param state - 状态
- * @param recursive - 是否递归清理子实体
+ * **用途**: 为多个实体批量添加 StateScoped 组件，减少重复代码
+ *
+ * @param world - ECS 世界实例
+ * @param entities - 要标记的实体ID数组
+ * @param state - 关联的状态实例
+ * @param recursive - 是否递归清理子实体（默认 false）
  */
 export function markEntitiesForDespawnOnExit<S extends States>(
 	world: World,
@@ -203,10 +211,12 @@ export function markEntitiesForDespawnOnExit<S extends States>(
  *
  * **性能优势**: 相比循环调用单个标记函数，批量操作减少了函数调用开销
  *
- * @param world - ECS 世界
- * @param entities - 实体ID数组
- * @param state - 状态
- * @param recursive - 是否递归清理子实体
+ * **用途**: 为多个实体批量添加 StateScoped 组件，减少重复代码
+ *
+ * @param world - ECS 世界实例
+ * @param entities - 要标记的实体ID数组
+ * @param state - 关联的状态实例
+ * @param recursive - 是否递归清理子实体（默认 false）
  */
 export function markEntitiesForDespawnOnEnter<S extends States>(
 	world: World,
@@ -228,9 +238,12 @@ export function markEntitiesForDespawnOnEnter<S extends States>(
 
 /**
  * 检查实体是否被标记为状态作用域清理
- * @param world - ECS 世界
- * @param entityId - 实体ID
- * @returns 状态作用域组件数据或 undefined
+ *
+ * **用途**: 获取实体的 StateScoped 组件数据，用于查询清理策略和状态信息
+ *
+ * @param world - ECS 世界实例
+ * @param entityId - 要查询的实体ID
+ * @returns 状态作用域组件数据或 undefined（实体未标记时）
  */
 export function getStateScopedData(world: World, entityId: Entity): StateScopedComponent | undefined {
 	return world.get(entityId, StateScoped);
@@ -238,8 +251,11 @@ export function getStateScopedData(world: World, entityId: Entity): StateScopedC
 
 /**
  * 移除实体的状态作用域标记
- * @param world - ECS 世界
- * @param entityId - 实体ID
+ *
+ * **用途**: 从实体移除 StateScoped 组件，取消自动清理行为
+ *
+ * @param world - ECS 世界实例
+ * @param entityId - 要移除标记的实体ID
  */
 export function removeStateScopedMarker(world: World, entityId: Entity): void {
 	world.remove(entityId, StateScoped);
@@ -250,10 +266,12 @@ export function removeStateScopedMarker(world: World, entityId: Entity): void {
  *
  * **性能优化**: 使用早期退出条件减少不必要的比较
  *
- * @param world - ECS 世界
- * @param state - 状态
- * @param strategy - 清理策略（可选）
- * @returns 实体ID数组
+ * **用途**: 查询所有关联到指定状态的实体，可选过滤清理策略
+ *
+ * @param world - ECS 世界实例
+ * @param state - 要查询的状态实例
+ * @param strategy - 清理策略过滤器（可选，不提供则返回所有策略的实体）
+ * @returns 符合条件的实体ID数组
  */
 export function getEntitiesInState<S extends States>(
 	world: World,
@@ -275,9 +293,12 @@ export function getEntitiesInState<S extends States>(
 
 /**
  * 清理指定状态的所有实体
- * @param world - ECS 世界
- * @param state - 状态
- * @param strategy - 清理策略（可选）
+ *
+ * **用途**: 立即清理所有关联到指定状态的实体，支持递归清理
+ *
+ * @param world - ECS 世界实例
+ * @param state - 要清理的状态实例
+ * @param strategy - 清理策略过滤器（可选，不提供则清理所有策略的实体）
  */
 export function despawnAllInState<S extends States>(
 	world: World,
@@ -298,8 +319,13 @@ export function despawnAllInState<S extends States>(
 
 /**
  * 清理指定状态退出时的实体
- * @param world - ECS 世界
- * @param exitedState - 退出的状态
+ *
+ * **用途**: 自动清理所有标记为 OnExit 策略且关联到退出状态的实体
+ *
+ * **调用时机**: 由 StateTransitionManager 在状态退出时自动调用
+ *
+ * @param world - ECS 世界实例
+ * @param exitedState - 退出的状态实例
  */
 export function cleanupOnStateExit<S extends States>(world: World, exitedState: S): void {
 	const exitedStateId = exitedState.getStateId();
@@ -323,8 +349,13 @@ export function cleanupOnStateExit<S extends States>(world: World, exitedState: 
 
 /**
  * 清理指定状态进入时的实体
- * @param world - ECS 世界
- * @param enteredState - 进入的状态
+ *
+ * **用途**: 自动清理所有标记为 OnEnter 策略且关联到进入状态的实体
+ *
+ * **调用时机**: 由 StateTransitionManager 在状态进入时自动调用
+ *
+ * @param world - ECS 世界实例
+ * @param enteredState - 进入的状态实例
  */
 export function cleanupOnStateEnter<S extends States>(world: World, enteredState: S): void {
 	const enteredStateId = enteredState.getStateId();
@@ -348,7 +379,12 @@ export function cleanupOnStateEnter<S extends States>(world: World, enteredState
 
 /**
  * 注册状态作用域系统的便利函数
- * @returns 系统函数数组
+ *
+ * **用途**: 返回状态作用域清理系统数组，便于批量注册到调度
+ *
+ * **注意**: 实际清理由 StateTransitionManager 自动执行，这些系统为空实现
+ *
+ * @returns 系统函数数组（包含 despawnOnExitStateSystem 和 despawnOnEnterStateSystem）
  */
 export function registerStateScopedSystems(): Array<SystemFunction> {
 	return [despawnOnExitStateSystem, despawnOnEnterStateSystem];

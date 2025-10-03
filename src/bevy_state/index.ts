@@ -30,12 +30,15 @@ export {
 	StateConfig,
 } from "./resources";
 
+export { insertState, removeState, setState } from "./commands";
+
 export {
 	StateTransition,
 	StateTransitionMessage as StateTransitionEvent,
 	OnEnter,
 	OnExit,
 	OnTransition,
+	DependentTransitions,
 	EnterSchedules,
 	ExitSchedules,
 	TransitionSchedules,
@@ -50,6 +53,7 @@ export {
 	ComputedStateManager,
 	createComputedState,
 	MappedComputedState,
+	sortByDependencyDepth,
 } from "./computed-states";
 
 export {
@@ -80,6 +84,7 @@ export {
 	StatePluginConfig,
 	ComputedStatesPlugin,
 	SubStatesPlugin,
+	StateTransitionSystems,
 } from "./plugin";
 
 export {
@@ -100,6 +105,9 @@ export {
 	StateScopedPluginConfig,
 	DEFAULT_STATE_SCOPED_CONFIG,
 } from "./state-scoped";
+
+// App 扩展导出
+export { AppExtStates, appInitState, appInsertState, appAddComputedState, appAddSubState } from "./app";
 
 // Prelude 导出
 export * as prelude from "./prelude";

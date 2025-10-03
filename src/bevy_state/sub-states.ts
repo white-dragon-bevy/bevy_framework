@@ -172,17 +172,27 @@ export class SubStateManager<TParent extends States, TSub extends SubStates<TPar
 	 * - 如果应该存在但不存在，创建默认子状态
 	 * - 如果不应该存在但存在，移除子状态和 NextState
 	 *
-	 * **调用时机**: 在 StateTransition 调度中自动调用
+	 * **调用时机**: 在 StateTransition 调度和 Startup 调度中自动调用
+	 *
+	 * **防御性编程**:
+	 * - 检查父状态是否存在（避免竞态条件）
+	 * - 防止重复初始化子状态
+	 * - 安全地处理资源不存在的情况
 	 *
 	 * @param world - 游戏世界
 	 * @param resourceManager - 资源管理器
 	 */
 	public updateSubState(world: World, resourceManager: ResourceManager): void {
-
-
 		// 获取父状态
 		const parentState = resourceManager.getResourceByTypeDescriptor<State<TParent>>(this.parentType);
-		const parentValue = parentState?.get();
+
+		if (parentState === undefined) {
+			// 父状态不存在，无法确定子状态是否应该存在
+			// 这是正常情况：父状态可能尚未初始化
+			return;
+		}
+
+		const parentValue = parentState.get();
 
 		// 获取当前子状态
 		const subStateResource = resourceManager.getResourceByTypeDescriptor<State<TSub>>(this.stateType);
@@ -195,8 +205,10 @@ export class SubStateManager<TParent extends States, TSub extends SubStates<TPar
 			// 如果不应该存在，移除子状态
 			if (subStateResource) {
 				resourceManager.removeResourceByTypeDescriptor(this.stateType);
+
 				// 同时清除 NextState
 				const nextSubState = resourceManager.getResourceByTypeDescriptor<NextState<TSub>>(this.nextStateType);
+
 				if (nextSubState) {
 					nextSubState.reset();
 				}

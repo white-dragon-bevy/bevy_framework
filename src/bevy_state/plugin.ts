@@ -7,9 +7,9 @@ import { World } from "@rbxts/matter";
 import { App } from "../bevy_app/app";
 import { Plugin } from "../bevy_app/plugin";
 import { BuiltinSchedules } from "../bevy_app/main-schedule";
-import { ResourceManager, } from "../bevy_ecs/resource";
+import { ResourceManager } from "../bevy_ecs/resource";
 import { EnumStates, States } from "./states";
-import { NextState, StateConstructor, DefaultStateFn } from "./resources";
+import { State, NextState, StateConstructor, DefaultStateFn } from "./resources";
 import { StateTransition, StateTransitionManager } from "./transitions";
 import { ComputedStates, ComputedStateManager } from "./computed-states";
 import { SubStates, SubStateManager } from "./sub-states";
@@ -71,8 +71,23 @@ export interface StatePluginConfig<S extends States> {
  * - 管理状态生命周期和转换流程
  * - 协调 OnEnter、OnExit、OnTransition 调度的执行
  *
+ * **插件注册顺序要求**:
+ * 1. 首先注册 ComputedStatesPlugin 和 SubStatesPlugin（派生状态）
+ * 2. 然后注册 StatesPlugin（父状态）
+ * 3. 这样可以确保派生状态的更新系统在父状态转换系统之前执行
+ * 4. 遵循 DependentTransitions → ExitSchedules → TransitionSchedules → EnterSchedules 的执行顺序
+ *
+ * **状态转换执行阶段**（按 Rust Bevy 规范）:
+ * - DependentTransitions: 更新 ComputedStates 和 SubStates
+ * - ExitSchedules: 执行 OnExit 调度
+ * - TransitionSchedules: 执行 OnTransition 调度
+ * - EnterSchedules: 执行 OnEnter 调度
+ *
  * **使用示例**:
  * ```typescript
+ * // 正确的注册顺序：派生状态插件在前，父状态插件在后
+ * app.addPlugin(new ComputedStatesPlugin(GameState, PausedState));
+ * app.addPlugin(SubStatesPlugin.create(MenuSubState));
  * app.addPlugin(StatesPlugin.create({
  *     defaultState: () => GameState.Menu
  * }));
@@ -267,13 +282,18 @@ export class ComputedStatesPlugin<TSource extends States, TComputed extends Comp
 	 * 1. 获取应用的资源管理器
 	 * 2. 注册计算状态更新系统到 StateTransition 调度
 	 *
+	 * **重要**: 计算状态更新系统必须在 DependentTransitions 阶段运行，
+	 * 即在状态转换（ExitSchedules/TransitionSchedules/EnterSchedules）之前执行，
+	 * 确保派生状态基于最新的父状态值更新。
+	 *
 	 * @param app - 应用实例
 	 */
 	public build(app: App): void {
 		// 使用 App 上下文中的资源管理器，确保所有插件共享同一实例
 		this.resourceManager = app.world().world.resources;
 
-		// 添加计算状态更新系统 - 在 StateTransition 调度中运行，紧跟在状态转换之后
+		// 添加计算状态更新系统 - 在 StateTransition 调度中运行
+		// 注意：这个系统应该在 DependentTransitions 阶段运行（在 ExitSchedules 之前）
 		app.addSystems(StateTransition as unknown as string, (worldParam: World) => {
 			if (this.resourceManager) {
 				this.manager.updateComputedState(worldParam, this.resourceManager);
@@ -287,9 +307,20 @@ export class ComputedStatesPlugin<TSource extends States, TComputed extends Comp
 	 * @returns 插件的唯一标识名称
 	 */
 	public name(): string {
-		const sourceType = this.sourceType as unknown as { name?: string };
-		const computedType = this.computedType as unknown as { name?: string };
-		return `ComputedStatesPlugin<${sourceType.name ?? "Source"}, ${computedType.name ?? "Computed"}>`;
+		// 类型守卫：安全获取类型名称
+		const getTypeName = (typeConstructor: unknown): string => {
+			if (typeIs(typeConstructor, "table")) {
+				const typeTable = typeConstructor as Record<string, unknown>;
+				if (typeIs(typeTable.name, "string")) {
+					return typeTable.name;
+				}
+			}
+			return tostring(typeConstructor);
+		};
+
+		const sourceName = getTypeName(this.sourceType);
+		const computedName = getTypeName(this.computedType);
+		return `ComputedStatesPlugin<${sourceName}, ${computedName}>`;
 	}
 
 	/**
@@ -405,8 +436,16 @@ export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TPar
 	 *
 	 * **执行流程**:
 	 * 1. 获取应用的资源管理器
-	 * 2. 注册子状态管理系统到 StateTransition 调度
-	 * 3. 初始化 NextState<TSub> 资源
+	 * 2. 在 Startup 阶段确保初始状态正确（避免竞态）
+	 * 3. 注册子状态管理系统到 StateTransition 调度
+	 * 4. 初始化 NextState<TSub> 资源
+	 *
+	 * **重要**: 子状态更新系统必须在 DependentTransitions 阶段运行，
+	 * 即在状态转换（ExitSchedules/TransitionSchedules/EnterSchedules）之前执行，
+	 * 确保子状态基于最新的父状态值更新。
+	 *
+	 * **竞态条件修复**: 在 Startup 阶段强制同步初始状态，确保无论插件注册顺序如何，
+	 * 子状态都能正确初始化。
 	 *
 	 * @param app - 应用实例
 	 */
@@ -414,18 +453,56 @@ export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TPar
 		// 使用 App 上下文中的资源管理器，确保所有插件共享同一实例
 		this.resourceManager = app.world().world.resources;
 
-		// 添加子状态管理系统
+		// 初始化 NextState 资源（必须在所有系统之前）
+		if (this.resourceManager) {
+			const nextStateResource = NextState.unchanged<TSub>();
+			nextStateResource.typeDescriptor = this.nextStateType;
+			this.resourceManager.insertResourceByTypeDescriptor(nextStateResource, this.nextStateType);
+		}
+
+		// 在 Startup 阶段确保初始状态正确（避免竞态条件）
+		app.addSystems(BuiltinSchedules.STARTUP, (worldParam: World) => {
+			if (this.resourceManager) {
+				this.ensureInitialSubState(worldParam, this.resourceManager);
+			}
+		});
+
+		// 添加子状态管理系统 - 在 StateTransition 调度中运行
+		// 注意：这个系统应该在 DependentTransitions 阶段运行（在 ExitSchedules 之前）
 		app.addSystems(StateTransition as unknown as string, (worldParam: World) => {
 			if (this.resourceManager) {
 				this.manager.updateSubState(worldParam, this.resourceManager);
 				this.manager.processSubStateTransition(worldParam, this.resourceManager);
 			}
 		});
+	}
 
-		// 初始化 NextState 资源
-		if (this.resourceManager) {
-			this.resourceManager.insertResourceByTypeDescriptor(NextState.unchanged<TSub>(),this.nextStateType);
+	/**
+	 * 确保初始子状态正确
+	 *
+	 * **职责**: 在 Startup 阶段强制同步子状态，避免初始化竞态条件
+	 *
+	 * **执行逻辑**:
+	 * 1. 检查父状态是否已初始化
+	 * 2. 检查子状态是否应该存在
+	 * 3. 如果应该存在但不存在，创建初始子状态
+	 * 4. 如果不应该存在但存在，移除子状态
+	 *
+	 * @param world - 游戏世界实例
+	 * @param resourceManager - 资源管理器实例
+	 */
+	private ensureInitialSubState(world: World, resourceManager: ResourceManager): void {
+		// 检查父状态是否已初始化
+		const parentState = resourceManager.getResourceByTypeDescriptor<State<TParent>>(this.parentType);
+
+		if (parentState === undefined) {
+			// 父状态尚未初始化，延迟到下一帧处理
+			// 这是正常情况，因为父状态可能在后续的 Startup 系统中初始化
+			return;
 		}
+
+		// 使用 manager 的 updateSubState 方法确保子状态正确
+		this.manager.updateSubState(world, resourceManager);
 	}
 
 	/**
@@ -434,9 +511,17 @@ export class SubStatesPlugin<TParent extends States, TSub extends SubStates<TPar
 	 * @returns 插件的唯一标识名称
 	 */
 	public name(): string {
-		const parentType = this.parentType as unknown as { name?: string };
-		const stateType = this.stateType as unknown as { name?: string };
-		return `SubStatesPlugin<${parentType.name ?? "Parent"}, ${stateType.name ?? "Sub"}>`;
+		// 类型守卫：安全获取类型名称
+		const getTypeName = (typeDescriptor: TypeDescriptor): string => {
+			if (typeIs(typeDescriptor.text, "string")) {
+				return typeDescriptor.text;
+			}
+			return tostring(typeDescriptor.id);
+		};
+
+		const parentName = getTypeName(this.parentType);
+		const stateName = getTypeName(this.stateType);
+		return `SubStatesPlugin<${parentName}, ${stateName}>`;
 	}
 
 	/**

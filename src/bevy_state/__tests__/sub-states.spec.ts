@@ -330,6 +330,57 @@ export = () => {
 				expect(subStateResource).to.be.ok();
 				expect(subStateResource!.get().getStateId()).to.equal(MockSubState.SUB_B.getStateId());
 			});
+
+			it("should handle parent state not initialized (race condition)", () => {
+				// 测试竞态条件：子状态更新系统运行时，父状态尚未初始化
+				// 这应该安全地返回，不抛出错误
+
+				manager.updateSubState(world, resourceManager);
+
+				// 验证没有创建子状态
+				const subStateResource =
+					resourceManager.getResourceByTypeDescriptor<State<MockSubState>>(stateTypeDescriptor);
+
+				expect(subStateResource).never.to.be.ok();
+			});
+
+			it("should handle parent and sub state initialized simultaneously", () => {
+				// 测试竞态条件：父状态和子状态系统同时运行
+				// 第一次调用时父状态不存在
+				manager.updateSubState(world, resourceManager);
+
+				let subStateResource = resourceManager.getResourceByTypeDescriptor<State<MockSubState>>(stateTypeDescriptor);
+
+				expect(subStateResource).never.to.be.ok();
+
+				// 模拟父状态初始化
+				const parentState = State.create(MockParentState.ACTIVE);
+				parentState.typeDescriptor = parentTypeDescriptor;
+				resourceManager.insertResourceByTypeDescriptor(parentState, parentTypeDescriptor);
+
+				// 第二次调用应该创建子状态
+				manager.updateSubState(world, resourceManager);
+
+				subStateResource = resourceManager.getResourceByTypeDescriptor<State<MockSubState>>(stateTypeDescriptor);
+
+				expect(subStateResource).to.be.ok();
+				expect(subStateResource!.get().getStateId()).to.equal(MockSubState.SUB_A.getStateId());
+			});
+
+			it("should handle undefined parent state value", () => {
+				// 测试边界情况：父状态存在但值为 undefined
+				const parentState = State.create(MockParentState.INACTIVE);
+				parentState.typeDescriptor = parentTypeDescriptor;
+				resourceManager.insertResourceByTypeDescriptor(parentState, parentTypeDescriptor);
+
+				manager.updateSubState(world, resourceManager);
+
+				// 在不允许的父状态下，不应该创建子状态
+				const subStateResource =
+					resourceManager.getResourceByTypeDescriptor<State<MockSubState>>(stateTypeDescriptor);
+
+				expect(subStateResource).never.to.be.ok();
+			});
 		});
 
 		describe("processSubStateTransition", () => {
@@ -490,6 +541,431 @@ export = () => {
 			});
 
 			expect(result.states.STATE_A.equals(result.states.STATE_B)).to.equal(false);
+		});
+	});
+
+	describe("Parent State Auto-Update", () => {
+		let world: World;
+		let resourceManager: ResourceManager;
+		let parentTypeDescriptor: TypeDescriptor;
+		let stateTypeDescriptor: TypeDescriptor;
+		let nextStateTypeDescriptor: TypeDescriptor;
+		let manager: SubStateManager<MockParentState, MockSubState>;
+
+		beforeEach(() => {
+			world = {} as World;
+			resourceManager = new ResourceManager();
+			parentTypeDescriptor = createMockTypeDescriptor("MockParentState");
+			stateTypeDescriptor = createMockTypeDescriptor("State<MockSubState>");
+			nextStateTypeDescriptor = createMockTypeDescriptor("NextState<MockSubState>");
+
+			class SubStateFactory extends MockSubState {
+				public constructor() {
+					super("sub_a");
+				}
+			}
+
+			manager = new SubStateManager<MockParentState, MockSubState>(
+				parentTypeDescriptor,
+				stateTypeDescriptor,
+				nextStateTypeDescriptor,
+				SubStateFactory as unknown as new () => MockSubState,
+			);
+		});
+
+		it("should auto-create sub state when parent changes to allowed state", () => {
+			const parentState = State.create(MockParentState.INACTIVE);
+			parentState.typeDescriptor = parentTypeDescriptor;
+			resourceManager.insertResourceByTypeDescriptor(parentState, parentTypeDescriptor);
+
+			manager.updateSubState(world, resourceManager);
+
+			let subStateResource = resourceManager.getResourceByTypeDescriptor<State<MockSubState>>(stateTypeDescriptor);
+			expect(subStateResource).never.to.be.ok();
+
+			parentState.setInternal(MockParentState.ACTIVE);
+
+			manager.updateSubState(world, resourceManager);
+
+			subStateResource = resourceManager.getResourceByTypeDescriptor<State<MockSubState>>(stateTypeDescriptor);
+			expect(subStateResource).to.be.ok();
+			expect(subStateResource!.get().getStateId()).to.equal(MockSubState.SUB_A.getStateId());
+		});
+
+		it("should auto-remove sub state when parent changes to disallowed state", () => {
+			const parentState = State.create(MockParentState.ACTIVE);
+			parentState.typeDescriptor = parentTypeDescriptor;
+			resourceManager.insertResourceByTypeDescriptor(parentState, parentTypeDescriptor);
+
+			manager.updateSubState(world, resourceManager);
+
+			let subStateResource = resourceManager.getResourceByTypeDescriptor<State<MockSubState>>(stateTypeDescriptor);
+			expect(subStateResource).to.be.ok();
+
+			parentState.setInternal(MockParentState.INACTIVE);
+
+			manager.updateSubState(world, resourceManager);
+
+			subStateResource = resourceManager.getResourceByTypeDescriptor<State<MockSubState>>(stateTypeDescriptor);
+			expect(subStateResource).never.to.be.ok();
+		});
+
+		it("should preserve sub state when parent remains in allowed state", () => {
+			const parentState = State.create(MockParentState.ACTIVE);
+			parentState.typeDescriptor = parentTypeDescriptor;
+			resourceManager.insertResourceByTypeDescriptor(parentState, parentTypeDescriptor);
+
+			manager.updateSubState(world, resourceManager);
+
+			const subStateResource = resourceManager.getResourceByTypeDescriptor<State<MockSubState>>(
+				stateTypeDescriptor,
+			);
+			expect(subStateResource).to.be.ok();
+
+			const originalSubState = subStateResource!.get();
+
+			manager.updateSubState(world, resourceManager);
+
+			const updatedSubStateResource = resourceManager.getResourceByTypeDescriptor<State<MockSubState>>(
+				stateTypeDescriptor,
+			);
+			expect(updatedSubStateResource).to.be.ok();
+			expect(updatedSubStateResource!.get().equals(originalSubState)).to.equal(true);
+		});
+
+		it("should handle multiple parent state transitions", () => {
+			const parentState = State.create(MockParentState.INACTIVE);
+			parentState.typeDescriptor = parentTypeDescriptor;
+			resourceManager.insertResourceByTypeDescriptor(parentState, parentTypeDescriptor);
+
+			const transitions = [
+				MockParentState.ACTIVE,
+				MockParentState.INACTIVE,
+				MockParentState.ACTIVE,
+				MockParentState.PAUSED,
+			];
+
+			for (const nextParentState of transitions) {
+				parentState.setInternal(nextParentState);
+				manager.updateSubState(world, resourceManager);
+
+				const subStateResource =
+					resourceManager.getResourceByTypeDescriptor<State<MockSubState>>(stateTypeDescriptor);
+				const shouldExist = nextParentState.equals(MockParentState.ACTIVE);
+
+				if (shouldExist) {
+					expect(subStateResource).to.be.ok();
+				} else {
+					expect(subStateResource).never.to.be.ok();
+				}
+			}
+		});
+
+		it("should clear pending sub state transition when parent becomes disallowed", () => {
+			const parentState = State.create(MockParentState.ACTIVE);
+			parentState.typeDescriptor = parentTypeDescriptor;
+			resourceManager.insertResourceByTypeDescriptor(parentState, parentTypeDescriptor);
+
+			const subState = State.create(MockSubState.SUB_A);
+			subState.typeDescriptor = stateTypeDescriptor;
+			resourceManager.insertResourceByTypeDescriptor(subState, stateTypeDescriptor);
+
+			const nextSubState = NextState.create<MockSubState>();
+			nextSubState.typeDescriptor = nextStateTypeDescriptor;
+			nextSubState.set(MockSubState.SUB_B);
+			resourceManager.insertResourceByTypeDescriptor(nextSubState, nextStateTypeDescriptor);
+
+			parentState.setInternal(MockParentState.INACTIVE);
+
+			manager.updateSubState(world, resourceManager);
+
+			const nextSubStateResource =
+				resourceManager.getResourceByTypeDescriptor<NextState<MockSubState>>(nextStateTypeDescriptor);
+
+			expect(nextSubStateResource).to.be.ok();
+			expect(nextSubStateResource!.isUnchanged()).to.equal(true);
+		});
+	});
+
+	describe("should_exist Logic", () => {
+		let config: SubStateConfig<MockParentState>;
+
+		beforeEach(() => {
+			config = {
+				parentType: MockParentState as unknown as StateConstructor<MockParentState>,
+				allowedParentStates: new Set([
+					MockParentState.ACTIVE.getStateId(),
+					MockParentState.PAUSED.getStateId(),
+				]),
+			};
+		});
+
+		it("should correctly evaluate should_exist with multiple allowed states", () => {
+			const subState = new MockSubState("test_state", config);
+
+			expect(subState.shouldExist(MockParentState.ACTIVE)).to.equal(subState);
+			expect(subState.shouldExist(MockParentState.PAUSED)).to.equal(subState);
+			expect(subState.shouldExist(MockParentState.INACTIVE)).to.equal(undefined);
+		});
+
+		it("should handle single allowed state", () => {
+			const singleConfig: SubStateConfig<MockParentState> = {
+				parentType: MockParentState as unknown as StateConstructor<MockParentState>,
+				allowedParentStates: new Set([MockParentState.ACTIVE.getStateId()]),
+			};
+
+			const subState = new MockSubState("test_state", singleConfig);
+
+			expect(subState.shouldExist(MockParentState.ACTIVE)).to.equal(subState);
+			expect(subState.shouldExist(MockParentState.PAUSED)).to.equal(undefined);
+			expect(subState.shouldExist(MockParentState.INACTIVE)).to.equal(undefined);
+		});
+
+		it("should return undefined when no states are allowed", () => {
+			const emptyConfig: SubStateConfig<MockParentState> = {
+				parentType: MockParentState as unknown as StateConstructor<MockParentState>,
+				allowedParentStates: new Set([]),
+			};
+
+			const subState = new MockSubState("test_state", emptyConfig);
+
+			expect(subState.shouldExist(MockParentState.ACTIVE)).to.equal(undefined);
+			expect(subState.shouldExist(MockParentState.PAUSED)).to.equal(undefined);
+			expect(subState.shouldExist(MockParentState.INACTIVE)).to.equal(undefined);
+		});
+
+		it("should handle undefined parent state", () => {
+			const subState = new MockSubState("test_state", config);
+
+			expect(subState.shouldExist(undefined)).to.equal(undefined);
+		});
+	});
+
+	describe("Multi-Level SubStates Nesting", () => {
+		class Level1State extends EnumStates {
+			public static readonly ENABLED = new Level1State("enabled");
+			public static readonly DISABLED = new Level1State("disabled");
+
+			public constructor(value: string) {
+				super(value);
+			}
+
+			public clone(): States {
+				return new Level1State(this.getStateId() as string);
+			}
+		}
+
+		class Level2SubState extends BaseSubStates<Level1State> {
+			public static readonly SUB_ENABLED = new Level2SubState("sub_enabled");
+			public static readonly SUB_DISABLED = new Level2SubState("sub_disabled");
+
+			public constructor(
+				private readonly value: string,
+				config?: SubStateConfig<Level1State>,
+			) {
+				super(
+					config ?? {
+						parentType: Level1State as unknown as StateConstructor<Level1State>,
+						allowedParentStates: new Set([Level1State.ENABLED.getStateId()]),
+					},
+				);
+			}
+
+			public shouldExist(parentState: Level1State | undefined): this | undefined {
+				if (parentState === undefined) {
+					return undefined;
+				}
+				return this.config.allowedParentStates.has(parentState.getStateId()) ? this : undefined;
+			}
+
+			public getStateId(): string | number {
+				return this.value;
+			}
+
+			public clone(): States {
+				return new Level2SubState(this.value, this.getSubStateConfig());
+			}
+		}
+
+		class Level3SubState extends BaseSubStates<Level2SubState> {
+			public static readonly DEEP_STATE = new Level3SubState("deep_state");
+
+			public constructor(
+				private readonly value: string,
+				config?: SubStateConfig<Level2SubState>,
+			) {
+				super(
+					config ?? {
+						parentType: Level2SubState as unknown as StateConstructor<Level2SubState>,
+						allowedParentStates: new Set([Level2SubState.SUB_ENABLED.getStateId()]),
+					},
+				);
+			}
+
+			public shouldExist(parentState: Level2SubState | undefined): this | undefined {
+				if (parentState === undefined) {
+					return undefined;
+				}
+				return this.config.allowedParentStates.has(parentState.getStateId()) ? this : undefined;
+			}
+
+			public getStateId(): string | number {
+				return this.value;
+			}
+
+			public clone(): States {
+				return new Level3SubState(this.value, this.getSubStateConfig());
+			}
+		}
+
+		it("should handle two-level substate nesting", () => {
+			const world = {} as World;
+			const resourceManager = new ResourceManager();
+
+			const level1TypeDescriptor = createMockTypeDescriptor("Level1State");
+			const level2TypeDescriptor = createMockTypeDescriptor("Level2SubState");
+			const level2NextTypeDescriptor = createMockTypeDescriptor("NextState<Level2SubState>");
+
+			class Level2Factory extends Level2SubState {
+				public constructor() {
+					super("sub_enabled");
+				}
+			}
+
+			const level2Manager = new SubStateManager<Level1State, Level2SubState>(
+				level1TypeDescriptor,
+				level2TypeDescriptor,
+				level2NextTypeDescriptor,
+				Level2Factory as unknown as new () => Level2SubState,
+			);
+
+			const level1State = State.create(Level1State.ENABLED);
+			level1State.typeDescriptor = level1TypeDescriptor;
+			resourceManager.insertResourceByTypeDescriptor(level1State, level1TypeDescriptor);
+
+			level2Manager.updateSubState(world, resourceManager);
+
+			const level2StateResource = resourceManager.getResourceByTypeDescriptor<State<Level2SubState>>(
+				level2TypeDescriptor,
+			);
+
+			expect(level2StateResource).to.be.ok();
+			expect(level2StateResource!.get().getStateId()).to.equal(Level2SubState.SUB_ENABLED.getStateId());
+		});
+
+		it("should handle three-level substate nesting", () => {
+			const world = {} as World;
+			const resourceManager = new ResourceManager();
+
+			const level1TypeDescriptor = createMockTypeDescriptor("Level1State");
+			const level2TypeDescriptor = createMockTypeDescriptor("Level2SubState");
+			const level2NextTypeDescriptor = createMockTypeDescriptor("NextState<Level2SubState>");
+			const level3TypeDescriptor = createMockTypeDescriptor("Level3SubState");
+			const level3NextTypeDescriptor = createMockTypeDescriptor("NextState<Level3SubState>");
+
+			class Level2Factory extends Level2SubState {
+				public constructor() {
+					super("sub_enabled");
+				}
+			}
+
+			class Level3Factory extends Level3SubState {
+				public constructor() {
+					super("deep_state");
+				}
+			}
+
+			const level2Manager = new SubStateManager<Level1State, Level2SubState>(
+				level1TypeDescriptor,
+				level2TypeDescriptor,
+				level2NextTypeDescriptor,
+				Level2Factory as unknown as new () => Level2SubState,
+			);
+
+			const level3Manager = new SubStateManager<Level2SubState, Level3SubState>(
+				level2TypeDescriptor,
+				level3TypeDescriptor,
+				level3NextTypeDescriptor,
+				Level3Factory as unknown as new () => Level3SubState,
+			);
+
+			const level1State = State.create(Level1State.ENABLED);
+			level1State.typeDescriptor = level1TypeDescriptor;
+			resourceManager.insertResourceByTypeDescriptor(level1State, level1TypeDescriptor);
+
+			level2Manager.updateSubState(world, resourceManager);
+
+			const level2StateResource = resourceManager.getResourceByTypeDescriptor<State<Level2SubState>>(
+				level2TypeDescriptor,
+			);
+			expect(level2StateResource).to.be.ok();
+
+			level3Manager.updateSubState(world, resourceManager);
+
+			const level3StateResource = resourceManager.getResourceByTypeDescriptor<State<Level3SubState>>(
+				level3TypeDescriptor,
+			);
+			expect(level3StateResource).to.be.ok();
+			expect(level3StateResource!.get().getStateId()).to.equal(Level3SubState.DEEP_STATE.getStateId());
+		});
+
+		it("should cascade removal through nested substates", () => {
+			const world = {} as World;
+			const resourceManager = new ResourceManager();
+
+			const level1TypeDescriptor = createMockTypeDescriptor("Level1State");
+			const level2TypeDescriptor = createMockTypeDescriptor("Level2SubState");
+			const level2NextTypeDescriptor = createMockTypeDescriptor("NextState<Level2SubState>");
+			const level3TypeDescriptor = createMockTypeDescriptor("Level3SubState");
+			const level3NextTypeDescriptor = createMockTypeDescriptor("NextState<Level3SubState>");
+
+			class Level2Factory extends Level2SubState {
+				public constructor() {
+					super("sub_enabled");
+				}
+			}
+
+			class Level3Factory extends Level3SubState {
+				public constructor() {
+					super("deep_state");
+				}
+			}
+
+			const level2Manager = new SubStateManager<Level1State, Level2SubState>(
+				level1TypeDescriptor,
+				level2TypeDescriptor,
+				level2NextTypeDescriptor,
+				Level2Factory as unknown as new () => Level2SubState,
+			);
+
+			const level3Manager = new SubStateManager<Level2SubState, Level3SubState>(
+				level2TypeDescriptor,
+				level3TypeDescriptor,
+				level3NextTypeDescriptor,
+				Level3Factory as unknown as new () => Level3SubState,
+			);
+
+			const level1State = State.create(Level1State.ENABLED);
+			level1State.typeDescriptor = level1TypeDescriptor;
+			resourceManager.insertResourceByTypeDescriptor(level1State, level1TypeDescriptor);
+
+			level2Manager.updateSubState(world, resourceManager);
+			level3Manager.updateSubState(world, resourceManager);
+
+			expect(resourceManager.getResourceByTypeDescriptor<State<Level2SubState>>(level2TypeDescriptor)).to.be.ok();
+			expect(resourceManager.getResourceByTypeDescriptor<State<Level3SubState>>(level3TypeDescriptor)).to.be.ok();
+
+			level1State.setInternal(Level1State.DISABLED);
+
+			level2Manager.updateSubState(world, resourceManager);
+			level3Manager.updateSubState(world, resourceManager);
+
+			expect(
+				resourceManager.getResourceByTypeDescriptor<State<Level2SubState>>(level2TypeDescriptor),
+			).never.to.be.ok();
+			expect(
+				resourceManager.getResourceByTypeDescriptor<State<Level3SubState>>(level3TypeDescriptor),
+			).never.to.be.ok();
 		});
 	});
 };

@@ -170,6 +170,58 @@ export = () => {
 
 			expect(result).to.equal(true);
 		});
+
+		it("should not leak memory with multiple state types", () => {
+			const { world: world1, resourceManager: rm1, stateTypeDescriptor: type1 } = createTestEnvironment();
+			const { world: world2, resourceManager: rm2, stateTypeDescriptor: type2 } = createTestEnvironment();
+
+			const state1 = State.create(GameState.MENU);
+			const state2 = State.create(GameState.PLAYING);
+
+			rm1.insertResourceByTypeDescriptor(state1, type1);
+			rm2.insertResourceByTypeDescriptor(state2, type2);
+
+			const condition1 = stateChanged(type1);
+			const condition2 = stateChanged(type2);
+
+			expect(condition1(world1, rm1)).to.equal(true);
+			expect(condition2(world2, rm2)).to.equal(true);
+
+			state1.setInternal(GameState.PLAYING);
+			state2.setInternal(GameState.PAUSED);
+
+			expect(condition1(world1, rm1)).to.equal(true);
+			expect(condition2(world2, rm2)).to.equal(true);
+
+			expect(condition1(world1, rm1)).to.equal(false);
+			expect(condition2(world2, rm2)).to.equal(false);
+		});
+
+		it("should handle multiple worlds independently", () => {
+			const { world: world1, resourceManager: rm1, stateTypeDescriptor } = createTestEnvironment();
+			const { world: world2, resourceManager: rm2 } = createTestEnvironment();
+
+			const state1 = State.create(GameState.MENU);
+			const state2 = State.create(GameState.MENU);
+
+			rm1.insertResourceByTypeDescriptor(state1, stateTypeDescriptor);
+			rm2.insertResourceByTypeDescriptor(state2, stateTypeDescriptor);
+
+			const condition = stateChanged(stateTypeDescriptor);
+
+			expect(condition(world1, rm1)).to.equal(true);
+			expect(condition(world2, rm2)).to.equal(true);
+
+			state1.setInternal(GameState.PLAYING);
+
+			expect(condition(world1, rm1)).to.equal(true);
+			expect(condition(world2, rm2)).to.equal(false);
+
+			state2.setInternal(GameState.PAUSED);
+
+			expect(condition(world1, rm1)).to.equal(false);
+			expect(condition(world2, rm2)).to.equal(true);
+		});
 	});
 
 	describe("exitingState", () => {
@@ -550,6 +602,207 @@ export = () => {
 			const result = combined(world, resourceManager);
 
 			expect(result).to.equal(false);
+		});
+	});
+
+	describe("stateChanged edge cases", () => {
+		it("should return false when state resource does not exist", () => {
+			const { world, resourceManager, stateTypeDescriptor } = createTestEnvironment();
+
+			const condition = stateChanged(stateTypeDescriptor);
+			const result = condition(world, resourceManager);
+
+			expect(result).to.equal(false);
+		});
+
+		it("should detect state change to same value after removal", () => {
+			const { world, resourceManager, stateTypeDescriptor } = createTestEnvironment();
+			const stateResource = State.create(GameState.MENU);
+			resourceManager.insertResourceByTypeDescriptor(stateResource, stateTypeDescriptor);
+
+			const condition = stateChanged(stateTypeDescriptor);
+
+			expect(condition(world, resourceManager)).to.equal(true);
+
+			stateResource.setInternal(GameState.PLAYING);
+
+			expect(condition(world, resourceManager)).to.equal(true);
+
+			resourceManager.removeResourceByTypeDescriptor(stateTypeDescriptor);
+
+			expect(condition(world, resourceManager)).to.equal(true);
+
+			const newStateResource = State.create(GameState.PLAYING);
+			resourceManager.insertResourceByTypeDescriptor(newStateResource, stateTypeDescriptor);
+
+			expect(condition(world, resourceManager)).to.equal(true);
+		});
+
+		it("should handle rapid state changes correctly", () => {
+			const { world, resourceManager, stateTypeDescriptor } = createTestEnvironment();
+			const stateResource = State.create(GameState.MENU);
+			resourceManager.insertResourceByTypeDescriptor(stateResource, stateTypeDescriptor);
+
+			const condition = stateChanged(stateTypeDescriptor);
+
+			expect(condition(world, resourceManager)).to.equal(true);
+
+			for (let changeIndex = 0; changeIndex < 10; changeIndex++) {
+				const nextState = changeIndex % 2 === 0 ? GameState.PLAYING : GameState.PAUSED;
+				stateResource.setInternal(nextState);
+
+				expect(condition(world, resourceManager)).to.equal(true);
+			}
+
+			expect(condition(world, resourceManager)).to.equal(false);
+		});
+	});
+
+	describe("entering and exiting state edge cases", () => {
+		it("should handle entering state when state resource does not exist", () => {
+			const { world, resourceManager, stateTypeDescriptor } = createTestEnvironment();
+
+			const condition = enteringState(stateTypeDescriptor, GameState.MENU);
+			const result = condition(world, resourceManager);
+
+			expect(result).to.equal(false);
+		});
+
+		it("should handle exiting state when state resource does not exist", () => {
+			const { world, resourceManager, stateTypeDescriptor } = createTestEnvironment();
+
+			const condition = exitingState(stateTypeDescriptor, GameState.MENU);
+			const result = condition(world, resourceManager);
+
+			expect(result).to.equal(false);
+		});
+
+		it("should detect entering state on first check", () => {
+			const { world, resourceManager, stateTypeDescriptor } = createTestEnvironment();
+			const stateResource = State.create(GameState.MENU);
+			resourceManager.insertResourceByTypeDescriptor(stateResource, stateTypeDescriptor);
+
+			const condition = enteringState(stateTypeDescriptor, GameState.MENU);
+
+			expect(condition(world, resourceManager)).to.equal(true);
+
+			expect(condition(world, resourceManager)).to.equal(false);
+		});
+
+		it("should not detect exiting on first check", () => {
+			const { world, resourceManager, stateTypeDescriptor } = createTestEnvironment();
+			const stateResource = State.create(GameState.MENU);
+			resourceManager.insertResourceByTypeDescriptor(stateResource, stateTypeDescriptor);
+
+			const condition = exitingState(stateTypeDescriptor, GameState.MENU);
+
+			expect(condition(world, resourceManager)).to.equal(false);
+		});
+
+		it("should detect entering after state removal and re-addition", () => {
+			const { world, resourceManager, stateTypeDescriptor } = createTestEnvironment();
+			const stateResource = State.create(GameState.MENU);
+			resourceManager.insertResourceByTypeDescriptor(stateResource, stateTypeDescriptor);
+
+			const condition = enteringState(stateTypeDescriptor, GameState.PLAYING);
+
+			condition(world, resourceManager);
+
+			resourceManager.removeResourceByTypeDescriptor(stateTypeDescriptor);
+
+			condition(world, resourceManager);
+
+			const newStateResource = State.create(GameState.PLAYING);
+			resourceManager.insertResourceByTypeDescriptor(newStateResource, stateTypeDescriptor);
+
+			expect(condition(world, resourceManager)).to.equal(true);
+		});
+	});
+
+	describe("condition combinations during state transitions", () => {
+		it("should combine entering and state changed correctly", () => {
+			const { world, resourceManager, stateTypeDescriptor } = createTestEnvironment();
+			const stateResource = State.create(GameState.MENU);
+			resourceManager.insertResourceByTypeDescriptor(stateResource, stateTypeDescriptor);
+
+			const entering = enteringState(stateTypeDescriptor, GameState.PLAYING);
+			const changed = stateChanged(stateTypeDescriptor);
+			const combined = andCondition(entering, changed);
+
+			combined(world, resourceManager);
+
+			stateResource.setInternal(GameState.PLAYING);
+
+			expect(combined(world, resourceManager)).to.equal(true);
+		});
+
+		it("should combine exiting and not entering correctly", () => {
+			const { world, resourceManager, stateTypeDescriptor } = createTestEnvironment();
+			const stateResource = State.create(GameState.MENU);
+			resourceManager.insertResourceByTypeDescriptor(stateResource, stateTypeDescriptor);
+
+			const exiting = exitingState(stateTypeDescriptor, GameState.MENU);
+			const notEnteringPaused = notCondition(enteringState(stateTypeDescriptor, GameState.PAUSED));
+			const combined = andCondition(exiting, notEnteringPaused);
+
+			combined(world, resourceManager);
+
+			stateResource.setInternal(GameState.PLAYING);
+
+			expect(combined(world, resourceManager)).to.equal(true);
+		});
+
+		it("should handle OR condition with entering states", () => {
+			const { world, resourceManager, stateTypeDescriptor } = createTestEnvironment();
+			const stateResource = State.create(GameState.MENU);
+			resourceManager.insertResourceByTypeDescriptor(stateResource, stateTypeDescriptor);
+
+			const enteringPlaying = enteringState(stateTypeDescriptor, GameState.PLAYING);
+			const enteringPaused = enteringState(stateTypeDescriptor, GameState.PAUSED);
+			const combined = orCondition(enteringPlaying, enteringPaused);
+
+			combined(world, resourceManager);
+
+			stateResource.setInternal(GameState.PLAYING);
+
+			expect(combined(world, resourceManager)).to.equal(true);
+
+			combined(world, resourceManager);
+
+			stateResource.setInternal(GameState.PAUSED);
+
+			expect(combined(world, resourceManager)).to.equal(true);
+		});
+
+		it("should combine multiple state conditions with transitions", () => {
+			const { world, resourceManager, stateTypeDescriptor } = createTestEnvironment();
+			const stateResource = State.create(GameState.MENU);
+			resourceManager.insertResourceByTypeDescriptor(stateResource, stateTypeDescriptor);
+
+			const inPlayingOrPaused = orCondition(
+				inState(stateTypeDescriptor, GameState.PLAYING),
+				inState(stateTypeDescriptor, GameState.PAUSED),
+			);
+			const changed = stateChanged(stateTypeDescriptor);
+			const combined = andCondition(inPlayingOrPaused, changed);
+
+			combined(world, resourceManager);
+
+			stateResource.setInternal(GameState.PLAYING);
+
+			expect(combined(world, resourceManager)).to.equal(true);
+
+			combined(world, resourceManager);
+
+			stateResource.setInternal(GameState.PAUSED);
+
+			expect(combined(world, resourceManager)).to.equal(true);
+
+			combined(world, resourceManager);
+
+			stateResource.setInternal(GameState.MENU);
+
+			expect(combined(world, resourceManager)).to.equal(false);
 		});
 	});
 };

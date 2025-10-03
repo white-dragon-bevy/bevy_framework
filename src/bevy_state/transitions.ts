@@ -28,8 +28,6 @@ export const StateTransition: ScheduleLabel = "StateTransition";
  * @template S - 状态类型
  */
 export class StateTransitionMessage<S extends States> implements Message {
-	public readonly timestamp?: number;
-
 	/**
 	 * 私有构造函数 (使用 create() 创建实例)
 	 *
@@ -161,6 +159,15 @@ export const ExitSchedules = "ExitSchedules";
  * **用途**: 标识状态转换时执行的系统集合
  */
 export const TransitionSchedules = "TransitionSchedules";
+
+/**
+ * 依赖状态转换阶段
+ *
+ * **用途**: 用于更新 ComputedStates 和 SubStates
+ * **执行时机**: 在 TransitionSchedules 之前，ExitSchedules 之前执行
+ * **重要性**: 确保派生状态在父状态转换前先更新，保证多层状态依赖的正确顺序
+ */
+export const DependentTransitions = "DependentTransitions";
 
 /**
  * 状态转换管理器
@@ -382,21 +389,28 @@ export class StateTransitionManager<S extends States> {
 		// 更简单的方法：直接从 world 获取调度系统
 		try {
 			// 从 world 获取存储的 OnEnter/OnExit 系统
-			const worldWithSystems = world as unknown as Record<string, unknown>;
+			const worldAsRecord = world as unknown as Record<string, unknown>;
 			const systemsKey = `systems_${scheduleLabel}`;
-			const systems = worldWithSystems[systemsKey] as unknown[] | undefined;
+			const systemsValue = worldAsRecord[systemsKey];
 
-			if (systems && typeIs(systems, "table")) {
-				for (const system of systems) {
-					if (typeIs(system, "function")) {
-						// 执行系统函数
-						(system as (world: World) => void)(world);
-					}
+			// 类型守卫：检查是否为数组
+			if (!typeIs(systemsValue, "table")) {
+				return;
+			}
+
+			const systems = systemsValue as Array<unknown>;
+
+			for (const system of systems) {
+				// 类型守卫：检查是否为函数
+				if (typeIs(system, "function")) {
+					// 安全执行系统函数
+					const systemFunction = system as (world: World) => void;
+					systemFunction(world);
 				}
 			}
-		} catch (err) {
+		} catch (errorMessage) {
 			// 不要静默吞噬错误，应该重新抛出以便调试
-			error(`Failed to run schedule ${scheduleLabel}: ${err}`);
+			error(`Failed to run schedule ${scheduleLabel}: ${errorMessage}`);
 		}
 	}
 }
@@ -446,9 +460,9 @@ export function lastTransition<S extends States>(
 			return undefined;
 		}
 		return manager.getLastTransition();
-	} catch (err) {
+	} catch (errorMessage) {
 		// 记录错误但返回 undefined，因为这不是致命错误
-		warn(`Failed to get last transition for state type: ${err}`);
+		warn(`Failed to get last transition for state type: ${errorMessage}`);
 		return undefined;
 	}
 }

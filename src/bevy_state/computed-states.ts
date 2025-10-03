@@ -193,8 +193,8 @@ export class TupleStateSet<T extends ReadonlyArray<States>> implements StateSet<
 		const states: Array<States> = [];
 
 		// 遍历所有 TypeDescriptor 并获取对应的状态
-		for (let index = 0; index < this.typeDescriptors.size(); index++) {
-			const typeDescriptor = this.typeDescriptors[index];
+		for (let descriptorIndex = 0; descriptorIndex < this.typeDescriptors.size(); descriptorIndex++) {
+			const typeDescriptor = this.typeDescriptors[descriptorIndex];
 			const stateResource = resourceManager.getResourceByTypeDescriptor<State<States>>(typeDescriptor);
 
 			if (!stateResource) {
@@ -541,6 +541,48 @@ export class MappedComputedState<TSource extends States> extends BaseComputedSta
 }
 
 /**
+ * 根据依赖深度排序计算状态类型
+ *
+ * **用途**: 确保父状态在子状态之前更新，避免多层派生状态的更新顺序错误。
+ *
+ * **实现原理**:
+ * - 读取每个计算状态类的 DEPENDENCY_DEPTH 静态属性
+ * - 按深度从小到大排序（浅层依赖先更新）
+ *
+ * **使用场景**:
+ * - 当有多个 ComputedStatesPlugin 时，应按依赖深度顺序注册
+ * - App 在初始化时可以自动对所有计算状态进行排序
+ *
+ * @param stateTypes - 计算状态类型构造函数数组
+ * @returns 按依赖深度排序后的数组
+ */
+export function sortByDependencyDepth<T extends ComputedStates>(
+	stateTypes: ReadonlyArray<new () => T>,
+): Array<new () => T> {
+	const sorted = [...stateTypes];
+
+	// 使用手动排序算法，因为 roblox-ts 的 sort 需要返回 boolean
+	// 实现冒泡排序以保证稳定性
+	for (let outerIndex = 0; outerIndex < sorted.size(); outerIndex++) {
+		for (let innerIndex = 0; innerIndex < sorted.size() - 1 - outerIndex; innerIndex++) {
+			const typeA = sorted[innerIndex];
+			const typeB = sorted[innerIndex + 1];
+
+			const depthA = (typeA as unknown as { DEPENDENCY_DEPTH?: number }).DEPENDENCY_DEPTH ?? 1;
+			const depthB = (typeB as unknown as { DEPENDENCY_DEPTH?: number }).DEPENDENCY_DEPTH ?? 1;
+
+			// 如果 A 的深度大于 B，交换它们（升序排序）
+			if (depthA > depthB) {
+				sorted[innerIndex] = typeB;
+				sorted[innerIndex + 1] = typeA;
+			}
+		}
+	}
+
+	return sorted;
+}
+
+/**
  * 便利函数：创建支持多状态源的计算状态
  *
  * **用途**: 从多个源状态计算派生状态，支持复杂的状态组合逻辑。
@@ -607,3 +649,4 @@ export function createMultiSourceComputedState<T extends ReadonlyArray<States>, 
 		}
 	} as StateConstructor<ComputedStates<T>>;
 }
+

@@ -432,4 +432,147 @@ export = () => {
 			expect(result).to.equal(false);
 		});
 	});
+
+	describe("DependentTransitions Execution", () => {
+		it("should send transition events correctly", () => {
+			const typeDescriptor = getTypeDescriptor("TestState", "TestState")!;
+			const manager = StateTransitionManager.create(typeDescriptor, eventManager);
+
+			// 设置初始状态
+			const currentState = State.create(TestState.IDLE);
+			resourceManager.insertResourceByTypeDescriptor(currentState, typeDescriptor);
+
+			// 设置下一个状态
+			const nextState = NextState.withPending(TestState.RUNNING);
+			const nextStateDescriptor = getGenericTypeDescriptor<NextState<TestState>>(typeDescriptor);
+			resourceManager.insertResourceByTypeDescriptor(nextState, nextStateDescriptor);
+
+			// 处理转换
+			manager.processTransition(world, resourceManager);
+
+			// 创建读取器并验证事件
+			const reader = getStateTransitionReader<TestState>(eventManager);
+			const events = reader.read();
+
+			expect(events.size()).to.equal(1);
+			expect(events[0].isTransition(TestState.IDLE, TestState.RUNNING)).to.equal(true);
+		});
+
+		it("should send event for identity transition", () => {
+			const typeDescriptor = getTypeDescriptor("TestState", "TestState")!;
+			const manager = StateTransitionManager.create(typeDescriptor, eventManager);
+
+			// 设置初始状态
+			const currentState = State.create(TestState.IDLE);
+			resourceManager.insertResourceByTypeDescriptor(currentState, typeDescriptor);
+
+			// 设置相同的状态（身份转换）
+			const nextState = NextState.withPending(TestState.IDLE);
+			const nextStateDescriptor = getGenericTypeDescriptor<NextState<TestState>>(typeDescriptor);
+			resourceManager.insertResourceByTypeDescriptor(nextState, nextStateDescriptor);
+
+			// 处理转换
+			manager.processTransition(world, resourceManager);
+
+			// 创建读取器并验证事件
+			const reader = getStateTransitionReader<TestState>(eventManager);
+			const events = reader.read();
+
+			// 身份转换也应该发送事件
+			expect(events.size()).to.equal(1);
+			expect(events[0].isTransition(TestState.IDLE, TestState.IDLE)).to.equal(true);
+		});
+
+		it("should allow multiple readers to read same events", () => {
+			const typeDescriptor = getTypeDescriptor("TestState", "TestState")!;
+			const manager = StateTransitionManager.create(typeDescriptor, eventManager);
+
+			// 设置初始状态
+			const currentState = State.create(TestState.IDLE);
+			resourceManager.insertResourceByTypeDescriptor(currentState, typeDescriptor);
+
+			// 设置下一个状态
+			const nextState = NextState.withPending(TestState.RUNNING);
+			const nextStateDescriptor = getGenericTypeDescriptor<NextState<TestState>>(typeDescriptor);
+			resourceManager.insertResourceByTypeDescriptor(nextState, nextStateDescriptor);
+
+			// 创建多个读取器
+			const reader1 = getStateTransitionReader<TestState>(eventManager);
+			const reader2 = getStateTransitionReader<TestState>(eventManager);
+
+			// 处理转换
+			manager.processTransition(world, resourceManager);
+
+			// 两个读取器都应该能读取到事件
+			const events1 = reader1.read();
+			const events2 = reader2.read();
+
+			expect(events1.size()).to.equal(1);
+			expect(events2.size()).to.equal(1);
+			expect(events1[0].isTransition(TestState.IDLE, TestState.RUNNING)).to.equal(true);
+			expect(events2[0].isTransition(TestState.IDLE, TestState.RUNNING)).to.equal(true);
+		});
+	});
+
+	describe("Transition Event Ordering", () => {
+		it("should preserve transition order in events", () => {
+			const typeDescriptor = getTypeDescriptor("TestState", "TestState")!;
+			const manager = StateTransitionManager.create(typeDescriptor, eventManager);
+
+			const nextStateDescriptor = getGenericTypeDescriptor<NextState<TestState>>(typeDescriptor);
+
+			// 执行多次转换
+			const transitions = [
+				TestState.IDLE,
+				TestState.RUNNING,
+				TestState.PAUSED,
+				TestState.RUNNING,
+			];
+
+			for (const nextStateValue of transitions) {
+				const nextState = NextState.withPending(nextStateValue);
+				resourceManager.insertResourceByTypeDescriptor(nextState, nextStateDescriptor);
+				manager.processTransition(world, resourceManager);
+			}
+
+			// 读取所有事件
+			const reader = getStateTransitionReader<TestState>(eventManager);
+			const events = reader.read();
+
+			// 验证事件顺序
+			expect(events.size()).to.equal(4);
+			expect(events[0].isEnteringTo(TestState.IDLE)).to.equal(true);
+			expect(events[1].isTransition(TestState.IDLE, TestState.RUNNING)).to.equal(true);
+			expect(events[2].isTransition(TestState.RUNNING, TestState.PAUSED)).to.equal(true);
+			expect(events[3].isTransition(TestState.PAUSED, TestState.RUNNING)).to.equal(true);
+		});
+
+		it("should clear events after reading", () => {
+			const typeDescriptor = getTypeDescriptor("TestState", "TestState")!;
+			const manager = StateTransitionManager.create(typeDescriptor, eventManager);
+
+			// 设置初始状态
+			const currentState = State.create(TestState.IDLE);
+			resourceManager.insertResourceByTypeDescriptor(currentState, typeDescriptor);
+
+			// 设置下一个状态
+			const nextState = NextState.withPending(TestState.RUNNING);
+			const nextStateDescriptor = getGenericTypeDescriptor<NextState<TestState>>(typeDescriptor);
+			resourceManager.insertResourceByTypeDescriptor(nextState, nextStateDescriptor);
+
+			// 处理转换
+			manager.processTransition(world, resourceManager);
+
+			// 创建读取器
+			const reader = getStateTransitionReader<TestState>(eventManager);
+
+			// 第一次读取
+			const events1 = reader.read();
+			expect(events1.size()).to.equal(1);
+
+			// 第二次读取应该为空
+			const events2 = reader.read();
+			expect(events2.size()).to.equal(0);
+		});
+	});
 };
