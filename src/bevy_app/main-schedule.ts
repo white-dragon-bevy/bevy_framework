@@ -505,23 +505,6 @@ export function runMainSchedule(
 	}
 }
 
-/**
- * 运行固定调度序列
- * 对应 Rust bevy_app::main_schedule::FixedMain::run_fixed_main
- * @param world - Matter World 实例
- * @param scheduleOrder - 固定调度顺序管理器
- * @param runner - 调度执行函数
- */
-export function runFixedMainSchedule(
-	world: import("@rbxts/matter").World,
-	scheduleOrder: FixedMainScheduleOrder,
-	runner: (label: ScheduleLabel) => void,
-): void {
-	// 运行固定调度序列
-	for (const scheduleLabel of scheduleOrder.labels) {
-		runner(scheduleLabel);
-	}
-}
 
 // 导出常用的调度标签，方便使用
 export const Update = BuiltinSchedules.UPDATE;

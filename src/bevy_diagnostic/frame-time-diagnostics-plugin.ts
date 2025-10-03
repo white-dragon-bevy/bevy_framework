@@ -15,7 +15,7 @@ import {
 	DEFAULT_MAX_HISTORY_LENGTH,
 	registerDiagnostic,
 } from "./diagnostic";
-import { FrameCount } from "./frame-count-diagnostics-plugin";
+import { DiagnosticFrameCount } from "./frame-count-diagnostics-plugin";
 
 /**
  * 向应用添加"帧时间"诊断，具体包括"帧时间"、"fps"和"帧计数"
@@ -119,7 +119,7 @@ export class FrameTimeDiagnosticsPlugin implements Plugin {
 	static diagnosticSystem(world: World, context: Context): void {
 		const resources = world.resources;
 		const diagnosticsStore = resources.getResource<DiagnosticsStore>();
-		const frameCount = resources.getResource<FrameCount>();
+		const frameCount = resources.getResource<DiagnosticFrameCount>();
 
 		if (!diagnosticsStore) return;
 

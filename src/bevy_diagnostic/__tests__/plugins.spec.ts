@@ -6,7 +6,6 @@
 
 import { App } from "../../../src/bevy_app/app";
 import { AppContext } from "../../../src/bevy_app/context";
-import type { ScheduleLabel } from "../../../src/bevy_app/types";
 import { World } from "@rbxts/matter";
 import {
 	DiagnosticsPlugin,
@@ -14,13 +13,13 @@ import {
 	DiagnosticPath,
 	Diagnostic,
 	FrameCountPlugin,
-	FrameCount,
-	updateFrameCount,
+	DiagnosticFrameCount,
 	FrameTimeDiagnosticsPlugin,
 	LogDiagnosticsPlugin,
 	LogDiagnosticsState,
 	EntityCountDiagnosticsPlugin,
 	registerDiagnostic,
+	updateDiagnosticsFrameCount,
 } from "../index";
 
 export = () => {
@@ -42,7 +41,7 @@ export = () => {
 			app.addPlugin(new FrameCountPlugin());
 			app.finish(); // 完成插件构建
 
-			const frameCount = app.getResource<FrameCount>();
+			const frameCount = app.getResource<DiagnosticFrameCount>();
 			expect(frameCount).to.be.ok();
 			expect(frameCount?.value).to.equal(0);
 		});
@@ -51,15 +50,15 @@ export = () => {
 			const app = App.create();
 			app.finish();
 
-			const frameCount = new FrameCount();
+			const frameCount = new DiagnosticFrameCount();
 			app.insertResource( frameCount);
 			const world = app.main().world().getWorld();
 			const context = app.context;
 
-			updateFrameCount(world, context);
+			updateDiagnosticsFrameCount(world, context);
 			expect(frameCount.value).to.equal(1);
 
-			updateFrameCount(world, context);
+			updateDiagnosticsFrameCount(world, context);
 			expect(frameCount.value).to.equal(2);
 		});
 
@@ -67,12 +66,12 @@ export = () => {
 			const app = App.create();
 			app.finish();
 
-			const frameCount = new FrameCount(2 ** 32 - 1);
+			const frameCount = new DiagnosticFrameCount(2 ** 32 - 1);
 			app.insertResource( frameCount);
 			const world = app.main().world().getWorld();
 			const context = app.context;
 
-			updateFrameCount(world, context);
+			updateDiagnosticsFrameCount(world, context);
 			expect(frameCount.value).to.equal(0);
 		});
 	});

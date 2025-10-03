@@ -3,7 +3,6 @@
  * 提供测试环境配置和工具函数
  */
 
-import { ScheduleLabel } from "../types";
 import { App } from "../app";
 
 /**
