@@ -25,13 +25,15 @@ export = () => {
 
 		it("应该有扩展对象", () => {
 			const plugin = new CameraPlugin();
+			const app = App.create();
+			const extension = plugin.getExtension(app);
 
-			expect(plugin.extension).to.be.ok();
-			expect(plugin.extension.getCamera).to.be.a("function");
-			expect(plugin.extension.setCameraType).to.be.a("function");
-			expect(plugin.extension.setCameraSubject).to.be.a("function");
-			expect(plugin.extension.setFieldOfView).to.be.a("function");
-			expect(plugin.extension.getPrimaryCameraEntity).to.be.a("function");
+			expect(extension).to.be.ok();
+			expect(extension.getCamera).to.be.a("function");
+			expect(extension.setCameraType).to.be.a("function");
+			expect(extension.setCameraSubject).to.be.a("function");
+			expect(extension.setFieldOfView).to.be.a("function");
+			expect(extension.getPrimaryCameraEntity).to.be.a("function");
 		});
 
 		it("应该能够构建到 App", () => {

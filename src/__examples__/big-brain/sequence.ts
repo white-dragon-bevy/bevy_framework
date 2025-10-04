@@ -13,9 +13,9 @@
 
 import { World, component } from "@rbxts/matter";
 import type { AnyEntity } from "@rbxts/matter";
-import { App, BuiltinSchedules, getContextWithExtensions } from "../../bevy_app";
+import { App, BuiltinSchedules } from "../../bevy_app";
 import type { Context } from "../../bevy_ecs";
-import { TimePlugin } from "../../bevy_time";
+import { TimePlugin, TimePluginExtension } from "../../bevy_time";
 import {
 	BigBrainPlugin,
 	ThinkerBuilder,
@@ -62,8 +62,8 @@ type Thirst = ReturnType<typeof Thirst>;
  * 口渴系统
  */
 function thirstSystem(world: World, context: Context, app: App): void {
-	const timeContext = getContextWithExtensions<TimePlugin>(app);
-	const deltaTime = timeContext.getDeltaSeconds();
+	const timeExtension = app.getResource<TimePluginExtension>();
+	const deltaTime = timeExtension ? timeExtension.getDeltaSeconds() : 0;
 
 	for (const [entityId, thirst] of world.query(Thirst)) {
 		const newValue = math.min(thirst.value + thirst.perSecond * deltaTime, 100.0);
@@ -154,8 +154,8 @@ function findClosestWaterSource(world: World, actorPosition: Position): Position
  * 移动到水源系统
  */
 function moveToWaterSourceSystem(world: World, context: Context, app: App): void {
-	const timeContext = getContextWithExtensions<TimePlugin>(app);
-	const deltaTime = timeContext.getDeltaSeconds();
+	const timeExtension = app.getResource<TimePluginExtension>();
+	const deltaTime = timeExtension ? timeExtension.getDeltaSeconds() : 0;
 
 	for (const [actionEntityId, moveAction, actionState, actor] of world.query(
 		MoveToWaterSourceAction,
@@ -251,8 +251,8 @@ class DrinkActionBuilder implements ActionBuilder {
  * 喝水动作系统
  */
 function drinkActionSystem(world: World, context: Context, app: App): void {
-	const timeContext = getContextWithExtensions<TimePlugin>(app);
-	const deltaTime = timeContext.getDeltaSeconds();
+	const timeExtension = app.getResource<TimePluginExtension>();
+	const deltaTime = timeExtension ? timeExtension.getDeltaSeconds() : 0;
 
 	for (const [actionEntityId, drinkAction, actionState, actor] of world.query(
 		DrinkAction,

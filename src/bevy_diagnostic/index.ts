@@ -17,6 +17,7 @@ export {
 
 // 主诊断插件
 export { DiagnosticsPlugin } from "./diagnostics-plugin";
+export type { DiagnosticsPluginExtension, DiagnosticConfig } from "./extension";
 
 // 帧计数诊断
 export { DiagnosticFrameCount, FrameCountPlugin, updateDiagnosticsFrameCount} from "./frame-count-diagnostics-plugin";

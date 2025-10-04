@@ -8,6 +8,7 @@ export { Duration, durationRem } from "./duration";
 export { Time, type TimeContext, type Real, type Virtual, type Fixed, type Empty } from "./time";
 export { TimeFixed, runFixedMainSchedule } from "./fixed";
 export { TimePlugin, type TimeUpdateStrategy, advanceTime } from "./time-plugin";
+export type { TimePluginExtension } from "./extension";
 export {
 	RealTimeResource,
 	VirtualTimeResource,

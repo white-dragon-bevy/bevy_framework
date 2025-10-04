@@ -13,7 +13,7 @@ export { createPrimaryCameraData, createCameraConfigData, applyCameraConfig } fr
 
 // 插件
 export { CameraPlugin } from "./camera-plugin";
-export type { CameraPluginExtensionFactories } from "./camera-plugin";
+export type { CameraPluginExtension } from "./extension";
 
 // 系统（占位）
 export { initializeCameraSystem, syncCameraConfigSystem, updateCameraSubjectSystem } from "./systems";

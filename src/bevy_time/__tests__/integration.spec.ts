@@ -32,7 +32,7 @@ export = () => {
 					app.addPlugin(plugin);
 				}).never.to.throw();
 
-				expect(app.isPluginAdded(TimePlugin)).to.equal(true);
+				expect(app.isPluginAdded(TimePlugin as any)).to.equal(true);
 			});
 
 			it("应该初始化所有时间资源", () => {

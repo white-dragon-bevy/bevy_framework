@@ -3,49 +3,15 @@
  * 对应 Rust bevy_camera/src/lib.rs::CameraPlugin
  */
 
-import { BasePlugin } from "../bevy_app/plugin";
-import { App, ExtensionFactory } from "../bevy_app/app";
+import { BasePlugin, Plugin } from "../bevy_app/plugin";
+import { App } from "../bevy_app/app";
 import { World } from "@rbxts/matter";
 import type { Context } from "../bevy_ecs";
 import { RobloxContext } from "../utils/roblox-utils";
 import { Workspace, RunService } from "@rbxts/services";
 import { PrimaryCamera } from "./components";
-
-/**
- * 相机插件扩展工厂接口
- * 定义所有可用的相机扩展方法
- */
-export interface CameraPluginExtensionFactories {
-	/**
-	 * 获取 Roblox Camera 实例
-	 * @returns Camera 实例或 undefined
-	 */
-	getCamera: ExtensionFactory<() => Camera | undefined>;
-
-	/**
-	 * 设置相机类型
-	 * @param type - 相机类型枚举
-	 */
-	setCameraType: ExtensionFactory<(type: Enum.CameraType) => void>;
-
-	/**
-	 * 设置相机主体
-	 * @param subject - 跟随目标（Humanoid 或 BasePart）
-	 */
-	setCameraSubject: ExtensionFactory<(subject: Humanoid | BasePart) => void>;
-
-	/**
-	 * 设置视野角度
-	 * @param fov - 视野角度（度）
-	 */
-	setFieldOfView: ExtensionFactory<(fov: number) => void>;
-
-	/**
-	 * 获取主相机实体
-	 * @returns 主相机实体 ID 或 undefined
-	 */
-	getPrimaryCameraEntity: ExtensionFactory<() => number | undefined>;
-}
+import { CameraPluginExtension } from "./extension";
+import { ___getTypeDescriptor } from "bevy_core";
 
 /**
  * Roblox 相机管理插件
@@ -63,9 +29,7 @@ export interface CameraPluginExtensionFactories {
  *
  * 对应 Rust bevy_camera::CameraPlugin
  */
-export class CameraPlugin extends BasePlugin {
-
-	
+export class CameraPlugin extends BasePlugin implements Plugin<CameraPluginExtension> {
 	/**
 	 * 客户端专用标记
 	 * 插件仅在客户端环境中运行
@@ -73,80 +37,77 @@ export class CameraPlugin extends BasePlugin {
 	robloxContext = RobloxContext.Client;
 
 	/**
-	 * 插件扩展工厂
-	 * 定义所有相机相关的扩展方法
+	 * 扩展类型描述符
 	 */
-	extension: CameraPluginExtensionFactories;
+	extensionDescriptor = ___getTypeDescriptor<CameraPluginExtension>()!;
 
 	/**
 	 * 创建 CameraPlugin 实例
 	 */
 	constructor() {
 		super();
+	}
 
-		// 初始化扩展工厂
-		this.extension = {
+	/**
+	 * 获取插件扩展
+	 * @param app - App 实例
+	 * @returns 相机插件扩展对象
+	 */
+	getExtension(app: App): CameraPluginExtension {
+		const world = app.getWorld();
+
+		return {
 			/**
 			 * 获取 Roblox Camera 实例
 			 */
-			getCamera: (world: World, context: Context, plugin: CameraPlugin) => {
-				return () => {
-					if (!RunService.IsClient()) {
-						return undefined;
-					}
+			getCamera: () => {
+				if (!RunService.IsClient()) {
+					return undefined;
+				}
 
-					return Workspace.CurrentCamera;
-				};
+				return Workspace.CurrentCamera;
 			},
 
 			/**
 			 * 设置相机类型
 			 */
-			setCameraType: (world: World, context: Context, plugin: CameraPlugin) => {
-				return (cameraType: Enum.CameraType) => {
-					const camera = Workspace.CurrentCamera;
-					if (camera) {
-						camera.CameraType = cameraType;
-					}
-				};
+			setCameraType: (cameraType: Enum.CameraType) => {
+				const camera = Workspace.CurrentCamera;
+				if (camera) {
+					camera.CameraType = cameraType;
+				}
 			},
 
 			/**
 			 * 设置相机主体
 			 */
-			setCameraSubject: (world: World, context: Context, plugin: CameraPlugin) => {
-				return (subject: Humanoid | BasePart) => {
-					const camera = Workspace.CurrentCamera;
-					if (camera) {
-						camera.CameraSubject = subject;
-					}
-				};
+			setCameraSubject: (subject: Humanoid | BasePart) => {
+				const camera = Workspace.CurrentCamera;
+				if (camera) {
+					camera.CameraSubject = subject;
+				}
 			},
 
 			/**
 			 * 设置视野角度
 			 */
-			setFieldOfView: (world: World, context: Context, plugin: CameraPlugin) => {
-				return (fov: number) => {
-					const camera = Workspace.CurrentCamera;
-					if (camera) {
-						camera.FieldOfView = fov;
-					}
-				};
+			setFieldOfView: (fov: number) => {
+				const camera = Workspace.CurrentCamera;
+				if (camera) {
+					camera.FieldOfView = fov;
+				}
 			},
 
 			/**
 			 * 获取主相机实体
 			 */
-			getPrimaryCameraEntity: (world: World, context: Context, plugin: CameraPlugin) => {
-				return () => {
-					// 在 World 中查找主相机实体
-					for (const [entity, _] of world.query(PrimaryCamera)) {
-						return entity;
-					}
+			getPrimaryCameraEntity: () => {
+				// 在 World 中查找主相机实体
+				for (const [entity, _] of world.query(PrimaryCamera)) {
+					return entity;
+				}
 
-					return undefined;
-				};
+				return undefined;
 			},
 		};
 	}
