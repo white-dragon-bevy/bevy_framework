@@ -211,5 +211,5 @@ class ObserverConnection {
 
 运行测试：
 ```bash
-npm test -- -p ReplicatedStorage/rbxts_include/node_modules/@white-dragon-bevy/bevy-framework/bevy_ecs/__tests__/events-signal.spec
+npm test -- -p ReplicatedStorage/rbxts_include/node_modules/@white-dragon-bevy/bevy_framework/bevy_ecs/__tests__/events-signal.spec
 ```

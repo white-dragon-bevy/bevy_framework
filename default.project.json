@@ -20,8 +20,11 @@
 					},
 					"@white-dragon-bevy": {
 						"$className":"Folder",
-						"bevy-framework":{
-							"$path": "out"
+						"bevy_framework":{
+							"$className":"Folder",
+							"out": {
+								"$path": "out"
+							}
 						}
 					}
 				}
@@ -36,7 +39,7 @@
 		"ServerScriptService": {
 			"$className": "ServerScriptService",
 			"TS": {
-				"$path": "out/__dev__/server"
+				"$path": "out/__bootstrap__/server"
 			}
 		},
 		"StarterPlayer": {
@@ -44,7 +47,7 @@
 			"StarterPlayerScripts": {
 				"$className": "StarterPlayerScripts",
 				"TS": {
-					"$path": "out/__dev__/client"
+					"$path": "out/__bootstrap__/client"
 				}
 			}
 		},

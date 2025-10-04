@@ -336,8 +336,10 @@ app.run();
 ### 使用插件扩展
 
 ```typescript
-import { App, getContextWithExtensions } from "@white-dragon-bevy/bevy_app";
-import { TimePlugin } from "@white-dragon-bevy/bevy_time";
+import { App } from "@white-dragon-bevy/bevy_app";
+import { World } from "@rbxts/matter";
+import { Context } from "@white-dragon-bevy/bevy_ecs";
+import { TimePlugin, TimePluginExtension } from "@white-dragon-bevy/bevy_time";
 import { DiagnosticsPlugin } from "@white-dragon-bevy/bevy_diagnostic";
 
 // 创建应用并添加插件
@@ -345,15 +347,17 @@ const app = App.create()
     .addPlugin(new TimePlugin())
     .addPlugin(new DiagnosticsPlugin());
 
-// 在系统中使用扩展
+// 在系统中使用扩展 - context 快捷方式（推荐）
 function gameSystem(world: World, context: Context): void {
     // 使用类型安全的扩展方法
-    const ctx = getContextWithExtensions<TimePlugin>(app);
-    const deltaSeconds = ctx.getDeltaSeconds();
-    const isPaused = ctx.isPaused();
+    const timeExt = context.getExtension<TimePluginExtension>();
+    if (timeExt) {
+        const deltaSeconds = timeExt.getDeltaSeconds();
+        const isPaused = timeExt.isPaused();
 
-    if (!isPaused) {
-        // 游戏逻辑
+        if (!isPaused) {
+            // 游戏逻辑
+        }
     }
 }
 ```
@@ -361,10 +365,10 @@ function gameSystem(world: World, context: Context): void {
 ### 完整示例：弹跳球
 
 ```typescript
-import { App, BuiltinSchedules, getContextWithExtensions } from "@white-dragon-bevy/bevy_app";
+import { App, BuiltinSchedules } from "@white-dragon-bevy/bevy_app";
 import { World } from "@rbxts/matter";
 import { Context } from "@white-dragon-bevy/bevy_ecs";
-import { TimePlugin } from "@white-dragon-bevy/bevy_time";
+import { TimePlugin, TimePluginExtension } from "@white-dragon-bevy/bevy_time";
 import { RobloxDefaultPlugins } from "@white-dragon-bevy/bevy_app";
 
 // 组件定义
@@ -389,8 +393,10 @@ function bounceSystem(world: World, context: Context): void {
 
 // 移动系统
 function movementSystem(world: World, context: Context): void {
-    const ctx = getContextWithExtensions<TimePlugin>(app);
-    const deltaTime = ctx.getDeltaSeconds();
+    const timeExt = context.getExtension<TimePluginExtension>();
+    if (!timeExt) return;
+
+    const deltaTime = timeExt.getDeltaSeconds();
 
     for (const [id, pos, vel] of world.query(Position, Velocity)) {
         pos.x += vel.x * deltaTime;
@@ -507,45 +513,53 @@ function debugSystem(world: World, context: Context): void {
 
 ## 进阶主题
 
-### 泛型扩展系统
+### 插件扩展系统
 
-插件可以通过泛型扩展系统向 Context 添加类型安全的方法。框架使用 TypeScript 的类型推导确保扩展方法的类型安全：
+插件可以通过扩展系统提供类型安全的方法。框架使用 TypeScript 的类型推导确保扩展方法的类型安全：
 
 ```typescript
-import { getContextWithExtensions } from "@white-dragon-bevy/bevy_app";
-import { TimePlugin } from "@white-dragon-bevy/bevy_time";
-import { DiagnosticsPlugin } from "@white-dragon-bevy/bevy_diagnostic";
+import { App } from "@white-dragon-bevy/bevy_app";
+import { World } from "@rbxts/matter";
+import { Context } from "@white-dragon-bevy/bevy_ecs";
+import { TimePlugin, TimePluginExtension } from "@white-dragon-bevy/bevy_time";
+import { DiagnosticsPlugin, DiagnosticsPluginExtension } from "@white-dragon-bevy/bevy_diagnostic";
 
 // 添加带扩展的插件
 const app = App.create()
     .addPlugin(new TimePlugin())
     .addPlugin(new DiagnosticsPlugin());
 
-// 使用类型安全的扩展方法
+// 在系统中使用类型安全的扩展方法 - context 快捷方式（推荐）
 function gameSystem(world: World, context: Context): void {
     // 获取 TimePlugin 的扩展
-    const timeCtx = getContextWithExtensions<TimePlugin>(app);
-    const deltaSeconds = timeCtx.getDeltaSeconds();
-    const elapsedSeconds = timeCtx.getElapsedSeconds();
-    const isPaused = timeCtx.isPaused();
+    const timeExt = context.getExtension<TimePluginExtension>();
+    if (timeExt) {
+        const deltaSeconds = timeExt.getDeltaSeconds();
+        const elapsedSeconds = timeExt.getElapsedSeconds();
+        const isPaused = timeExt.isPaused();
+
+        // 使用扩展功能
+        if (!isPaused) {
+            // 游戏逻辑
+            const speed = 100 * deltaSeconds;
+        }
+    }
 
     // 获取 DiagnosticsPlugin 的扩展
-    const diagCtx = getContextWithExtensions<DiagnosticsPlugin>(app);
-    const fpsDiagnostic = diagCtx.getDiagnostic("fps");
-    diagCtx.updateDiagnostic("custom_metric", 42);
-
-    // 使用扩展功能
-    if (!isPaused) {
-        // 游戏逻辑
-        const speed = 100 * deltaSeconds;
+    const diagExt = context.getExtension<DiagnosticsPluginExtension>();
+    if (diagExt) {
+        const fpsDiagnostic = diagExt.getDiagnostic("fps");
+        diagExt.updateDiagnostic("custom_metric", 42);
     }
 }
 
-// 扩展方法也可以在系统外使用
-const ctx = getContextWithExtensions<TimePlugin>(app);
-ctx.pause();  // 暂停时间
-ctx.setTimeScale(0.5);  // 设置时间缩放
-ctx.resume();  // 恢复时间
+// 扩展方法也可以在系统外使用 - app 资源访问
+const timeExt = app.getResource<TimePluginExtension>();
+if (timeExt) {
+    timeExt.pause();  // 暂停时间
+    timeExt.setTimeScale(0.5);  // 设置时间缩放
+    timeExt.resume();  // 恢复时间
+}
 ```
 
 **扩展系统的优势**：
@@ -643,10 +657,12 @@ app.addPlugin(new DebuggerPlugin({
 
 // 自定义诊断
 function customDiagnostic(world: World, context: Context): void {
-    const ctx = getContextWithExtensions<DiagnosticsPlugin>(app);
+    const diagExt = context.getExtension<DiagnosticsPluginExtension>();
 
-    // 更新自定义诊断值
-    ctx.updateDiagnostic("custom_metric", performanceValue);
+    if (diagExt) {
+        // 更新自定义诊断值
+        diagExt.updateDiagnostic("custom_metric", performanceValue);
+    }
 }
 ```
 

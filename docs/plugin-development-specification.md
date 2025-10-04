@@ -305,339 +305,265 @@ export class UniversalPlugin extends BasePlugin {
 
 ## 扩展系统规范
 
-White Dragon Bevy 提供两种扩展机制：**标准扩展**（ExtensionFactory 模式）和**泛型扩展**（直接对象模式）。
+White Dragon Bevy 使用 **getExtension() 方法模式**提供类型安全的插件扩展功能。
 
-### 标准扩展规范（ExtensionFactory 模式）
+### 扩展系统概述
 
-**适用场景**：简单的工具函数、状态查询、无需泛型参数的插件。
+**核心理念**：
+- 扩展对象通过 `getExtension()` 方法创建
+- 作为资源存储在 App 的资源系统中
+- 通过 `context.getExtension<T>()` 或 `app.getResource<T>()` 访问
+- 使用 `TypeDescriptor` 进行类型标识
 
-#### 定义扩展工厂接口
-
-**必须**：
-- 定义扩展接口，所有方法使用 `ExtensionFactory<T>` 类型
-- 工厂函数签名为 `(world: World, context: Context, plugin: PluginType) => 实际函数`
-
-```typescript
-import { ExtensionFactory } from "@white-dragon-bevy/bevy_app";
-import type { World } from "@rbxts/matter";
-import type { Context } from "@white-dragon-bevy/bevy_app";
-
-/**
- * LogPlugin 扩展工厂接口
- * 标准扩展：所有方法都是 ExtensionFactory 类型
- */
-export interface LogPluginExtensionFactories {
-    /**
-     * 获取日志管理器工厂
-     */
-    getLogManager: ExtensionFactory<() => LogSubscriber | undefined>;
-
-    /**
-     * 获取当前日志级别工厂
-     */
-    getLogLevel: ExtensionFactory<() => Level>;
-}
-```
-
-**为什么**：`ExtensionFactory` 是一个工厂函数，接收 `(world, context, plugin)` 参数，返回实际的扩展函数。
-
-#### 实现标准扩展
-
-**必须**：
-- 在插件 `constructor` 中初始化 `extension` 属性
-- 每个工厂函数返回实际的扩展函数
-- 使用 `plugin` 参数访问插件状态（避免 `this` 指针问题）
-
-```typescript
-export class LogPlugin extends BasePlugin {
-    /** 日志级别配置 */
-    level: Level;
-
-    /** 插件扩展工厂 */
-    extension: LogPluginExtensionFactories;
-
-    constructor(config?: Partial<LogPlugin>) {
-        super();
-        this.level = config?.level ?? Level.INFO;
-
-        // ✅ 在 constructor 中初始化扩展工厂
-        this.extension = {
-            // 工厂函数接收 (world, context, plugin) 参数
-            getLogManager: (world: World, context: Context, plugin: LogPlugin) => {
-                // 返回实际的扩展函数
-                return () => LogSubscriber.getGlobal();
-            },
-
-            getLogLevel: (world: World, context: Context, plugin: LogPlugin) => {
-                // 使用 plugin 参数获取插件状态，避免 this 指针问题
-                const currentLevel = plugin.level;
-                // 返回获取日志级别的函数
-                return () => currentLevel;
-            },
-        };
-    }
-
-    build(app: App): void {
-        // 在 build 中配置插件
-        const subscriber = new LogSubscriber();
-        app.insertResource(subscriber);
-    }
-
-    name(): string {
-        return "LogPlugin";
-    }
-}
-```
-
-**为什么**：
-1. 在 constructor 初始化扩展，确保扩展在 build 前可用
-2. 使用 `plugin` 参数而非 `this`，避免 roblox-ts 的 this 指针转换问题
-3. App 会自动调用工厂函数，将返回的实际函数注入到 context
-
-#### 使用标准扩展
-
-标准扩展会被 App 自动处理并注入到 context，使用时需要类型断言：
-
-```typescript
-import { Context } from "@white-dragon-bevy/bevy_ecs";
-import { World } from "@rbxts/matter";
-
-function mySystem(world: World, context: Context): void {
-    // 方式1：直接类型断言
-    const ctx = context as Context & {
-        getLogManager: () => LogSubscriber | undefined;
-        getLogLevel: () => Level;
-    };
-
-    const manager = ctx.getLogManager(); // ✅ 自动完成
-    const level = ctx.getLogLevel();     // ✅ 类型安全
-
-    // 方式2：使用 getContextWithExtensions 辅助函数
-    import { getContextWithExtensions } from "@white-dragon-bevy/bevy_app";
-    const typedCtx = getContextWithExtensions<LogPlugin>(app);
-    const logLevel = typedCtx.getLogLevel(); // ✅ 完整类型提示
-}
-```
-
-**为什么**：App 会自动调用扩展工厂，将返回的函数注入到 context 上，使用时需要类型断言。
-
-### 泛型扩展规范（直接对象模式）
-
-**适用场景**：需要泛型参数的插件（如 `InputManagerPlugin<A>`）、复杂的组件系统。
-
-**关键区别**：泛型扩展**不使用** `ExtensionFactory` 类型，extension 属性直接是扩展对象。
-
-#### 定义泛型扩展接口
+### 定义扩展接口
 
 **必须**：
 - 定义扩展接口，方法直接是实际函数签名
 - **不使用** `ExtensionFactory<T>` 包装
+- 接口命名使用 `PluginNameExtension` 格式
 
 ```typescript
 /**
- * 输入管理器扩展接口 - 泛型扩展
- * 注意：不使用 ExtensionFactory 包装
+ * TimePlugin 扩展接口
+ * 提供时间管理的扩展方法
  */
-export interface InputManagerExtension<A extends Actionlike> {
+export interface TimePluginExtension {
     /**
-     * 获取组件定义 - 直接的方法签名
+     * 获取当前虚拟时间
      */
-    getComponents(): ComponentDefinition<A>;
+    getCurrent: () => Time<Virtual>;
 
     /**
-     * 创建带有输入组件的实体
+     * 获取增量时间（秒）
      */
-    spawnWithInput(
-        world: BevyWorld,
-        inputMap: InputMap<A>,
-        actionState?: ActionState<A>
-    ): number;
+    getDeltaSeconds: () => number;
 
     /**
-     * 获取实体的输入数据
+     * 暂停时间
      */
-    getEntityInputData(
-        world: BevyWorld,
-        entityId: number
-    ): EntityInputData<A> | undefined;
+    pause: () => void;
 
     /**
-     * 查询所有具有输入组件的实体
+     * 恢复时间
      */
-    queryInputEntities(world: BevyWorld): IterableIterator<[number, EntityInputData<A>]>;
+    resume: () => void;
 }
 ```
 
-**为什么**：泛型扩展不通过工厂转换，extension 属性直接存储实际的扩展对象。
+**为什么不用 ExtensionFactory**：
+- 减少嵌套层级，代码更简洁
+- 类型推导更直接
+- 无需工厂函数转换
 
-#### 实现泛型扩展
+### 实现扩展
 
 **必须**：
-- 在 `constructor` 中创建扩展对象（不是工厂函数）
-- extension 属性类型是扩展接口类型（不是 ExtensionFactory）
+1. 插件实现 `Plugin<ExtensionType>` 泛型接口
+2. 定义 `extensionDescriptor` 属性
+3. 实现 `getExtension(app: App)` 方法
 
 ```typescript
-/**
- * 创建扩展对象的辅助函数
- */
-function createExtensionObject<A extends Actionlike>(
-    components: ComponentDefinition<A>
-): InputManagerExtension<A> {
-    // ✅ 直接返回扩展对象，不是工厂函数
-    return {
-        getComponents() {
-            return components;
-        },
+import { Plugin, App } from "@white-dragon-bevy/bevy_app";
+import { ___getTypeDescriptor } from "bevy_core";
+import { TimePluginExtension } from "./extension";
 
-        spawnWithInput(world: BevyWorld, inputMap: InputMap<A>, actionState?: ActionState<A>) {
-            return components.spawn(world, inputMap, actionState);
-        },
+export class TimePlugin implements Plugin<TimePluginExtension> {
+    /**
+     * 扩展类型描述符
+     * 用于资源系统的类型识别
+     */
+    extensionDescriptor = ___getTypeDescriptor<TimePluginExtension>()!;
 
-        getEntityInputData(world: BevyWorld, entityId: number) {
-            return components.get(world, entityId);
-        },
-
-        queryInputEntities(world: BevyWorld) {
-            return components.query(world);
-        },
-    };
-}
-
-/**
- * 输入管理器插件 - 泛型扩展示例
- */
-export class InputManagerPlugin<A extends Actionlike> implements Plugin {
-    private components: ComponentDefinition<A>;
+    private statsManager: TimeStatsManager;
 
     /**
-     * 扩展对象 - 注意：不是 ExtensionFactory 类型
+     * 获取扩展对象
+     * 在插件加载时由 App 调用一次
+     * @param app - App 实例
+     * @returns 扩展对象
      */
-    readonly extension: InputManagerExtension<A>;
-
-    constructor(config: InputManagerPluginConfig<A>) {
-        this.components = createActionComponents<A>(config.actionTypeName);
-
-        // ✅ 在 constructor 中创建扩展对象
-        this.extension = createExtensionObject<A>(this.components);
+    getExtension(app: App): TimePluginExtension {
+        return {
+            getCurrent: () => this.statsManager.getCurrent(),
+            getDeltaSeconds: () => this.statsManager.getDeltaSeconds(),
+            pause: () => this.statsManager.pause(),
+            resume: () => this.statsManager.resume(),
+        };
     }
 
     build(app: App): void {
-        // 注册系统
-        app.addSystems(MainScheduleLabel.UPDATE, this.updateSystem);
+        // 初始化 statsManager
+        this.statsManager = new TimeStatsManager();
+        // 其他配置...
     }
 
     name(): string {
-        return `InputManagerPlugin<${this.config.actionTypeName}>`;
-    }
-
-    isUnique(): boolean {
-        return false; // 允许多个不同泛型参数的实例
+        return "TimePlugin";
     }
 }
 ```
 
-**为什么**：泛型扩展不需要工厂转换，直接将扩展对象赋值给 extension 属性。
+**关键要点**：
+- `getExtension()` 返回的对象直接引用 `this` 成员
+- 无需闭包捕获，代码更直观
+- 可以访问 `app` 参数获取其他资源
 
-#### 使用泛型扩展
+### 使用扩展
 
-**重要**：泛型扩展**不会自动注入到 context**，需要通过辅助函数手动获取。
+**方式1：context 快捷方式（推荐）**
 
-**问题**：泛型扩展无法在 IDE 中直接获得代码提示，需要手动类型断言。
+在系统函数中，使用 `context.getExtension<T>()`：
 
 ```typescript
-/**
- * 获取泛型扩展的辅助函数
- * 提供完整的类型提示
- */
-export function getInputExtension<A extends Actionlike>(
-    context: Context,
-    namespace: string
-): InputManagerExtension<A> {
-    return (context as unknown as Record<string, unknown>)[namespace] as InputManagerExtension<A>;
-}
+import { World } from "@rbxts/matter";
+import { Context } from "@white-dragon-bevy/bevy_ecs";
+import { TimePluginExtension } from "@white-dragon-bevy/bevy_time";
 
-// 在系统中使用
-function playerMovementSystem(world: BevyWorld, context: Context): void {
-    // ✅ 使用辅助函数获得类型提示
-    const playerInput = getInputExtension<PlayerAction>(context, "playerInput");
-    //    ^^^^^^^^^^^ 类型: InputManagerExtension<PlayerAction>
+function movementSystem(world: World, context: Context): void {
+    // ✅ 使用 context 快捷方式
+    const timeExt = context.getExtension<TimePluginExtension>();
 
-    // 查询所有玩家实体
-    for (const [entityId, data] of playerInput.queryInputEntities(world)) {
-        //                          ^^^^^^^^^^^^^^^^^^^ 完整的类型提示和自动补全
-        if (data.actionState?.pressed(PlayerAction.Jump)) {
-            print(`Player ${entityId} is jumping!`);
-        }
+    if (!timeExt) return;  // 防御性检查
+
+    const deltaTime = timeExt.getDeltaSeconds();
+
+    // 移动实体...
+    for (const [id, pos, vel] of world.query(Position, Velocity)) {
+        world.insert(id, Position({
+            x: pos.x + vel.x * deltaTime,
+            y: pos.y + vel.y * deltaTime
+        }));
     }
-
-    // 创建新实体
-    const inputMap = new InputMap<PlayerAction>().insert(PlayerAction.Jump, KeyCode.Space);
-    const playerId = playerInput.spawnWithInput(world, inputMap);
-    //               ^^^^^^^^^^^ 完整的类型提示
 }
 ```
 
-**为什么**：泛型扩展的类型信息需要通过辅助函数传递，才能获得 IDE 代码提示。
+**方式2：App 资源访问**
 
-### 标准扩展 vs 泛型扩展对比
+在非系统上下文（插件方法、测试等），使用 `app.getResource<T>()`：
 
-| 特性 | 标准扩展 | 泛型扩展 |
-|-----|---------|---------|
-| **使用场景** | 简单工具函数、状态查询 | 泛型插件、复杂组件系统 |
-| **类型定义** | `ExtensionFactory<T>` | 直接函数签名 |
-| **实现位置** | constructor 中初始化工厂 | constructor 中创建对象 |
-| **App 处理** | 自动调用工厂函数并注入 context | 不自动处理，直接存储 |
-| **使用方式** | `context.method()` | 辅助函数 + 手动类型断言 |
-| **代码提示** | 需要类型断言 | 需要辅助函数 |
-| **典型示例** | LogPlugin, TimePlugin | InputManagerPlugin |
+```typescript
+import { App } from "@white-dragon-bevy/bevy_app";
+import { TimePluginExtension } from "@white-dragon-bevy/bevy_time";
+
+// 在插件的 finish 方法中
+class MyPlugin implements Plugin {
+    finish(app: App): void {
+        const timeExt = app.getResource<TimePluginExtension>();
+
+        if (timeExt) {
+            print(`Time initialized: ${timeExt.getCurrent()}`);
+        }
+    }
+}
+
+// 在测试中
+describe("TimePlugin", () => {
+    it("should provide extensions", () => {
+        const app = App.create().addPlugin(new TimePlugin());
+        const timeExt = app.getResource<TimePluginExtension>();
+
+        expect(timeExt).to.be.ok();
+        expect(timeExt?.getDeltaSeconds).to.be.ok();
+    });
+});
+```
+
+### 访问方式对比
+
+| 方式 | 使用场景 | 优势 | 示例 |
+|-----|---------|------|------|
+| `context.getExtension<T>()` | 系统函数中 | 简洁、无需 app 参数 | `context.getExtension<TimeExt>()` |
+| `app.getResource<T>()` | 插件方法、测试 | 明确、可在任何地方使用 | `app.getResource<TimeExt>()` |
+
+### 扩展依赖其他扩展
+
+在 `getExtension()` 中可以组合其他扩展：
+
+```typescript
+class DiagnosticsPlugin implements Plugin<DiagnosticsPluginExtension> {
+    extensionDescriptor = ___getTypeDescriptor<DiagnosticsPluginExtension>()!;
+
+    private store: DiagnosticsStore;
+
+    getExtension(app: App): DiagnosticsPluginExtension {
+        // 获取时间扩展
+        const timeExt = app.getResource<TimePluginExtension>();
+
+        return {
+            addMeasurement: (path: string, value: number) => {
+                // 添加时间戳
+                const timestamp = timeExt?.getCurrent().getElapsed().asSecsF64() ?? 0;
+                this.store.addMeasurement(path, value, timestamp);
+            },
+
+            getDiagnostic: (path: string) => {
+                return this.store.get(path);
+            }
+        };
+    }
+}
+```
 
 ### 扩展命名规范
 
 **必须**：
-- 使用 camelCase 命名扩展方法
-- 使用动词开头：`get*`、`set*`、`is*`、`has*`、`add*`、`remove*`
+- 接口名称：`PluginNameExtension`（不再用 `PluginNameExtensionFactories`）
+- 方法名称：camelCase，动词开头
+- 类型导出：在 `index.ts` 中导出扩展接口
 
 ```typescript
-// ✅ 良好的命名
-getDeltaSeconds()    // 获取值
-setTimeScale()       // 设置值
-isPaused()           // 布尔检查
-hasComponent()       // 存在性检查
-spawnWithInput()     // 创建操作
-removeEntity()       // 移除操作
+// ✅ 正确命名
+export interface TimePluginExtension { }
+export interface LogPluginExtension { }
+export interface DiagnosticsPluginExtension { }
 
-// ❌ 不好的命名
-deltaSeconds()       // 不清晰是获取还是属性
-timeScaleUpdate()    // 动词位置不对
-pausedCheck()        // 应该用 isPaused
+// ❌ 旧命名（不再使用）
+export interface TimePluginExtensionFactories { }
+export interface LogPluginExtensionFactories { }
 ```
 
-**为什么**：一致的命名约定让 API 更易于学习和使用。
+**方法命名约定**：
+```typescript
+export interface PluginExtension {
+    // Getters
+    getManager: () => Manager;
+    getConfig: () => Config;
+    getCurrent: () => State;
+
+    // Setters
+    setConfig: (config: Config) => void;
+    setTimeout: (timeout: number) => void;
+
+    // Boolean checks
+    isPaused: () => boolean;
+    hasFeature: (name: string) => boolean;
+
+    // Actions
+    doWork: () => void;
+    reset: () => void;
+    update: (data: Data) => void;
+}
+```
 
 ### 类型安全要求
 
 **必须**：
 - 为所有扩展方法提供完整的类型签名
-- 使用 TypeScript 严格模式
 - 避免使用 `any` 类型
+- 使用 TypeScript 严格模式
 
 ```typescript
 // ✅ 正确：完整类型
-export interface LogPluginExtensionFactories {
-    getLogManager: ExtensionFactory<() => LogSubscriber | undefined>;
-    getLogLevel: ExtensionFactory<() => Level>;
-}
-
-// ✅ 正确：泛型类型
-export interface InputManagerExtension<A extends Actionlike> {
-    spawnWithInput(world: BevyWorld, inputMap: InputMap<A>): number;
-    queryInputEntities(world: BevyWorld): IterableIterator<[number, EntityInputData<A>]>;
+export interface TimePluginExtension {
+    getCurrent: () => Time<Virtual>;
+    getDeltaSeconds: () => number;
+    pause: () => void;
 }
 
 // ❌ 错误：缺少类型
-export interface BadExtensions {
-    calculate: ExtensionFactory<(input: any) => any>; // 避免 any
-    process: Function; // 太宽泛
+export interface BadExtension {
+    getData: () => any;  // 避免 any
+    process: Function;   // 太宽泛
 }
 ```
 
@@ -842,22 +768,27 @@ function systemWithResource(world: World, context: Context): void {
 }
 
 // ✅ 更好：通过扩展提供安全访问
-export interface ConfigPluginExtensions {
-    getMaxPlayers: ExtensionFactory<() => number>;
+export interface ConfigPluginExtension {
+    getMaxPlayers: () => number;
 }
 
-export class ConfigPlugin extends BasePlugin {
-    extension: ConfigPluginExtensions;
+export class ConfigPlugin extends BasePlugin implements Plugin<ConfigPluginExtension> {
+    extensionDescriptor = ___getTypeDescriptor<ConfigPluginExtension>()!;
+    private config: GameConfig;
+
+    constructor() {
+        super();
+        this.config = new GameConfig(4, Vector3.zero, 1);
+    }
+
+    getExtension(app: App): ConfigPluginExtension {
+        return {
+            getMaxPlayers: () => this.config.maxPlayers
+        };
+    }
 
     build(app: App): void {
-        const config = new GameConfig(4, Vector3.zero, 1);
-        app.insertResource(config);
-
-        this.extension = {
-            getMaxPlayers: (world, context, plugin) => {
-                return () => config.maxPlayers;
-            }
-        };
+        app.insertResource(this.config);
     }
 }
 
@@ -919,8 +850,10 @@ export class GamePlugin extends BasePlugin {
 
         // 现在可以安全使用依赖插件的功能
         app.addSystems(BuiltinSchedules.UPDATE, (world, context) => {
-            const ctx = getContextWithExtensions<TimePlugin>(app);
-            const deltaTime = ctx.getDeltaSeconds();
+            const timeExt = context.getExtension<TimePluginExtension>();
+            if (timeExt) {
+                const deltaTime = timeExt.getDeltaSeconds();
+            }
         });
     }
 }
@@ -938,12 +871,11 @@ export class EnhancedPlugin extends BasePlugin {
         // 可选依赖检查
         app.addSystems(BuiltinSchedules.UPDATE, (world, context) => {
             // 尝试使用可选的诊断功能
-            try {
-                const ctx = getContextWithExtensions<DiagnosticsPlugin>(app);
-                ctx.updateDiagnostic("my_metric", 42);
-            } catch {
-                // DiagnosticsPlugin 未安装，跳过
+            const diagExt = context.getExtension<DiagnosticsPluginExtension>();
+            if (diagExt) {
+                diagExt.updateDiagnostic("my_metric", 42);
             }
+            // DiagnosticsPlugin 未安装时 diagExt 为 undefined，安全跳过
         });
     }
 
@@ -1238,10 +1170,11 @@ export = () => {
 
         it("should provide extensions", () => {
             app.addPlugin(new MyPlugin());
-            const ctx = getContextWithExtensions<MyPlugin>(app);
+            const myExt = app.getResource<MyPluginExtension>();
 
-            expect(ctx.myExtensionMethod).to.be.ok();
-            expect(ctx.myExtensionMethod()).to.equal("expected value");
+            expect(myExt).to.be.ok();
+            expect(myExt?.myExtensionMethod).to.be.ok();
+            expect(myExt?.myExtensionMethod()).to.equal("expected value");
         });
     });
 };
@@ -1321,105 +1254,120 @@ export class MinimalPlugin extends BasePlugin {
 }
 ```
 
-### 标准扩展示例
+### 数据管理插件示例
 
 ```typescript
-import { BasePlugin, App } from "@white-dragon-bevy/bevy_app";
+import { Plugin, App } from "@white-dragon-bevy/bevy_app";
+import { ___getTypeDescriptor } from "bevy_core";
 
 /**
- * 使用标准扩展的插件
+ * 数据插件扩展接口
  */
-export class StandardExtensionPlugin extends BasePlugin {
+export interface DataPluginExtension {
+    get: (key: string) => unknown | undefined;
+    set: (key: string, value: unknown) => void;
+    has: (key: string) => boolean;
+    clear: () => void;
+}
+
+/**
+ * 数据管理插件
+ */
+export class DataPlugin implements Plugin<DataPluginExtension> {
+    extensionDescriptor = ___getTypeDescriptor<DataPluginExtension>()!;
+
     private data: Map<string, unknown> = new Map();
 
-	/** 插件扩展 */
-	extension = {
-		getLogManager: (world: World, context: Context, plugin: LogPlugin) => {
-			// 返回获取日志管理器的函数，使用 plugin 参数而不是 this
-			return () => LogSubscriber.getGlobal();
-		},
-		getLogLevel: (world: World, context: Context, plugin: LogPlugin) => {
-			// 使用 plugin 参数获取 level 值，避免 this 指针问题
-			const currentLevel = plugin.level;
-			// 返回获取日志级别的函数
-			return () => currentLevel;
-		},
-	};
+    getExtension(app: App): DataPluginExtension {
+        return {
+            get: (key) => this.data.get(key),
+            set: (key, value) => this.data.set(key, value),
+            has: (key) => this.data.has(key),
+            clear: () => this.data.clear(),
+        };
+    }
 
     build(app: App): void {
-       
+        print(`${this.name()} initialized`);
     }
 
     name(): string {
-        return "StandardExtensionPlugin";
+        return "DataPlugin";
+    }
+
+    isUnique(): boolean {
+        return true;
+    }
+}
+
+// 使用示例
+function dataSystem(world: World, context: Context): void {
+    const dataExt = context.getExtension<DataPluginExtension>();
+
+    if (dataExt) {
+        dataExt.set("player_score", 100);
+        const score = dataExt.get("player_score");
+        print(`Score: ${score}`);
     }
 }
 ```
 
-### 泛型扩展示例
+### 状态管理插件示例
 
 ```typescript
-import { BasePlugin, App, ExtensionFactory } from "@white-dragon-bevy/bevy_app";
+import { Plugin, App } from "@white-dragon-bevy/bevy_app";
+import { ___getTypeDescriptor } from "bevy_core";
 import { World } from "@rbxts/matter";
 import { Context } from "@white-dragon-bevy/bevy_app";
 
 /**
- * 状态管理插件扩展工厂
+ * 状态管理插件扩展接口
  */
-export interface StatePluginExtensionFactories {
-    getState: ExtensionFactory<() => string>;
-    setState: ExtensionFactory<(newState: string) => void>;
-    isInState: ExtensionFactory<(state: string) => boolean>;
-    transitionTo: ExtensionFactory<(state: string) => boolean>;
+export interface StatePluginExtension {
+    getState: () => string;
+    setState: (newState: string) => void;
+    isInState: (state: string) => boolean;
+    transitionTo: (state: string) => boolean;
 }
 
 /**
- * 使用泛型扩展的状态管理插件
+ * 状态管理插件
  */
-export class StatePlugin extends BasePlugin {
-    extension: StatePluginExtensionFactories;
+export class StatePlugin implements Plugin<StatePluginExtension> {
+    extensionDescriptor = ___getTypeDescriptor<StatePluginExtension>()!;
+
     private currentState: string = "idle";
     private validTransitions: Map<string, Set<string>> = new Map();
 
     constructor() {
-        super();
-        this.extension = {} as StatePluginExtensionFactories;
-
         // 定义状态转换规则
         this.validTransitions.set("idle", new Set(["running", "jumping"]));
         this.validTransitions.set("running", new Set(["idle", "jumping"]));
         this.validTransitions.set("jumping", new Set(["idle", "running"]));
     }
 
-    build(app: App): void {
-        // 初始化扩展工厂
-        this.extension = {
-            getState: (world: World, context: Context, plugin: StatePlugin) => {
-                return () => this.currentState;
+    getExtension(app: App): StatePluginExtension {
+        return {
+            getState: () => this.currentState,
+
+            setState: (newState: string) => {
+                this.currentState = newState;
             },
 
-            setState: (world: World, context: Context, plugin: StatePlugin) => {
-                return (newState: string) => {
+            isInState: (state: string) => this.currentState === state,
+
+            transitionTo: (newState: string) => {
+                const currentTransitions = this.validTransitions.get(this.currentState);
+                if (currentTransitions && currentTransitions.has(newState)) {
                     this.currentState = newState;
-                };
-            },
-
-            isInState: (world: World, context: Context, plugin: StatePlugin) => {
-                return (state: string) => this.currentState === state;
-            },
-
-            transitionTo: (world: World, context: Context, plugin: StatePlugin) => {
-                return (newState: string) => {
-                    const currentTransitions = this.validTransitions.get(this.currentState);
-                    if (currentTransitions && currentTransitions.has(newState)) {
-                        this.currentState = newState;
-                        return true;
-                    }
-                    return false;
-                };
+                    return true;
+                }
+                return false;
             }
         };
+    }
 
+    build(app: App): void {
         // 添加状态管理系统
         app.addSystems(BuiltinSchedules.UPDATE, (world, context) => {
             // 状态更新逻辑
@@ -1429,15 +1377,20 @@ export class StatePlugin extends BasePlugin {
     name(): string {
         return "StatePlugin";
     }
+
+    isUnique(): boolean {
+        return true;
+    }
 }
 
 // 使用示例
 function gameSystem(world: World, context: Context): void {
-    const ctx = getContextWithExtensions<StatePlugin>(app);
+    const stateExt = context.getExtension<StatePluginExtension>();
 
-    if (ctx.isInState("idle")) {
+    if (stateExt && stateExt.isInState("idle")) {
+        // 检测跳跃输入
         if (/* jump input */) {
-            ctx.transitionTo("jumping");
+            stateExt.transitionTo("jumping");
         }
     }
 }
@@ -1446,10 +1399,10 @@ function gameSystem(world: World, context: Context): void {
 ### 完整插件示例
 
 ```typescript
-import { BasePlugin, App, ExtensionFactory, BuiltinSchedules } from "@white-dragon-bevy/bevy_app";
+import { BasePlugin, App, Plugin, BuiltinSchedules } from "@white-dragon-bevy/bevy_app";
 import { World } from "@rbxts/matter";
 import { Context } from "@white-dragon-bevy/bevy_ecs";
-import { TypeDescriptor } from "@white-dragon-bevy/bevy_core";
+import { TypeDescriptor, ___getTypeDescriptor } from "@white-dragon-bevy/bevy_core";
 import { RobloxContext } from "@white-dragon-bevy/bevy_app";
 import { RunService, Players } from "@rbxts/services";
 import { hookDebugPrint } from "@white-dragon-bevy/utils/hooks";
@@ -1493,13 +1446,13 @@ class ScoreboardResource {
 }
 
 // ============ 扩展接口 ============
-export interface ScorePluginExtensionFactories {
-    addPlayerScore: ExtensionFactory<(player: Player, points: number) => void>;
-    getPlayerScore: ExtensionFactory<(player: Player) => number>;
-    getLeaderboard: ExtensionFactory<(limit?: number) => Array<[string, number]>>;
-    resetScores: ExtensionFactory<() => void>;
-    getScoreMultiplier: ExtensionFactory<() => number>;
-    setScoreMultiplier: ExtensionFactory<(multiplier: number) => void>;
+export interface ScorePluginExtension {
+    addPlayerScore: (player: Player, points: number) => void;
+    getPlayerScore: (player: Player) => number;
+    getLeaderboard: (limit?: number) => Array<[string, number]>;
+    resetScores: () => void;
+    getScoreMultiplier: () => number;
+    setScoreMultiplier: (multiplier: number) => void;
 }
 
 // ============ 插件配置 ============
@@ -1516,8 +1469,8 @@ export interface ScorePluginConfig {
  * 分数管理插件
  * 提供玩家分数追踪、排行榜和倍数系统
  */
-export class ScorePlugin extends BasePlugin {
-    extension: ScorePluginExtensionFactories;
+export class ScorePlugin extends BasePlugin implements Plugin<ScorePluginExtension> {
+    extensionDescriptor = ___getTypeDescriptor<ScorePluginExtension>()!;
     robloxContext = RobloxContext.Server; // 仅服务端运行
 
     private config: Required<ScorePluginConfig>;
@@ -1539,15 +1492,11 @@ export class ScorePlugin extends BasePlugin {
 
         this.currentMultiplier = this.config.initialMultiplier;
         this.scoreboard = new ScoreboardResource();
-        this.extension = {} as ScorePluginExtensionFactories;
     }
 
     build(app: App): void {
         // 插入资源
         app.insertResource(this.scoreboard);
-
-        // 初始化扩展
-        this.initializeExtensions(app);
 
         // 注册系统
         this.registerSystems(app);
@@ -1558,48 +1507,36 @@ export class ScorePlugin extends BasePlugin {
         print(`[${this.name()}] Plugin initialized with config:`, this.config);
     }
 
-    private initializeExtensions(app: App): void {
-        this.extension = {
-            addPlayerScore: (world: World, context: Context, plugin: ScorePlugin) => {
-                return (player: Player, points: number) => {
-                    const actualPoints = points * this.currentMultiplier;
-                    this.scoreboard.addScore(player.UserId, actualPoints);
-                    hookDebugPrint(`Added ${actualPoints} points to ${player.Name}`);
-                };
+    getExtension(app: App): ScorePluginExtension {
+        return {
+            addPlayerScore: (player: Player, points: number) => {
+                const actualPoints = points * this.currentMultiplier;
+                this.scoreboard.addScore(player.UserId, actualPoints);
+                hookDebugPrint(`Added ${actualPoints} points to ${player.Name}`);
             },
 
-            getPlayerScore: (world: World, context: Context, plugin: ScorePlugin) => {
-                return (player: Player) => {
-                    return this.scoreboard.getScore(player.UserId);
-                };
+            getPlayerScore: (player: Player) => {
+                return this.scoreboard.getScore(player.UserId);
             },
 
-            getLeaderboard: (world: World, context: Context, plugin: ScorePlugin) => {
-                return (limit?: number) => {
-                    return this.scoreboard.getTopScores(limit ?? this.config.leaderboardSize);
-                };
+            getLeaderboard: (limit?: number) => {
+                return this.scoreboard.getTopScores(limit ?? this.config.leaderboardSize);
             },
 
-            resetScores: (world: World, context: Context, plugin: ScorePlugin) => {
-                return () => {
-                    this.scoreboard.reset();
-                    this.currentMultiplier = this.config.initialMultiplier;
-                    print(`[${this.name()}] Scores reset`);
-                };
+            resetScores: () => {
+                this.scoreboard.reset();
+                this.currentMultiplier = this.config.initialMultiplier;
+                print(`[${this.name()}] Scores reset`);
             },
 
-            getScoreMultiplier: (world: World, context: Context, plugin: ScorePlugin) => {
-                return () => this.currentMultiplier;
-            },
+            getScoreMultiplier: () => this.currentMultiplier,
 
-            setScoreMultiplier: (world: World, context: Context, plugin: ScorePlugin) => {
-                return (multiplier: number) => {
-                    this.currentMultiplier = math.clamp(
-                        multiplier,
-                        1,
-                        this.config.maxMultiplier
-                    );
-                };
+            setScoreMultiplier: (multiplier: number) => {
+                this.currentMultiplier = math.clamp(
+                    multiplier,
+                    1,
+                    this.config.maxMultiplier
+                );
             }
         };
     }
@@ -1725,20 +1662,29 @@ const app = App.create()
         autoSave: true
     }));
 
-// 在系统中使用
+// 在系统中使用 - context 快捷方式（推荐）
 function gameplaySystem(world: World, context: Context): void {
-    const ctx = getContextWithExtensions<ScorePlugin>(app);
+    const scoreExt = context.getExtension<ScorePluginExtension>();
 
-    // 添加分数
-    for (const player of Players.GetPlayers()) {
-        ctx.addPlayerScore(player, 10);
-    }
+    if (scoreExt) {
+        // 添加分数
+        for (const player of Players.GetPlayers()) {
+            scoreExt.addPlayerScore(player, 10);
+        }
 
-    // 获取排行榜
-    const leaderboard = ctx.getLeaderboard(5);
-    for (const [playerId, score] of leaderboard) {
-        print(`Player ${playerId}: ${score} points`);
+        // 获取排行榜
+        const leaderboard = scoreExt.getLeaderboard(5);
+        for (const [playerId, score] of leaderboard) {
+            print(`Player ${playerId}: ${score} points`);
+        }
     }
+}
+
+// 或在非系统上下文使用 - app 资源访问
+const scoreExt = app.getResource<ScorePluginExtension>();
+if (scoreExt) {
+    scoreExt.setScoreMultiplier(2.0);
+    print(`Current multiplier: ${scoreExt.getScoreMultiplier()}`);
 }
 */
 ```
@@ -1763,8 +1709,10 @@ function gameplaySystem(world: World, context: Context): void {
 - [ ] 生命周期方法不包含 yield 操作
 
 #### 扩展系统
-- [ ] 扩展工厂接口使用 `ExtensionFactory<T>`
-- [ ] 工厂函数接收 `(world, context, plugin)` 参数
+- [ ] 实现 `Plugin<ExtensionType>` 接口
+- [ ] 定义了 `extensionDescriptor` 属性
+- [ ] 实现了 `getExtension(app: App)` 方法
+- [ ] 扩展接口直接声明方法签名（不使用工厂）
 - [ ] 扩展方法有完整的类型签名
 - [ ] 扩展命名遵循约定（get*、set*、is* 等）
 

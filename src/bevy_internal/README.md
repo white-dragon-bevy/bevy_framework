@@ -25,9 +25,11 @@
 提供两种预设的插件组合，适用于不同的应用场景：
 
 #### DefaultPlugins
+
 包含构建完整 Bevy 应用所需的常用插件集合，适合大多数游戏和应用程序。
 
 #### MinimalPlugins
+
 提供运行 Bevy 应用所需的最小插件集，适合轻量级应用或需要精确控制的场景。
 
 ### 3. Prelude 模块
@@ -181,18 +183,18 @@ const app = App.create()
 
 ## 插件组对比
 
-| 特性 | DefaultPlugins | MinimalPlugins |
-|------|---------------|----------------|
-| **日志系统** | ✅ 包含 | ❌ 不包含 |
-| **时间管理** | ✅ 完整功能 | ✅ 基础功能 |
-| **变换系统** | ✅ 包含 | ❌ 不包含 |
-| **诊断系统** | ✅ 包含 | ❌ 不包含 |
-| **帧计数** | ✅ 包含 | ✅ 包含 |
-| **输入系统** | ✅ 包含 | ❌ 不包含 |
-| **运行时驱动** | ✅ 包含 | ✅ 包含 |
-| **适用场景** | 完整应用/游戏 | 轻量级工具/测试 |
-| **内存占用** | 较高 | 最小 |
-| **初始化时间** | 较慢 | 快速 |
+| 特性                 | DefaultPlugins | MinimalPlugins  |
+| -------------------- | -------------- | --------------- |
+| **日志系统**   | ✅ 包含        | ❌ 不包含       |
+| **时间管理**   | ✅ 完整功能    | ✅ 基础功能     |
+| **变换系统**   | ✅ 包含        | ❌ 不包含       |
+| **诊断系统**   | ✅ 包含        | ❌ 不包含       |
+| **帧计数**     | ✅ 包含        | ✅ 包含         |
+| **输入系统**   | ✅ 包含        | ❌ 不包含       |
+| **运行时驱动** | ✅ 包含        | ✅ 包含         |
+| **适用场景**   | 完整应用/游戏  | 轻量级工具/测试 |
+| **内存占用**   | 较高           | 最小            |
+| **初始化时间** | 较慢           | 快速            |
 
 ## 自定义插件组
 
@@ -256,14 +258,18 @@ const app = App.create()
 ## 包含的模块说明
 
 ### bevy_app
+
 应用程序框架，提供：
+
 - 应用生命周期管理
 - 插件系统架构
 - 调度系统（Schedule）
 - 子应用（SubApp）支持
 
 ### bevy_ecs
+
 实体组件系统，提供：
+
 - World 管理
 - Component 和 Resource
 - Query 系统
@@ -271,35 +277,45 @@ const app = App.create()
 - 命令缓冲（CommandBuffer）
 
 ### bevy_time
+
 时间管理系统，提供：
+
 - 实时和虚拟时间
 - 暂停/恢复功能
 - 时间缩放
 - 固定时间步
 
 ### bevy_diagnostic
+
 诊断和性能监控，提供：
+
 - FPS 监控
 - 帧时间测量
 - 实体计数
 - 自定义性能指标
 
 ### bevy_input
+
 输入处理系统，提供：
+
 - 键盘输入
 - 鼠标输入
 - 游戏手柄支持
 - 触摸输入
 
 ### bevy_log
+
 日志系统，提供：
+
 - 分级日志
 - 日志过滤
 - 格式化输出
 - 性能优化的日志
 
 ### bevy_transform
+
 空间变换系统，提供：
+
 - Transform 组件
 - GlobalTransform 计算
 - 层次结构支持
@@ -510,18 +526,22 @@ for (const plugin of plugins) {
 ## 与 Rust Bevy 的差异
 
 ### 1. 模块系统
+
 - TypeScript 使用显式导出而非 Rust 的 `pub use`
 - 命名空间通过对象导出实现
 
 ### 2. 插件系统
+
 - 使用类继承而非 trait 实现
 - 构建器模式适配 TypeScript 语法
 
 ### 3. 类型系统
+
 - 使用 TypeScript 接口替代 Rust trait
 - 泛型约束通过 TypeScript 类型系统实现
 
 ### 4. 平台特定
+
 - 集成 Roblox RunService 而非原生事件循环
 - 使用 @rbxts/matter 作为 ECS 后端
 
@@ -530,6 +550,7 @@ for (const plugin of plugins) {
 ### 常见问题
 
 **Q: 插件未生效**
+
 ```typescript
 // 确保插件被正确添加
 const app = App.create()
@@ -539,6 +560,7 @@ const app = App.create()
 ```
 
 **Q: 模块导入错误**
+
 ```typescript
 // 检查路径是否正确
 import { DefaultPlugins } from "bevy_internal";  // ✅
@@ -546,6 +568,7 @@ import { DefaultPlugins } from "./bevy_internal"; // ❌ 相对路径可能错�
 ```
 
 **Q: 插件冲突**
+
 ```typescript
 // 使用 disable 避免重复插件
 new DefaultPluginsBuilder()
@@ -556,12 +579,14 @@ new DefaultPluginsBuilder()
 ## 相关资源
 
 ### 内部文档
+
 - [bevy_app 文档](../bevy_app/README.md)
 - [bevy_ecs 文档](../bevy_ecs/README.md)
 - [bevy_time 文档](../bevy_time/README.md)
 - [bevy_diagnostic 文档](../bevy_diagnostic/README.md)
 
 ### 外部资源
+
 - [Bevy 官方文档](https://bevyengine.org/)
 - [Roblox TypeScript 文档](https://roblox-ts.com/)
 - [@rbxts/matter 文档](https://github.com/matter-ecs/matter)
@@ -569,6 +594,7 @@ new DefaultPluginsBuilder()
 ## 版本历史
 
 ### v1.0.0
+
 - 初始版本
 - 实现核心模块聚合
 - DefaultPlugins 和 MinimalPlugins

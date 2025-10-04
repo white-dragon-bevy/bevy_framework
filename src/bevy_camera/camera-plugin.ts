@@ -124,7 +124,6 @@ export class CameraPlugin extends BasePlugin implements Plugin<CameraPluginExten
 		// - app.addSystems(BuiltinSchedules.STARTUP, initializeCameraSystem);
 		// - app.addSystems(BuiltinSchedules.PRE_UPDATE, syncCameraConfigSystem);
 		// - app.insertResource(new CameraResource());
-
 		print("[CameraPlugin] 已加载（占位实现）");
 	}
 

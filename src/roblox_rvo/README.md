@@ -18,9 +18,9 @@ RVO Plugin 为 Roblox Bevy 框架提供了高效的多智能体碰撞避免系�
 ## 安装
 
 ```typescript
-import { App } from "@rbxts/bevy-framework/app";
-import { TransformPlugin } from "@rbxts/bevy-framework/transform";
-import { RVOPlugin } from "@rbxts/bevy-framework/roblox_rvo";
+import { App } from "@rbxts/bevy_framework/app";
+import { TransformPlugin } from "@rbxts/bevy_framework/transform";
+import { RVOPlugin } from "@rbxts/bevy_framework/roblox_rvo";
 
 const app = App.create()
     .addPlugin(new TransformPlugin())
@@ -32,8 +32,8 @@ const app = App.create()
 ### 创建带碰撞避免的 Agent
 
 ```typescript
-import { RVOAgent, createRVOAgent } from "@rbxts/bevy-framework/roblox_rvo";
-import { Transform, transformFromPosition } from "@rbxts/bevy-framework/transform";
+import { RVOAgent, createRVOAgent } from "@rbxts/bevy_framework/roblox_rvo";
+import { Transform, transformFromPosition } from "@rbxts/bevy_framework/transform";
 
 // 生成 Agent 实体
 const agent = world.spawn(
@@ -49,7 +49,7 @@ const agent = world.spawn(
 ### 设置目标位置
 
 ```typescript
-import { setAgentGoal } from "@rbxts/bevy-framework/roblox_rvo";
+import { setAgentGoal } from "@rbxts/bevy_framework/roblox_rvo";
 
 const agentData = world.get(agent, RVOAgent);
 const currentPos = new Vector2(transform.cframe.Position.X, transform.cframe.Position.Z);
@@ -62,7 +62,7 @@ world.insert(agent, RVOAgent(updatedAgent));
 ### 添加静态障碍物
 
 ```typescript
-import { RVOObstacle, createRectangleObstacle, createCircleObstacle } from "@rbxts/bevy-framework/roblox_rvo";
+import { RVOObstacle, createRectangleObstacle, createCircleObstacle } from "@rbxts/bevy_framework/roblox_rvo";
 
 // 矩形障碍物
 const rectObstacle = world.spawn(
@@ -124,7 +124,7 @@ app.addPlugin(RVOPlugin.debug());
 ### 监听碰撞避免事件
 
 ```typescript
-import { CollisionAvoidanceEvent } from "@rbxts/bevy-framework/roblox_rvo";
+import { CollisionAvoidanceEvent } from "@rbxts/bevy_framework/roblox_rvo";
 
 function handleCollisionAvoidance(world: World, context: Context) {
     const reader = context.getEventReader<CollisionAvoidanceEvent>();
@@ -138,7 +138,7 @@ function handleCollisionAvoidance(world: World, context: Context) {
 ### 监听目标到达事件
 
 ```typescript
-import { GoalReachedEvent } from "@rbxts/bevy-framework/roblox_rvo";
+import { GoalReachedEvent } from "@rbxts/bevy_framework/roblox_rvo";
 
 function handleGoalReached(world: World, context: Context) {
     const reader = context.getEventReader<GoalReachedEvent>();
@@ -154,7 +154,7 @@ function handleGoalReached(world: World, context: Context) {
 ### 手动控制模拟
 
 ```typescript
-import { getRVOConfig, stepRVOSimulation } from "@rbxts/bevy-framework/roblox_rvo";
+import { getRVOConfig, stepRVOSimulation } from "@rbxts/bevy_framework/roblox_rvo";
 
 // 禁用自动模拟
 const config = getRVOConfig(context);
@@ -174,7 +174,7 @@ function customSimulation(world: World, context: Context) {
 ### 获取统计信息
 
 ```typescript
-import { getRVOStats } from "@rbxts/bevy-framework/roblox_rvo";
+import { getRVOStats } from "@rbxts/bevy_framework/roblox_rvo";
 
 function printStats(context: Context) {
     const stats = getRVOStats(context);
@@ -205,8 +205,8 @@ function updateAgentSpeed(world: World, entity: number, newSpeed: number) {
 ### 多智能体导航场景
 
 ```typescript
-import { App } from "@rbxts/bevy-framework/app";
-import { TransformPlugin, Transform, transformFromPosition } from "@rbxts/bevy-framework/transform";
+import { App } from "@rbxts/bevy_framework/app";
+import { TransformPlugin, Transform, transformFromPosition } from "@rbxts/bevy_framework/transform";
 import {
     RVOPlugin,
     RVOAgent,
@@ -215,7 +215,7 @@ import {
     createRectangleObstacle,
     setAgentGoal,
     GoalReachedEvent
-} from "@rbxts/bevy-framework/roblox_rvo";
+} from "@rbxts/bevy_framework/roblox_rvo";
 
 // 创建应用
 const app = App.create()

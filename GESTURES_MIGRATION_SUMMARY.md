@@ -116,7 +116,7 @@ app.run();
 
 运行测试:
 ```bash
-npm test -- -p ReplicatedStorage/rbxts_include/node_modules/@white-dragon-bevy/bevy-framework/bevy_input/__tests__/gestures.spec
+npm test -- -p ReplicatedStorage/rbxts_include/node_modules/@white-dragon-bevy/bevy_framework/bevy_input/__tests__/gestures.spec
 ```
 
 ## 注意事项

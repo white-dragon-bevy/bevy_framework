@@ -4,253 +4,479 @@
 
 ## 概述
 
-插件扩展系统允许插件向 `App.context` 添加类型安全的方法，这些方法可以在应用程序中直接访问，享受完整的 TypeScript 类型检查和 IDE 代码提示。
+插件扩展系统允许插件通过资源系统提供类型安全的扩展方法，这些方法可以在应用程序中通过 `context.getExtension<T>()` 或 `app.getResource<T>()` 访问，享受完整的 TypeScript 类型检查和 IDE 代码提示。
 
 ## 核心特性
 
 - ✅ **类型安全**：完整的 TypeScript 类型推导和检查
-- ✅ **直接访问**：可以直接通过 `app.context.methodName()` 调用
-- ✅ **工厂模式**：避免 roblox-ts 的 `this` 指针问题
-- ✅ **类型累积**：多个插件的扩展会自动合并
+- ✅ **便捷访问**：通过 `context.getExtension<T>()` 快捷获取
+- ✅ **资源化管理**：扩展作为资源存储，统一管理
+- ✅ **类型明确**：通过泛型参数 `Plugin<T>` 显式声明
 - ✅ **代码提示**：IDE 中有完整的智能提示
+- ✅ **代码简洁**：相比工厂模式减少大量样板代码
 
 ## 创建插件扩展
 
-### 1. 定义扩展工厂接口
+### 1. 定义扩展接口
+
+创建独立的扩展接口文件，定义插件提供的扩展方法：
 
 ```typescript
-import type { ExtensionFactory } from "../bevy_app/app";
-import type { World } from "../bevy_ecs";
-import type { Context } from "../bevy_app/context";
-
+// my-plugin/extension.ts
 /**
- * 你的插件扩展工厂接口
+ * MyPlugin 扩展接口
+ * 提供数据管理的扩展方法
  */
-export interface MyPluginExtensionFactories {
+export interface MyPluginExtension {
     /**
-     * 获取管理器的工厂函数
+     * 获取管理器实例
+     * @returns 管理器实例或 undefined
      */
-    getManager: ExtensionFactory<() => MyManager | undefined>;
-    
+    getManager: () => MyManager | undefined;
+
     /**
-     * 获取配置的工厂函数
+     * 获取配置
+     * @returns 配置对象
      */
-    getConfig: ExtensionFactory<() => MyConfig>;
-    
+    getConfig: () => MyConfig;
+
     /**
-     * 执行操作的工厂函数
+     * 执行操作
+     * @param param - 操作参数
      */
-    doSomething: ExtensionFactory<(param: string) => void>;
+    doSomething: (param: string) => void;
 }
 ```
 
-### 2. 在插件中实现扩展
+**关键要点**：
+- 直接定义方法签名，不使用 `ExtensionFactory` 包装
+- 使用 JSDoc 注释说明每个方法的用途
+- 接口命名遵循 `PluginNameExtension` 格式
+
+### 2. 实现插件扩展
+
+在插件类中实现扩展功能：
 
 ```typescript
-export class MyPlugin extends BasePlugin {
-    /** 插件扩展工厂 */
-    extension: MyPluginExtensionFactories;
-    
+// my-plugin/plugin.ts
+import { Plugin, App } from "../bevy_app";
+import { ___getTypeDescriptor } from "bevy_core";
+import { MyPluginExtension } from "./extension";
+
+export class MyPlugin implements Plugin<MyPluginExtension> {
+    /** 扩展类型描述符 */
+    extensionDescriptor = ___getTypeDescriptor<MyPluginExtension>()!;
+
     private config: MyConfig;
-    
+    private manager: MyManager;
+
     constructor(config?: Partial<MyConfig>) {
-        super();
         this.config = { ...defaultConfig, ...config };
-        
-        // 初始化扩展工厂
-        this.extension = {
-            getManager: (world: World, context: Context, plugin: MyPlugin) => {
-                // 使用 plugin 参数而不是 this，避免 roblox-ts 问题
-                return () => plugin.getManagerInstance();
-            },
-            
-            getConfig: (world: World, context: Context, plugin: MyPlugin) => {
-                return () => plugin.config;
-            },
-            
-            doSomething: (world: World, context: Context, plugin: MyPlugin) => {
-                // 可以访问 world, context 和 plugin 实例
-                return (param: string) => {
-                    print(`Doing something with: ${param}`);
-                    // 可以访问 world 中的资源
-                    const someResource = world.getResource(SomeResource);
-                    // 执行具体逻辑...
-                };
+        this.manager = new MyManager();
+    }
+
+    /**
+     * 获取插件扩展
+     * 在插件加载时由 App 调用一次
+     * @param app - App 实例
+     * @returns 扩展对象
+     */
+    getExtension(app: App): MyPluginExtension {
+        return {
+            getManager: () => this.manager,
+            getConfig: () => this.config,
+            doSomething: (param: string) => {
+                print(`Doing something with: ${param}`);
+                // 可以直接访问 this 成员
+                this.manager.process(param);
             },
         };
     }
-    
+
     build(app: App): void {
-        // 插件的构建逻辑...
+        // 插件配置逻辑...
+        print(`${this.name()} initialized`);
     }
-    
-    private getManagerInstance(): MyManager | undefined {
-        // 返回管理器实例
-        return this.manager;
+
+    name(): string {
+        return "MyPlugin";
     }
 }
 ```
 
-### 3. 扩展工厂函数签名
+**实现要点**：
+1. 实现 `Plugin<MyPluginExtension>` 泛型接口
+2. 定义 `extensionDescriptor` 属性用于类型识别
+3. 实现 `getExtension(app: App)` 方法返回扩展对象
+4. 扩展方法可以直接引用 `this` 成员，无需闭包捕获
+
+### 3. 导出扩展接口
+
+在插件模块的 `index.ts` 中导出扩展接口：
 
 ```typescript
-type ExtensionFactory<T extends (...args: any[]) => any> = 
-    (world: World, context: Context, plugin: any) => T;
+// my-plugin/index.ts
+export { MyPlugin } from "./plugin";
+export type { MyPluginExtension } from "./extension";
+export { MyComponent } from "./components";
 ```
-
-**参数说明：**
-- `world`: Matter World 实例，可以访问 ECS 资源
-- `context`: App 上下文，可以访问其他扩展
-- `plugin`: 插件实例，避免 `this` 指针问题
 
 ## 使用插件扩展
 
-### 方式1：直接访问（推荐）
+### 方式1：context 快捷方式（推荐）
+
+在系统函数中，直接使用 `context.getExtension<T>()` 获取扩展：
+
+```typescript
+import { World } from "@rbxts/matter";
+import { Context } from "../bevy_ecs";
+import { MyPluginExtension } from "./my-plugin";
+
+function mySystem(world: World, context: Context): void {
+    // 使用 context 快捷方式获取扩展
+    const myExt = context.getExtension<MyPluginExtension>();
+
+    if (myExt) {
+        const manager = myExt.getManager();     // ✅ 有类型提示
+        const config = myExt.getConfig();       // ✅ 有类型提示
+        myExt.doSomething("hello world");       // ✅ 有类型提示
+    }
+}
+```
+
+**为什么推荐 context 快捷方式？**
+- 代码更简洁，无需传递 `app` 参数
+- 在系统函数中 `context` 总是可用
+- 与系统函数签名保持一致性
+
+### 方式2：App 资源访问
+
+在非系统上下文中（如插件内部、测试代码），使用 `app.getResource<T>()`：
 
 ```typescript
 import { App } from "../bevy_app/app";
-import { MyPlugin } from "./my-plugin";
+import { MyPlugin, MyPluginExtension } from "./my-plugin";
 
 // 创建 App 并添加插件
 const app = App.create()
     .addPlugin(new MyPlugin({ someConfig: "value" }));
 
-// 直接访问扩展方法，享受类型安全和代码提示！
-const manager = app.context.getManager();      // ✅ 有类型提示
-const config = app.context.getConfig();        // ✅ 有类型提示
-app.context.doSomething("hello world");        // ✅ 有类型提示
+// 通过 app 获取扩展资源
+const myExt = app.getResource<MyPluginExtension>();
+
+if (myExt) {
+    const manager = myExt.getManager();
+    myExt.doSomething("test");
+}
 ```
 
-### 方式2：使用辅助函数
+**何时使用 App 资源访问？**
+- 在插件的生命周期方法中（ready、finish、cleanup）
+- 在测试代码中
+- 在没有 context 的场景
+
+### 访问方式对比
+
+| 方式 | 使用场景 | 优势 | 示例 |
+|-----|---------|------|------|
+| `context.getExtension<T>()` | 系统函数中 | 简洁、无需 app 参数 | `context.getExtension<MyExt>()` |
+| `app.getResource<T>()` | 插件方法、测试 | 明确、可在任何地方使用 | `app.getResource<MyExt>()` |
+
+### 空值检查
+
+**重要**：扩展可能不存在，必须进行检查：
 
 ```typescript
-import { getContextWithExtensions } from "../bevy_app/app";
+function safeSystem(world: World, context: Context): void {
+    const myExt = context.getExtension<MyPluginExtension>();
 
-const app = App.create().addPlugin(new MyPlugin());
+    // ✅ 正确：检查扩展是否存在
+    if (myExt) {
+        myExt.doSomething("safe");
+    }
 
-// 使用辅助函数获取带扩展的 context
-const context = getContextWithExtensions<MyPlugin>(app);
+    // ✅ 正确：使用可选链
+    const config = context.getExtension<MyPluginExtension>()?.getConfig();
 
-const manager = context.getManager();
-const config = context.getConfig();
-context.doSomething("hello world");
+    // ✅ 正确：提前返回
+    const ext = context.getExtension<MyPluginExtension>();
+    if (!ext) return;
+
+    ext.doSomething("work");
+
+    // ❌ 错误：假设扩展存在
+    const manager = context.getExtension<MyPluginExtension>()!.getManager(); // 危险！
+}
 ```
 
 ## 多插件扩展
 
-### 链式调用
+### 独立访问
+
+每个插件的扩展独立存储为资源，按类型访问：
 
 ```typescript
 const app = App.create()
     .addPlugin(new LogPlugin())           // 添加日志扩展
-    .addPlugin(new MyPlugin())            // 添加自定义扩展
-    .addPlugin(new AnotherPlugin());      // 添加另一个扩展
+    .addPlugin(new TimePlugin())          // 添加时间扩展
+    .addPlugin(new DiagnosticsPlugin());  // 添加诊断扩展
 
-// 现在 app.context 包含所有插件的扩展方法
-const logLevel = app.context.getLogLevel();      // 来自 LogPlugin
-const manager = app.context.getManager();        // 来自 MyPlugin
-const data = app.context.getAnotherData();       // 来自 AnotherPlugin
+function multiExtensionSystem(world: World, context: Context): void {
+    // 分别获取不同插件的扩展
+    const logExt = context.getExtension<LogPluginExtension>();
+    const timeExt = context.getExtension<TimePluginExtension>();
+    const diagExt = context.getExtension<DiagnosticsPluginExtension>();
+
+    if (logExt && timeExt) {
+        const level = logExt.logLevel;
+        const deltaTime = timeExt.getDeltaSeconds();
+        print(`[${level}] Delta: ${deltaTime}`);
+    }
+}
 ```
 
-### 类型合并
+### 扩展组合使用
 
 ```typescript
-// 如果需要显式类型声明，可以创建联合类型
-type MyPlugins = LogPlugin | MyPlugin | AnotherPlugin;
+function combinedSystem(world: World, context: Context): void {
+    const timeExt = context.getExtension<TimePluginExtension>();
+    const diagExt = context.getExtension<DiagnosticsPluginExtension>();
 
-const context = getContextWithExtensions<MyPlugins>(app);
-// context 现在有所有插件的扩展方法
+    // 组合使用多个扩展
+    if (timeExt && diagExt) {
+        const fps = 1 / timeExt.getDeltaSeconds();
+        diagExt.addMeasurement("fps", fps);
+    }
+}
 ```
 
 ## 实际示例
 
 ### LogPlugin 扩展实现
 
+完整展示新模式的实现：
+
+```typescript
+// src/bevy_log/extension.ts
+/**
+ * LogPlugin 扩展接口
+ * 提供日志管理和配置的扩展方法
+ */
+export interface LogPluginExtension {
+    /** 全局日志管理器 */
+    logManager: LogSubscriber;
+
+    /** 当前日志级别 */
+    logLevel: Level;
+}
+```
+
 ```typescript
 // src/bevy_log/lib.ts
-export interface LogPluginExtensionFactories {
-    getLogManager: ExtensionFactory<() => LogSubscriber | undefined>;
-    getLogLevel: ExtensionFactory<() => Level>;
+import { Plugin, App } from "../bevy_app";
+import { ___getTypeDescriptor } from "bevy_core";
+import { LogPluginExtension } from "./extension";
+
+export class LogPlugin implements Plugin<LogPluginExtension> {
+    /** 扩展类型描述符 */
+    extensionDescriptor = ___getTypeDescriptor<LogPluginExtension>()!;
+
+    private readonly logLevel: Level;
+
+    constructor(config?: LogPluginConfig) {
+        this.logLevel = config?.level ?? Level.INFO;
+    }
+
+    /**
+     * 获取扩展对象
+     * 返回包含日志管理器和配置的扩展
+     */
+    getExtension(app: App): LogPluginExtension {
+        return {
+            logManager: LogSubscriber.getGlobal()!,
+            logLevel: this.logLevel
+        };
+    }
+
+    build(app: App): void {
+        // 初始化日志订阅器
+        const subscriber = new LogSubscriber();
+        const envFilter = EnvFilter.tryFromDefaultEnv(defaultFilter);
+        const robloxLayer = new RobloxLayer(envFilter);
+        subscriber.addLayer(robloxLayer);
+        LogSubscriber.setGlobalDefault(subscriber);
+    }
+
+    name(): string {
+        return "LogPlugin";
+    }
+}
+```
+
+### 使用 LogPlugin 扩展
+
+```typescript
+import { World } from "@rbxts/matter";
+import { Context } from "../bevy_ecs";
+import { LogPluginExtension, Level } from "../bevy_log";
+
+// 在系统中使用
+function loggingSystem(world: World, context: Context): void {
+    const logExt = context.getExtension<LogPluginExtension>();
+
+    if (logExt) {
+        // 访问日志管理器
+        const manager = logExt.logManager;
+
+        // 获取当前级别
+        const level = logExt.logLevel;
+
+        print(`Current log level: ${Level[level]}`);
+    }
 }
 
-export class LogPlugin extends BasePlugin {
-    extension: LogPluginExtensionFactories;
-    
-    constructor(config?: Partial<LogPlugin>) {
-        super();
-        // ... 初始化配置
-        
-        this.extension = {
-            getLogManager: (world: World, context: Context, plugin: LogPlugin) => {
-                return () => LogSubscriber.getGlobal();
-            },
-            
-            getLogLevel: (world: World, context: Context, plugin: LogPlugin) => {
-                const currentLevel = plugin.level;
-                return () => currentLevel;
-            },
+// 在应用中配置
+const app = App.create()
+    .addPlugin(new LogPlugin({ level: Level.DEBUG }));
+
+// 非系统上下文访问
+const logExt = app.getResource<LogPluginExtension>();
+print(`Log level: ${logExt?.logLevel}`);
+```
+
+## 最佳实践
+
+### 1. 扩展接口命名
+
+- 接口以 `Extension` 结尾
+- 方法名使用动词开头
+- 导出接口类型供外部使用
+
+```typescript
+// ✅ 正确命名
+export interface TimePluginExtension { }
+export interface DiagnosticsPluginExtension { }
+
+// ❌ 旧命名（不再使用）
+export interface TimePluginExtensionFactories { }
+```
+
+### 2. 空值处理
+
+总是假设扩展可能不存在：
+
+```typescript
+function robustSystem(world: World, context: Context): void {
+    // ✅ 方式1：if 检查
+    const timeExt = context.getExtension<TimePluginExtension>();
+    if (timeExt) {
+        const deltaTime = timeExt.getDeltaSeconds();
+    }
+
+    // ✅ 方式2：可选链
+    const deltaTime = context.getExtension<TimePluginExtension>()?.getDeltaSeconds() ?? 0;
+
+    // ✅ 方式3：提前返回
+    const diagExt = context.getExtension<DiagnosticsPluginExtension>();
+    if (!diagExt) return;
+
+    diagExt.addMeasurement("metric", 42);
+}
+```
+
+### 3. 类型导出
+
+在插件模块的 `index.ts` 中导出扩展接口：
+
+```typescript
+// index.ts
+export { MyPlugin } from "./plugin";
+export type { MyPluginExtension } from "./extension";  // 导出类型
+export { MyComponent } from "./components";
+```
+
+### 4. 扩展对象构造
+
+getExtension() 方法可以直接访问插件成员，无需闭包捕获：
+
+```typescript
+class MyPlugin implements Plugin<MyPluginExtension> {
+    private manager: MyManager;
+    private config: MyConfig;
+
+    getExtension(app: App): MyPluginExtension {
+        return {
+            // ✅ 直接引用 this 成员
+            getManager: () => this.manager,
+            getConfig: () => this.config,
+
+            // ✅ 可以访问 app 参数
+            getWorld: () => app.getWorld(),
+
+            // ✅ 可以调用插件方法
+            reset: () => this.resetState(),
+        };
+    }
+
+    private resetState(): void {
+        this.manager.clear();
+    }
+}
+```
+
+### 5. 扩展依赖其他扩展
+
+在 getExtension 中可以访问其他扩展：
+
+```typescript
+class AdvancedPlugin implements Plugin<AdvancedPluginExtension> {
+    extensionDescriptor = ___getTypeDescriptor<AdvancedPluginExtension>()!;
+
+    getExtension(app: App): AdvancedPluginExtension {
+        // 获取依赖的扩展
+        const timeExt = app.getResource<TimePluginExtension>();
+        const logExt = app.getResource<LogPluginExtension>();
+
+        return {
+            doAdvancedWork: () => {
+                if (timeExt && logExt) {
+                    const dt = timeExt.getDeltaSeconds();
+                    logExt.logManager.logEvent({
+                        level: Level.INFO,
+                        message: `Processing with dt=${dt}`,
+                        timestamp: os.time()
+                    });
+                }
+            }
         };
     }
 }
 ```
 
-### 使用示例
+### 6. 方法命名约定
+
+使用一致的动词前缀：
 
 ```typescript
-// 在你的应用中
-const app = App.create()
-    .addPlugin(new LogPlugin({ level: Level.DEBUG }));
+export interface MyPluginExtension {
+    // Getters - 获取值
+    getManager: () => Manager;
+    getConfig: () => Config;
+    getCurrent: () => State;
 
-// 直接使用，有完整的类型安全！
-const currentLevel = app.context.getLogLevel();
-const logManager = app.context.getLogManager();
+    // Setters - 设置值
+    setConfig: (config: Config) => void;
+    setTimeout: (timeout: number) => void;
 
-print("Current log level:", Level[currentLevel]);
-```
+    // Boolean checks - 布尔检查
+    isPaused: () => boolean;
+    hasFeature: (name: string) => boolean;
 
-## 最佳实践
-
-### 1. 命名约定
-
-- 扩展接口以 `PluginExtensionFactories` 结尾
-- 方法名使用动词开头，如 `getManager`, `setConfig`, `doAction`
-- 避免与现有 Context 方法冲突
-
-### 2. 错误处理
-
-```typescript
-getManager: (world: World, context: Context, plugin: MyPlugin) => {
-    return () => {
-        const manager = plugin.getManagerInstance();
-        if (!manager) {
-            error("Manager not initialized. Did you call plugin.build()?");
-        }
-        return manager;
-    };
-},
-```
-
-### 3. 资源访问
-
-```typescript
-getData: (world: World, context: Context, plugin: MyPlugin) => {
-    return () => {
-        // 访问 ECS 资源
-        const resource = world.getResource(MyResource);
-        if (!resource) {
-            warn("MyResource not found in world");
-            return undefined;
-        }
-        return resource.getData();
-    };
-},
-```
-
-### 4. 类型导出
-
-```typescript
-// 在插件模块中导出扩展接口，方便用户使用
-export type { MyPluginExtensionFactories };
+    // Actions - 操作
+    doWork: () => void;
+    reset: () => void;
+    update: (data: Data) => void;
+}
 ```
 
 ## 类型系统详解
@@ -258,28 +484,73 @@ export type { MyPluginExtensionFactories };
 ### 核心类型
 
 ```typescript
-// 扩展工厂函数类型
-type ExtensionFactory<T> = (world: World, context: Context, plugin: any) => T;
+// 插件泛型接口
+interface Plugin<T = undefined> {
+    readonly extensionDescriptor?: TypeDescriptor<T>;
+    getExtension?(app: App): T;
+    build(app: App): void;
+    // ...其他方法
+}
 
-// 从插件提取扩展
-type ExtractPluginExtensions<P> = P extends { extension: infer E } ? E : {};
+// 类型描述符（运行时类型标识）
+import { ___getTypeDescriptor } from "bevy_core";
+const descriptor = ___getTypeDescriptor<MyExtension>()!;
 
-// 从工厂提取实际函数类型
-type ExtractExtensionTypes<F> = {
-    [K in keyof F]: F[K] extends ExtensionFactory<infer T> ? T : never;
-};
-
-// 带扩展的 Context 类型
-type ContextWithExtensions<E> = Context & ExtractExtensionTypes<ExtractPluginExtensions<E>>;
+// Context 扩展获取方法
+interface Context {
+    getExtension<T>(): T | undefined;
+    // ...其他方法
+}
 ```
 
-### 类型推导流程
+### 类型工作流程
 
-1. 插件定义 `extension: MyPluginExtensionFactories`
-2. `addPlugin` 提取插件的扩展类型
-3. 工厂函数转换为实际函数类型
-4. 合并到 App 的 context 类型中
-5. 运行时调用工厂函数，将实际函数绑定到 context
+1. **定义扩展接口**
+   ```typescript
+   export interface MyExtension {
+       doSomething: () => void;
+   }
+   ```
+
+2. **插件声明扩展类型**
+   ```typescript
+   class MyPlugin implements Plugin<MyExtension> {
+       extensionDescriptor = ___getTypeDescriptor<MyExtension>()!;
+   }
+   ```
+
+3. **App 注册扩展为资源**
+   ```typescript
+   // App 内部逻辑（伪代码）
+   if (plugin.extensionDescriptor && plugin.getExtension) {
+       const extension = plugin.getExtension(app);
+       app.insertResource(extension);  // 存储为资源
+   }
+   ```
+
+4. **用户通过类型获取**
+   ```typescript
+   const ext = context.getExtension<MyExtension>();
+   // 或
+   const ext = app.getResource<MyExtension>();
+   ```
+
+### TypeDescriptor 作用
+
+- 提供运行时类型标识
+- 用于资源系统的类型查找
+- 支持反射和序列化
+
+```typescript
+// TypeDescriptor 使用示例
+class MyExtension {
+    static TYPE_ID = new TypeDescriptor("MyExtension");
+}
+
+// App 使用 TypeDescriptor 存储和检索
+app.insertResource(extension);  // 内部使用 extensionDescriptor
+context.getExtension<MyExtension>();  // 内部使用类型查找
+```
 
 ## 故障排除
 
@@ -288,30 +559,32 @@ type ContextWithExtensions<E> = Context & ExtractExtensionTypes<ExtractPluginExt
 **Q: 为什么扩展方法没有类型提示？**
 
 A: 确保：
-1. 插件正确实现了 `extension` 属性
-2. 扩展接口正确定义了工厂函数类型
-3. 使用了正确的插件类型参数
+1. 插件正确实现了 `Plugin<ExtensionType>` 接口
+2. 定义了 `extensionDescriptor` 属性
+3. 导出了扩展接口类型
+4. 使用了正确的类型参数
 
-**Q: 运行时扩展方法未定义？**
+**Q: 运行时扩展为 undefined？**
 
 A: 检查：
 1. 插件是否正确添加到 App
-2. 工厂函数是否正确返回了函数
-3. 插件的 `build` 方法是否被调用
+2. `getExtension()` 方法是否正确实现
+3. 插件的 `build()` 方法是否被调用
+4. 类型参数是否正确
 
-**Q: roblox-ts 编译错误？**
+**Q: 如何在插件间共享扩展？**
 
-A: 确保：
-1. 工厂函数使用 `plugin` 参数而不是 `this`
-2. 所有类型都正确导入
-3. 避免在工厂函数中使用箭头函数的 `this`
+A: 方法：
+1. 在 `getExtension()` 中使用 `app.getResource<OtherExtension>()`
+2. 通过依赖注入模式传递扩展引用
+3. 使用资源系统共享数据
 
 ## 总结
 
-插件扩展系统提供了一种类型安全、易用的方式来扩展 App 功能。通过工厂模式和 TypeScript 的类型推导，你可以创建强大的插件，同时享受完整的开发体验。
+插件扩展系统提供了一种类型安全、易用的方式来扩展 App 功能。关键要点：
 
-关键要点：
-- 使用工厂模式避免 `this` 问题
-- 享受完整的类型安全和代码提示
-- 可以直接通过 `app.context.methodName()` 访问
-- 支持多插件扩展的自动合并
+- **两种访问方式**：`context.getExtension<T>()` 用于系统，`app.getResource<T>()` 用于其他场景
+- **类型安全**：通过泛型参数和 TypeDescriptor 确保类型正确
+- **资源化管理**：扩展作为资源存储，统一管理
+- **代码简洁**：相比工厂模式减少大量样板代码
+- **空值检查**：总是假设扩展可能不存在
